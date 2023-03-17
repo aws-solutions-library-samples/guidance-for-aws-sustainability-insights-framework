@@ -1,0 +1,20 @@
+{
+	"extends": "@tsconfig/node16-strictest-esm/tsconfig.json",
+	"compilerOptions": {
+		"outDir": "dist",
+		"rootDir": "src",
+		"types": ["node"],
+
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"esModuleInterop": true,
+
+		// overrides of extends
+		"strict": false,
+		"exactOptionalPropertyTypes": false
+	},
+
+	"include": ["src/**/*.ts"],
+	"exclude": ["./**/__mocks__/*.ts", ".git", ".history", ".vscode", "cdk.out", "dist", "lib", "node_modules"]
+}

@@ -1,0 +1,2143 @@
+{
+	"openapi": "3.0.3",
+	"info": {
+		"title": "SIF SaaS: Access Management",
+		"description": "\nHas accountability for:\n- User management\n- Group and permission management\n\nSupported security roles within each group:\n- admin\n- contributor\n- reader\n\nAPI version is managed via `Accept-Version` request header. Supported versions:\n- 1.0.0\n",
+		"version": "0.0.1"
+	},
+	"components": {
+		"securitySchemes": {
+			"tenantUserPool": {
+				"type": "apiKey",
+				"name": "Authorization",
+				"in": "header"
+			}
+		},
+		"schemas": {
+			"tags": {
+				"description": "User-defined searchable tags",
+				"type": "object",
+				"additionalProperties": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"type": "null"
+						}
+					]
+				}
+			},
+			"newUserRequestBody": {
+				"type": "object",
+				"properties": {
+					"email": {
+						"description": "Email address of user. Also used as the username to sign in.",
+						"format": "email",
+						"type": "string"
+					},
+					"role": {
+						"type": "string",
+						"enum": ["admin", "contributor", "reader"],
+						"description": "User role"
+					},
+					"password": {
+						"description": "Temporary password",
+						"type": "string"
+					},
+					"tags": {
+						"$ref": "#/components/schemas/tags"
+					},
+					"defaultGroup": {
+						"description": "The default group the user will be logged into",
+						"type": "string"
+					}
+				},
+				"required": ["email", "role"]
+			},
+			"editUserRequestBody": {
+				"type": "object",
+				"properties": {
+					"password": {
+						"description": "The new password",
+						"type": "string"
+					},
+					"state": {
+						"type": "string",
+						"enum": ["invited", "active", "disabled"],
+						"description": "User state"
+					},
+					"tags": {
+						"$ref": "#/components/schemas/tags"
+					},
+					"defaultGroup": {
+						"description": "The default group the user will be logged into",
+						"type": "string"
+					}
+				}
+			},
+			"userResource": {
+				"type": "object",
+				"properties": {
+					"email": {
+						"description": "Email address of user. Also used as the username to sign in.",
+						"format": "email",
+						"type": "string"
+					},
+					"state": {
+						"type": "string",
+						"enum": ["invited", "active", "disabled"],
+						"description": "User state"
+					},
+					"groups": {
+						"description": "Access groups along with assigned role granted to the user",
+						"type": "object",
+						"additionalProperties": {
+							"type": "string",
+							"enum": ["admin", "contributor", "reader"],
+							"description": "User role"
+						}
+					},
+					"tags": {
+						"$ref": "#/components/schemas/tags"
+					},
+					"defaultGroup": {
+						"description": "The default group the user will be logged into",
+						"type": "string"
+					},
+					"createdAt": {
+						"description": "Date/time created",
+						"format": "date-time",
+						"type": "string"
+					},
+					"createdBy": {
+						"description": "ID of owner.",
+						"type": "string"
+					},
+					"updatedAt": {
+						"description": "Date/time updated",
+						"format": "date-time",
+						"type": "string"
+					},
+					"updatedBy": {
+						"description": "Last ID of user who made a change.",
+						"type": "string"
+					}
+				},
+				"required": ["email"]
+			},
+			"usersList": {
+				"type": "object",
+				"properties": {
+					"users": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/userResource"
+						}
+					},
+					"pagination": {
+						"type": "object",
+						"properties": {
+							"lastEvaluatedToken": {
+								"description": "Token used to paginate to the next page of search result.",
+								"type": "string"
+							}
+						}
+					}
+				},
+				"required": ["users"]
+			},
+			"newGroupRequestBody": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"description": "Name of group. May only contain letters, numbers, and dashes (`-`). Note that the `id` of the group is comprised of the names of the group and all its parents which in total may not exceed 114 characters long.",
+						"type": "string"
+					},
+					"description": {
+						"description": "Description of group.",
+						"type": "string"
+					},
+					"tags": {
+						"$ref": "#/components/schemas/tags"
+					},
+					"configuration": {
+						"$ref": "#/components/schemas/configuration"
+					}
+				},
+				"required": ["name"]
+			},
+			"editGroupRequestBody": {
+				"type": "object",
+				"properties": {
+					"description": {
+						"description": "Description of group.",
+						"type": "string"
+					},
+					"state": {
+						"type": "string",
+						"enum": ["active", "disabled"],
+						"description": "Group state"
+					},
+					"tags": {
+						"$ref": "#/components/schemas/tags"
+					},
+					"configuration": {
+						"$ref": "#/components/schemas/configuration"
+					}
+				}
+			},
+			"groupResource": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"description": "Unique id.",
+						"type": "string"
+					},
+					"name": {
+						"description": "Name of group. May only contain letters, numbers, and dashes (`-`). Note that the `id` of the group is comprised of the names of the group and all its parents which in total may not exceed 114 characters long.",
+						"type": "string"
+					},
+					"description": {
+						"description": "Description of group.",
+						"type": "string"
+					},
+					"state": {
+						"type": "string",
+						"enum": ["active", "disabled"],
+						"description": "Group state"
+					},
+					"tags": {
+						"$ref": "#/components/schemas/tags"
+					},
+					"createdBy": {
+						"description": "ID of owner.",
+						"type": "string"
+					},
+					"createdAt": {
+						"description": "Date/time created",
+						"format": "date-time",
+						"type": "string"
+					},
+					"updatedBy": {
+						"description": "Last ID of user who made a change.",
+						"type": "string"
+					},
+					"updatedAt": {
+						"description": "Date/time updated",
+						"format": "date-time",
+						"type": "string"
+					},
+					"configuration": {
+						"$ref": "#/components/schemas/configuration"
+					},
+					"configurationSource": {
+						"description": "application configuration specified on the group",
+						"type": "object",
+						"additionalProperties": {
+							"type": "object",
+							"properties": {
+								"preferredGroup": {
+									"description": "If there are multiple resources with the same, select the one from the group specified in this parameter",
+									"type": "string"
+								},
+								"referenceDatasets": {
+									"type": "object",
+									"properties": {
+										"alwaysUseLatest": {
+											"description": "True if if you want to use latest version of reference dataset regardless of status, false if you want to fallback to previous version",
+											"type": "boolean"
+										}
+									}
+								},
+								"pipelineProcessor": {
+									"type": "object",
+									"properties": {
+										"chunkSize": {
+											"description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
+											"minimum": 1,
+											"maximum": 5,
+											"type": "number"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"required": ["id"]
+			},
+			"configurationSource": {
+				"description": "application configuration specified on the group",
+				"type": "object",
+				"additionalProperties": {
+					"type": "object",
+					"properties": {
+						"preferredGroup": {
+							"description": "If there are multiple resources with the same, select the one from the group specified in this parameter",
+							"type": "string"
+						},
+						"referenceDatasets": {
+							"type": "object",
+							"properties": {
+								"alwaysUseLatest": {
+									"description": "True if if you want to use latest version of reference dataset regardless of status, false if you want to fallback to previous version",
+									"type": "boolean"
+								}
+							}
+						},
+						"pipelineProcessor": {
+							"type": "object",
+							"properties": {
+								"chunkSize": {
+									"description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
+									"minimum": 1,
+									"maximum": 5,
+									"type": "number"
+								}
+							}
+						}
+					}
+				}
+			},
+			"configuration": {
+				"type": "object",
+				"properties": {
+					"preferredGroup": {
+						"description": "If there are multiple resources with the same, select the one from the group specified in this parameter",
+						"type": "string"
+					},
+					"referenceDatasets": {
+						"type": "object",
+						"properties": {
+							"alwaysUseLatest": {
+								"description": "True if if you want to use latest version of reference dataset regardless of status, false if you want to fallback to previous version",
+								"type": "boolean"
+							}
+						}
+					},
+					"pipelineProcessor": {
+						"type": "object",
+						"properties": {
+							"chunkSize": {
+								"description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
+								"minimum": 1,
+								"maximum": 5,
+								"type": "number"
+							}
+						}
+					}
+				}
+			},
+			"groupsList": {
+				"type": "object",
+				"properties": {
+					"groups": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/groupResource"
+						}
+					},
+					"pagination": {
+						"type": "object",
+						"properties": {
+							"lastEvaluatedToken": {
+								"description": "Token used to paginate to the next page of search result.",
+								"type": "string"
+							}
+						}
+					}
+				},
+				"required": ["groups"]
+			},
+			"groupRole": {
+				"type": "object",
+				"properties": {
+					"role": {
+						"type": "string",
+						"enum": ["admin", "contributor", "reader"],
+						"description": "User role"
+					}
+				},
+				"required": ["role"]
+			}
+		}
+	},
+	"paths": {
+		"/users": {
+			"post": {
+				"tags": ["Users"],
+				"description": "If the email is previously unknown to the platform, the user is invited to the platform.\n\n      The user if granted access to the group in context.\n\nPermissions:\n- Only `admin` may grant users access.\n\n",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/newUserRequestBody"
+							},
+							"examples": {
+								"New user": {
+									"summary": "Register and invite new user.",
+									"description": "Register new user within Cognito, and send an invitation to activate and verify email.",
+									"value": {
+										"email": "someone@example.com",
+										"role": "contributor"
+									}
+								},
+								"Temporary password": {
+									"summary": "Optionally set the user's temporary password.",
+									"value": {
+										"email": "someone@example.com",
+										"role": "contributor",
+										"password": "zo3oOX2#C8h2"
+									}
+								}
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["admin", "superAdmin"],
+				"responses": {
+					"201": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {
+										"email": {
+											"description": "Email address of user. Also used as the username to sign in.",
+											"format": "email",
+											"type": "string"
+										},
+										"state": {
+											"type": "string",
+											"enum": ["invited", "active", "disabled"],
+											"description": "User state"
+										},
+										"groups": {
+											"description": "Access groups along with assigned role granted to the user",
+											"type": "object",
+											"additionalProperties": {
+												"type": "string",
+												"enum": ["admin", "contributor", "reader"],
+												"description": "User role"
+											}
+										},
+										"tags": {
+											"$ref": "#/components/schemas/tags"
+										},
+										"defaultGroup": {
+											"description": "The default group the user will be logged into",
+											"type": "string"
+										},
+										"createdAt": {
+											"description": "Date/time created",
+											"format": "date-time",
+											"type": "string"
+										},
+										"createdBy": {
+											"description": "ID of owner.",
+											"type": "string"
+										},
+										"updatedAt": {
+											"description": "Date/time updated",
+											"format": "date-time",
+											"type": "string"
+										},
+										"updatedBy": {
+											"description": "Last ID of user who made a change.",
+											"type": "string"
+										}
+									},
+									"required": ["email"]
+								},
+								"examples": {
+									"New user": {
+										"summary": "New user created successfully.",
+										"description": "New user registered within Cognito, along with an invitation sent to activate user and verify email.",
+										"value": {
+											"email": "someone@example.com",
+											"state": "invited",
+											"groups": {
+												"/usa/southwest": "contributor"
+											},
+											"createdAt": "2022-08-10T23:55:20.322Z"
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Bad request.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Conflict.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Conflict.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"syntaxErrors": {
+											"type": "object",
+											"properties": {
+												"charPositionInLine": {
+													"type": "integer"
+												},
+												"line": {
+													"type": "integer"
+												},
+												"msg": {
+													"type": "string"
+												}
+											},
+											"required": ["charPositionInLine", "line", "msg"]
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"tags": ["Users"],
+				"description": "Lists all users.\n\nPermissions\n- `reader` and above for the group in context.\n",
+				"parameters": [
+					{
+						"schema": {
+							"type": "integer"
+						},
+						"in": "query",
+						"name": "count",
+						"required": false,
+						"description": "Count of results to return."
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "query",
+						"name": "fromToken",
+						"required": false,
+						"description": "Token used to paginate from (exclusive)."
+					},
+					{
+						"schema": {
+							"type": "array",
+							"items": {
+								"description": "Tag key and value in the format of `key:value`.",
+								"type": "string"
+							}
+						},
+						"in": "query",
+						"name": "tags",
+						"required": false,
+						"description": "Tag keys and values to filter by."
+					},
+					{
+						"schema": {
+							"default": false,
+							"type": "boolean"
+						},
+						"in": "query",
+						"name": "includeParentGroups",
+						"required": false,
+						"description": "Include all parent groups result."
+					},
+					{
+						"schema": {
+							"default": false,
+							"type": "boolean"
+						},
+						"in": "query",
+						"name": "includeChildGroups",
+						"required": false,
+						"description": "Include all children groups result."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["reader", "contributor", "admin", "superAdmin"],
+				"responses": {
+					"200": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {
+										"users": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/userResource"
+											}
+										},
+										"pagination": {
+											"type": "object",
+											"properties": {
+												"lastEvaluatedToken": {
+													"description": "Token used to paginate to the next page of search result.",
+													"type": "string"
+												}
+											}
+										}
+									},
+									"required": ["users"]
+								},
+								"examples": {
+									"List of users": {
+										"summary": "Paginated list of users.",
+										"value": {
+											"users": [
+												{
+													"email": "someone@example.com",
+													"state": "invited",
+													"groups": {
+														"/usa/northwest": "admin",
+														"/usa/southwest": "contributor"
+													},
+													"createdAt": "2022-08-10T23:55:20.322Z",
+													"updatedAt": "2022-08-11T17:45:18.221Z"
+												},
+												{
+													"email": "someoneelse@somewhere.com",
+													"state": "active",
+													"groups": {
+														"/usa/northwest": "reader"
+													},
+													"createdAt": "2022-08-10T23:55:20.322Z",
+													"updatedAt": "2022-08-11T17:45:18.221Z"
+												}
+											],
+											"pagination": {
+												"count": 2,
+												"lastEvaluated": {
+													"email": "someoneelse@somewhere.com"
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/users/{email}": {
+			"delete": {
+				"tags": ["Users"],
+				"description": "Revokes a user's access to a group.\n\n      If the user has no more groups accessible the user is deleted.\n\nPermissions:\n- Only `admins` of the group in context may revoke a user.",
+				"parameters": [
+					{
+						"schema": {
+							"format": "email",
+							"type": "string"
+						},
+						"in": "path",
+						"name": "email",
+						"required": true,
+						"description": "URL encoded email address of user."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["admin", "superAdmin"],
+				"responses": {
+					"204": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Not found.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"patch": {
+				"tags": ["Users"],
+				"description": "Updates an existing user.\n\nPermissions:\n- `reader` and above may update their own password\n- `admin` roles may update any user status where they are themselves an `admin` of all the groups the user is a member of\n\n",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/editUserRequestBody"
+							},
+							"examples": {
+								"User deactivated": {
+									"summary": "Administrator deactivates a user.",
+									"value": {
+										"state": "inactive"
+									}
+								},
+								"Change password": {
+									"summary": "User changes password.",
+									"value": {
+										"password": "my_new_password"
+									}
+								}
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"schema": {
+							"format": "email",
+							"type": "string"
+						},
+						"in": "path",
+						"name": "email",
+						"required": true,
+						"description": "URL encoded email address of user."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["reader", "contributor", "admin", "superAdmin"],
+				"responses": {
+					"204": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {
+										"email": {
+											"description": "Email address of user. Also used as the username to sign in.",
+											"format": "email",
+											"type": "string"
+										},
+										"state": {
+											"type": "string",
+											"enum": ["invited", "active", "disabled"],
+											"description": "User state"
+										},
+										"groups": {
+											"description": "Access groups along with assigned role granted to the user",
+											"type": "object",
+											"additionalProperties": {
+												"type": "string",
+												"enum": ["admin", "contributor", "reader"],
+												"description": "User role"
+											}
+										},
+										"tags": {
+											"$ref": "#/components/schemas/tags"
+										},
+										"defaultGroup": {
+											"description": "The default group the user will be logged into",
+											"type": "string"
+										},
+										"createdAt": {
+											"description": "Date/time created",
+											"format": "date-time",
+											"type": "string"
+										},
+										"createdBy": {
+											"description": "ID of owner.",
+											"type": "string"
+										},
+										"updatedAt": {
+											"description": "Date/time updated",
+											"format": "date-time",
+											"type": "string"
+										},
+										"updatedBy": {
+											"description": "Last ID of user who made a change.",
+											"type": "string"
+										}
+									},
+									"required": ["email"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Bad request.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Conflict.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Conflict.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"syntaxErrors": {
+											"type": "object",
+											"properties": {
+												"charPositionInLine": {
+													"type": "integer"
+												},
+												"line": {
+													"type": "integer"
+												},
+												"msg": {
+													"type": "string"
+												}
+											},
+											"required": ["charPositionInLine", "line", "msg"]
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"tags": ["Users"],
+				"description": "Retrieve details of an existing user.\n\nPermissions:\n- `reader` and above for the group in context.\n",
+				"parameters": [
+					{
+						"schema": {
+							"format": "email",
+							"type": "string"
+						},
+						"in": "path",
+						"name": "email",
+						"required": true,
+						"description": "URL encoded email address of user."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["reader", "contributor", "admin", "superAdmin"],
+				"responses": {
+					"200": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {
+										"email": {
+											"description": "Email address of user. Also used as the username to sign in.",
+											"format": "email",
+											"type": "string"
+										},
+										"state": {
+											"type": "string",
+											"enum": ["invited", "active", "disabled"],
+											"description": "User state"
+										},
+										"groups": {
+											"description": "Access groups along with assigned role granted to the user",
+											"type": "object",
+											"additionalProperties": {
+												"type": "string",
+												"enum": ["admin", "contributor", "reader"],
+												"description": "User role"
+											}
+										},
+										"tags": {
+											"$ref": "#/components/schemas/tags"
+										},
+										"defaultGroup": {
+											"description": "The default group the user will be logged into",
+											"type": "string"
+										},
+										"createdAt": {
+											"description": "Date/time created",
+											"format": "date-time",
+											"type": "string"
+										},
+										"createdBy": {
+											"description": "ID of owner.",
+											"type": "string"
+										},
+										"updatedAt": {
+											"description": "Date/time updated",
+											"format": "date-time",
+											"type": "string"
+										},
+										"updatedBy": {
+											"description": "Last ID of user who made a change.",
+											"type": "string"
+										}
+									},
+									"required": ["email"]
+								},
+								"examples": {
+									"Existing user": {
+										"summary": "Existing user's details.",
+										"value": {
+											"email": "someone@example.com",
+											"state": "invited",
+											"groups": {
+												"/usa/northwest": "admin",
+												"/usa/southwest": "contributor"
+											},
+											"createdAt": "2022-08-10T23:55:20.322Z",
+											"updatedAt": "2022-08-11T17:45:18.221Z"
+										}
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Not found.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/groups": {
+			"post": {
+				"tags": ["Groups"],
+				"description": "Creates a new group.\n\nPermissions:\n- Only `admins` of the group in context may create new groups.\n",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/newGroupRequestBody"
+							},
+							"examples": {
+								"New top level group": {
+									"summary": "Creates the group `USA` as a child group.",
+									"value": {
+										"name": "USA",
+										"configuration": {
+											"pipelineProcessor": {
+												"chunkSize": 2
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["admin", "superAdmin"],
+				"responses": {
+					"201": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {
+										"id": {
+											"description": "Unique id.",
+											"type": "string"
+										},
+										"name": {
+											"description": "Name of group. May only contain letters, numbers, and dashes (`-`). Note that the `id` of the group is comprised of the names of the group and all its parents which in total may not exceed 114 characters long.",
+											"type": "string"
+										},
+										"description": {
+											"description": "Description of group.",
+											"type": "string"
+										},
+										"state": {
+											"type": "string",
+											"enum": ["active", "disabled"],
+											"description": "Group state"
+										},
+										"tags": {
+											"$ref": "#/components/schemas/tags"
+										},
+										"createdBy": {
+											"description": "ID of owner.",
+											"type": "string"
+										},
+										"createdAt": {
+											"description": "Date/time created",
+											"format": "date-time",
+											"type": "string"
+										},
+										"updatedBy": {
+											"description": "Last ID of user who made a change.",
+											"type": "string"
+										},
+										"updatedAt": {
+											"description": "Date/time updated",
+											"format": "date-time",
+											"type": "string"
+										},
+										"configuration": {
+											"$ref": "#/components/schemas/configuration"
+										},
+										"configurationSource": {
+											"description": "application configuration specified on the group",
+											"type": "object",
+											"additionalProperties": {
+												"type": "object",
+												"properties": {
+													"preferredGroup": {
+														"description": "If there are multiple resources with the same, select the one from the group specified in this parameter",
+														"type": "string"
+													},
+													"referenceDatasets": {
+														"type": "object",
+														"properties": {
+															"alwaysUseLatest": {
+																"description": "True if if you want to use latest version of reference dataset regardless of status, false if you want to fallback to previous version",
+																"type": "boolean"
+															}
+														}
+													},
+													"pipelineProcessor": {
+														"type": "object",
+														"properties": {
+															"chunkSize": {
+																"description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
+																"minimum": 1,
+																"maximum": 5,
+																"type": "number"
+															}
+														}
+													}
+												}
+											}
+										}
+									},
+									"required": ["id"]
+								},
+								"examples": {
+									"New group": {
+										"summary": "New group created successfully.",
+										"value": {
+											"id": "/usa/northwest",
+											"name": "Northwest",
+											"createdBy": "someone@example.com",
+											"createdAt": "2022-08-10T23:55:20.322Z",
+											"configuration": {
+												"pipelineProcessor": {
+													"chunkSize": 2
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Bad request.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Conflict.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Conflict.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"syntaxErrors": {
+											"type": "object",
+											"properties": {
+												"charPositionInLine": {
+													"type": "integer"
+												},
+												"line": {
+													"type": "integer"
+												},
+												"msg": {
+													"type": "string"
+												}
+											},
+											"required": ["charPositionInLine", "line", "msg"]
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"tags": ["Groups"],
+				"description": "Lists groups.\n\nPermissions:\n- Only members of the group in context may list its sub groups.",
+				"parameters": [
+					{
+						"schema": {
+							"type": "integer"
+						},
+						"in": "query",
+						"name": "count",
+						"required": false,
+						"description": "Count of results to return."
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "query",
+						"name": "fromToken",
+						"required": false,
+						"description": "Token used to paginate from (exclusive)."
+					},
+					{
+						"schema": {
+							"type": "array",
+							"items": {
+								"description": "Tag key and value in the format of `key:value`.",
+								"type": "string"
+							}
+						},
+						"in": "query",
+						"name": "tags",
+						"required": false,
+						"description": "Tag keys and values to filter by."
+					},
+					{
+						"schema": {
+							"default": false,
+							"type": "boolean"
+						},
+						"in": "query",
+						"name": "includeParentGroups",
+						"required": false,
+						"description": "Include all parent groups result."
+					},
+					{
+						"schema": {
+							"default": false,
+							"type": "boolean"
+						},
+						"in": "query",
+						"name": "includeChildGroups",
+						"required": false,
+						"description": "Include all children groups result."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["reader", "contributor", "admin", "superAdmin"],
+				"responses": {
+					"200": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {
+										"groups": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/groupResource"
+											}
+										},
+										"pagination": {
+											"type": "object",
+											"properties": {
+												"lastEvaluatedToken": {
+													"description": "Token used to paginate to the next page of search result.",
+													"type": "string"
+												}
+											}
+										}
+									},
+									"required": ["groups"]
+								},
+								"examples": {
+									"List of groups": {
+										"summary": "Paginated list of groups.",
+										"value": {
+											"groups": [
+												{
+													"id": "/usa/northwest",
+													"name": "Northwest",
+													"description": "Northwest region",
+													"state": "active",
+													"createdBy": "someone@example.com",
+													"createdAt": "2022-08-10T23:55:20.322Z"
+												},
+												{
+													"id": "/usa/southwest",
+													"name": "Southwest",
+													"description": "Southwest region",
+													"state": "active",
+													"createdBy": "someone@example.com",
+													"createdAt": "2022-08-10T23:55:20.322Z",
+													"updatedBy": "someoneelse@somewhere.com",
+													"updatedAt": "2022-08-11T17:45:18.221Z"
+												}
+											],
+											"pagination": {
+												"count": 2,
+												"lastEvaluated": {
+													"id": "/usa/southwest"
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/groups/{groupId}": {
+			"patch": {
+				"tags": ["Groups"],
+				"description": "Updates an sub group.\n\nPermissions:\n- Only `admins` of the group may update.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/editGroupRequestBody"
+							},
+							"examples": {
+								"Update group": {
+									"summary": "Update group.",
+									"value": {
+										"description": "North west region",
+										"applicationConfiguration": {
+											"pipelineProcessor": {
+												"chunkSize": 2
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "path",
+						"name": "groupId",
+						"required": true,
+						"description": "URL encoded id of group."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["admin", "superAdmin"],
+				"responses": {
+					"200": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {
+										"id": {
+											"description": "Unique id.",
+											"type": "string"
+										},
+										"name": {
+											"description": "Name of group. May only contain letters, numbers, and dashes (`-`). Note that the `id` of the group is comprised of the names of the group and all its parents which in total may not exceed 114 characters long.",
+											"type": "string"
+										},
+										"description": {
+											"description": "Description of group.",
+											"type": "string"
+										},
+										"state": {
+											"type": "string",
+											"enum": ["active", "disabled"],
+											"description": "Group state"
+										},
+										"tags": {
+											"$ref": "#/components/schemas/tags"
+										},
+										"createdBy": {
+											"description": "ID of owner.",
+											"type": "string"
+										},
+										"createdAt": {
+											"description": "Date/time created",
+											"format": "date-time",
+											"type": "string"
+										},
+										"updatedBy": {
+											"description": "Last ID of user who made a change.",
+											"type": "string"
+										},
+										"updatedAt": {
+											"description": "Date/time updated",
+											"format": "date-time",
+											"type": "string"
+										},
+										"configuration": {
+											"$ref": "#/components/schemas/configuration"
+										},
+										"configurationSource": {
+											"description": "application configuration specified on the group",
+											"type": "object",
+											"additionalProperties": {
+												"type": "object",
+												"properties": {
+													"preferredGroup": {
+														"description": "If there are multiple resources with the same, select the one from the group specified in this parameter",
+														"type": "string"
+													},
+													"referenceDatasets": {
+														"type": "object",
+														"properties": {
+															"alwaysUseLatest": {
+																"description": "True if if you want to use latest version of reference dataset regardless of status, false if you want to fallback to previous version",
+																"type": "boolean"
+															}
+														}
+													},
+													"pipelineProcessor": {
+														"type": "object",
+														"properties": {
+															"chunkSize": {
+																"description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
+																"minimum": 1,
+																"maximum": 5,
+																"type": "number"
+															}
+														}
+													}
+												}
+											}
+										}
+									},
+									"required": ["id"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Bad request.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "get",
+				"tags": ["Groups"],
+				"description": "Retrieve details of an existing group.\n\nPermissions:\n- Only members of the group in context may retrieve details of a group.",
+				"parameters": [
+					{
+						"schema": {
+							"default": false,
+							"type": "boolean"
+						},
+						"in": "query",
+						"name": "showConfigurationSource",
+						"required": true,
+						"description": "Show all the properties that the current group inherits/override from its parents"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "path",
+						"name": "groupId",
+						"required": true,
+						"description": "URL encoded id of group."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["reader", "contributor", "admin", "superAdmin"],
+				"responses": {
+					"200": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {
+										"id": {
+											"description": "Unique id.",
+											"type": "string"
+										},
+										"name": {
+											"description": "Name of group. May only contain letters, numbers, and dashes (`-`). Note that the `id` of the group is comprised of the names of the group and all its parents which in total may not exceed 114 characters long.",
+											"type": "string"
+										},
+										"description": {
+											"description": "Description of group.",
+											"type": "string"
+										},
+										"state": {
+											"type": "string",
+											"enum": ["active", "disabled"],
+											"description": "Group state"
+										},
+										"tags": {
+											"$ref": "#/components/schemas/tags"
+										},
+										"createdBy": {
+											"description": "ID of owner.",
+											"type": "string"
+										},
+										"createdAt": {
+											"description": "Date/time created",
+											"format": "date-time",
+											"type": "string"
+										},
+										"updatedBy": {
+											"description": "Last ID of user who made a change.",
+											"type": "string"
+										},
+										"updatedAt": {
+											"description": "Date/time updated",
+											"format": "date-time",
+											"type": "string"
+										},
+										"configuration": {
+											"$ref": "#/components/schemas/configuration"
+										},
+										"configurationSource": {
+											"description": "application configuration specified on the group",
+											"type": "object",
+											"additionalProperties": {
+												"type": "object",
+												"properties": {
+													"preferredGroup": {
+														"description": "If there are multiple resources with the same, select the one from the group specified in this parameter",
+														"type": "string"
+													},
+													"referenceDatasets": {
+														"type": "object",
+														"properties": {
+															"alwaysUseLatest": {
+																"description": "True if if you want to use latest version of reference dataset regardless of status, false if you want to fallback to previous version",
+																"type": "boolean"
+															}
+														}
+													},
+													"pipelineProcessor": {
+														"type": "object",
+														"properties": {
+															"chunkSize": {
+																"description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
+																"minimum": 1,
+																"maximum": 5,
+																"type": "number"
+															}
+														}
+													}
+												}
+											}
+										}
+									},
+									"required": ["id"]
+								},
+								"examples": {
+									"Existing group": {
+										"summary": "Existing group's details.",
+										"value": {
+											"id": "/usa/northwest",
+											"name": "Northwest",
+											"description": "Northwest region.",
+											"state": "active",
+											"createdAt": "2022-08-10T23:55:20.322Z",
+											"createdBy": "someone@example.com",
+											"updatedAt": "2022-08-11T17:45:18.221Z",
+											"updatedBy": "someoneelse@somewhere.com",
+											"configuration": {
+												"pipelineProcessor": {
+													"chunkSize": 2
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Not found.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "delete",
+				"tags": ["Groups"],
+				"description": "Deletes an existing group.\n\nWarning! This is an irreversible action and will cause permanent data loss!\n\nFor protection:\n- any users granted access to the group directly must have been deleted.\n- only groups that have been set to `disabled` may be deleted.\n\nPermissions:\n- Only `admins` of the group in context may delete a group.\n",
+				"parameters": [
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "path",
+						"name": "groupId",
+						"required": true,
+						"description": "URL encoded id of group."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["admin", "superAdmin"],
+				"responses": {
+					"204": {
+						"description": "Success.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Success.",
+									"type": "object",
+									"properties": {}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Not found.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Conflict.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Conflict.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"syntaxErrors": {
+											"type": "object",
+											"properties": {
+												"charPositionInLine": {
+													"type": "integer"
+												},
+												"line": {
+													"type": "integer"
+												},
+												"msg": {
+													"type": "string"
+												}
+											},
+											"required": ["charPositionInLine", "line", "msg"]
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/tags/{key}": {
+			"get": {
+				"operationId": "listTags",
+				"summary": "List tag values",
+				"tags": ["Tags"],
+				"description": "List tags for a given key.\n\nFor hierarchical / cascading tags, provide the `?parentValue` query string parameter.\n\nUse the `?resourceType` query string parameter to filter between `User` and `Group` resource types..\n\nPermissions:\n- `reader` and above may list tags.\n",
+				"parameters": [
+					{
+						"schema": {
+							"type": "integer"
+						},
+						"in": "query",
+						"name": "count",
+						"required": false,
+						"description": "Count of results to return."
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "query",
+						"name": "fromValue",
+						"required": false,
+						"description": "Tag value to paginate from (exclusive)."
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "query",
+						"name": "parentValue",
+						"required": false,
+						"description": "Chosen parent value for use with hierarchical tags."
+					},
+					{
+						"schema": {
+							"type": "string",
+							"enum": ["user", "group"]
+						},
+						"in": "query",
+						"name": "resourceType",
+						"required": true,
+						"description": "Resource type"
+					},
+					{
+						"schema": {
+							"type": "string"
+						},
+						"in": "path",
+						"name": "key",
+						"required": true,
+						"description": "Tag key."
+					},
+					{
+						"in": "header",
+						"name": "accept-version",
+						"required": true,
+						"description": "API version",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "accept",
+						"required": true,
+						"description": "Accepted Content Type",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"x-security-scopes": ["reader", "contributor", "admin", "superAdmin"],
+				"responses": {
+					"200": {
+						"description": "List of tag values",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "List of tag values",
+									"type": "object",
+									"properties": {
+										"values": {
+											"description": "Tag values and labels.",
+											"type": "object",
+											"additionalProperties": {
+												"type": "string"
+											}
+										},
+										"pagination": {
+											"type": "object",
+											"properties": {
+												"count": {
+													"description": "No. of results returned when pagination requested.",
+													"type": "integer"
+												},
+												"lastEvaluatedValue": {
+													"description": "Last evaluated tag value",
+													"type": "string"
+												}
+											}
+										}
+									},
+									"required": ["values"]
+								},
+								"examples": {
+									"List of tag values": {
+										"summary": "Paginated list of tag values.",
+										"value": {
+											"values": [
+												{
+													"ghg protocol": "GHG Protocol",
+													"the green alliance": "The Green Alliance"
+												}
+											],
+											"pagination": {
+												"count": 2,
+												"lastEvaluated": {
+													"value": "the green alliance"
+												}
+											}
+										},
+										"List of hierarchical tag values": {
+											"summary": "Paginated list of hierarchical tag values.",
+											"value": {
+												"values": [
+													{
+														"material/metal/steel": "Steel",
+														"material/metal/iron": "Iron"
+													}
+												],
+												"pagination": {
+													"count": 2,
+													"lastEvaluated": {
+														"value": "material/metal/iron"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"description": "Forbidden.",
+									"type": "object",
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": ["message"]
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "http://localhost"
+		}
+	],
+	"security": [],
+	"tags": [
+		{
+			"name": "Users",
+			"description": "User management"
+		},
+		{
+			"name": "Groups",
+			"description": "Manages application groups.\n\nUpon initial deployment the module is seeded with the global group `/`. This set of APIs allow for the management of application groups in a hierarchical nature. The different resources (e.g. reference datasets) and users are assigned to these application groups which in turn dictates the user's permissions throughout the platform.\n\nIt is recommended that a group structure be created beneath the built-in global `/` group to reflect the stucture of your business: it could represent account and sub-accounts, organization and business units, teams, or any combination of.\n"
+		}
+	]
+}

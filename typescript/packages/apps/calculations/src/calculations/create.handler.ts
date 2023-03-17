@@ -1,0 +1,143 @@
+/*
+ *  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
+ *  with the License. A copy of the License is located at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES
+ *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
+ *  and limitations under the License.
+ */
+
+import { Type } from '@sinclair/typebox';
+import { atLeastContributor } from '@sif/authz';
+import { badRequestResponse, commonHeaders, conflictResponse, apiVersion100, FastifyTypebox } from '@sif/resource-api-base';
+import { calculationDryRunRequestExample, calculationDryRunResponseExample, calculationPostRequestExample, calculationResourceExample1 } from './examples.js';
+import { dryRunQS, newCalculationRequestBody, dryRunResponse, calculationResource } from './schemas.js';
+
+export default function createCalculationRoute(fastify: FastifyTypebox, _options: unknown, done: () => void): void {
+	fastify.route({
+		method: 'POST',
+		url: '/calculations',
+
+		schema: {
+			summary: 'Define a new calculation',
+			description: `Define a new custom calculation that can be referenced in transforms by prefixing its name with \`#\`.
+
+Permissions:
+- Only \`admin\` and above may create new calculations.
+`,
+			tags: ['Calculations'],
+			headers: commonHeaders,
+			operationId: 'create',
+			querystring: Type.Object({
+				dryRun: dryRunQS,
+			}),
+			body: {
+				...Type.Ref(newCalculationRequestBody),
+				'x-examples': {
+					'New calculation': {
+						summary: 'Define the calculation `#vehicle_emissions(<vehicle_type>,<pollutant>,<distance>,<passengers>)`,',
+						value: calculationPostRequestExample,
+					},
+					'executing a dry run': {
+						summary: 'executing a dry run for a new pipeline',
+						value: { ...calculationDryRunRequestExample },
+					},
+				},
+			},
+			response: {
+				200: {
+					description: 'Successful dry run',
+					...dryRunResponse,
+					'x-examples': {
+						'Dry Run': {
+							summary: 'New calculation dry run performed',
+							value: { ...calculationDryRunResponseExample },
+						},
+					},
+				},
+				201: {
+					description: 'Success.',
+					...calculationResource,
+					'x-examples': {
+						'New calculation': {
+							summary: 'New calculation created successfully.',
+							value: calculationResourceExample1,
+						},
+					},
+				},
+				400: {
+					...badRequestResponse,
+					'x-examples': {
+						'Malformed equation': {
+							summary: 'Provided formula is malformed.',
+							value: {
+								description: 'Malformed formula. Expected `)` at line 1 column 15.',
+							},
+						},
+						'Unused parameter': {
+							summary: 'A specified parameter is unused.',
+							value: {
+								description: 'Parameter `distance` is specified but not referenced within the formula.',
+							},
+						},
+						'Missing parameter definition': {
+							summary: 'Missing parameter.',
+							value: {
+								description: 'Parameter `distance` is referenced within the formula but not defined.',
+							},
+						},
+						'Invalid request': {
+							summary: 'Invalid request.',
+							value: {
+								description: 'Expected `formula` to be defined but not provided.',
+							},
+						},
+						'Failed Dry Run': {
+							summary: 'failed dry run response',
+							value: {
+								description:
+									'{\\"data\\":[\\"\\"],\\"errors\\":[\\"Failed processing row \'[10, A]\', err: Character A is neither a decimal digit number, decimal point, nor \\\\\\"e\\\\\\" notation exponential mark.\\"],\\"headers\\":[\\"sum\\"]}',
+							},
+						},
+					},
+				},
+				409: {
+					...conflictResponse,
+					'x-examples': {
+						'Name in use': {
+							summary: 'The `name` is already in use within the specified `groups`.',
+							value: {
+								description: 'Name `vehicle_emissions` already exists within group `/usa/northwest`.',
+							},
+						},
+					},
+				},
+			},
+			'x-security-scopes': atLeastContributor,
+		},
+		constraints: {
+			version: apiVersion100,
+		},
+
+		handler: async (request, reply) => {
+			// DI
+			const svc = fastify.diContainer.resolve('calculationService');
+			// do the work...
+			const { dryRun } = request.query;
+
+			if (dryRun) {
+				const res = await svc.dryRun(request.authz, request.body);
+				return reply.status(200).send(res); // nosemgrep
+			} else {
+				const saved = await svc.create(request.authz, request.body);
+				return reply.header('x-calculationId', saved.id).status(201).send(saved); // nosemgrep
+			}
+		},
+	});
+
+	done();
+}

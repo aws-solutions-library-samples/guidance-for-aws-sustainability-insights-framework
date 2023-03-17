@@ -1,0 +1,21 @@
+schemaVersion: '2.2'
+description: Bootstrap Cloud9 Instance with SIF core dependencies
+mainSteps:
+  - action: aws:runShellScript
+    precondition:
+      StringEquals:
+        - platformType
+        - Linux
+    name: BootstrapInstance
+    inputs:
+      runCommand:
+        - '#!/bin/bash'
+        - date
+        - echo LANG=en_US.utf-8 >> /etc/environment
+        - echo LC_ALL=en_US.UTF-8 >> /etc/environment
+        - . /home/ec2-user/.bashrc
+        - yum -y install sqlite telnet jq strace tree gcc glibc-static python3 python3-pip gettext bash-completion
+        - PATH=$PATH:/usr/bin
+        - echo '=== INSTALL and CONFIGURE default software components ==='
+        - sudo -H -u ec2-user bash -c "pip3 install --user -U boto boto3 botocore awscli"
+        - sudo -H -u ec2-user -i /bin/bash -c "npm install -g @microsoft/rush@5.76.1 esbuild"

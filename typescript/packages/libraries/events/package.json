@@ -1,0 +1,42 @@
+{
+	"name": "@sif/events",
+	"version": "1.0.2",
+	"description": "Platform events",
+	"author": "Dean Hart <deanhart@amazon.com>",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"types": "./dist/index.d.js",
+	"type": "module",
+	"scripts": {
+		"clean": "npx shx rm -rf dist *.log tsconfig.tsbuildinfo",
+		"test": "npm run build && vitest run --passWithNoTests",
+		"build": "npx tsc -b"
+	},
+	"dependencies": {
+		"@aws-sdk/client-eventbridge": "3.229.0"
+	},
+	"devDependencies": {
+		"@tsconfig/node16-strictest-esm": "1.0.3",
+		"@types/antlr4-autosuggest": "0.0.0",
+		"@types/antlr4": "4.7.2",
+		"@types/node": "16.11.7",
+		"@types/prettier": "2.6.0",
+		"@typescript-eslint/eslint-plugin": "5.32.0",
+		"@typescript-eslint/parser": "5.32.0",
+		"aws-sdk-client-mock": "2.0.0",
+		"antlr4ts-cli": "0.5.0-alpha.4",
+		"eslint": "8.24.0",
+		"pino": "8.6.1",
+		"shx": "0.3.3",
+		"ts-node": "10.9.1",
+		"typescript": "4.8.4",
+		"vitest": "0.23.4",
+		"vitest-mock-extended": "0.1.16"
+	},
+	"private": false
+}

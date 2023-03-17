@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/impacts",
+      "comment": "Small documentation updates",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/impacts"
+}

@@ -1,0 +1,94 @@
+{
+  "name": "@sif/validators",
+  "entries": [
+    {
+      "version": "1.2.0",
+      "tag": "@sif/validators_v1.2.0",
+      "date": "Thu, 16 Mar 2023 04:36:57 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "validate pipeline aggregation logic"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.0",
+      "tag": "@sif/validators_v1.1.0",
+      "date": "Thu, 23 Feb 2023 03:06:01 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "remove validation function that can be done in calculator"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.3",
+      "tag": "@sif/validators_v1.0.3",
+      "date": "Thu, 16 Feb 2023 16:46:28 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "add license header"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "minor fix"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.2",
+      "tag": "@sif/validators_v1.0.2",
+      "date": "Fri, 27 Jan 2023 05:24:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Introduced string validators (latest 'ow' not working)."
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.1",
+      "tag": "@sif/validators_v1.0.1",
+      "date": "Fri, 16 Dec 2022 15:38:18 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Formula parameter validation update"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.0",
+      "tag": "@sif/validators_v1.0.0",
+      "date": "Thu, 17 Nov 2022 01:00:36 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "rename ssaas to sif"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.2.1",
+      "tag": "@sif/validators_v0.2.1",
+      "date": "Tue, 18 Oct 2022 17:07:16 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "New validation library to validate transforms and calculations"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/access-management",
+      "comment": "docs for guidance publishing",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/access-management"
+}

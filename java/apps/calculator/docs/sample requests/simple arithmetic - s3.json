@@ -1,0 +1,75 @@
+{
+  "pipelineId": "abc123",
+  "executionId": "zyx123",
+  "groupContextId": "/",
+  "chunkNo": 1,
+  "parameters": [
+    {
+      "key": "id",
+      "type": "string"
+    },
+    {
+      "key": "scope",
+      "type": "number"
+    },
+    {
+      "key": "emissions",
+      "type": "number"
+    }
+  ],
+  "transforms": [
+    {
+      "index": 0,
+      "formula": ":id",
+      "outputs": [
+        {
+          "index": 0,
+          "key": "id",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "formula": "IF(:scope==1,:emissions,0)",
+      "outputs": [
+        {
+          "index": 0,
+          "key": "scope_1",
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "formula": "IF(:scope==2,:emissions,0)",
+      "outputs": [
+        {
+          "index": 0,
+          "key": "scope_2",
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "formula": "IF(:scope==3,:emissions,0)",
+      "outputs": [
+        {
+          "index": 0,
+          "key": "scope_3",
+          "type": "number"
+        }
+      ]
+    }
+  ],
+  "csvHeader": "\"id\",\"scope\",\"emissions\"",
+
+  "csvSourceDataLocation": {
+    "bucket": "sif-exampletenant-dev-500540521871-us-west-2",
+    "key": "input-1000.csv",
+    "start": 0,
+    "end": 122,
+    "hasHeaders" : true
+  }
+}

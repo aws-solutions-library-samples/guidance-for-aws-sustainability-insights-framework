@@ -1,0 +1,53 @@
+{
+  "name": "@sif/lambda-invoker",
+  "entries": [
+    {
+      "version": "1.0.2",
+      "tag": "@sif/lambda-invoker_v1.0.2",
+      "date": "Tue, 07 Feb 2023 16:06:19 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix vulnerable dependencies"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.1",
+      "tag": "@sif/lambda-invoker_v1.0.1",
+      "date": "Fri, 27 Jan 2023 05:24:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Updated AWS dependency versions."
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.0",
+      "tag": "@sif/lambda-invoker_v1.0.0",
+      "date": "Thu, 17 Nov 2022 01:00:36 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "rename ssaas to sif"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.2.0",
+      "tag": "@sif/lambda-invoker_v0.2.0",
+      "date": "Mon, 31 Oct 2022 16:26:46 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "set package private setting to false"
+          }
+        ]
+      }
+    }
+  ]
+}

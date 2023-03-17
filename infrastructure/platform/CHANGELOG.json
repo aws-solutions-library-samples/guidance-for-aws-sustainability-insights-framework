@@ -1,0 +1,87 @@
+{
+  "name": "@sif/infrastructure-platform",
+  "entries": [
+    {
+      "version": "2.0.4",
+      "tag": "@sif/infrastructure-platform_v2.0.4",
+      "date": "Sat, 18 Feb 2023 02:43:54 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "should create rds service linked role if it does not exist"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.3",
+      "tag": "@sif/infrastructure-platform_v2.0.3",
+      "date": "Thu, 09 Feb 2023 05:43:19 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "add license header"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "appy fixes for guardiang findings"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.2",
+      "tag": "@sif/infrastructure-platform_v2.0.2",
+      "date": "Tue, 07 Feb 2023 16:06:19 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix vulnerable dependencies"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.1",
+      "tag": "@sif/infrastructure-platform_v2.0.1",
+      "date": "Mon, 06 Feb 2023 23:17:01 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "should put nag suppressions for cluster deletion protection"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.0",
+      "tag": "@sif/infrastructure-platform_v2.0.0",
+      "date": "Mon, 06 Feb 2023 22:37:13 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "address cdk-nag findings"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.0",
+      "tag": "@sif/infrastructure-platform_v1.0.0",
+      "date": "Fri, 27 Jan 2023 05:24:10 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "New module to be responsible for platform wide infrastructure."
+          }
+        ],
+        "patch": [
+          {
+            "comment": "included common platform level infrastructure"
+          }
+        ]
+      }
+    }
+  ]
+}

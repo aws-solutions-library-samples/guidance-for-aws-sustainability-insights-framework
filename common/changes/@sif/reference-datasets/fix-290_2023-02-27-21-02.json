@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/reference-datasets",
+      "comment": "",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/reference-datasets"
+}

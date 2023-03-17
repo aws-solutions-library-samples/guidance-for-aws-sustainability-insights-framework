@@ -1,0 +1,3869 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SIF SaaS: Impact Factors",
+    "description": "\nHas accountability for:\n- TODO...\n",
+    "version": "0.0.1"
+  },
+  "components": {
+    "securitySchemes": {
+      "platformUserPool": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "tags": {
+        "description": "User-defined searchable tags",
+        "type": "object",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "componentMap": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/componentResource"
+        }
+      },
+      "componentResource": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "description": "key of the component",
+            "type": "string"
+          },
+          "value": {
+            "description": "Value",
+            "type": "number"
+          },
+          "type": {
+            "description": "type of the component",
+            "type": "string"
+          },
+          "label": {
+            "description": "Label for display",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "type"
+        ]
+      },
+      "editComponentRequestBody": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "description": "Value",
+            "type": "number"
+          },
+          "type": {
+            "description": "type of the component",
+            "type": "string"
+          },
+          "label": {
+            "description": "Label for display",
+            "type": "string"
+          },
+          "description": {
+            "description": "Label for display",
+            "type": "string"
+          }
+        }
+      },
+      "newComponentRequestBody": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "description": "key of the component",
+            "type": "string"
+          },
+          "value": {
+            "description": "Value",
+            "type": "number"
+          },
+          "type": {
+            "description": "type of the component",
+            "type": "string"
+          },
+          "label": {
+            "description": "Label for display",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "type"
+        ]
+      },
+      "impactMap": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/impactResource"
+        }
+      },
+      "editImpactRequestBody": {
+        "type": "object",
+        "properties": {
+          "attributes": {
+            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/componentResource"
+            }
+          }
+        }
+      },
+      "newImpactRequestBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "name of the impact",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/componentResource"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "impactResource": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "name of the impact",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/componentResource"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "activityResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "name": {
+            "description": "name of the entity",
+            "type": "string"
+          },
+          "description": {
+            "description": "description of the entity",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "version": {
+            "description": "Version",
+            "type": "number"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "frozen",
+              "disabled"
+            ],
+            "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
+          },
+          "impacts": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/impactResource"
+            }
+          },
+          "groups": {
+            "description": "Groups that have access to the calculation.",
+            "type": "array",
+            "items": {
+              "description": "The group ID as managed by the Access Management module.",
+              "type": "string"
+            }
+          },
+          "tags": {
+            "$ref": "#/components/schemas/tags"
+          },
+          "createdBy": {
+            "description": "ID of owner.",
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Date/time created",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "description": "Last ID of user who made a change.",
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "Date/time updated",
+            "format": "date-time",
+            "type": "string"
+          },
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "version",
+          "state",
+          "groups",
+          "createdBy",
+          "createdAt"
+        ]
+      },
+      "activityList": {
+        "type": "object",
+        "properties": {
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/activityResource"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "description": "No. of results returned when pagination requested.",
+                "type": "integer"
+              },
+              "lastEvaluatedToken": {
+                "description": "Token used to paginate to the next page of search result.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "activities"
+        ]
+      },
+      "editActivityRequestBody": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "description of the entity",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "frozen",
+              "disabled"
+            ],
+            "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
+          },
+          "impacts": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/impactResource"
+            }
+          },
+          "tags": {
+            "$ref": "#/components/schemas/tags"
+          },
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          }
+        }
+      },
+      "newActivityRequestBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "name of the entity",
+            "type": "string"
+          },
+          "description": {
+            "description": "description of the entity",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "frozen",
+              "disabled"
+            ],
+            "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
+          },
+          "impacts": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/impactResource"
+            }
+          },
+          "tags": {
+            "$ref": "#/components/schemas/tags"
+          },
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "activityVersion_List": {
+        "type": "object",
+        "properties": {
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/activityResource"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "lastEvaluatedVersion": {
+                "description": "Version",
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "activities"
+        ]
+      },
+      "Task_resource": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update"
+            ],
+            "description": "Task type"
+          },
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "taskStatus": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "inProgress",
+              "success",
+              "failure"
+            ],
+            "description": "Task execution status"
+          },
+          "statusMessage": {
+            "description": "message for the status",
+            "type": "string"
+          },
+          "progress": {
+            "description": "total progress of the task",
+            "type": "number"
+          },
+          "batchesTotal": {
+            "description": "no. of batches the task has been split into",
+            "type": "number"
+          },
+          "batchesCompleted": {
+            "description": "no. of batches the task which have been completed",
+            "type": "number"
+          },
+          "itemsTotal": {
+            "description": "total number of items in the task",
+            "type": "number"
+          },
+          "itemsSucceeded": {
+            "description": "total number of items succeeded",
+            "type": "number"
+          },
+          "itemsFailed": {
+            "description": "no. of items failed",
+            "type": "number"
+          },
+          "groups": {
+            "description": "Groups that have access to the calculation.",
+            "type": "array",
+            "items": {
+              "description": "The group ID as managed by the Access Management module.",
+              "type": "string"
+            }
+          },
+          "createdAt": {
+            "description": "Date/time created",
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "ID of owner.",
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "Date/time updated",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "description": "Last ID of user who made a change.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "taskStatus",
+          "itemsTotal",
+          "itemsSucceeded",
+          "itemsFailed",
+          "groups",
+          "createdAt",
+          "createdBy"
+        ]
+      },
+      "activityTasks_list": {
+        "type": "object",
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Task_resource"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "lastEvaluated": {
+                "description": "Last evaluated task Id",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "tasks"
+        ]
+      },
+      "activityTask_new": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update"
+            ],
+            "description": "Task type"
+          },
+          "activities": {
+            "description": "array of items, for create type task, these should include names, for update type task, the items should include ids",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "description": "description of the entity",
+                  "type": "string"
+                },
+                "attributes": {
+                  "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "enabled",
+                    "frozen",
+                    "disabled"
+                  ],
+                  "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
+                },
+                "impacts": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/impactResource"
+                  }
+                },
+                "tags": {
+                  "$ref": "#/components/schemas/tags"
+                },
+                "activeAt": {
+                  "description": "Date/time resource is active",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Unique id.",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "type",
+          "activities"
+        ]
+      },
+      "taskItem_resource": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "name of the entity",
+            "type": "string"
+          },
+          "taskId": {
+            "description": "activity Task id.",
+            "type": "string"
+          },
+          "activityId": {
+            "description": "activity id.",
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure"
+            ],
+            "description": "Activity task item state"
+          },
+          "statusMessage": {
+            "description": "failure message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "taskItem_List": {
+        "type": "object",
+        "properties": {
+          "taskItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/taskItem_resource"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "description": "No. of results returned when pagination requested.",
+                "type": "integer"
+              },
+              "lastEvaluatedId": {
+                "description": "name of the entity",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "taskItems"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/activities": {
+      "post": {
+        "operationId": "create",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Create a new Activity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/newActivityRequestBody"
+              },
+              "examples": {
+                "New Acitivity": {
+                  "value": {
+                    "name": "emissions:something:Air",
+                    "description": "excludes carbon sequestration",
+                    "attributes": {
+                      "ref_unit": "therm"
+                    },
+                    "tags": {
+                      "level1Hierarchy": "emissions",
+                      "source": "emissions"
+                    },
+                    "impacts": {
+                      "co2e": {
+                        "name": "CO2e",
+                        "attributes": {
+                          "unit": "kg"
+                        },
+                        "components": {
+                          "co2": {
+                            "key": "co2",
+                            "value": 5.304733389,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ch4": {
+                            "key": "ch4",
+                            "value": 0.002799332,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "n2o": {
+                            "key": "n2o",
+                            "value": 0.002649367,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ipcc 2013 ar5 gwp 100": {
+                            "key": "IPCC 2013 AR5 GWP 100",
+                            "value": 5.310182088,
+                            "type": "impactFactor",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ipcc 2016 ar4 gwp 100": {
+                            "key": "IPCC 2016 AR4 GWP 100",
+                            "value": 4.310182088,
+                            "type": "impactFactor",
+                            "description": "",
+                            "label": ""
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/activityResource"
+                },
+                "examples": {
+                  "New Activity": {
+                    "value": {
+                      "id": "some-id",
+                      "version": 1,
+                      "state": "enabled",
+                      "groups": [
+                        "/account1"
+                      ],
+                      "createdAt": "2022-08-17T16:02:54",
+                      "createdBy": "someone@somewhere",
+                      "name": "emissions:something:Air",
+                      "description": "excludes carbon sequestration",
+                      "attributes": {
+                        "ref_unit": "therm"
+                      },
+                      "tags": {
+                        "level1Hierarchy": "emissions",
+                        "source": "emissions"
+                      },
+                      "impacts": {
+                        "co2e": {
+                          "name": "CO2e",
+                          "attributes": {
+                            "unit": "kg"
+                          },
+                          "components": {
+                            "co2": {
+                              "key": "co2",
+                              "value": 5.304733389,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ch4": {
+                              "key": "ch4",
+                              "value": 0.002799332,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "n2o": {
+                              "key": "n2o",
+                              "value": 0.002649367,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ipcc 2013 ar5 gwp 100": {
+                              "key": "IPCC 2013 AR5 GWP 100",
+                              "value": 5.310182088,
+                              "type": "impactFactor",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ipcc 2016 ar4 gwp 100": {
+                              "key": "IPCC 2016 AR4 GWP 100",
+                              "value": 4.310182088,
+                              "type": "impactFactor",
+                              "description": "",
+                              "label": ""
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Conflict.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "syntaxErrors": {
+                      "type": "object",
+                      "properties": {
+                        "charPositionInLine": {
+                          "type": "integer"
+                        },
+                        "line": {
+                          "type": "integer"
+                        },
+                        "msg": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "charPositionInLine",
+                        "line",
+                        "msg"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "list",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Lists activities",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromToken",
+            "required": false,
+            "description": "Token used to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "description": "Filters by `name` based on the group access of the caller."
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "description": "Tag key and value in the format of `key:value`.",
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "description": "Tag keys and values to filter by."
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeParentGroups",
+            "required": false,
+            "description": "Include all parent groups result."
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeChildGroups",
+            "required": false,
+            "description": "Include all children groups result."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/activityList"
+                },
+                "examples": {
+                  "List of Activities": {
+                    "summary": "Paginated list of activities",
+                    "value": {
+                      "activities": [
+                        {
+                          "id": "some-id",
+                          "version": 1,
+                          "state": "enabled",
+                          "groups": [
+                            "/account1"
+                          ],
+                          "createdAt": "2022-08-17T16:02:54",
+                          "createdBy": "someone@somewhere",
+                          "name": "emissions:something:Air",
+                          "description": "excludes carbon sequestration",
+                          "attributes": {
+                            "ref_unit": "therm"
+                          },
+                          "tags": {
+                            "level1Hierarchy": "emissions",
+                            "source": "emissions"
+                          },
+                          "impacts": {
+                            "co2e": {
+                              "name": "CO2e",
+                              "attributes": {
+                                "unit": "kg"
+                              },
+                              "components": {
+                                "co2": {
+                                  "key": "co2",
+                                  "value": 5.304733389,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ch4": {
+                                  "key": "ch4",
+                                  "value": 0.002799332,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "n2o": {
+                                  "key": "n2o",
+                                  "value": 0.002649367,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ipcc 2013 ar5 gwp 100": {
+                                  "key": "IPCC 2013 AR5 GWP 100",
+                                  "value": 5.310182088,
+                                  "type": "impactFactor",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ipcc 2016 ar4 gwp 100": {
+                                  "key": "IPCC 2016 AR4 GWP 100",
+                                  "value": 4.310182088,
+                                  "type": "impactFactor",
+                                  "description": "",
+                                  "label": ""
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "id": "some-id2",
+                          "name": "air",
+                          "description": "excludes carbon sequestration",
+                          "version": 3,
+                          "state": "enabled",
+                          "groups": [
+                            "/admin"
+                          ],
+                          "createdAt": "2022-08-17T16:02:54",
+                          "createdBy": "someone@somewhere",
+                          "updatedAt": "2022-08-17T16:02:54",
+                          "attributes": {
+                            "referenceUnits": "therms"
+                          },
+                          "tags": {
+                            "level1Hierarchy": "emissions",
+                            "source": "emissions"
+                          },
+                          "impacts": {
+                            "co2e": {
+                              "name": "CO2e",
+                              "attributes": {
+                                "unit": "kg"
+                              },
+                              "components": {
+                                "co2": {
+                                  "key": "co2",
+                                  "value": 5.304733389,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ch4": {
+                                  "key": "ch4",
+                                  "value": 0.002799332,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "n2o": {
+                                  "key": "n2o",
+                                  "value": 0.002649367,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ipcc 2013 ar5 gwp 100": {
+                                  "key": "IPCC 2013 AR5 GWP 100",
+                                  "value": 5.310182088,
+                                  "type": "impactFactor",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ipcc 2016 ar4 gwp 100": {
+                                  "key": "IPCC 2016 AR4 GWP 100",
+                                  "value": 4.310182088,
+                                  "type": "impactFactor",
+                                  "description": "",
+                                  "label": ""
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "pagination": {
+                        "count": 2,
+                        "lastEvaluatedToken": "xxxxx"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}": {
+      "get": {
+        "operationId": "get",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Retrieve details of an existing activities",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/activityResource"
+                },
+                "examples": {
+                  "Existing activity": {
+                    "summary": "Existing activity details.",
+                    "value": {
+                      "id": "some-id",
+                      "version": 1,
+                      "state": "enabled",
+                      "groups": [
+                        "/account1"
+                      ],
+                      "createdAt": "2022-08-17T16:02:54",
+                      "createdBy": "someone@somewhere",
+                      "name": "emissions:something:Air",
+                      "description": "excludes carbon sequestration",
+                      "attributes": {
+                        "ref_unit": "therm"
+                      },
+                      "tags": {
+                        "level1Hierarchy": "emissions",
+                        "source": "emissions"
+                      },
+                      "impacts": {
+                        "co2e": {
+                          "name": "CO2e",
+                          "attributes": {
+                            "unit": "kg"
+                          },
+                          "components": {
+                            "co2": {
+                              "key": "co2",
+                              "value": 5.304733389,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ch4": {
+                              "key": "ch4",
+                              "value": 0.002799332,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "n2o": {
+                              "key": "n2o",
+                              "value": 0.002649367,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ipcc 2013 ar5 gwp 100": {
+                              "key": "IPCC 2013 AR5 GWP 100",
+                              "value": 5.310182088,
+                              "type": "impactFactor",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ipcc 2016 ar4 gwp 100": {
+                              "key": "IPCC 2016 AR4 GWP 100",
+                              "value": 4.310182088,
+                              "type": "impactFactor",
+                              "description": "",
+                              "label": ""
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "update",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Updates an existing Activity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/editActivityRequestBody"
+              },
+              "examples": {
+                "Update existing ": {
+                  "summary": "Update existing activity",
+                  "value": {
+                    "description": "updated description text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/activityResource"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/versions/{version}": {
+      "get": {
+        "operationId": "getVersion",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Retrieve details of an existing activity by version",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "description": "specify the version number"
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/activityResource"
+                },
+                "examples": {
+                  "Existing activity by version": {
+                    "summary": "Existing activity details for a particular version",
+                    "value": {
+                      "id": "some-id",
+                      "version": 2,
+                      "state": "enabled",
+                      "groups": [
+                        "/account1"
+                      ],
+                      "createdAt": "2022-08-17T16:02:54",
+                      "createdBy": "someone@somewhere",
+                      "name": "emissions:something:Air",
+                      "description": "excludes carbon sequestration",
+                      "attributes": {
+                        "ref_unit": "therm"
+                      },
+                      "tags": {
+                        "level1Hierarchy": "emissions",
+                        "source": "emissions"
+                      },
+                      "impacts": {
+                        "co2e": {
+                          "name": "CO2e",
+                          "attributes": {
+                            "unit": "kg"
+                          },
+                          "components": {
+                            "co2": {
+                              "key": "co2",
+                              "value": 5.304733389,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ch4": {
+                              "key": "ch4",
+                              "value": 0.002799332,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "n2o": {
+                              "key": "n2o",
+                              "value": 0.002649367,
+                              "type": "pollutant",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ipcc 2013 ar5 gwp 100": {
+                              "key": "IPCC 2013 AR5 GWP 100",
+                              "value": 5.310182088,
+                              "type": "impactFactor",
+                              "description": "",
+                              "label": ""
+                            },
+                            "ipcc 2016 ar4 gwp 100": {
+                              "key": "IPCC 2016 AR4 GWP 100",
+                              "value": 4.310182088,
+                              "type": "impactFactor",
+                              "description": "",
+                              "label": ""
+                            }
+                          }
+                        }
+                      },
+                      "updatedAt": "2022-08-17T16:02:54",
+                      "updatedBy": "someone@somewhere"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/versions": {
+      "get": {
+        "operationId": "listVersions",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Lists activity versions",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "fromVersion",
+            "required": false,
+            "description": "Version to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "versionAsAt",
+            "required": false,
+            "description": "Filters by `asAt` or `createdAt` determine the latest resource version as that time."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/activityVersion_List"
+                },
+                "examples": {
+                  "List activity versions": {
+                    "summary": "Paginated list of activity versions",
+                    "value": {
+                      "activities": [
+                        {
+                          "id": "some-id",
+                          "version": 1,
+                          "state": "enabled",
+                          "groups": [
+                            "/account1"
+                          ],
+                          "createdAt": "2022-08-17T16:02:54",
+                          "createdBy": "someone@somewhere",
+                          "name": "emissions:something:Air",
+                          "description": "excludes carbon sequestration",
+                          "attributes": {
+                            "ref_unit": "therm"
+                          },
+                          "tags": {
+                            "level1Hierarchy": "emissions",
+                            "source": "emissions"
+                          },
+                          "impacts": {
+                            "co2e": {
+                              "name": "CO2e",
+                              "attributes": {
+                                "unit": "kg"
+                              },
+                              "components": {
+                                "co2": {
+                                  "key": "co2",
+                                  "value": 5.304733389,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ch4": {
+                                  "key": "ch4",
+                                  "value": 0.002799332,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "n2o": {
+                                  "key": "n2o",
+                                  "value": 0.002649367,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ipcc 2013 ar5 gwp 100": {
+                                  "key": "IPCC 2013 AR5 GWP 100",
+                                  "value": 5.310182088,
+                                  "type": "impactFactor",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ipcc 2016 ar4 gwp 100": {
+                                  "key": "IPCC 2016 AR4 GWP 100",
+                                  "value": 4.310182088,
+                                  "type": "impactFactor",
+                                  "description": "",
+                                  "label": ""
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "id": "some-id",
+                          "version": 2,
+                          "state": "enabled",
+                          "groups": [
+                            "/account1"
+                          ],
+                          "createdAt": "2022-08-17T16:02:54",
+                          "createdBy": "someone@somewhere",
+                          "name": "emissions:something:Air",
+                          "description": "excludes carbon sequestration",
+                          "attributes": {
+                            "ref_unit": "therm"
+                          },
+                          "tags": {
+                            "level1Hierarchy": "emissions",
+                            "source": "emissions"
+                          },
+                          "impacts": {
+                            "co2e": {
+                              "name": "CO2e",
+                              "attributes": {
+                                "unit": "kg"
+                              },
+                              "components": {
+                                "co2": {
+                                  "key": "co2",
+                                  "value": 5.304733389,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ch4": {
+                                  "key": "ch4",
+                                  "value": 0.002799332,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "n2o": {
+                                  "key": "n2o",
+                                  "value": 0.002649367,
+                                  "type": "pollutant",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ipcc 2013 ar5 gwp 100": {
+                                  "key": "IPCC 2013 AR5 GWP 100",
+                                  "value": 5.310182088,
+                                  "type": "impactFactor",
+                                  "description": "",
+                                  "label": ""
+                                },
+                                "ipcc 2016 ar4 gwp 100": {
+                                  "key": "IPCC 2016 AR4 GWP 100",
+                                  "value": 4.310182088,
+                                  "type": "impactFactor",
+                                  "description": "",
+                                  "label": ""
+                                }
+                              }
+                            }
+                          },
+                          "updatedAt": "2022-08-17T16:02:54",
+                          "updatedBy": "someone@somewhere"
+                        }
+                      ],
+                      "pagination": {
+                        "lastEvaluatedVersion": 2
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/groups/{groupId}": {
+      "put": {
+        "operationId": "grant",
+        "summary": "Grants access",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Grants access of the calculation to the provided group.\n\n\t\t\tPermissions:\n\t\t\t- `admin` and above of both the active group in context and the target group required.\n\t\t\t",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "description": "Group id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "revoke",
+        "summary": "Revoke access",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Revokes access of the activity to the provided group.\n\nPermissions:\n- `admin` and above of both the active group in context and the target group required.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "description": "Group id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/impacts/{impactName}": {
+      "put": {
+        "operationId": "createImpact",
+        "tags": [
+          "Impacts"
+        ],
+        "description": "Create a new Impact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/newImpactRequestBody"
+              },
+              "examples": {
+                "New Impact": {
+                  "value": {
+                    "name": "CO2e",
+                    "attributes": {
+                      "unit": "kg"
+                    },
+                    "components": {
+                      "co2": {
+                        "key": "co2",
+                        "value": 5.304733389,
+                        "type": "pollutant",
+                        "description": "",
+                        "label": ""
+                      },
+                      "ch4": {
+                        "key": "ch4",
+                        "value": 0.002799332,
+                        "type": "pollutant",
+                        "description": "",
+                        "label": ""
+                      },
+                      "n2o": {
+                        "key": "n2o",
+                        "value": 0.002649367,
+                        "type": "pollutant",
+                        "description": "",
+                        "label": ""
+                      },
+                      "ipcc 2013 ar5 gwp 100": {
+                        "key": "IPCC 2013 AR5 GWP 100",
+                        "value": 5.310182088,
+                        "type": "impactFactor",
+                        "description": "",
+                        "label": ""
+                      },
+                      "ipcc 2016 ar4 gwp 100": {
+                        "key": "IPCC 2016 AR4 GWP 100",
+                        "value": 4.310182088,
+                        "type": "impactFactor",
+                        "description": "",
+                        "label": ""
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "name of the impact"
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/impactResource"
+                },
+                "examples": {
+                  "New Impact": {
+                    "value": {
+                      "name": "CO2e",
+                      "attributes": {
+                        "unit": "kg"
+                      },
+                      "components": {
+                        "co2": {
+                          "key": "co2",
+                          "value": 5.304733389,
+                          "type": "pollutant",
+                          "description": "",
+                          "label": ""
+                        },
+                        "ch4": {
+                          "key": "ch4",
+                          "value": 0.002799332,
+                          "type": "pollutant",
+                          "description": "",
+                          "label": ""
+                        },
+                        "n2o": {
+                          "key": "n2o",
+                          "value": 0.002649367,
+                          "type": "pollutant",
+                          "description": "",
+                          "label": ""
+                        },
+                        "ipcc 2013 ar5 gwp 100": {
+                          "key": "IPCC 2013 AR5 GWP 100",
+                          "value": 5.310182088,
+                          "type": "impactFactor",
+                          "description": "",
+                          "label": ""
+                        },
+                        "ipcc 2016 ar4 gwp 100": {
+                          "key": "IPCC 2016 AR4 GWP 100",
+                          "value": 4.310182088,
+                          "type": "impactFactor",
+                          "description": "",
+                          "label": ""
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Conflict.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "syntaxErrors": {
+                      "type": "object",
+                      "properties": {
+                        "charPositionInLine": {
+                          "type": "integer"
+                        },
+                        "line": {
+                          "type": "integer"
+                        },
+                        "msg": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "charPositionInLine",
+                        "line",
+                        "msg"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getImpact",
+        "tags": [
+          "Impacts"
+        ],
+        "description": "Impact details for a particular activity",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "name of the impact"
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/impactResource"
+                },
+                "examples": {
+                  "Impact details for a particular Activity": {
+                    "summary": "Impact details for a particular activity",
+                    "value": {
+                      "name": "CO2e",
+                      "attributes": {
+                        "unit": "kg"
+                      },
+                      "components": {
+                        "co2": {
+                          "key": "co2",
+                          "value": 5.304733389,
+                          "type": "pollutant",
+                          "description": "",
+                          "label": ""
+                        },
+                        "ch4": {
+                          "key": "ch4",
+                          "value": 0.002799332,
+                          "type": "pollutant",
+                          "description": "",
+                          "label": ""
+                        },
+                        "n2o": {
+                          "key": "n2o",
+                          "value": 0.002649367,
+                          "type": "pollutant",
+                          "description": "",
+                          "label": ""
+                        },
+                        "ipcc 2013 ar5 gwp 100": {
+                          "key": "IPCC 2013 AR5 GWP 100",
+                          "value": 5.310182088,
+                          "type": "impactFactor",
+                          "description": "",
+                          "label": ""
+                        },
+                        "ipcc 2016 ar4 gwp 100": {
+                          "key": "IPCC 2016 AR4 GWP 100",
+                          "value": 4.310182088,
+                          "type": "impactFactor",
+                          "description": "",
+                          "label": ""
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateImpacts",
+        "tags": [
+          "Impacts"
+        ],
+        "description": "Updates an existing activities impact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/editImpactRequestBody"
+              },
+              "examples": {
+                "Update impact value": {
+                  "summary": "Update the impact of an activity",
+                  "value": {
+                    "description": "updated description text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "name of the impact"
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/impactResource"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/impacts": {
+      "get": {
+        "operationId": "listImpacts",
+        "tags": [
+          "Impacts"
+        ],
+        "description": "Lists impacts",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromImpactName",
+            "required": false,
+            "description": "Impact Name to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/impactMap"
+                },
+                "examples": {
+                  "List of Impacts": {
+                    "summary": "Paginated list of impacts",
+                    "value": {
+                      "co2e": {
+                        "name": "CO2e",
+                        "attributes": {
+                          "unit": "kg"
+                        },
+                        "components": {
+                          "co2": {
+                            "key": "co2",
+                            "value": 5.304733389,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ch4": {
+                            "key": "ch4",
+                            "value": 0.002799332,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "n2o": {
+                            "key": "n2o",
+                            "value": 0.002649367,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ipcc 2013 ar5 gwp 100": {
+                            "key": "IPCC 2013 AR5 GWP 100",
+                            "value": 5.310182088,
+                            "type": "impactFactor",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ipcc 2016 ar4 gwp 100": {
+                            "key": "IPCC 2016 AR4 GWP 100",
+                            "value": 4.310182088,
+                            "type": "impactFactor",
+                            "description": "",
+                            "label": ""
+                          }
+                        }
+                      },
+                      "watershed": {
+                        "name": "watershed",
+                        "attributes": {
+                          "unit": "kg"
+                        },
+                        "components": {
+                          "co2": {
+                            "key": "co2",
+                            "value": 5.304733389,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ch4": {
+                            "key": "ch4",
+                            "value": 0.002799332,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "n2o": {
+                            "key": "n2o",
+                            "value": 0.002649367,
+                            "type": "pollutant",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ipcc 2013 ar5 gwp 100": {
+                            "key": "IPCC 2013 AR5 GWP 100",
+                            "value": 5.310182088,
+                            "type": "impactFactor",
+                            "description": "",
+                            "label": ""
+                          },
+                          "ipcc 2016 ar4 gwp 100": {
+                            "key": "IPCC 2016 AR4 GWP 100",
+                            "value": 4.310182088,
+                            "type": "impactFactor",
+                            "description": "",
+                            "label": ""
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/impacts/{impactName}/components/{componentKey}": {
+      "put": {
+        "tags": [
+          "Components"
+        ],
+        "description": "Creates a new activity impacts's component",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/newComponentRequestBody"
+              },
+              "examples": {
+                "Add new component to the impact": {
+                  "summary": "add new component to the impact",
+                  "value": {
+                    "key": "ch4",
+                    "value": 0.0001988,
+                    "type": "pollutant"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "key of the component"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "componentKey",
+            "required": true,
+            "description": "key of the component"
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/componentResource"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Conflict.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "syntaxErrors": {
+                      "type": "object",
+                      "properties": {
+                        "charPositionInLine": {
+                          "type": "integer"
+                        },
+                        "line": {
+                          "type": "integer"
+                        },
+                        "msg": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "charPositionInLine",
+                        "line",
+                        "msg"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Components"
+        ],
+        "description": "Updates an existing activities component",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/editComponentRequestBody"
+              },
+              "examples": {
+                "Update component value": {
+                  "summary": "Update the component of an impact",
+                  "value": {
+                    "description": "updated description text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "key of the component"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "componentKey",
+            "required": true,
+            "description": "key of the component"
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/componentResource"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "description": "Component details for a particular activity impact",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "name of the impact"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "componentKey",
+            "required": true,
+            "description": "key of the component"
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/componentResource"
+                },
+                "examples": {
+                  "Component": {
+                    "summary": "Component details",
+                    "value": {
+                      "key": "co2",
+                      "value": 5.304733389,
+                      "type": "pollutant",
+                      "description": "",
+                      "label": ""
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/impacts/{impactName}/components": {
+      "get": {
+        "tags": [
+          "Components"
+        ],
+        "description": "Lists activity impact components",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromComponentKey",
+            "required": false,
+            "description": "Factor Component Key to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "description": "specify filter by component type i.e. pollutant, impact factor method etc."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "key of the component"
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/componentMap"
+                },
+                "examples": {
+                  "List of components": {
+                    "summary": "Paginated list of components",
+                    "value": {
+                      "co2e": {
+                        "key": "co2",
+                        "value": 5.304733389,
+                        "type": "pollutant",
+                        "description": "",
+                        "label": ""
+                      },
+                      "ch4": {
+                        "key": "ch4",
+                        "value": 0.002799332,
+                        "type": "pollutant",
+                        "description": "",
+                        "label": ""
+                      },
+                      "n2o": {
+                        "key": "n2o",
+                        "value": 0.002649367,
+                        "type": "pollutant",
+                        "description": "",
+                        "label": ""
+                      },
+                      "ipcc 2013 ar5 gwp 100": {
+                        "key": "IPCC 2013 AR5 GWP 100",
+                        "value": 5.310182088,
+                        "type": "impactFactor",
+                        "description": "",
+                        "label": ""
+                      },
+                      "ipcc 2016 ar4 gwp 100": {
+                        "key": "IPCC 2016 AR4 GWP 100",
+                        "value": 4.310182088,
+                        "type": "impactFactor",
+                        "description": "",
+                        "label": ""
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activityTasks": {
+      "post": {
+        "tags": [
+          "Activity Tasks"
+        ],
+        "description": "Create a activities in bulk",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/activityTask_new"
+              },
+              "examples": {
+                "list of activities": {
+                  "value": {
+                    "type": "create",
+                    "activities": [
+                      {
+                        "name": "emissions:something:Air",
+                        "description": "excludes carbon sequestration",
+                        "attributes": {
+                          "ref_unit": "therm"
+                        },
+                        "tags": {
+                          "level1Hierarchy": "emissions",
+                          "source": "emissions"
+                        },
+                        "impacts": {
+                          "co2e": {
+                            "name": "CO2e",
+                            "attributes": {
+                              "unit": "kg"
+                            },
+                            "components": {
+                              "co2": {
+                                "key": "co2",
+                                "value": 5.304733389,
+                                "type": "pollutant",
+                                "description": "",
+                                "label": ""
+                              },
+                              "ch4": {
+                                "key": "ch4",
+                                "value": 0.002799332,
+                                "type": "pollutant",
+                                "description": "",
+                                "label": ""
+                              },
+                              "n2o": {
+                                "key": "n2o",
+                                "value": 0.002649367,
+                                "type": "pollutant",
+                                "description": "",
+                                "label": ""
+                              },
+                              "ipcc 2013 ar5 gwp 100": {
+                                "key": "IPCC 2013 AR5 GWP 100",
+                                "value": 5.310182088,
+                                "type": "impactFactor",
+                                "description": "",
+                                "label": ""
+                              },
+                              "ipcc 2016 ar4 gwp 100": {
+                                "key": "IPCC 2016 AR4 GWP 100",
+                                "value": 4.310182088,
+                                "type": "impactFactor",
+                                "description": "",
+                                "label": ""
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "name": "emissions:something:Air",
+                        "description": "excludes carbon sequestration",
+                        "attributes": {
+                          "ref_unit": "therm"
+                        },
+                        "tags": {
+                          "level1Hierarchy": "emissions",
+                          "source": "emissions"
+                        },
+                        "impacts": {
+                          "co2e": {
+                            "name": "CO2e",
+                            "attributes": {
+                              "unit": "kg"
+                            },
+                            "components": {
+                              "co2": {
+                                "key": "co2",
+                                "value": 5.304733389,
+                                "type": "pollutant",
+                                "description": "",
+                                "label": ""
+                              },
+                              "ch4": {
+                                "key": "ch4",
+                                "value": 0.002799332,
+                                "type": "pollutant",
+                                "description": "",
+                                "label": ""
+                              },
+                              "n2o": {
+                                "key": "n2o",
+                                "value": 0.002649367,
+                                "type": "pollutant",
+                                "description": "",
+                                "label": ""
+                              },
+                              "ipcc 2013 ar5 gwp 100": {
+                                "key": "IPCC 2013 AR5 GWP 100",
+                                "value": 5.310182088,
+                                "type": "impactFactor",
+                                "description": "",
+                                "label": ""
+                              },
+                              "ipcc 2016 ar4 gwp 100": {
+                                "key": "IPCC 2016 AR4 GWP 100",
+                                "value": 4.310182088,
+                                "type": "impactFactor",
+                                "description": "",
+                                "label": ""
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/Task_resource"
+                },
+                "examples": {
+                  "Activities creation task": {
+                    "summary": "Existing Activity details.",
+                    "value": {
+                      "id": "string",
+                      "taskStatus": "waiting",
+                      "type": "create",
+                      "groups": [
+                        "/"
+                      ],
+                      "statusMessage": "string",
+                      "progress": 50,
+                      "itemsTotal": 100,
+                      "itemsSucceeded": 99,
+                      "itemsFailed": 1,
+                      "createdAt": "2022-08-30T03:18:26.809Z",
+                      "createdBy": "someone@somewhere"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Activity Tasks"
+        ],
+        "description": "Lists activity Tasks",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromToken",
+            "required": false,
+            "description": "Token used to paginate from (exclusive)."
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/activityTasks_list"
+                },
+                "examples": {
+                  "List of Activities": {
+                    "summary": "Paginated list of activities",
+                    "value": {
+                      "tasks": [
+                        {
+                          "id": "string",
+                          "taskStatus": "waiting",
+                          "type": "create",
+                          "groups": [
+                            "/"
+                          ],
+                          "statusMessage": "string",
+                          "progress": 50,
+                          "itemsTotal": 100,
+                          "itemsSucceeded": 99,
+                          "itemsFailed": 1,
+                          "createdAt": "2022-08-30T03:18:26.809Z",
+                          "createdBy": "someone@somewhere"
+                        },
+                        {
+                          "id": "some-id2",
+                          "taskStatus": "waiting",
+                          "type": "create",
+                          "groups": [
+                            "/"
+                          ],
+                          "statusMessage": "string",
+                          "progress": 50,
+                          "itemsTotal": 100,
+                          "itemsSucceeded": 99,
+                          "itemsFailed": 1,
+                          "createdAt": "2022-08-30T03:18:26.809Z",
+                          "createdBy": "someone@somewhere"
+                        }
+                      ],
+                      "pagination": {
+                        "lastEvaluated": "some-id2"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activityTasks/{id}": {
+      "get": {
+        "tags": [
+          "Activity Tasks"
+        ],
+        "description": "Retrieve details of an existing activity task",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/Task_resource"
+                },
+                "examples": {
+                  "Existing Activity Task": {
+                    "summary": "Existing Activity Task details.",
+                    "value": {
+                      "id": "string",
+                      "taskStatus": "waiting",
+                      "type": "create",
+                      "groups": [
+                        "/"
+                      ],
+                      "statusMessage": "string",
+                      "progress": 50,
+                      "itemsTotal": 100,
+                      "itemsSucceeded": 99,
+                      "itemsFailed": 1,
+                      "createdAt": "2022-08-30T03:18:26.809Z",
+                      "createdBy": "someone@somewhere"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activityTasks/{taskId}/taskItems/{name}": {
+      "get": {
+        "tags": [
+          "Task Item"
+        ],
+        "description": "Retrieve details of an activity task item in an activity task",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "description": "activity Task id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "description": "name of the entity"
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/taskItem_resource"
+                },
+                "examples": {
+                  "Existing Activity Task Item": {
+                    "summary": "Activity Task Item Details",
+                    "value": {
+                      "taskId": "01ghf2acthpy46hjwess4enjmr",
+                      "activityId": "01ghf2acthpy46hjwess4enjmr",
+                      "name": "ExampleActivity",
+                      "status": "failure",
+                      "statusMessage": "conflict"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activityTasks/{taskId}/taskItems": {
+      "get": {
+        "operationId": "listActivityTaskItems",
+        "tags": [
+          "Task Items"
+        ],
+        "description": "Lists activities task items",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromName",
+            "required": false,
+            "description": "Id to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "description": "filter by status of the tasks, i.e. success, failure"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "description": "activity Task id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/taskItem_List"
+                },
+                "examples": {
+                  "List of task items": {
+                    "summary": "Paginated list of activity task items",
+                    "value": {
+                      "taskItems": [
+                        {
+                          "taskId": "52seg1jnuhrs83ioiuvr8plokq",
+                          "activityId": "08hgt3ytynbe09sqxovr7gpled",
+                          "name": "ExampleActivityOne",
+                          "status": "success"
+                        },
+                        {
+                          "taskId": "01ghf2acthpy46hjwess4enjmr",
+                          "name": "ExampleActivityTwo",
+                          "status": "failure",
+                          "statusMessage": "conflict"
+                        }
+                      ],
+                      "pagination": {
+                        "count": 2,
+                        "lastEvaluatedId": "01ghf2acthpy46hjwess4enjmr"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{key}": {
+      "get": {
+        "operationId": "listTags",
+        "summary": "List tag values",
+        "tags": [
+          "Tags"
+        ],
+        "description": "List tags for a given key.\n\nFor hierarchical / cascading tags, provide the `?parentValue` query string parameter.\n\nPermissions:\n- `reader` and above may list tags.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromValue",
+            "required": false,
+            "description": "Tag value to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "parentValue",
+            "required": false,
+            "description": "Chosen parent value for use with hierarchical tags."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "description": "Tag key."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tag values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "List of tag values",
+                  "type": "object",
+                  "properties": {
+                    "values": {
+                      "description": "Tag values and labels.",
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "description": "No. of results returned when pagination requested.",
+                          "type": "integer"
+                        },
+                        "lastEvaluatedValue": {
+                          "description": "Last evaluated tag value",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "values"
+                  ]
+                },
+                "examples": {
+                  "List of tag values": {
+                    "summary": "Paginated list of tag values.",
+                    "value": {
+                      "values": [
+                        {
+                          "ghg protocol": "GHG Protocol",
+                          "the green alliance": "The Green Alliance"
+                        }
+                      ],
+                      "pagination": {
+                        "count": 2,
+                        "lastEvaluated": {
+                          "value": "the green alliance"
+                        }
+                      }
+                    },
+                    "List of hierarchical tag values": {
+                      "summary": "Paginated list of hierarchical tag values.",
+                      "value": {
+                        "values": [
+                          {
+                            "material/metal/steel": "Steel",
+                            "material/metal/iron": "Iron"
+                          }
+                        ],
+                        "pagination": {
+                          "count": 2,
+                          "lastEvaluated": {
+                            "value": "material/metal/iron"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ],
+  "security": []
+}

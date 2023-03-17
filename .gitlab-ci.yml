@@ -1,0 +1,250 @@
+# Official framework image. Look for the different tagged releases at: https://hub.docker.com/r/library/node/tags/
+variables:
+  CONFIG_PACKAGE_NAME: sif-core
+  RUSH_PARALLELISM: 8
+  APP_CONFIG_DIR: common/build/configdir
+  BRANCH: main
+
+.staging-variables: &staging-variables
+  ENVIRONMENT: staging
+  AWS_REGION: us-west-2
+
+.prod-variables: &prod-variables
+  ENVIRONMENT: production
+  AWS_REGION: us-west-2
+
+.main-run-condition: &main-run-condition
+  - if: ($CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE != /.*\[skip ci\].*/)
+
+.branch-run-condition: &branch-run-condition
+  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH != "main")
+
+.branch-run-integration-condition: &branch-run-integration-condition
+  - if: ($CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH != "main" && $ENVIRONMENT != null && $AWS_REGION != null && $CLEANUP == null)
+
+.branch-run-cleanup-condition: &branch-run-cleanup-condition
+  - if: ($CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH != "main" && $ENVIRONMENT != null && $AWS_REGION != null && $CLEANUP == "true")
+
+.common-build-steps: &common-build-steps # install dependencies
+  - pushd ${CI_PROJECT_DIR}/typescript/packages
+  - rush update
+  - rush build
+  - popd
+
+.common-git-steps: &common-git-steps # set up the git credentials
+  - git config --global user.name "gitlab-ci-token"
+  - git config --global user.email "gitlab-ci-token"
+  - git remote set-url origin https://gitlab-ci-token:$PROJECT_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
+
+.common-install-deployment-dependencies: &common-install-deployment-dependencies
+  - yum update -y
+  - yum install -y git tar openssl zip unzip jq
+  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip -qq awscliv2.zip
+  - ./aws/install && rm -rf ./aws && rm awscliv2.zip
+  - curl -s -qL -o /usr/bin/jq https://stedolan.github.io/jq/download/linux64/jq
+  - chmod +x /usr/bin/jq
+  - npm install -g @microsoft/rush esbuild@0.14 aws-cdk
+  - cdk --version
+
+.common-install-java-dependencies: &common-install-java-dependencies
+  - yum update -y
+  - yum install -y git tar zip unzip jq curl openssl
+  - curl -fsSL https://rpm.nodesource.com/setup_16.x | bash - && yum install -y nodejs
+  - node --version
+  - npm --version
+  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip -qq awscliv2.zip
+  - ./aws/install && rm -rf ./aws && rm awscliv2.zip
+  - curl -s -qL -o /usr/bin/jq https://stedolan.github.io/jq/download/linux64/jq
+  - chmod +x /usr/bin/jq
+  - npm install -g @microsoft/rush esbuild@0.14 aws-cdk
+  - cdk --version
+  - java --version
+  - curl "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.8.6/apache-maven-3.8.6-bin.tar.gz" -o "maven.tar.gz" && tar -xf maven.tar.gz -C /opt
+  - ln -s /opt/apache-maven-3.8.6 /opt/maven
+  - export M2_HOME=/opt/maven && export MAVEN_HOME=/opt/maven && export PATH=${M2_HOME}/bin:${PATH}
+  - mvn --version
+
+.common-artifacts: &common-artifacts
+  artifacts:
+    paths:
+      - source/common/
+      - source/infrastructure/**/build.zip
+      - source/packages/**/.rush/
+      - source/packages/**/dist/
+      - source/packages/**/tsconfig.tsbuildinfo
+      - source/packages/**/bundle.zip
+
+stages:
+  - test
+  - deployStage
+  - integrationTest
+  - deployProd
+  # stages below will only be executed in branch and not main
+  - deployBranch
+  - integrationTestBranch
+  - destroyBranch
+
+default:
+  image:
+    name: public.ecr.aws/lambda/nodejs:16
+    entrypoint: ['']
+  before_script:
+    - *common-install-deployment-dependencies
+
+test:
+  rules:
+    - *main-run-condition
+  stage: test
+  needs: []
+  script:
+    - *common-git-steps
+    - bash -c cicd/increment_version.bash
+    - *common-build-steps
+    - rush test
+
+deployCoreStage:
+  image:
+    name: public.ecr.aws/lambda/java:11
+    entrypoint: ['']
+  before_script:
+    - *common-install-java-dependencies
+  rules:
+    - *main-run-condition
+  stage: deployStage
+  variables:
+    <<: *staging-variables
+  needs: ['test']
+  script:
+    - *common-build-steps
+    - pushd infrastructure/platform
+    - cdk deploy -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
+    - popd
+    - pushd infrastructure/tenant
+    - cdk deploy -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared  --all --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE
+    - cdk deploy -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
+    - popd
+
+integrationTest:
+  rules:
+    - *main-run-condition
+  stage: integrationTest
+  variables:
+    <<: *staging-variables
+  needs: ['deployCoreStage']
+  script:
+    - *common-build-steps
+    - pushd infrastructure/tenant
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - popd
+    - pushd typescript/packages/integrationTests
+    - rushx test:integration
+    - popd
+    - *common-git-steps
+    - bash -c cicd/tag_repository.bash
+
+deployCoreProd:
+  image:
+    name: public.ecr.aws/lambda/java:11
+    entrypoint: ['']
+  before_script:
+    - *common-install-java-dependencies
+  rules:
+    - *main-run-condition
+  stage: deployProd
+  variables:
+    <<: *prod-variables
+  needs: ['integrationTest']
+  script:
+    - *common-build-steps
+    - pushd infrastructure/platform
+    - cdk deploy -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
+    - popd
+    - pushd infrastructure/tenant
+    - cdk deploy -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --all --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE
+    - popd
+    - *common-git-steps
+    - bash -c cicd/tag_repository.bash
+
+# Below actions are only executed in branches other than main
+branchTest:
+  rules:
+    - *branch-run-condition
+  stage: test
+  script:
+    - rush change --verify
+    - *common-build-steps
+    - rush test
+
+branchTestCalculator:
+  image:
+    name: public.ecr.aws/lambda/java:11
+    entrypoint: [ '' ]
+  before_script:
+    - *common-install-java-dependencies
+  rules:
+    - *branch-run-condition
+  stage: test
+  script:
+    - cd java/apps/calculator
+    - mvn clean install -X
+
+branchTestIndexer:
+  image:
+    name: public.ecr.aws/lambda/java:11
+    entrypoint: [ '' ]
+  before_script:
+    - *common-install-java-dependencies
+  rules:
+    - *branch-run-condition
+  stage: test
+  script:
+    - cd java/apps/referencedatasets-indexer
+    - mvn clean install -X
+
+deployBranch:
+  stage: deployBranch
+  rules:
+    - *branch-run-integration-condition
+  script:
+    - echo "run deploy branch"
+    - *common-build-steps
+    - pushd packages/infrastructure/platform
+    - cdk deploy -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
+    - popd
+    - pushd packages/infrastructure/tenant
+    - cdk deploy -c auditFileProcessingTime=1 -c enableDeleteResource=true  -c deleteBucket=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
+    - cdk deploy -c auditFileProcessingTime=1 -c enableDeleteResource=true  -c deleteBucket=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
+    - popd
+
+integrationTestBranch:
+  rules:
+    - *branch-run-integration-condition
+  stage: integrationTestBranch
+  script:
+    - *common-build-steps
+    - pushd packages/infrastructure/tenant
+    - export AWS_DEFAULT_REGION=$AWS_REGION
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - popd
+    - pushd packages/integrationTests
+    - rushx test:integration
+    - popd
+
+destroyBranch:
+  stage: destroyBranch
+  rules:
+    - *branch-run-cleanup-condition
+  script:
+    - *common-build-steps
+    - pushd packages/infrastructure/platform
+    - cdk destroy -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --force --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
+    - popd
+    - pushd packages/infrastructure/tenant
+    - cdk destroy -c deleteBucket=true -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --require-approval never --force --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
+    - cdk destroy -c deleteBucket=true -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --require-approval never --force --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
+    - popd
+
+
+

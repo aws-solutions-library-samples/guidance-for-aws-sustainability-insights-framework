@@ -1,0 +1,667 @@
+{
+  "name": "@sif/calculations",
+  "entries": [
+    {
+      "version": "4.4.4",
+      "tag": "@sif/calculations_v4.4.4",
+      "date": "Thu, 16 Mar 2023 04:36:57 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "docs for guidance publishing"
+          },
+          {
+            "comment": "Small documentation updates"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.4.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.3",
+      "tag": "@sif/calculations_v4.4.3",
+      "date": "Mon, 27 Feb 2023 00:40:07 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "should not return pagination when querying using versionAsAt"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.2",
+      "tag": "@sif/calculations_v4.4.2",
+      "date": "Fri, 24 Feb 2023 22:03:30 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.4`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.3`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.1",
+      "tag": "@sif/calculations_v4.4.1",
+      "date": "Fri, 24 Feb 2023 09:59:15 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.6`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.0",
+      "tag": "@sif/calculations_v4.4.0",
+      "date": "Thu, 23 Feb 2023 03:06:01 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "should use calculator to perform formula validation"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.1.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.1",
+      "tag": "@sif/calculations_v4.3.1",
+      "date": "Wed, 22 Feb 2023 22:14:57 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix logic when checking query string"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.0",
+      "tag": "@sif/calculations_v4.3.0",
+      "date": "Wed, 22 Feb 2023 21:08:53 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add activeAt field to allow user to filter request by activation ti"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.5`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.2.0",
+      "tag": "@sif/calculations_v4.2.0",
+      "date": "Thu, 16 Feb 2023 16:46:28 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add new property to indicate what action the calculator should do (create or delete)"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.4.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.0.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.3.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.8",
+      "tag": "@sif/calculations_v4.1.8",
+      "date": "Thu, 09 Feb 2023 05:43:19 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.3.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.7",
+      "tag": "@sif/calculations_v4.1.7",
+      "date": "Wed, 08 Feb 2023 23:51:58 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.0.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.6`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.6",
+      "tag": "@sif/calculations_v4.1.6",
+      "date": "Wed, 08 Feb 2023 00:40:51 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "add license header"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "updated to fix ash issues"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.4`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.5`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.5",
+      "tag": "@sif/calculations_v4.1.5",
+      "date": "Tue, 07 Feb 2023 16:06:19 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix vulnerable dependencies"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.0.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.4`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.2.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.4",
+      "tag": "@sif/calculations_v4.1.4",
+      "date": "Mon, 06 Feb 2023 22:37:13 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Calculator and calculations API infrastruct constructs separated."
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.3`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.3",
+      "tag": "@sif/calculations_v4.1.3",
+      "date": "Thu, 02 Feb 2023 23:02:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Documentation updates as part of open sourcing."
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.2",
+      "tag": "@sif/calculations_v4.1.2",
+      "date": "Thu, 02 Feb 2023 18:01:35 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Documentation updates as part of open sourcing."
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.1",
+      "tag": "@sif/calculations_v4.1.1",
+      "date": "Fri, 27 Jan 2023 05:24:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "List tag route now module specific."
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.0.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.0.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.2.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.0",
+      "tag": "@sif/calculations_v4.1.0",
+      "date": "Tue, 10 Jan 2023 10:07:04 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "allow cross tenant communication"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.1.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.0.0",
+      "tag": "@sif/calculations_v4.0.0",
+      "date": "Fri, 16 Dec 2022 23:30:23 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "change pagination from using resource id to encoded token"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.0.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.0.1",
+      "tag": "@sif/calculations_v3.0.1",
+      "date": "Fri, 16 Dec 2022 15:38:18 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.0.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.0.0",
+      "tag": "@sif/calculations_v3.0.0",
+      "date": "Thu, 08 Dec 2022 23:33:17 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "add includeChildGroups and includeParentGroups to allow list to search up and down the hierarchy"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `2.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.0.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.4",
+      "tag": "@sif/calculations_v2.0.4",
+      "date": "Tue, 22 Nov 2022 18:09:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "support dry run on POST and PATCH API's"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `0.1.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.3",
+      "tag": "@sif/calculations_v2.0.3",
+      "date": "Tue, 22 Nov 2022 04:58:52 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `1.0.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `1.1.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.2",
+      "tag": "@sif/calculations_v2.0.2",
+      "date": "Tue, 22 Nov 2022 03:49:43 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `1.1.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.1",
+      "tag": "@sif/calculations_v2.0.1",
+      "date": "Thu, 17 Nov 2022 17:33:24 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "should return created id as lowercase"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.0",
+      "tag": "@sif/calculations_v2.0.0",
+      "date": "Thu, 17 Nov 2022 01:00:36 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "rename ssaas to sif"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `1.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `1.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.0.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.3.0",
+      "tag": "@sif/calculations_v1.3.0",
+      "date": "Tue, 15 Nov 2022 22:04:19 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Added contextGroup validation"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `1.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `0.2.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.2.0",
+      "tag": "@sif/calculations_v1.2.0",
+      "date": "Wed, 09 Nov 2022 02:59:50 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "changed sort order of listView to desc"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.6",
+      "tag": "@sif/calculations_v1.1.6",
+      "date": "Tue, 08 Nov 2022 23:58:39 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/events\" to `0.2.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.5",
+      "tag": "@sif/calculations_v1.1.5",
+      "date": "Mon, 07 Nov 2022 16:31:46 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": " update access role for create/update api to allow contributors access"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.4",
+      "tag": "@sif/calculations_v1.1.4",
+      "date": "Fri, 04 Nov 2022 00:18:16 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `0.1.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.3",
+      "tag": "@sif/calculations_v1.1.3",
+      "date": "Thu, 03 Nov 2022 20:32:23 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": " fix extranoues attributes on create/updates api requests"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.2",
+      "tag": "@sif/calculations_v1.1.2",
+      "date": "Wed, 02 Nov 2022 14:55:28 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Local config generator updated to use SSMClient from latest AWS SDK."
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.1",
+      "tag": "@sif/calculations_v1.1.1",
+      "date": "Tue, 01 Nov 2022 15:42:15 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "listen to 0.0.0.0 to listen all available IPv4 address when needed when running inside container"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.0",
+      "tag": "@sif/calculations_v1.1.0",
+      "date": "Tue, 01 Nov 2022 08:37:45 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "introduce feature toggle for delete resource"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.0",
+      "tag": "@sif/calculations_v1.0.0",
+      "date": "Tue, 01 Nov 2022 04:21:49 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "updated module to use SSM Parameters instead of CF exports"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.3.1",
+      "tag": "@sif/calculations_v0.3.1",
+      "date": "Tue, 18 Oct 2022 17:07:16 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "feat(library/validator): calculation and transform validation through shared library"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `0.2.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.3.0",
+      "tag": "@sif/calculations_v0.3.0",
+      "date": "Tue, 18 Oct 2022 03:36:27 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "updated patch and get calls with state changes"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.2.1",
+      "tag": "@sif/calculations_v0.2.1",
+      "date": "Fri, 14 Oct 2022 06:33:58 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "add --passWithNoTests when running jest"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `0.2.1`"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "01gm2jaqkk06g17n3fn16sftgd",
+  "version": 1,
+  "name": "ZipcodeToState10",
+  "groups": [
+    "/a/b/c"
+  ],
+  "description": "Lookup table to find a state from a zipcode",
+  "createdAt": "2022-12-12T07:03:33.235Z",
+  "createdBy": "someone@example.com",
+  "tags": {
+    "source": "usgeo"
+  },
+  "state": "disabled",
+  "status": "in_progress",
+  "datasetHeaders": [
+    "zipcode",
+    "state"
+  ],
+  "s3Location": {
+    "key": "referenceDatasets/01gm2jaqkk06g17n3fn16sftgd/2/|||a|||b|||c/data_upload.csv",
+    "bucket": "sif-amz-development-896502536262-us-west-2"
+  }
+}

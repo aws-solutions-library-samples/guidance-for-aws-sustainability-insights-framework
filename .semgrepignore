@@ -1,0 +1,24 @@
+
+# Items added to this file will be ignored by Semgrep.
+#
+# This file uses .gitignore syntax:
+#
+# Some parts of .gitignore syntax are not supported, and patterns
+# using this syntax will be dropped from the ignore list:
+# - Explicit "include syntax", e.g. "!kept/".
+# - Multi-character expansion syntax, e.g. "*.py[cod]"
+#
+# To include ignore patterns from another file, start a line
+# with ':include', followed by the path of the file. E.g.
+# ":include path/to/other/ignore/file".
+#
+# To ignore a file with a literal ':' character, escape it with
+# a backslash, e.g. "\:foo".
+
+:include .gitignore
+
+./common/scripts/*
+./layer/*
+**/*.jar
+**/proxy.client.spec.ts
+

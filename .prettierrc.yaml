@@ -1,0 +1,6 @@
+# parse .editorconfig
+editorconfig: true
+
+# apply what cannot be set in .editorconfig
+semi: true
+singleQuote: true

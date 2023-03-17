@@ -1,0 +1,89 @@
+site_name: Sustainability Insights Framework (SIF)
+repo_url: https://gitlab.aws.dev/sif/sif-core
+
+docs_dir: .
+
+nav:
+  - Introduction: README.md
+  - Walkthroughs:
+    - Deploying: docs/deployment/walkthrough.md
+    - User guide: docs/walkthrough.md
+    - docs/integration/postman.md
+  - Modules:
+    - Access Management:
+      - Overview: "typescript/packages/apps/access-management/README.md"
+      - "typescript/packages/apps/access-management/docs/cognito.md"
+      - "typescript/packages/apps/access-management/docs/simpleTenant.md"
+      - Swagger: "typescript/packages/apps/access-management/docs/swagger.json"
+    - Activities:
+      - Overview: "typescript/packages/apps/activities/README.md"
+      - Tasks: "typescript/packages/apps/activities/docs/activity-tasks.md"
+      - Impacts: "typescript/packages/apps/activities/docs/impacts.md"
+      - Components: "typescript/packages/apps/activities/docs/components.md"
+      - Swagger: "typescript/packages/apps/activities/docs/swagger.json"
+    - Calculations:
+      - Overview: "typescript/packages/apps/calculations/README.md"
+      - Swagger: "typescript/packages/apps/calculations/docs/swagger.json"
+    - Calculator:
+      - "java/apps/calculator/docs/expressions.md"
+    - Pipeline Processors:
+      - Overview: "typescript/packages/apps/pipeline-processors/README.md"
+      - Swagger: "typescript/packages/apps/pipeline-processors/docs/swagger.json"
+    - Pipelines:
+      - Overview: "typescript/packages/apps/pipelines/README.md"
+      - "typescript/packages/apps/pipelines/docs/simple-area-of-shape-transformation.md"
+      - Swagger: "typescript/packages/apps/pipelines/docs/swagger.json"
+    - Reference Datasets:
+      - Overview: "typescript/packages/apps/reference-datasets/README.md"
+      - Swagger: "typescript/packages/apps/reference-datasets/docs/swagger.json"
+  - Design:
+    - Architecture: docs/design.md
+    - Access Management:
+      - "typescript/packages/apps/access-management/docs/resourceGroupMembership.md"
+      - "typescript/packages/apps/access-management/docs/datalayer.md"
+    - Calculations:
+      - "typescript/packages/apps/calculations/docs/datalayer.md"
+    - Calculator:
+      - "java/apps/calculator/docs/development/prereqs.md"
+    - Pipelines:
+      - "typescript/packages/apps/pipelines/docs/design.md"
+  - Development:
+    - "docs/development/developer-quickstart.md"
+    - "docs/development/prereqs.md"
+    - "typescript/packages/ide/README.md"
+    - "docs/events.md"
+    - Gotchas: "docs/gotchas.md"
+  - Release Notes:
+    - Access Management: "typescript/packages/apps/access-management/CHANGELOG.md"
+    - Activities: "typescript/packages/apps/activities/CHANGELOG.md"
+    - Calculations: "typescript/packages/apps/calculations/CHANGELOG.md"
+    - Pipeline Processors: "typescript/packages/apps/pipeline-processors/CHANGELOG.md"
+    - Pipelines: "typescript/packages/apps/pipelines/CHANGELOG.md"
+    - Reference Datasets: "typescript/packages/apps/reference-datasets/CHANGELOG.md"
+    - Cloud9 IDE: "typescript/packages/ide/CHANGELOG.md"
+    - Integration Tests: "typescript/packages/integrationTests/CHANGELOG.md"
+
+use_directory_urls: false
+
+theme:
+  name: material
+
+plugins:
+  - search
+  - same-dir
+  - exclude:
+      glob:
+        - "**/node_modules/**"
+        - .history/**
+        - cicd/**
+        - common/**
+        - "**/cdk.out/**"
+        - "**/.rush/**"
+        - "**/target/**"
+        - "**/dist/**"
+        - "**/CHANGELOG.json"
+        - "**/package.json"
+        - "**/tsconfig.json"
+        - "**/cdk.json"
+      regex:
+        - '.*\.(tmp|bin|tar|zip|js|ts|map|java|log|jar|drawio|xml|conf|class|feature|csv|cjs|tsbuildinfo|svg|lst|txt|yml|todo|sh|sql)$'

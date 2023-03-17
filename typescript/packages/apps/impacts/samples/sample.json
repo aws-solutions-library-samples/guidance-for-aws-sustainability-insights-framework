@@ -1,0 +1,70 @@
+// PATCH /impacts/NaturalGas
+{
+  "factors": {
+    "CO2e": {
+      "pollutants": [
+        {
+          "key": "co2",
+          "value": 5.304733389,
+          "description": ""
+        },
+        {
+          "key": "ch4",
+          "value": null
+        }
+        }
+      }
+      }
+      },
+        {
+          "impactType": "NaturalGas",
+          "attributes": {
+            "ref_unit": "therm"
+          },
+          "factors": [
+            "CO2e": {
+              "unit": "kg",
+              "pollutants": [
+                {
+                  "key": "co2",
+                  "value": 5.304733389,
+                  "description": ""
+                },
+                {
+                  "key": "ch4",
+                  "value": 0.002799332
+                },
+                {
+                  "key": "n2o",
+                  "value": 0.002649367
+                }
+              ],
+              "impactFactors": [
+                {
+                  "key": "IPCC 2013 AR5 GWP 100",
+                  "value": 5.310182088,
+                  "description": ""
+                },
+                {
+                  "key": "IPCC 2016 AR4 GWP 100",
+                  "value": 4.310182088,
+                  "description": ""
+                }
+              ]
+            }
+            },
+            "tags": [
+              {
+                "key": "level1Hierarcy",
+                "value": "usepa",
+                "label": "USEAP",
+                "description": ""
+              },
+              {
+                "key": "source",
+                "value": "usepa",
+                "label": "USEAP",
+                "description": ""
+              }
+            ]
+            }

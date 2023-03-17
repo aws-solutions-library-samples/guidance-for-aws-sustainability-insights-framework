@@ -1,0 +1,29 @@
+{
+  "name": "@sif/deployment-helper",
+  "entries": [
+    {
+      "version": "0.1.1",
+      "tag": "@sif/deployment-helper_v0.1.1",
+      "date": "Fri, 17 Mar 2023 04:01:21 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "separate the removal user and revoking the user access"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.1.0",
+      "tag": "@sif/deployment-helper_v0.1.0",
+      "date": "Thu, 16 Mar 2023 04:36:57 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "new module contains deployment helper lambda used for lambda backed custom resource"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+	"name": "@sif/deployment-helper",
+	"version": "0.1.1",
+	"description": "Custom resources library to automate resource creation",
+	"author": "William Sia <willsia@amazon.com>",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"types": "./dist/index.d.js",
+	"type": "module",
+	"scripts": {
+		"clean": "npx shx rm -rf dist *.log tsconfig.tsbuildinfo",
+		"build": "npx tsc -b",
+		"test": "npm run build && vitest run --passWithNoTests"
+	},
+	"dependencies": {
+		"validator": "13.7.0",
+		"pino": "8.6.1",
+		"pino-pretty": "9.1.0",
+		"awilix": "7.0.3",
+		"@aws-sdk/client-s3": "3.229.0",
+		"@aws-sdk/rds-signer": "3.229.0",
+		"@aws-sdk/client-rds": "3.229.0",
+		"@aws-sdk/client-iam": "3.229.0",
+		"aws-xray-sdk": "3.4.1",
+		"axios": "1.2.5",
+		"@aws-sdk/client-secrets-manager": "3.229.0",
+		"@aws-sdk/util-stream-node": "3.226.0",
+		"node-stream-zip": "~1.15.0",
+		"pg": "8.8.0",
+		"ow": "1.1.0",
+		"node-pg-migrate": "6.2.2"
+	},
+	"devDependencies": {
+		"@tsconfig/node16-strictest-esm": "1.0.3",
+		"@types/node": "16.11.7",
+		"@types/prettier": "2.6.0",
+		"@types/pg": "8.6.6",
+		"@typescript-eslint/eslint-plugin": "5.32.0",
+		"@typescript-eslint/parser": "5.32.0",
+		"eslint": "8.24.0",
+		"shx": "0.3.3",
+		"ts-node": "10.9.1",
+		"typescript": "4.8.4",
+		"vite": "4.0.3",
+		"vitest-mock-extended": "0.1.16",
+		"vitest": "0.26.2"
+	},
+	"private": false
+}

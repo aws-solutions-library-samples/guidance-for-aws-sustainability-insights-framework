@@ -1,0 +1,2207 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SIF SaaS: Reference Datasets Management",
+    "description": "\nHas accountability for:\n- TODO...\n",
+    "version": "0.0.1"
+  },
+  "components": {
+    "securitySchemes": {
+      "platformUserPool": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "tags": {
+        "description": "User-defined searchable tags",
+        "type": "object",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "referenceDatasetResource": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "description": "Date/time created",
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "ID of owner.",
+            "type": "string"
+          },
+          "datasetHeaders": {
+            "type": "array",
+            "items": {
+              "description": "datasetHeaders form-data attribute is required attribute to pass csv file headers for validation. A thing to note\nis that this attribute should be specified as form-data attribute which also has content-type specified and is set  to 'application/json'. This is not immediately known or visible.\nIts recommended to check how your client can set the content-type to 'application/json' for individual form-data attributes. As an example this is how you can set the content-type\non an individual form-data attribute for a CURL reques '--form 'datasetHeaders=\"[\\\"ZIP\\\", \\\"STATE\\\"]\";type=application/json' \\' ",
+              "type": "string"
+            }
+          },
+          "description": {
+            "description": "description for the reference dataset",
+            "type": "string"
+          },
+          "groups": {
+            "description": "Groups that have access to the calculation.",
+            "type": "array",
+            "items": {
+              "description": "The group ID as managed by the Access Management module.",
+              "type": "string"
+            }
+          },
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "name": {
+            "description": "name of the ReferenceDataset",
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "frozen",
+              "disabled"
+            ],
+            "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pendingUpload",
+              "inProgress",
+              "success",
+              "failed"
+            ],
+            "description": "reference dataset processing status"
+          },
+          "statusMessage": {
+            "description": "message related to the status attribute. e.g. if the status is failed, this attribute will indicate why it failed",
+            "type": "string"
+          },
+          "tags": {
+            "$ref": "#/components/schemas/tags"
+          },
+          "updatedAt": {
+            "description": "Date/time updated",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "description": "Last ID of user who made a change.",
+            "type": "string"
+          },
+          "uploadUrl": {
+            "description": "signed url for uploading the reference dataset",
+            "type": "string"
+          },
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "description": "version of the reference dataset",
+            "type": "number"
+          }
+        },
+        "required": [
+          "createdAt",
+          "createdBy",
+          "groups",
+          "id",
+          "name",
+          "state",
+          "status",
+          "version"
+        ]
+      },
+      "newReferenceDatasetRequestBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "name of the ReferenceDataset",
+            "type": "string"
+          },
+          "data": {
+            "description": "dataset file",
+            "format": "binary",
+            "type": "string"
+          },
+          "datasetSource": {
+            "description": "source of reference dataset",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "s3"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "httpBody"
+                ]
+              }
+            ]
+          },
+          "description": {
+            "description": "description for the reference dataset",
+            "type": "string"
+          },
+          "datasetHeaders": {
+            "type": "array",
+            "items": {
+              "description": "datasetHeaders form-data attribute is required attribute to pass csv file headers for validation. A thing to note\nis that this attribute should be specified as form-data attribute which also has content-type specified and is set  to 'application/json'. This is not immediately known or visible.\nIts recommended to check how your client can set the content-type to 'application/json' for individual form-data attributes. As an example this is how you can set the content-type\non an individual form-data attribute for a CURL reques '--form 'datasetHeaders=\"[\\\"ZIP\\\", \\\"STATE\\\"]\";type=application/json' \\' ",
+              "type": "string"
+            }
+          },
+          "tags": {
+            "$ref": "#/components/schemas/tags"
+          },
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "editReferenceDatasetRequestBody": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "description for the reference dataset",
+            "type": "string"
+          },
+          "datasetSource": {
+            "description": "source of reference dataset",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "s3"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "httpBody"
+                ]
+              }
+            ]
+          },
+          "data": {
+            "description": "dataset file",
+            "format": "binary",
+            "type": "string"
+          },
+          "datasetHeaders": {
+            "type": "array",
+            "items": {
+              "description": "datasetHeaders form-data attribute is required attribute to pass csv file headers for validation. A thing to note\nis that this attribute should be specified as form-data attribute which also has content-type specified and is set  to 'application/json'. This is not immediately known or visible.\nIts recommended to check how your client can set the content-type to 'application/json' for individual form-data attributes. As an example this is how you can set the content-type\non an individual form-data attribute for a CURL reques '--form 'datasetHeaders=\"[\\\"ZIP\\\", \\\"STATE\\\"]\";type=application/json' \\' ",
+              "type": "string"
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "frozen",
+              "disabled"
+            ],
+            "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
+          },
+          "tags": {
+            "$ref": "#/components/schemas/tags"
+          },
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          }
+        }
+      },
+      "referenceDatasetList": {
+        "type": "object",
+        "properties": {
+          "referenceDatasets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/referenceDatasetResource"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "lastEvaluatedToken": {
+                "description": "Token used to paginate to the next page of search result.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "referenceDatasets"
+        ]
+      },
+      "referenceDatasetVersionList": {
+        "type": "object",
+        "properties": {
+          "referenceDatasets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/referenceDatasetResource"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "lastEvaluatedVersion": {
+                "description": "version of the reference dataset",
+                "type": "number"
+              }
+            }
+          }
+        },
+        "required": [
+          "referenceDatasets"
+        ]
+      },
+      "signedUrl_request": {
+        "type": "object",
+        "properties": {
+          "expiration": {
+            "description": "The number of seconds before presigned url expires, default to 5 minutes",
+            "type": "number"
+          }
+        }
+      },
+      "signedUrl_response": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "requested signed url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/referenceDatasets": {
+      "post": {
+        "operationId": "create",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Create a new reference dataset\n\nPermissions:\n- Only `contributor` or `admin` of the group in context may create reference datasets.\n\t\t\t",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/newReferenceDatasetRequestBody"
+              },
+              "examples": {
+                "New ReferenceDataset": {
+                  "summary": "Creates a new ReferenceDataset.",
+                  "value": {
+                    "name": "newdatasets",
+                    "description": "this dataset contains unit mappings",
+                    "datasetHeaders": [
+                      "Type",
+                      "Multiplier"
+                    ],
+                    "data": "Type,Multiplier\ntype1,test1\ntype2,test2",
+                    "datasetSource": "httpBody",
+                    "tags": {
+                      "division": "purchasing",
+                      "type": "material/metal/steel"
+                    }
+                  }
+                },
+                "New ReferenceDataset from S3": {
+                  "summary": "Creates a new ReferenceDataset and request s3 signed url to upload the data",
+                  "value": {
+                    "name": "newdatasetsfroms3",
+                    "description": "this dataset contains unit mappings",
+                    "datasetHeaders": [
+                      "Type",
+                      "Multiplier"
+                    ],
+                    "datasetSource": "s3",
+                    "tags": {
+                      "division": "purchasing",
+                      "type": "material/metal/steel"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/referenceDatasetResource"
+                },
+                "examples": {
+                  "New Reference Data": {
+                    "summary": "New reference data created",
+                    "value": {
+                      "id": "9ed8d000-2913-11ed-8b63-5d7e10640611",
+                      "name": "units",
+                      "description": "this dataset contains unit mappings",
+                      "datasetHeaders": [
+                        "Type",
+                        "Multiplier"
+                      ],
+                      "createdAt": "2022-08-10T23:55:20.322Z",
+                      "createdBy": "someone@somewhere.com",
+                      "groups": [
+                        "/usa/northwest"
+                      ],
+                      "version": 1,
+                      "state": "enabled",
+                      "status": "success",
+                      "tags": {
+                        "division": "purchasing",
+                        "type": "material/metal/steel"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Conflict.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "syntaxErrors": {
+                      "type": "object",
+                      "properties": {
+                        "charPositionInLine": {
+                          "type": "integer"
+                        },
+                        "line": {
+                          "type": "integer"
+                        },
+                        "msg": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "charPositionInLine",
+                        "line",
+                        "msg"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "list",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Lists Reference Datasets\n\nPermissions:\n- All roles of the group in context may list Reference Datasets.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromToken",
+            "required": false,
+            "description": "Token used to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "description": "Filters by `name` based on the group access of the caller."
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "description": "Tag key and value in the format of `key:value`.",
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "description": "Tag keys and values to filter by."
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeParentGroups",
+            "required": false,
+            "description": "Include all parent groups result."
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeChildGroups",
+            "required": false,
+            "description": "Include all children groups result."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/referenceDatasetList"
+                },
+                "examples": {
+                  "List of reference datasets": {
+                    "summary": "Paginated list of reference datasets",
+                    "value": {
+                      "pagination": {
+                        "lastEvaluatedToken": "fd06ba10-2937-11ed-ae7b-0579fa02d3cb"
+                      },
+                      "referenceDatasets": [
+                        {
+                          "id": "defa5ad0-2938-11ed-b188-3789cc690104",
+                          "createdAt": "2022-08-31T14:26:15.421Z",
+                          "createdBy": "someone@example.com",
+                          "name": "dataset one",
+                          "groups": [
+                            "/usa/northwest"
+                          ],
+                          "version": 1,
+                          "datasetHeaders": [
+                            "Type",
+                            "Units"
+                          ],
+                          "tags": {
+                            "division": "purchasing",
+                            "type": "material/metal/steel"
+                          },
+                          "state": "enabled",
+                          "status": "success"
+                        },
+                        {
+                          "id": "fd06ba10-2937-11ed-ae7b-0579fa02d3cb",
+                          "createdAt": "2022-08-31T14:19:56.337Z",
+                          "createdBy": "someone@example.com",
+                          "updatedBy": "someone@example.com",
+                          "updatedAt": "2022-08-31T14:19:56.337Z",
+                          "name": "data set two",
+                          "groups": [
+                            "/usa/northwest"
+                          ],
+                          "version": 2,
+                          "datasetHeaders": [
+                            "Type",
+                            "Units"
+                          ],
+                          "tags": {
+                            "division": "purchasing",
+                            "type": "material/metal/steel"
+                          },
+                          "state": "enabled",
+                          "status": "success"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referenceDatasets/{id}": {
+      "get": {
+        "operationId": "get",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Retrieve reference dataset\n\nPermissions:\n- All roles of the group in context may get reference dataset.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/referenceDatasetResource"
+                },
+                "examples": {
+                  "Existing Reference Dataset": {
+                    "summary": "Existing reference dataset details",
+                    "value": {
+                      "id": "9ed8d000-2913-11ed-8b63-5d7e10640611",
+                      "name": "units",
+                      "description": "this dataset contains unit mappings",
+                      "datasetHeaders": [
+                        "Type",
+                        "Multiplier"
+                      ],
+                      "createdAt": "2022-08-10T23:55:20.322Z",
+                      "createdBy": "someone@somewhere.com",
+                      "groups": [
+                        "/usa/northwest"
+                      ],
+                      "version": 1,
+                      "state": "enabled",
+                      "status": "success",
+                      "tags": {
+                        "division": "purchasing",
+                        "type": "material/metal/steel"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "update",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Updates an existing reference dataset\n\nPermissions:\n- Only `admin` of the group in context may update reference datasets.\n",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/editReferenceDatasetRequestBody"
+              },
+              "examples": {
+                "Edit ReferenceDataset": {
+                  "summary": "Update an existing ReferenceDataset, if there is an existing tag with the same key, the tag will be modified, if not it will be added",
+                  "value": {
+                    "description": "this dataset contains unit mappings",
+                    "datasetHeaders": [
+                      "Type",
+                      "Multiplier"
+                    ],
+                    "tags": {
+                      "division": "purchasing",
+                      "type": "material/metal/steel"
+                    }
+                  }
+                },
+                "Removing Tag from ReferenceDataset": {
+                  "summary": "Deleting tag from a reference dataset.",
+                  "value": {
+                    "description": "this dataset contains unit mappings",
+                    "datasetHeaders": [
+                      "Type",
+                      "Multiplier"
+                    ],
+                    "tags": {
+                      "division": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/referenceDatasetResource"
+                },
+                "examples": {
+                  "Updated Reference Dataset": {
+                    "summary": "Updated reference dataset details",
+                    "value": {
+                      "id": "9ed8d000-2913-11ed-8b63-5d7e10640611",
+                      "name": "units",
+                      "description": "this dataset contains unit mappings",
+                      "datasetHeaders": [
+                        "Type",
+                        "Multiplier"
+                      ],
+                      "createdAt": "2022-08-10T23:55:20.322Z",
+                      "createdBy": "someone@somewhere.com",
+                      "updatedBy": "someone@example.com",
+                      "updatedAt": "2022-08-31T14:19:56.337Z",
+                      "groups": [
+                        "/usa/northwest"
+                      ],
+                      "version": 2,
+                      "state": "enabled",
+                      "status": "success",
+                      "tags": {
+                        "division": "purchasing",
+                        "type": "material/metal/steel"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referenceDatasets/{id}/versions/{version}": {
+      "get": {
+        "operationId": "getVersion",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Retrieve specific version of the Reference Dataset\n\nPermissions:\n- All roles of the group in context may get specific version of Dataset.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "description": "version of the reference dataset"
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/referenceDatasetResource"
+                },
+                "examples": {
+                  "Existing Reference Dataset by Version": {
+                    "summary": "Existing reference dataset details by Version",
+                    "value": {
+                      "pagination": {
+                        "lastEvaluatedVersion": 2
+                      },
+                      "referenceDatasets": [
+                        {
+                          "id": "defa5ad0-2938-11ed-b188-3789cc690104",
+                          "createdAt": "2022-08-31T14:26:15.421Z",
+                          "createdBy": "someone@example.com",
+                          "name": "dataset one",
+                          "groups": [
+                            "/usa/northwest"
+                          ],
+                          "version": 1,
+                          "datasetHeaders": [
+                            "Type",
+                            "Units"
+                          ],
+                          "tags": {
+                            "division": "purchasing",
+                            "type": "material/metal/steel"
+                          },
+                          "state": "frozen",
+                          "status": "success"
+                        },
+                        {
+                          "id": "fd06ba10-2937-11ed-ae7b-0579fa02d3cb",
+                          "createdAt": "2022-08-31T14:26:15.421Z",
+                          "createdBy": "someone@example.com",
+                          "updatedBy": "someone@example.com",
+                          "updatedAt": "2022-08-31T14:19:56.337Z",
+                          "name": "dataset one",
+                          "groups": [
+                            "/usa/northwest"
+                          ],
+                          "version": 2,
+                          "datasetHeaders": [
+                            "Type",
+                            "Measurement"
+                          ],
+                          "tags": {
+                            "division": "purchasing",
+                            "type": "material/metal/steel"
+                          },
+                          "state": "enabled",
+                          "status": "success"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referenceDatasets/{id}/groups/{groupId}": {
+      "put": {
+        "operationId": "grant",
+        "summary": "Grants access",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Grants access of the reference dataset to the provided group.\n\n\t\t\tPermissions:\n\t\t\t- `admin` and above of both the active group in context and the target group required.\n\t\t\t",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "description": "Group id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "revoke",
+        "summary": "Revoke access",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Revokes access of the reference dataset to the provided group.\n\nPermissions:\n- `admin` and above of both the active group in context and the target group required.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "description": "Group id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referenceDatasets/{id}/versions": {
+      "get": {
+        "operationId": "listVersions",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Lists Reference Datasets by versions\n\nPermissions:\n- All roles of the group in context may lists Reference Datasets by versions.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "fromVersion",
+            "required": false,
+            "description": "Version to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "versionAsAt",
+            "required": false,
+            "description": "Filters by `asAt` or `createdAt` determine the latest resource version as that time."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/referenceDatasetVersionList"
+                },
+                "examples": {
+                  "List of reference datasets by version": {
+                    "summary": "Paginated list of reference datasets by version",
+                    "value": {
+                      "pagination": {
+                        "lastEvaluatedVersion": 2
+                      },
+                      "referenceDatasets": [
+                        {
+                          "id": "defa5ad0-2938-11ed-b188-3789cc690104",
+                          "createdAt": "2022-08-31T14:26:15.421Z",
+                          "createdBy": "someone@example.com",
+                          "name": "dataset one",
+                          "groups": [
+                            "/usa/northwest"
+                          ],
+                          "version": 1,
+                          "datasetHeaders": [
+                            "Type",
+                            "Units"
+                          ],
+                          "tags": {
+                            "division": "purchasing",
+                            "type": "material/metal/steel"
+                          },
+                          "state": "frozen",
+                          "status": "success"
+                        },
+                        {
+                          "id": "fd06ba10-2937-11ed-ae7b-0579fa02d3cb",
+                          "createdAt": "2022-08-31T14:26:15.421Z",
+                          "createdBy": "someone@example.com",
+                          "updatedBy": "someone@example.com",
+                          "updatedAt": "2022-08-31T14:19:56.337Z",
+                          "name": "dataset one",
+                          "groups": [
+                            "/usa/northwest"
+                          ],
+                          "version": 2,
+                          "datasetHeaders": [
+                            "Type",
+                            "Measurement"
+                          ],
+                          "tags": {
+                            "division": "purchasing",
+                            "type": "material/metal/steel"
+                          },
+                          "state": "enabled",
+                          "status": "success"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referenceDatasets/{id}/data": {
+      "get": {
+        "operationId": "getData",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Retrieve latest version of reference dataset file content\n\nPermissions:\n- All roles of the group in context may get reference dataset.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/signedUrl_response"
+                },
+                "examples": {
+                  "Content of the reference dataset": {
+                    "summary": "Content of the reference dataset",
+                    "value": "Header1,Header2\nRow1Column1,Row1Column2\nRow2Column1,Row2Column2"
+                  },
+                  "Signed Url for the Reference dataset": {
+                    "summary": "Signed url to retrieve the reference dataset",
+                    "value": {
+                      "url": "https://signed.url.response/data.object"
+                    }
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/signedUrl_response"
+                },
+                "examples": {
+                  "Content of the reference dataset": {
+                    "summary": "Content of the reference dataset",
+                    "value": "Header1,Header2\nRow1Column1,Row1Column2\nRow2Column1,Row2Column2"
+                  },
+                  "Signed Url for the Reference dataset": {
+                    "summary": "Signed url to retrieve the reference dataset",
+                    "value": {
+                      "url": "https://signed.url.response/data.object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referenceDatasets/{id}/versions/{version}/data": {
+      "get": {
+        "operationId": "getVersionData",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Retrieve specific version of reference dataset file content\n\nPermissions:\n- All roles of the group in context may get reference dataset.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "description": "version of the reference dataset"
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/signedUrl_response"
+                },
+                "examples": {
+                  "Content of the reference dataset": {
+                    "summary": "Content of the reference dataset",
+                    "value": "Header1,Header2\nRow1Column1,Row1Column2\nRow2Column1,Row2Column2"
+                  },
+                  "Signed Url for the Reference dataset": {
+                    "summary": "Signed url to retrieve the reference dataset",
+                    "value": {
+                      "url": "https://signed.url.response/data.object"
+                    }
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/signedUrl_response"
+                },
+                "examples": {
+                  "Content of the reference dataset": {
+                    "summary": "Content of the reference dataset",
+                    "value": "Header1,Header2\nRow1Column1,Row1Column2\nRow2Column1,Row2Column2"
+                  },
+                  "Signed Url for the Reference dataset": {
+                    "summary": "Signed url to retrieve the reference dataset",
+                    "value": {
+                      "url": "https://signed.url.response/data.object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referenceDatasets/{id}/index": {
+      "get": {
+        "operationId": "getData",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Retrieve latest version of reference dataset lucene index zip file\n\nPermissions:\n- All roles of the group in context may get reference dataset.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/signedUrl_response"
+                },
+                "examples": {
+                  "Signed Url for the Reference dataset index file": {
+                    "summary": "Signed url to retrieve the reference dataset index file",
+                    "value": {
+                      "url": "https://signed.url.response/data.object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/referenceDatasets/{id}/versions/{version}/index": {
+      "get": {
+        "operationId": "getVersionIndex",
+        "tags": [
+          "Reference Datasets"
+        ],
+        "description": "Retrieve specific version of reference dataset lucene index\n\nPermissions:\n- All roles of the group in context may get reference dataset.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "description": "version of the reference dataset"
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/signedUrl_response"
+                },
+                "examples": {
+                  "Signed Url for the Reference dataset index file": {
+                    "summary": "Signed url to retrieve the reference dataset index file",
+                    "value": {
+                      "url": "https://signed.url.response/data.object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{key}": {
+      "get": {
+        "operationId": "listTags",
+        "summary": "List tag values",
+        "tags": [
+          "Tags"
+        ],
+        "description": "List tags for a given key.\n\nFor hierarchical / cascading tags, provide the `?parentValue` query string parameter.\n\nPermissions:\n- `reader` and above may list tags.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromValue",
+            "required": false,
+            "description": "Tag value to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "parentValue",
+            "required": false,
+            "description": "Chosen parent value for use with hierarchical tags."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "description": "Tag key."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tag values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "List of tag values",
+                  "type": "object",
+                  "properties": {
+                    "values": {
+                      "description": "Tag values and labels.",
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "description": "No. of results returned when pagination requested.",
+                          "type": "integer"
+                        },
+                        "lastEvaluatedValue": {
+                          "description": "Last evaluated tag value",
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "values"
+                  ]
+                },
+                "examples": {
+                  "List of tag values": {
+                    "summary": "Paginated list of tag values.",
+                    "value": {
+                      "values": [
+                        {
+                          "ghg protocol": "GHG Protocol",
+                          "the green alliance": "The Green Alliance"
+                        }
+                      ],
+                      "pagination": {
+                        "count": 2,
+                        "lastEvaluated": {
+                          "value": "the green alliance"
+                        }
+                      }
+                    },
+                    "List of hierarchical tag values": {
+                      "summary": "Paginated list of hierarchical tag values.",
+                      "value": {
+                        "values": [
+                          {
+                            "material/metal/steel": "Steel",
+                            "material/metal/iron": "Iron"
+                          }
+                        ],
+                        "pagination": {
+                          "count": 2,
+                          "lastEvaluated": {
+                            "value": "material/metal/iron"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "Reference Datasets",
+      "description": "Reference Datasets management"
+    }
+  ]
+}

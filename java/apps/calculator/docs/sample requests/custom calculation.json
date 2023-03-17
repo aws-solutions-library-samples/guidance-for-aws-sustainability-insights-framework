@@ -1,0 +1,34 @@
+{
+  "pipelineId": "abc123",
+  "executionId": "zyx123",
+  "groupContextId": "/",
+  "parameters": [
+    {
+      "key": "left",
+      "type": "number"
+    },
+    {
+      "key": "right",
+      "type": "number"
+    }
+  ],
+  "transforms": [
+    {
+      "index": 0,
+      "formula": "#custom_add(:left,:right)",
+      "outputs": [
+        {
+          "index": 0,
+          "key": "total",
+          "type": "number"
+        }
+      ]
+    }
+  ],
+  "csvHeader": "\"id\",\"left\",\"right\"",
+  "csvSourceData": [
+    "\"item001\",2,34.8",
+    "\"item002\",1,0.035",
+    "\"item003\",3,2.5478"
+  ]
+}

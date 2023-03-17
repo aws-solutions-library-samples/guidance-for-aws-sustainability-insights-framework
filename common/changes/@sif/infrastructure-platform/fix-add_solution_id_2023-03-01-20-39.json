@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/infrastructure-platform",
+      "comment": "Added Solution ID to CDK",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/infrastructure-platform"
+}

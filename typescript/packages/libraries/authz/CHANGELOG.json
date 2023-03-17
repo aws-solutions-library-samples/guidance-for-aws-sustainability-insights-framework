@@ -1,0 +1,111 @@
+{
+  "name": "@sif/authz",
+  "entries": [
+    {
+      "version": "2.1.4",
+      "tag": "@sif/authz_v2.1.4",
+      "date": "Fri, 24 Feb 2023 22:03:30 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Remove token logging"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.3",
+      "tag": "@sif/authz_v2.1.3",
+      "date": "Wed, 08 Feb 2023 00:40:51 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "add license header"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "updated to fix ash issues"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.2",
+      "tag": "@sif/authz_v2.1.2",
+      "date": "Tue, 07 Feb 2023 16:06:19 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "address repolinter accidental check in"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "fix vulnerable dependencies"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.1",
+      "tag": "@sif/authz_v2.1.1",
+      "date": "Fri, 27 Jan 2023 05:24:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "List tag route now module specific."
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.0",
+      "tag": "@sif/authz_v2.1.0",
+      "date": "Tue, 10 Jan 2023 10:07:04 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "allow cross tenant communication"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.0",
+      "tag": "@sif/authz_v2.0.0",
+      "date": "Thu, 17 Nov 2022 01:00:36 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "rename ssaas to sif"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.0",
+      "tag": "@sif/authz_v1.0.0",
+      "date": "Tue, 15 Nov 2022 22:04:19 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "changed authentication flow to SRP"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.2.1",
+      "tag": "@sif/authz_v0.2.1",
+      "date": "Fri, 14 Oct 2022 06:33:58 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "add --passWithNoTests when running jest"
+          }
+        ]
+      }
+    }
+  ]
+}

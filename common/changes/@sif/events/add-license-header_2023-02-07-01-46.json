@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/events",
+      "comment": "add license header",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/events"
+}

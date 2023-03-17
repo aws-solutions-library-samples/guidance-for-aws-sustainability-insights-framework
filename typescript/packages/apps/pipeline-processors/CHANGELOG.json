@@ -1,0 +1,687 @@
+{
+  "name": "@sif/pipeline-processors",
+  "entries": [
+    {
+      "version": "4.5.0",
+      "tag": "@sif/pipeline-processors_v4.5.0",
+      "date": "Thu, 16 Mar 2023 04:36:57 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "docs for guidance publishing"
+          },
+          {
+            "comment": "Small documentation updates"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "add logic to insert and query aggregated data"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.4.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.2.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.6",
+      "tag": "@sif/pipeline-processors_v4.4.6",
+      "date": "Fri, 24 Feb 2023 22:03:30 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.4`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.3`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.5",
+      "tag": "@sif/pipeline-processors_v4.4.5",
+      "date": "Fri, 24 Feb 2023 09:59:15 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.4",
+      "tag": "@sif/pipeline-processors_v4.4.4",
+      "date": "Fri, 24 Feb 2023 05:33:21 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "reverting change"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.3",
+      "tag": "@sif/pipeline-processors_v4.4.3",
+      "date": "Thu, 23 Feb 2023 03:06:01 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.1.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.2",
+      "tag": "@sif/pipeline-processors_v4.4.2",
+      "date": "Wed, 22 Feb 2023 21:08:53 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.1",
+      "tag": "@sif/pipeline-processors_v4.4.1",
+      "date": "Thu, 16 Feb 2023 16:46:28 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Updated Activity queries so they can ignore null value fields when showHistory is false"
+          },
+          {
+            "comment": "should take into account the time range when aggregating output"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.3.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.4.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.0.3`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.0",
+      "tag": "@sif/pipeline-processors_v4.4.0",
+      "date": "Thu, 09 Feb 2023 05:43:19 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add xray wrapper to aws-sdk"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.3.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.6",
+      "tag": "@sif/pipeline-processors_v4.3.6",
+      "date": "Thu, 09 Feb 2023 00:04:04 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Updated docs."
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.5",
+      "tag": "@sif/pipeline-processors_v4.3.5",
+      "date": "Wed, 08 Feb 2023 23:51:58 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.0.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.6`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.4",
+      "tag": "@sif/pipeline-processors_v4.3.4",
+      "date": "Wed, 08 Feb 2023 00:40:51 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "add license header"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "updated to fix ash issues"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.5`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.3",
+      "tag": "@sif/pipeline-processors_v4.3.3",
+      "date": "Tue, 07 Feb 2023 16:06:19 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix vulnerable dependencies"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.2.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.0.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.4`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.2",
+      "tag": "@sif/pipeline-processors_v4.3.2",
+      "date": "Mon, 06 Feb 2023 22:37:13 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.3`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.1",
+      "tag": "@sif/pipeline-processors_v4.3.1",
+      "date": "Mon, 06 Feb 2023 19:20:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fixes metric list api members query"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.0",
+      "tag": "@sif/pipeline-processors_v4.3.0",
+      "date": "Mon, 06 Feb 2023 02:11:05 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add new endpoint to return list of audit files"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.2.2",
+      "tag": "@sif/pipeline-processors_v4.2.2",
+      "date": "Thu, 02 Feb 2023 23:02:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Documentation updates as part of open sourcing."
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.2.1",
+      "tag": "@sif/pipeline-processors_v4.2.1",
+      "date": "Thu, 02 Feb 2023 18:01:35 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Documentation updates as part of open sourcing."
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.2.0",
+      "tag": "@sif/pipeline-processors_v4.2.0",
+      "date": "Fri, 27 Jan 2023 05:24:10 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "A new aggregation task added to the step function to aggregate metrics. Updated to support new calculation engine interface. "
+          }
+        ],
+        "patch": [
+          {
+            "comment": "refactored aggregations related implementation form timestream to aurora"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.0.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.0.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.1.0",
+      "tag": "@sif/pipeline-processors_v4.1.0",
+      "date": "Tue, 10 Jan 2023 10:07:04 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "allow cross tenant communication"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.1.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.0.2",
+      "tag": "@sif/pipeline-processors_v4.0.2",
+      "date": "Fri, 16 Dec 2022 23:30:23 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "remove count from list response"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.0.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.0.1",
+      "tag": "@sif/pipeline-processors_v4.0.1",
+      "date": "Wed, 14 Dec 2022 17:23:17 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "replaced short-unique-id with ulid"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.0.0",
+      "tag": "@sif/pipeline-processors_v4.0.0",
+      "date": "Thu, 08 Dec 2022 23:33:17 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "add includeChildGroups and includeParentGroups to allow list to search up and down the hierarchy"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `2.0.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.1.3",
+      "tag": "@sif/pipeline-processors_v3.1.3",
+      "date": "Tue, 22 Nov 2022 04:58:52 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `1.1.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.1.2",
+      "tag": "@sif/pipeline-processors_v3.1.2",
+      "date": "Tue, 22 Nov 2022 03:49:43 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `1.1.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.1.1",
+      "tag": "@sif/pipeline-processors_v3.1.1",
+      "date": "Fri, 18 Nov 2022 18:36:43 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Invoke calculator in S3 mode, handle errors"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.1.0",
+      "tag": "@sif/pipeline-processors_v3.1.0",
+      "date": "Thu, 17 Nov 2022 17:33:24 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "generating upload signed url should also return pipeline and execution id"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.0.0",
+      "tag": "@sif/pipeline-processors_v3.0.0",
+      "date": "Thu, 17 Nov 2022 01:00:36 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "rename ssaas to sif"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `1.0.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.2.0",
+      "tag": "@sif/pipeline-processors_v2.2.0",
+      "date": "Tue, 15 Nov 2022 22:04:19 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Added contextGroup validation"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `1.0.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `0.2.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.0",
+      "tag": "@sif/pipeline-processors_v2.1.0",
+      "date": "Wed, 09 Nov 2022 02:59:50 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "changed sort order of listView to desc"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.6",
+      "tag": "@sif/pipeline-processors_v2.0.6",
+      "date": "Tue, 08 Nov 2022 23:58:39 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "should publish events to eventbridge if upload file failed when signed url being used"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/events\" to `0.2.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.5",
+      "tag": "@sif/pipeline-processors_v2.0.5",
+      "date": "Tue, 08 Nov 2022 02:50:17 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "add common header configuration for pipeline processors"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.4",
+      "tag": "@sif/pipeline-processors_v2.0.4",
+      "date": "Mon, 07 Nov 2022 16:31:46 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": " update access role for create/update api to allow contributors access"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.3",
+      "tag": "@sif/pipeline-processors_v2.0.3",
+      "date": "Thu, 03 Nov 2022 20:32:23 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": " fix extranoues attributes on create/updates api requests"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.2",
+      "tag": "@sif/pipeline-processors_v2.0.2",
+      "date": "Wed, 02 Nov 2022 14:55:28 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Local config generator updated to use SSMClient from latest AWS SDK."
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.1",
+      "tag": "@sif/pipeline-processors_v2.0.1",
+      "date": "Tue, 01 Nov 2022 15:42:15 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "listen to 0.0.0.0 to listen all available IPv4 address when needed when running inside container"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.0",
+      "tag": "@sif/pipeline-processors_v2.0.0",
+      "date": "Tue, 01 Nov 2022 04:21:49 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "updated module to use SSM Parameters instead of CF exports"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.1",
+      "tag": "@sif/pipeline-processors_v1.0.1",
+      "date": "Mon, 31 Oct 2022 16:26:46 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "Pipeline processor walkthrough update"
+          },
+          {
+            "comment": "set package private setting to false"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "fix issue when reading file from s3 using select range"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.0",
+      "tag": "@sif/pipeline-processors_v1.0.0",
+      "date": "Wed, 26 Oct 2022 22:42:43 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "refactor the handler to move the logic to tasks class and add error checking, also change the signed url request to POST"
+          }
+        ],
+        "none": [
+          {
+            "comment": "Pipeline processor walkthrough"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.4.0",
+      "tag": "@sif/pipeline-processors_v0.4.0",
+      "date": "Tue, 18 Oct 2022 03:36:27 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "updated patch and get calls with state changes"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.3.0",
+      "tag": "@sif/pipeline-processors_v0.3.0",
+      "date": "Tue, 18 Oct 2022 02:54:01 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "updated to use shared S3 bucket"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.2.2",
+      "tag": "@sif/pipeline-processors_v0.2.2",
+      "date": "Fri, 14 Oct 2022 06:33:58 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "add --passWithNoTests when running jest"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `0.2.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.2.1",
+      "tag": "@sif/pipeline-processors_v0.2.1",
+      "date": "Fri, 14 Oct 2022 04:37:00 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "use \\n as delimiter when processing csv and fix the authorization context"
+          }
+        ]
+      }
+    }
+  ]
+}

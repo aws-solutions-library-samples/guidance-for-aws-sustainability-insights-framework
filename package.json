@@ -1,0 +1,18 @@
+{
+	"name": "sustainability-saas",
+	"version": "0.2.0",
+	"description": "Sustainability SaaS",
+	"author": "Dean Hart <deanhart@amazon.com>",
+	"scripts": {},
+	"engines": {
+		"node": "=16",
+		"pnpm": "=7"
+	},
+	"private": true,
+	"devDependencies": {
+		"@rushstack/eslint-config": "^3.0.0",
+		"esbuild": "0.15.1",
+		"eslint": "8.22.0",
+		"vite": "^4.0.3"
+	}
+}

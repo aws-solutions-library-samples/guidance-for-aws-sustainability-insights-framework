@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/lambda-invoker",
+      "comment": "add license header",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/lambda-invoker"
+}

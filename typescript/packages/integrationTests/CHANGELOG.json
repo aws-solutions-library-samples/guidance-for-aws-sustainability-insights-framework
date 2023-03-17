@@ -1,0 +1,480 @@
+{
+  "name": "@sif/integration-tests",
+  "entries": [
+    {
+      "version": "3.8.0",
+      "tag": "@sif/integration-tests_v3.8.0",
+      "date": "Thu, 16 Mar 2023 04:36:57 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "Small documentation updates"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "add integration tests for pipeline output aggregation"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.7.0",
+      "tag": "@sif/integration-tests_v3.7.0",
+      "date": "Mon, 27 Feb 2023 00:40:07 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add calculator syntax test that refers to other resources"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.6.2",
+      "tag": "@sif/integration-tests_v3.6.2",
+      "date": "Fri, 24 Feb 2023 05:33:21 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "reverting change"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.6.1",
+      "tag": "@sif/integration-tests_v3.6.1",
+      "date": "Thu, 23 Feb 2023 17:52:11 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "updated integration tests"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.6.0",
+      "tag": "@sif/integration-tests_v3.6.0",
+      "date": "Thu, 23 Feb 2023 03:06:01 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add tests for the dry run feature"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.5.0",
+      "tag": "@sif/integration-tests_v3.5.0",
+      "date": "Wed, 22 Feb 2023 21:08:53 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add integration tests to filter request based on activation time"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.4.0",
+      "tag": "@sif/integration-tests_v3.4.0",
+      "date": "Thu, 16 Feb 2023 16:46:28 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "add license header"
+          },
+          {
+            "comment": "adding 2 sample files used in walkthrough"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "Updated test for the creation of null activityValues"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "modify integration tests to show case how pipeline execution will replace/aggregate with previous result"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.3.2",
+      "tag": "@sif/integration-tests_v3.3.2",
+      "date": "Tue, 07 Feb 2023 16:06:19 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.3.1",
+      "tag": "@sif/integration-tests_v3.3.1",
+      "date": "Mon, 06 Feb 2023 19:20:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "updated integration test pipeline-processor"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.3.0",
+      "tag": "@sif/integration-tests_v3.3.0",
+      "date": "Mon, 06 Feb 2023 02:11:05 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add integration tests for retrieving and validating output log"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.2.4",
+      "tag": "@sif/integration-tests_v3.2.4",
+      "date": "Thu, 02 Feb 2023 23:02:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Documentation updates as part of open sourcing."
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.2.3",
+      "tag": "@sif/integration-tests_v3.2.3",
+      "date": "Thu, 02 Feb 2023 18:01:35 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Documentation updates as part of open sourcing."
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.2.2",
+      "tag": "@sif/integration-tests_v3.2.2",
+      "date": "Fri, 27 Jan 2023 05:24:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Updated AWS dependency versions."
+          },
+          {
+            "comment": "updated integration tests"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.2.1",
+      "tag": "@sif/integration-tests_v3.2.1",
+      "date": "Wed, 11 Jan 2023 17:56:20 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "reference dataset integration test update"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.2.0",
+      "tag": "@sif/integration-tests_v3.2.0",
+      "date": "Tue, 10 Jan 2023 10:07:04 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "allow cross tenant communication"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.1.1",
+      "tag": "@sif/integration-tests_v3.1.1",
+      "date": "Thu, 22 Dec 2022 18:34:17 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "updated integration tests related to reference dataset ehancements"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.1.0",
+      "tag": "@sif/integration-tests_v3.1.0",
+      "date": "Fri, 16 Dec 2022 23:30:23 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add more tests for pagination"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.0.0",
+      "tag": "@sif/integration-tests_v3.0.0",
+      "date": "Thu, 08 Dec 2022 23:33:17 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "add includeChildGroups and includeParentGroups to allow list to search up and down the hierarchy"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.2.2",
+      "tag": "@sif/integration-tests_v2.2.2",
+      "date": "Tue, 22 Nov 2022 18:09:10 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "updated integration tests to cover new API's"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.2.1",
+      "tag": "@sif/integration-tests_v2.2.1",
+      "date": "Tue, 22 Nov 2022 04:58:52 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "updated integration tests for activities"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.2.0",
+      "tag": "@sif/integration-tests_v2.2.0",
+      "date": "Tue, 22 Nov 2022 03:49:43 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add tests to check creating/modifying configuration in group hierarchy"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.2",
+      "tag": "@sif/integration-tests_v2.1.2",
+      "date": "Tue, 22 Nov 2022 00:20:17 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Intermittent activity test failures"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.1",
+      "tag": "@sif/integration-tests_v2.1.1",
+      "date": "Fri, 18 Nov 2022 18:36:43 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Added tests for pipeline-processor"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.0",
+      "tag": "@sif/integration-tests_v2.1.0",
+      "date": "Thu, 17 Nov 2022 17:33:24 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add test to check that generating upload signed url should also return pipeline and execution id"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.0.0",
+      "tag": "@sif/integration-tests_v2.0.0",
+      "date": "Thu, 17 Nov 2022 01:00:36 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "rename ssaas to sif"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.4.0",
+      "tag": "@sif/integration-tests_v1.4.0",
+      "date": "Tue, 15 Nov 2022 22:04:19 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "changed authentication flow to SRP"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.3.0",
+      "tag": "@sif/integration-tests_v1.3.0",
+      "date": "Mon, 14 Nov 2022 11:32:32 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "added additional tests for activity status"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.2.0",
+      "tag": "@sif/integration-tests_v1.2.0",
+      "date": "Wed, 09 Nov 2022 03:53:58 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add option to upload reference dataset using signed url"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.2",
+      "tag": "@sif/integration-tests_v1.1.2",
+      "date": "Mon, 07 Nov 2022 16:31:46 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": " update access role for create/update api to allow contributors access"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.1",
+      "tag": "@sif/integration-tests_v1.1.1",
+      "date": "Thu, 03 Nov 2022 20:32:23 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": " fix extranoues attributes on create/updates api requests"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.1.0",
+      "tag": "@sif/integration-tests_v1.1.0",
+      "date": "Tue, 01 Nov 2022 15:42:15 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add new script to generate postman environment"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.1",
+      "tag": "@sif/integration-tests_v1.0.1",
+      "date": "Tue, 01 Nov 2022 04:21:49 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fixed url path for reference datasets"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.0.0",
+      "tag": "@sif/integration-tests_v1.0.0",
+      "date": "Wed, 26 Oct 2022 22:42:43 GMT",
+      "comments": {
+        "major": [
+          {
+            "comment": "modify the signed url generation HTTP Action to POST"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.4.1",
+      "tag": "@sif/integration-tests_v0.4.1",
+      "date": "Tue, 25 Oct 2022 17:28:09 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Added end-to-end integration test"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.4.0",
+      "tag": "@sif/integration-tests_v0.4.0",
+      "date": "Tue, 18 Oct 2022 03:36:27 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "added integration tests for fzen/disabled states"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.3.1",
+      "tag": "@sif/integration-tests_v0.3.1",
+      "date": "Fri, 14 Oct 2022 06:33:58 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "add --passWithNoTests when running jest and ensure that generate token is not executed when running jest"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.3.0",
+      "tag": "@sif/integration-tests_v0.3.0",
+      "date": "Fri, 14 Oct 2022 05:30:44 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "allow user to set new password for new user"
+          }
+        ]
+      }
+    }
+  ]
+}

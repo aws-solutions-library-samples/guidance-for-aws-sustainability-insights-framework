@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/reference-datasets",
+      "comment": "docs for guidance publishing",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/reference-datasets"
+}

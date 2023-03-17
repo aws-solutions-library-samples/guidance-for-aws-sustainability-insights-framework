@@ -1,0 +1,6 @@
+shape_no,shape_type,side_1,side_2,radius
+1,square,10,10,0
+2,circle,0,0,5
+3,square,20,15,0
+4,unknown shape,10,10,0
+5,circle,0,0,15
