@@ -14,7 +14,6 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { FastifyInstance } from 'fastify';
 import { fastify } from 'fastify';
-import multipart from '@fastify/multipart';
 import fastifySensible from '@fastify/sensible';
 import { authzPlugin } from '@sif/authz';
 import { errorHandler } from './common/errors.js';
@@ -76,7 +75,6 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	// register all plugins
 	await app.register(config);
 	await app.register(swagger);
-	await app.register(multipart, { attachFieldsToBody: 'keyValues' });
 	await app.register(awilix);
 	await app.register(authzPlugin);
 	await app.register(fastifySensible);

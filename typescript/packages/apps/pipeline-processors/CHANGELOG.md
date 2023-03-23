@@ -1,6 +1,13 @@
 # Change Log - @sif/pipeline-processors
 
-This log was last generated on Thu, 16 Mar 2023 04:36:57 GMT and should not be manually modified.
+This log was last generated on Thu, 23 Mar 2023 19:27:15 GMT and should not be manually modified.
+
+## 4.5.1
+Thu, 23 Mar 2023 19:27:15 GMT
+
+### Patches
+
+- Remove unused dependency
 
 ## 4.5.0
 Thu, 16 Mar 2023 04:36:57 GMT

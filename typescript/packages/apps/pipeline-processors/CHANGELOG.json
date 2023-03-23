@@ -2,6 +2,18 @@
   "name": "@sif/pipeline-processors",
   "entries": [
     {
+      "version": "4.5.1",
+      "tag": "@sif/pipeline-processors_v4.5.1",
+      "date": "Thu, 23 Mar 2023 19:27:15 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Remove unused dependency"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.5.0",
       "tag": "@sif/pipeline-processors_v4.5.0",
       "date": "Thu, 16 Mar 2023 04:36:57 GMT",

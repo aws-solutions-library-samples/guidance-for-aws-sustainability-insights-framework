@@ -1,7 +1,7 @@
 {
 	"name": "@sif/pipeline-processors",
 	"description": "SIF: Common authz related functionality",
-	"version": "4.5.0",
+	"version": "4.5.1",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {
 		".": {
@@ -35,7 +35,6 @@
 		"@fastify/awilix": "3.0.1",
 		"@fastify/aws-lambda": "3.1.3",
 		"@fastify/env": "4.1.0",
-		"@fastify/multipart": "7.1.1",
 		"@fastify/sensible": "5.1.1",
 		"@fastify/swagger": "7.6.1",
 		"@fastify/type-provider-typebox": "2.4.0",

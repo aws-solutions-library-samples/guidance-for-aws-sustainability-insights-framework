@@ -2,6 +2,26 @@
   "name": "@sif/reference-datasets",
   "entries": [
     {
+      "version": "4.3.6",
+      "tag": "@sif/reference-datasets_v4.3.6",
+      "date": "Thu, 23 Mar 2023 19:27:15 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "docs for guidance publishing"
+          },
+          {
+            "comment": "Small documentation updates"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "Update dependency version"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.3.5",
       "tag": "@sif/reference-datasets_v4.3.5",
       "date": "Mon, 27 Feb 2023 00:40:07 GMT",
