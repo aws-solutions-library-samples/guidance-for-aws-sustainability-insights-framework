@@ -15,7 +15,7 @@ The following is a one-time setup to configure the development environment:
 + clone the project:****
 
 ```shell
-> git clone https://gitlab.aws.dev/sif/sif-core.git
+> git clone git@github.com:aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git
 ```
 
 + initialize the project dependencies:

@@ -1,8 +1,5 @@
 # Deployment Walkthrough
 
-> **Note**:
-> These instructions refer to our internal gitlab repository. Once approved for open sourcing this repo as well as these instructions will be updated to use the external facing github repo.
-
 ## Prerequisites
 
 ### AWS Client VPN certificates
@@ -51,7 +48,7 @@ Before starting, the following decisions need to be made. Replace the referenced
 ## Step 1 - Cloning the repository
 
 ```shell
-> git clone git@ssh.gitlab.aws.dev:sif-core.git
+> git clone git@github.com:aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git
 ```
 
 ## Step 2 - Deploy the typescript modules

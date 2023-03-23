@@ -35,6 +35,24 @@ export class DatabaseSeederRepository {
 		this.migrate = migrate;
 	}
 
+	public async isUserExists(username: string): Promise<boolean> {
+		this.logger.info(`databaseSeeder.customResource > isUserExists > in : username: ${username}`);
+		const sqlClient = await this.getSqlClient();
+
+		let exist = false;
+		try {
+			const response = await sqlClient.query(`select exists(SELECT 1 FROM pg_roles WHERE rolname='${username}');`);
+			this.logger.info(`databaseSeeder.customResource > isUserExists > in : response: ${response}`);
+			exist = response.rows[0]['exists'];
+		} catch (Exception) {
+			this.logger.error(`databaseSeeder.customResource > isUserExists > error: ${Exception}`);
+		} finally {
+			await sqlClient.end();
+		}
+		this.logger.debug(`databaseSeeder.customResource > isUserExists > exit`);
+		return exist;
+	};
+
 	public async isDatabaseExist(tenantDatabaseName: string): Promise<boolean> {
 		this.logger.info(`databaseSeeder.customResource > isDatabaseExist > in : tenantDatabaseName: ${tenantDatabaseName}`);
 		const sqlClient = await this.getSqlClient(tenantDatabaseName);
@@ -94,6 +112,19 @@ export class DatabaseSeederRepository {
 		this.logger.debug(`databaseSeeder.customResource > executeScripts > exit`);
 	}
 
+	public async modifyUserDetails(username: string, details: { password: string }) {
+		this.logger.info(`databaseSeeder.customResource > modifyUserDetails > in : username: ${username}`);
+		const sqlClient = await this.getSqlClient();
+		try {
+			await sqlClient.query(`ALTER USER ${username} WITH PASSWORD '${details.password}';`);
+		} catch (Exception) {
+			this.logger.error(`databaseSeeder.customResource > modifyUserDetails > error: ${Exception}`);
+		} finally {
+			await sqlClient.end();
+		}
+		this.logger.debug(`databaseSeeder.customResource > modifyUserDetails > exit`);
+	};
+
 	public async createUser(tenantUsername: string, tenantPassword: string) {
 		this.logger.info(`databaseSeeder.customResource > createUser > in : tenantUsername: ${tenantUsername}`);
 		const sqlClient = await this.getSqlClient();
@@ -104,7 +135,7 @@ export class DatabaseSeederRepository {
 		} finally {
 			await sqlClient.end();
 		}
-		this.logger.debug(`databaseSeeder.customResource > createDatabaseAndUserInDatabase > exit`);
+		this.logger.debug(`databaseSeeder.customResource > createUser > exit`);
 	};
 
 	public async revokeDatabaseAccessFromUser(tenantUsername: string, tenantDatabaseName: string) {

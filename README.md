@@ -39,6 +39,6 @@ If you are a developer wishing to dive into SIF itself, possibly wanting to modi
 
 ## Changelog
 
-Changelog and release artifacts can be found [here](https://gitlab.aws.dev/sif/sif-core/-/releases).
+Changelog and release artifacts can be found [here](https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework/releases).
 
 Details on any major changes along with migration instructions can be found in the [Migration Guide](./docs/migration.md).

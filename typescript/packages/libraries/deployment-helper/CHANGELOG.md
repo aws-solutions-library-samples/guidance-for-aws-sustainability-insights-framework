@@ -1,6 +1,13 @@
 # Change Log - @sif/deployment-helper
 
-This log was last generated on Fri, 17 Mar 2023 04:01:21 GMT and should not be manually modified.
+This log was last generated on Tue, 21 Mar 2023 04:28:23 GMT and should not be manually modified.
+
+## 0.1.2
+Tue, 21 Mar 2023 04:28:23 GMT
+
+### Patches
+
+- add user check and create user before database
 
 ## 0.1.1
 Fri, 17 Mar 2023 04:01:21 GMT

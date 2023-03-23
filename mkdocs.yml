@@ -1,5 +1,5 @@
 site_name: Sustainability Insights Framework (SIF)
-repo_url: https://gitlab.aws.dev/sif/sif-core
+repo_url: https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework
 
 docs_dir: .
 

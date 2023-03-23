@@ -174,13 +174,21 @@ export class DatabaseSeederCustomResource implements CustomResource {
 		const [seedFolderPath, migrationsFolderPath] = await this.extractAssets(assetBucket, assetPath);
 
 		try {
+			const [username, password] = await this.getUserNamePasswordFromSecretManager(tenantSecretArn);
+
+			const userExists = await this.databaseSeederRepository.isUserExists(username);
+			if (!userExists) {
+				// CHECK IF DATABASE EXISTS, THIS IS TO HANDLE WHEN USER IS NOT BEING DELETED PROPERLY
+				await this.databaseSeederRepository.createUser(username, password);
+			} else {
+				await this.databaseSeederRepository.modifyUserDetails(username, { password });
+			}
+
 			const databaseExists = await this.databaseSeederRepository.isDatabaseExist(tenantDatabaseName);
 			// CHECK IF DATABASE EXISTS, THIS IS TO HANDLE DATABASE CREATED WITH OLD SCRIPTS
 			if (!databaseExists) {
-				const [username, password] = await this.getUserNamePasswordFromSecretManager(tenantSecretArn);
 				await this.databaseSeederRepository.createDatabaseSchema(tenantDatabaseName);
 				await this.databaseSeederRepository.executeScripts(username, tenantDatabaseName, `${seedFolderPath}/bootstrap.sql`);
-				await this.databaseSeederRepository.createUser(username, password);
 				await this.databaseSeederRepository.grantDatabaseAccessToUser(username, tenantDatabaseName);
 				await this.attachSecretToRdsProxy(tenantSecretArn);
 			}

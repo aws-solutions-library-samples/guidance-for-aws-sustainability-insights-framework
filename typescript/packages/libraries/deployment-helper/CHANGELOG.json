@@ -2,6 +2,18 @@
   "name": "@sif/deployment-helper",
   "entries": [
     {
+      "version": "0.1.2",
+      "tag": "@sif/deployment-helper_v0.1.2",
+      "date": "Tue, 21 Mar 2023 04:28:23 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "add user check and create user before database"
+          }
+        ]
+      }
+    },
+    {
       "version": "0.1.1",
       "tag": "@sif/deployment-helper_v0.1.1",
       "date": "Fri, 17 Mar 2023 04:01:21 GMT",
