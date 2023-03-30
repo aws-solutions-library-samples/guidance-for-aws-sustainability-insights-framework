@@ -11,10 +11,11 @@ expr
     |   left=expr SPACE* op=( PLUS | MINUS ) SPACE* right=expr                            	# AddSubExpr
     |   left=expr SPACE* op=( GT | GTE | LT | LTE | DEQ | NEQ ) SPACE* right=expr      		# PredicateExpr
 
-    // specific fuction declarations
+    // specific function declarations
     |   AS_TIMESTAMP LPAREN value=expr COMMA pattern=expr (optionalAsTimestampParams)* RPAREN    	# AsTimestampFunctionExpr
     |   COALESCE LPAREN exprList RPAREN                                     # CoalesceFunctionExpr
     |   CONCAT LPAREN exprList RPAREN                                       # ConcatFunctionExpr
+    |   CONVERT LPAREN value=expr COMMA fromUnit=expr COMMA toUnit=expr (optionalConvertParams)* RPAREN	# ConvertFunctionExpr
     |   IF LPAREN predicate=expr COMMA true=expr COMMA false=expr RPAREN    # IfFunctionExpr
     |   IMPACT LPAREN activity=expr COMMA impact=expr COMMA component=expr (optionalImpactParams)* RPAREN                       # ImpactFunctionExpr
     |   LOOKUP LPAREN value=expr COMMA name=expr COMMA keyColumn=expr COMMA outputColumn=expr (optionalLookupParams)* RPAREN    # LookupFunctionExpr
@@ -45,9 +46,13 @@ optionalCustomParams
     ;
 
 optionalAsTimestampParams
-    : (COMMA optionalTimezoneParam)
-    | (COMMA optionalLocaleParam)
-    | (COMMA optionalRoundDownToParam)
+    : (COMMA timezone=optionalTimezoneParam)
+    | (COMMA locale=optionalLocaleParam)
+    | (COMMA roundDownTo=optionalRoundDownToParam)
+    ;
+
+optionalConvertParams
+    : (COMMA qualityKind=optionalQualityKindParam)
     ;
 
 optionalSwitchParams
@@ -56,10 +61,10 @@ optionalSwitchParams
     ;
 
 optionalCommonParam
-    :   optionalGroupParam
-    |   optionalTenantParam
-    |   optionalVersionParam
-    |  	optionalVersionAsAtParam
+    :   group=optionalGroupParam
+    |   tenant=optionalTenantParam
+    |   version=optionalVersionParam
+    |  	versionAsAt=optionalVersionAsAtParam
     ;
 
 // list of expressions
@@ -105,6 +110,10 @@ optionalIgnoreCaseParam
     : IGNORECASE EQ expr
     ;
 
+optionalQualityKindParam
+    : QUALITYKIND EQ expr
+    ;
+
 optionalLocaleParam
     : LOCALE EQ expr
     ;
@@ -122,6 +131,7 @@ optionalRoundDownToParam
 AS_TIMESTAMP    : A S US T I M E S T A M P ;
 COALESCE        : C O A L E S C E ;
 CONCAT          : C O N C A T ;
+CONVERT			: C O N V E R T ;
 IF              : I F ;
 IMPACT          : I M P A C T ;
 LOOKUP          : L O O K U P ;
@@ -139,6 +149,7 @@ GROUP    : G R O U P ;
 IGNORECASE : I G N O R E C A S E ;
 LOCALE   : L O C A L E ;
 NULL     : N U L L ;
+QUALITYKIND : Q U A L I T Y K I N D ;
 TENANT   : T E N A N T ;
 TIMEZONE : T I M E Z O N E ;
 VERSION  : V E R S I O N ;

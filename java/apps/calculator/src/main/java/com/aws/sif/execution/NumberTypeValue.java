@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 
 @Slf4j
 @Data
@@ -37,10 +38,10 @@ public class NumberTypeValue extends DynamicTypeValue<BigDecimal> {
         this.value = bd;
     }
     public NumberTypeValue(float f) {
-        this.value = new BigDecimal(f);
+        this.value = new BigDecimal(f, MathContext.DECIMAL64).stripTrailingZeros();
     }
     public NumberTypeValue(double d) {
-        this.value = new BigDecimal(d);
+        this.value = new BigDecimal(d, MathContext.DECIMAL64).stripTrailingZeros();
     }
 
 	@Override

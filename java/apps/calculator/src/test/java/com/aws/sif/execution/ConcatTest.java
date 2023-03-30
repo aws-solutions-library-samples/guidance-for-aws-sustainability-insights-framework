@@ -34,8 +34,8 @@ public class ConcatTest extends CalculatorBaseTest {
                         .evaluated(Map.of("concat('a','b','c')", "abc")).build()),
                 Arguments.of("concat(null,'b','c')", EvaluateResponse.builder().result(new StringTypeValue("bc"))
                         .evaluated(Map.of("concat(null,'b','c')", "bc")).build()),
-                Arguments.of("concat(1,'b','c')", EvaluateResponse.builder().result(new StringTypeValue("1bc"))
-                        .evaluated(Map.of("concat(1,'b','c')", "1bc")).build())
+                Arguments.of("concat(1,'b c','d')", EvaluateResponse.builder().result(new StringTypeValue("1b cd"))
+                        .evaluated(Map.of("concat(1,'b c','d')", "1b cd")).build())
         );
     }
 

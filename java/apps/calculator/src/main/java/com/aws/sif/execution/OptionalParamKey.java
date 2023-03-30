@@ -9,5 +9,6 @@ public enum OptionalParamKey {
     ignoreCase,
     locale,
     timezone,
-    roundDownTo;
+    roundDownTo,
+	quantityKind;
 }

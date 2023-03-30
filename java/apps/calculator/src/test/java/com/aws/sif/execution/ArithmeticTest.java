@@ -64,10 +64,10 @@ public class ArithmeticTest extends CalculatorBaseTest {
 
     private static Stream<Arguments> providerForFailed() {
         return Stream.of(
-                Arguments.of("1+2+", "Line 1:4 mismatched input '<EOF>' expecting {AS_TIMESTAMP, COALESCE, CONCAT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-', ' '}"),
-                Arguments.of("1+2+++5", "Line 1:4 mismatched input '+' expecting {AS_TIMESTAMP, COALESCE, CONCAT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-', ' '}"),
-                Arguments.of("/3", "Line 1:0 extraneous input '/' expecting {AS_TIMESTAMP, COALESCE, CONCAT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
-                Arguments.of("1+-/2", "Line 1:3 extraneous input '/' expecting {AS_TIMESTAMP, COALESCE, CONCAT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-', ' '}")
+                Arguments.of("1+2+", "Line 1:4 mismatched input '<EOF>' expecting {AS_TIMESTAMP, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-', ' '}"),
+                Arguments.of("1+2+++5", "Line 1:4 mismatched input '+' expecting {AS_TIMESTAMP, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-', ' '}"),
+                Arguments.of("/3", "Line 1:0 extraneous input '/' expecting {AS_TIMESTAMP, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
+                Arguments.of("1+-/2", "Line 1:3 extraneous input '/' expecting {AS_TIMESTAMP, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-', ' '}")
         );
     }
 

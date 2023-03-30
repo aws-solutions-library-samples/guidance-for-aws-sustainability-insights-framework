@@ -36,7 +36,8 @@
         <mockito.version>4.8.0</mockito.version>
         <slf4j.version>2.0.0</slf4j.version>
         <system-stubs.version>2.0.1</system-stubs.version>
-    </properties>
+		<qudtlib.version>4.3.0</qudtlib.version>
+	</properties>
 
     <build>
         <plugins>
@@ -328,8 +329,13 @@
             <version>1.15</version>
             <type>jar</type>
         </dependency>
+		<dependency>
+			<groupId>io.github.qudtlib</groupId>
+			<artifactId>qudtlib</artifactId>
+			<version>${qudtlib.version}</version>
+		</dependency>
 
-    </dependencies>
+	</dependencies>
 
 
 </project>

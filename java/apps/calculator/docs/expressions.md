@@ -44,38 +44,11 @@ AS_TIMESTAMP( value, pattern, timezone=?, locale=?, roundDownTo=? )
 Where:
 
 - `value` (required) is the string to be evaluated.
-- `pattern` (required) is the date / time pattern of the provided `value` to convert from (see _Supported date / time patterns_ table below).
+- `pattern` (required) is the date / time pattern of the provided `value` to convert from (see [Supported date / time patterns](./dateTimePatterns.md)).
 - if `roundDownTo=?` (optional - string) is specified, timestamp will be round down to beginning of `day/week/month/quarter/year` depending on the specified input. This is used when you want to aggregate your pipeline output by a period of time. Supported values are `day`, `week`, `month`, `quarter` and `year`.
 - if `timezone=?` (optional - string) is specified, the provided timezone (e.g. `America/Denver`) is used to convert the `value` to a UTC timestamp. Recommended if the provided `value` does not contain a timezone. If the `value` does not contain a timezone, and `timezone` is not provided, then the system default is used.
 - if `locale=?` (optional - string) is specified, the provided locale will be used to convert the `value` using the `pattern` using the `locale` specified. The `locale` can be represented as a [ISO language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes), or a [ISO language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) and [ISO Country Code](https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes), e.g. `fr` for French, or `fr-CA` for French Canadian.
 
-Supported date / time patterns:
-
-| Letter | Date or Time Component                           | Examples                              |
-|--------|--------------------------------------------------|---------------------------------------|
-| G      | Era designator                                   | AD                                    |
-| y      | Year                                             | 1996; 96                              |
-| Y      | Week year                                        | 2009; 09                              |
-| M      | Month in year (context sensitive)                | July; Jul; 07                         |
-| L      | Month in year (standalone form)                  | July; Jul; 07                         |
-| w      | Week in year                                     | 27                                    |
-| W      | Week in month                                    | 2                                     |
-| D      | Day in year                                      | 189                                   |
-| d      | Day in month                                     | 10                                    |
-| F      | Day of week in month                             | 2                                     |
-| E      | Day name in week                                 | Tuesday; Tue                          |
-| u      | Day number of week (1 = Monday, ..., 7 = Sunday) | 1                                     |
-| a      | Am/pm marker                                     | PM                                    |
-| H      | Hour in day (0-23)                               | 0                                     |
-| k      | Hour in day (1-24)                               | 24                                    |
-| K      | Hour in am/pm (0-11)                             | 0                                     |
-| h      | Hour in am/pm (1-12)                             | 12                                    |
-| m      | Minute in hour                                   | 30                                    |
-| s      | Second in minute                                 | 55                                    |
-| S      | Millisecond                                      | 978                                   |
-| z      | General time zone                                | Pacific Standard Time; PST; GMT-08:00 |
-| Z      | RFC 822 time zone                                | -0800                                 |
-| X      | ISO 8601 time zone                               | -08; -0800; -08:00                    |
 
 ### `CONCAT` function
 
@@ -182,7 +155,22 @@ Where:
 - if `group=?` (optional - string) is specified, the impact factor will be read from the specified group instead of the current group by default.
 - if `tenant=?` (optional - string) is specified, the impact factor will be read from the specified tenant instead of the current tenant by default.
 
-## Misc functions
+## Miscellaneous functions
+
+### `CONVERT` function
+
+Converts a number from one measurement to another.
+
+```
+CONVERT( value, 'fromUnit', 'toUnit', quantityKind=? )
+```
+
+Where:
+
+- `value` (required) is the number to convert.
+- `'fromUnit'` (required) is the unit of measure (provided as either the UOM name or symbol) to convert from. See [conversions](./conversions.md) for a list of supported units.
+- `'toUnit'` (required) is the unit of measure (provided as either the UOM name or symbol) to convert to. See [conversions](./conversions.md) for a list of supported units.
+- If the `'toUnit'` and/or `'fromUnit'` are provided as symbols instead of names, then the `'quantityKind'` is required. See [conversions](./conversions.md) for a list of supported quantity kinds.
 
 ### `LOOKUP` function
 
@@ -204,7 +192,7 @@ Where:
 
 ### `REF` function
 
-Returns the output from a previous calculation as part of a pipeline transform.
+Returns the output from a previous calculation of a column of the same row being transformed.
 
 Note: this function may only be used within the context of a pipeline transform. It may not be used within the context of a custom calculation definition.
 

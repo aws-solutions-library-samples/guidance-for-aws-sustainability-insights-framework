@@ -21,13 +21,16 @@ import com.aws.sif.resources.calculations.CalculationNotFoundException;
 import com.aws.sif.resources.calculations.CalculationsClient;
 import com.aws.sif.resources.referenceDatasets.DatasetsClient;
 import com.aws.sif.resources.referenceDatasets.ReferenceDatasetNotFoundException;
+import io.github.qudtlib.Qudt;
+import io.github.qudtlib.exception.InconvertibleQuantitiesException;
+import io.github.qudtlib.model.QuantityValue;
+import io.github.qudtlib.model.Unit;
 import lang.sif.CalculationsBaseVisitor;
 import lang.sif.CalculationsParser;
 import lombok.extern.slf4j.Slf4j;
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import javax.inject.Inject;
-import javax.swing.text.html.Option;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.*;
@@ -321,6 +324,13 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 		return result;
 	}
 
+	@Override public DynamicTypeValue visitOptionalQualityKindParam(CalculationsParser.OptionalQualityKindParamContext ctx) {
+		log.trace("visitOptionalQualityKindParam> in> {}", ctx.getText());
+		var result = getOptionalParamValue(OptionalParamKey.quantityKind, ctx.expr());
+		log.trace("visitOptionalQualityKindParam> exit> {}", result);
+		return result;
+	}
+
 	@Override public DynamicTypeValue visitOptionalTimezoneParam(CalculationsParser.OptionalTimezoneParamContext ctx) {
 		log.trace("visitOptionalTimezoneParam> in> {}", ctx.getText());
 		var result = getOptionalParamValue(OptionalParamKey.timezone, ctx.expr());
@@ -498,11 +508,13 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
 	private Map<OptionalParamKey, DynamicTypeValue> getOptionalParams(List<? extends ParserRuleContext> paramExpressions) {
+		log.trace("getOptionalParams> in> {}", paramExpressions.toString());
 		var map = new HashMap<OptionalParamKey, DynamicTypeValue>();
 		for(var expr : paramExpressions) {
 			var optionalParam = super.visit(expr);
 			map.put(optionalParam.getKey(), optionalParam);
 		}
+		log.trace("getOptionalParams> exit> {}", map.toString());
 		return map;
 	}
 
@@ -784,6 +796,63 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
         log.trace("visitAsTimestampFunctionExpr> exit> {}", result);
         return result;
     }
+
+	@Override public NumberTypeValue visitConvertFunctionExpr(CalculationsParser.ConvertFunctionExprContext ctx) {
+		log.trace("visitConvertFunctionExpr> in> {}", ctx.getText());
+
+		var value = asNumber(super.visit(ctx.value), String.format("Provided value '%s' must be a number.", ctx.value));
+		var from = super.visit(ctx.fromUnit).asString();
+		var to = super.visit(ctx.toUnit).asString();
+
+		var optionalParams = getOptionalParams(ctx.optionalConvertParams());
+		Optional<String> quantityKindParam = getOptionalParamValue(optionalParams, OptionalParamKey.quantityKind);
+		var quantityKind = quantityKindParam.orElse("?");
+
+		log.trace("visitConvertFunctionExpr> value:{}, from:{}, to:{}, quantityKind:{}", value, from, to, quantityKind);
+
+		var fromUnit = getUnit(from,quantityKind);
+		var toUnit = getUnit(to, quantityKind);
+
+		NumberTypeValue result = null;
+		try {
+			var quantity = new QuantityValue(value.getValue(), fromUnit);
+			var converted = Qudt.convert(quantity, toUnit);
+			result = new NumberTypeValue(converted.getValue());
+		} catch (InconvertibleQuantitiesException e) {
+			throw new ArithmeticException(e.getMessage());
+		}
+
+		auditEvaluated.put(ctx.getText(), result.asString());
+
+		log.trace("visitConvertFunctionExpr> exit> {}", result);
+		return result;
+	}
+
+	private Unit getUnit(String text, String quantityKind) {
+		// see if we have a match by symbol
+		var unit = Qudt.allUnits()
+			// filter by symbol (case-sensitive)
+			.stream().filter(u2-> text.equals(u2.getSymbol().orElse(null)))
+			// then filter by quantity kind
+			.filter(u1-> u1.getQuantityKinds()
+				.stream().anyMatch(qk-> qk.getLabels()
+					.stream().anyMatch(l-> quantityKind.equalsIgnoreCase(l.getString()))
+				)
+			)
+			.findFirst();
+		// if not found, try with its label(s) (case-insensitive)
+		if (unit.isEmpty()) {
+			unit = Qudt.allUnits()
+				.stream().filter(u-> u.getLabels()
+					.stream().anyMatch(l-> text.equalsIgnoreCase(l.getString())))
+				.findFirst();
+		}
+		if (unit.isEmpty()) {
+			throw new ArithmeticException(String.format("Unit '%s' ('%s' quantity kind) not recognized.", text, quantityKind));
+		}
+		log.trace("getUnit> exit:{}", unit);
+		return unit.get();
+	}
 
 	@Override public DynamicTypeValue visitSwitchFunctionExpr(CalculationsParser.SwitchFunctionExprContext ctx) {
 		log.trace("visitSwitchFunctionExpr> in> {}", ctx.getText());

@@ -484,7 +484,6 @@ importers:
       '@fastify/awilix': 3.0.1
       '@fastify/aws-lambda': 3.1.3
       '@fastify/env': 4.1.0
-      '@fastify/multipart': 7.1.1
       '@fastify/sensible': 5.1.1
       '@fastify/swagger': 7.6.1
       '@fastify/type-provider-typebox': 2.4.0
@@ -547,7 +546,6 @@ importers:
       '@fastify/awilix': 3.0.1_vcz23ofklvsg6u7nzt23tj4sc4
       '@fastify/aws-lambda': 3.1.3
       '@fastify/env': 4.1.0
-      '@fastify/multipart': 7.1.1
       '@fastify/sensible': 5.1.1
       '@fastify/swagger': 7.6.1
       '@fastify/type-provider-typebox': 2.4.0_ph2fvclnjvrwk5l6wu4aw3qovi
@@ -728,7 +726,7 @@ importers:
       '@fastify/awilix': 3.0.1
       '@fastify/aws-lambda': 3.1.3
       '@fastify/env': 4.1.0
-      '@fastify/multipart': ~7.1.1
+      '@fastify/multipart': 7.5.0
       '@fastify/sensible': 5.1.1
       '@fastify/swagger': 7.6.1
       '@fastify/type-provider-typebox': 2.4.0
@@ -780,7 +778,7 @@ importers:
       '@fastify/awilix': 3.0.1_vcz23ofklvsg6u7nzt23tj4sc4
       '@fastify/aws-lambda': 3.1.3
       '@fastify/env': 4.1.0
-      '@fastify/multipart': 7.1.2
+      '@fastify/multipart': 7.5.0
       '@fastify/sensible': 5.1.1
       '@fastify/swagger': 7.6.1
       '@fastify/type-provider-typebox': 2.4.0_ph2fvclnjvrwk5l6wu4aw3qovi
@@ -4748,21 +4746,8 @@ packages:
       fast-json-stringify: 5.4.0
     dev: false
 
-  /@fastify/multipart/7.1.1:
-    resolution: {integrity: sha512-Atuo0nLWsGiUSGdHrZvAzCL567eHd1nP6mBlCSy70vgMWPC24ND8swUMaOG+uG+7fW4yQNS9adJoi/0IT91ygA==}
-    dependencies:
-      '@fastify/busboy': 1.1.0
-      '@fastify/deepmerge': 1.1.0
-      '@fastify/error': 3.0.0
-      end-of-stream: 1.4.4
-      fastify-plugin: 4.2.1
-      hexoid: 1.0.0
-      secure-json-parse: 2.5.0
-      stream-wormhole: 1.1.0
-    dev: false
-
-  /@fastify/multipart/7.1.2:
-    resolution: {integrity: sha512-p/y1PfUhvIEVsK/52tT3xoVSoM/31p6eIVmjp2ZqUHQY8+ZLEb+eGwJKXZiV8jhcjPyMU67BsYy2em5e4vfJFA==}
+  /@fastify/multipart/7.5.0:
+    resolution: {integrity: sha512-cAQzz+vVRaNomTppActeqA3xZstF18WK9gjwCMAkoU6xKFljsnKewdGw2RkcYAaiWgFzGBQUD8owSKPFgzhJAA==}
     dependencies:
       '@fastify/busboy': 1.1.0
       '@fastify/deepmerge': 1.1.0
