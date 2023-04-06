@@ -1,6 +1,32 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Fri, 17 Mar 2023 04:01:21 GMT and should not be manually modified.
+This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+
+## 7.6.0
+Wed, 05 Apr 2023 19:11:53 GMT
+
+### Minor changes
+
+- add new state machine for inline processing
+
+## 7.5.1
+Mon, 03 Apr 2023 22:24:19 GMT
+
+_Version update only_
+
+## 7.5.0
+Fri, 31 Mar 2023 09:43:49 GMT
+
+### Minor changes
+
+- new audit log query endpoint based on activity id
+
+## 7.4.0
+Fri, 31 Mar 2023 06:04:14 GMT
+
+### Minor changes
+
+- plugin features added
 
 ## 7.3.0
 Fri, 17 Mar 2023 04:01:21 GMT

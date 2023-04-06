@@ -1,6 +1,11 @@
 # Change Log - @sif/reference-datasets
 
-This log was last generated on Thu, 23 Mar 2023 19:27:15 GMT and should not be manually modified.
+This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+
+## 4.3.7
+Fri, 31 Mar 2023 06:04:14 GMT
+
+_Version update only_
 
 ## 4.3.6
 Thu, 23 Mar 2023 19:27:15 GMT

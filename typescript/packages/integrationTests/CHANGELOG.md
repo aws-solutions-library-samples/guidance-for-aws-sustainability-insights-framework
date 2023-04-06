@@ -1,6 +1,41 @@
 # Change Log - @sif/integration-tests
 
-This log was last generated on Thu, 16 Mar 2023 04:36:57 GMT and should not be manually modified.
+This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+
+## 3.10.0
+Wed, 05 Apr 2023 19:11:53 GMT
+
+### Minor changes
+
+- add integration tests for inline processing
+
+## 3.9.2
+Mon, 03 Apr 2023 22:24:19 GMT
+
+### Patches
+
+- add scenario to grant/revoke processor to groups
+
+## 3.9.1
+Mon, 03 Apr 2023 20:15:09 GMT
+
+### Patches
+
+- integration test update
+
+## 3.9.0
+Fri, 31 Mar 2023 09:43:49 GMT
+
+### Minor changes
+
+-  new audit log query endpoint based on activity id
+
+## 3.8.1
+Fri, 31 Mar 2023 06:04:14 GMT
+
+### Patches
+
+- pipeline plugin feature related enhancement
 
 ## 3.8.0
 Thu, 16 Mar 2023 04:36:57 GMT

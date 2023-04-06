@@ -12,17 +12,19 @@
  */
 
 import { mock } from 'vitest-mock-extended';
-import { beforeEach, describe, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import pino from 'pino';
 
 import type { GroupPermissions } from '@sif/authz';
-import type { CalculatorClient } from '@sif/clients';
-import type { MergeUtils, ResourceService, TagService, GroupService } from '@sif/resource-api-base';
+import { CalculatorClient, ConnectorType } from '@sif/clients';
+import type { GroupService, MergeUtils, ResourceService, TagService } from '@sif/resource-api-base';
 import type { TransformerValidator } from '@sif/validators';
 
 import type { PipelineRepository } from './repository.js';
 import type { MetricService } from '../metrics/service.js';
 import { PipelineService } from './service.js';
+import type { ConnectorService } from '../connectors/service.js';
+import type { Connector } from '../connectors/schemas.js';
 
 describe('PipelineService', () => {
 	let pipelineService: PipelineService;
@@ -35,6 +37,7 @@ describe('PipelineService', () => {
 	let mockPipelineRepository = mock<PipelineRepository>();
 	let mockMetricService = mock<MetricService>();
 	let mockCalculatorClient = mock<CalculatorClient>();
+	let mockConnectorService = mock<ConnectorService>();
 
 	beforeEach(async () => {
 		const logger = pino(
@@ -44,7 +47,7 @@ describe('PipelineService', () => {
 		);
 		logger.level = 'debug';
 
-		pipelineService = new PipelineService(logger, mockGroupPermissions, mockPipelineRepository, mockGroupService, mockTagService, mockResourceService, mockValidator, mockMergeUtils, mockCalculatorClient, mockMetricService);
+		pipelineService = new PipelineService(logger, mockGroupPermissions, mockPipelineRepository, mockGroupService, mockTagService, mockResourceService, mockValidator, mockMergeUtils, mockCalculatorClient, mockMetricService, mockConnectorService);
 	});
 
 	it('should not throw an error if transform new and old have the same outputs which has "includeAsUnique" property set', () => {
@@ -290,4 +293,34 @@ describe('PipelineService', () => {
 			expect(e.message).toEqual('includeAsUnique cannot be changed or updated for the outputs. If it needs to be changed a new pipeline must be created');
 		}
 	});
+
+	it('should throw an error if there are unknown parameter overrides provided on the pipeline connector config object', () => {
+		const pipelineConnectorConfig = {
+			name: 'my-connector',
+			parameters: {
+				key1: 'val1'
+			}
+		}
+
+		const connector:Connector = {
+			id: 'id',
+			createdAt: 'time',
+			createdBy: 'someone@somewhere.com',
+			name: 'my-connector',
+			type: ConnectorType.input,
+			parameters: [{
+				name: 'key2'
+			}],
+			groups: ['/'],
+			updatedAt: 'time'
+		}
+
+		try {
+			pipelineService['validateConnectorConfigParameters'](pipelineConnectorConfig, connector)
+		} catch (e) {
+			expect(e.message).toEqual('unknown parameter overrides specified: {"key1":"val1"}, valid parameters for this connector are: ["key2"]');
+		}
+	});
+
+
 });

@@ -17,12 +17,11 @@ import { fastify } from 'fastify';
 import fastifySensible from '@fastify/sensible';
 import { authzPlugin } from '@sif/authz';
 import { errorHandler } from './common/errors.js';
-import createExecutionAuditDownloadUrlRoute from './api/executions/createAuditUrl.handler.js';
+import listActivityAuditsRoute from './api/activities/audits/list.handler.js';
 import createExecutionErrorDownloadUrlRoute from './api/executions/createErrorUrl.handler.js';
-import createPipelineInputUploadUrlRoute from './api/executions/createUploadUrl.handler.js';
 import getPipelineExecutionRoute from './api/executions/getExecution.handler.js';
 import listPipelineExecutionsRoute from './api/executions/listExecutions.handler.js';
-import { pipelineExecutionFull, pipelineExecutionList, signedUrlListResponse, signedUrlRequest, signedUrlResponse, signedUrlUploadInputRequest, uploadSignedUrlResponse } from './api/executions/schemas.js';
+import { pipelineExecutionFull, pipelineExecutionList, pipelineExecutionRequest, signedUrlListResponse, signedUrlRequest, signedUrlResponse, signedUrlUploadInputRequest } from './api/executions/schemas.js';
 import awilix from './plugins/module.awilix.js';
 import config from './plugins/config.js';
 import swagger from './plugins/swagger.js';
@@ -30,6 +29,7 @@ import { activitiesList, activityResource } from './api/activities/schemas.js';
 import listActivitiesRoute from './api/activities/list.handler.js';
 import { metricResource, metricsList } from './api/metrics/schemas.js';
 import listMetricsRoute from './api/metrics/list.handler.js';
+import createExecution from './api/executions/createExecution.js';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
 	const environment = process.env['NODE_ENV'] as string;
@@ -79,18 +79,18 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	await app.register(authzPlugin);
 	await app.register(fastifySensible);
 
+	app.addSchema(pipelineExecutionRequest);
 	app.addSchema(pipelineExecutionFull);
 	app.addSchema(pipelineExecutionList);
 	app.addSchema(signedUrlRequest);
 	app.addSchema(signedUrlUploadInputRequest);
-	app.addSchema(uploadSignedUrlResponse);
 	app.addSchema(signedUrlResponse);
 	app.addSchema(signedUrlListResponse);
 	await app.register(createExecutionErrorDownloadUrlRoute);
-	await app.register(createPipelineInputUploadUrlRoute);
-	await app.register(createExecutionAuditDownloadUrlRoute);
 	await app.register(getPipelineExecutionRoute);
 	await app.register(listPipelineExecutionsRoute);
+	await app.register(createExecution);
+	await app.register(listActivityAuditsRoute);
 
 	app.addSchema(activityResource);
 	app.addSchema(activitiesList);
@@ -99,6 +99,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	app.addSchema(metricResource);
 	app.addSchema(metricsList);
 	await app.register(listMetricsRoute);
+
 
 	return app as unknown as FastifyInstance;
 };

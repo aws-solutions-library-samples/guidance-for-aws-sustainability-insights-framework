@@ -15,15 +15,17 @@ import type { Logger } from 'pino';
 import type { CustomResource } from './customResource.js';
 import type { CustomResourceEvent } from './customResource.model.js';
 import type { DatabaseSeederCustomResource } from './databaseSeeder.customResource.js';
+import type { ConnectorSeederCustomResource } from './connectorSeederCustomResource';
 
 export class CustomResourceManager {
 	private readonly customResources: { [key: string]: CustomResource };
 	private readonly logger: Logger;
 
-	constructor(logger: Logger, databaseSeederCustomResource: DatabaseSeederCustomResource) {
+	constructor(logger: Logger, databaseSeederCustomResource: DatabaseSeederCustomResource, connectorSeederCustomResource: ConnectorSeederCustomResource) {
 		this.logger = logger;
 		this.customResources = {};
 		this.customResources['Custom::DatabaseSeeder'] = databaseSeederCustomResource;
+		this.customResources['Custom::ConnectorSeeder'] = connectorSeederCustomResource;
 	}
 
 	public async create(event: CustomResourceEvent): Promise<unknown> {

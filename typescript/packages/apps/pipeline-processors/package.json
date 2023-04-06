@@ -1,7 +1,7 @@
 {
 	"name": "@sif/pipeline-processors",
 	"description": "SIF: Common authz related functionality",
-	"version": "4.5.1",
+	"version": "4.7.0",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {
 		".": {

@@ -2,6 +2,27 @@
   "name": "@sif/reference-datasets",
   "entries": [
     {
+      "version": "4.3.7",
+      "tag": "@sif/reference-datasets_v4.3.7",
+      "date": "Fri, 31 Mar 2023 06:04:14 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.5`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.7`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.4`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.3.6",
       "tag": "@sif/reference-datasets_v4.3.6",
       "date": "Thu, 23 Mar 2023 19:27:15 GMT",

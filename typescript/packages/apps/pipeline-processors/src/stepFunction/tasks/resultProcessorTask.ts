@@ -18,8 +18,8 @@ import { getPipelineErrorKey } from '../../utils/helper.utils.js';
 
 import type { BaseLogger } from 'pino';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { SecurityContext } from '@sif/authz';
 import type { ResultProcessorTaskEvent } from './model.js';
+import type { GetSecurityContext } from '../../plugins/module.awilix.js';
 
 export class ResultProcessorTask {
 	private readonly log: BaseLogger;
@@ -27,15 +27,15 @@ export class ResultProcessorTask {
 	private readonly pipelineProcessorsService: PipelineProcessorsService;
 	private readonly dataBucket: string;
 	private readonly dataPrefix: string;
-	private readonly adminSecurityContext: SecurityContext;
+	private readonly getSecurityContext: GetSecurityContext;
 
-	constructor(log: BaseLogger, adminSecurityContext: SecurityContext, pipelineProcessorsService: PipelineProcessorsService, s3Client: S3Client, dataBucket: string, dataPrefix: string) {
+	constructor(log: BaseLogger, getSecurityContext: GetSecurityContext, pipelineProcessorsService: PipelineProcessorsService, s3Client: S3Client, dataBucket: string, dataPrefix: string) {
 		this.s3Client = s3Client;
 		this.log = log;
 		this.pipelineProcessorsService = pipelineProcessorsService;
 		this.dataBucket = dataBucket;
 		this.dataPrefix = dataPrefix;
-		this.adminSecurityContext = adminSecurityContext;
+		this.getSecurityContext = getSecurityContext;
 	}
 
 	private async storeCalculationOutput(combinedOutput: string, pipelineId: string, pipelineExecutionId: string, key: string): Promise<void> {
@@ -77,13 +77,15 @@ export class ResultProcessorTask {
 
 		const { pipelineExecutionId, pipelineId } = sortedResult[0];
 
+		const securityContext = await this.getSecurityContext(pipelineExecutionId);
+
 		if (concatenatedErrors.length > 0) {
 			// If errors, store the errors to s3, and mark failed
 			await this.storeCalculationOutput(concatenatedErrors, pipelineId, pipelineExecutionId, getPipelineErrorKey(this.dataPrefix, pipelineId, pipelineExecutionId));
-			await this.pipelineProcessorsService.update(this.adminSecurityContext, pipelineId, pipelineExecutionId, { status: 'failed' });
+			await this.pipelineProcessorsService.update(securityContext, pipelineId, pipelineExecutionId, { status: 'failed' });
 		} else {
 			// Mark the pipeline as succeeded
-			await this.pipelineProcessorsService.update(this.adminSecurityContext, pipelineId, pipelineExecutionId, { status: 'success' });
+			await this.pipelineProcessorsService.update(securityContext, pipelineId, pipelineExecutionId, { status: 'success' });
 		}
 
 		this.log.info(`ResultProcessorTask > process > exit:`);

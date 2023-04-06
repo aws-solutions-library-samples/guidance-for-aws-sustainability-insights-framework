@@ -12,7 +12,7 @@
  */
 
 import type { FastifyBaseLogger } from 'fastify';
-import type { PipelineExecution, PipelineExecutionListPaginationKey, PipelineExecutionWithMetadata } from './schemas.js';
+import type { PipelineExecution, PipelineExecutionListPaginationKey } from './schemas.js';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { createDelimitedAttribute, expandDelimitedAttribute, createDelimitedAttributePrefix } from '@sif/dynamodb-utils';
 import { NotFoundError } from '@sif/resource-api-base';
@@ -33,7 +33,7 @@ export class PipelineProcessorsRepository {
 		this.tableName = tableName;
 	}
 
-	private assemblePipelineExecution(i: Record<string, any>): PipelineExecutionWithMetadata {
+	private assemblePipelineExecution(i: Record<string, any>): PipelineExecution {
 		const pk = expandDelimitedAttribute(i['pk']);
 		const sk = expandDelimitedAttribute(i['sk']);
 		return {
@@ -45,11 +45,12 @@ export class PipelineProcessorsRepository {
 			updatedAt: i['updatedAt'],
 			status: i['status'],
 			statusMessage: i['statusMessage'],
-			ttl: i['ttl'],
 			actionType: i['actionType'],
+			connectorOverrides: i['connectorOverrides'],
 			// we should populate groupContextId from previous version where we store the value in securityContextId
 			groupContextId: i.hasOwnProperty('groupContextId') ? i['groupContextId'] : i['securityContextId'],
 			pipelineId: pk?.[1] as string,
+			// ttl: i['ttl'],
 		};
 	}
 
@@ -62,7 +63,7 @@ export class PipelineProcessorsRepository {
 		return pipelineExecutions;
 	}
 
-	public async get(pipelineId: string, pipelineExecutionId: string): Promise<PipelineExecutionWithMetadata> {
+	public async get(pipelineId: string, pipelineExecutionId: string): Promise<PipelineExecution> {
 		this.log.info(`PipelineProcessorsRepository> get> pipelineId:${pipelineId}, pipelineExecutionId: ${pipelineExecutionId}`);
 
 		const params: GetCommandInput = {
@@ -83,7 +84,7 @@ export class PipelineProcessorsRepository {
 		return this.assemblePipelineExecution(result.Item);
 	}
 
-	public async getById(executionId: string): Promise<PipelineExecutionWithMetadata> {
+	public async getById(executionId: string): Promise<PipelineExecution> {
 		this.log.info(`PipelineProcessorsRepository> getById> executionId:${executionId}`);
 
 		const params: QueryCommandInput = {
@@ -155,7 +156,7 @@ export class PipelineProcessorsRepository {
 		return [this.assemblePipelineExecutionList(result.Items as Record<any, any>[]), paginationKey];
 	}
 
-	public async put(pipelineExecution: PipelineExecutionWithMetadata): Promise<void> {
+	public async put(pipelineExecution: PipelineExecution): Promise<void> {
 		this.log.info(`PipelineProcessorsRepository> put> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
 
 		const { pipelineId, id, ...rest } = pipelineExecution;

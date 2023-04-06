@@ -1,6 +1,13 @@
 # Change Log - @sif/events
 
-This log was last generated on Tue, 07 Feb 2023 16:06:19 GMT and should not be manually modified.
+This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+
+## 1.0.3
+Fri, 31 Mar 2023 06:04:14 GMT
+
+### Patches
+
+- minor updates
 
 ## 1.0.2
 Tue, 07 Feb 2023 16:06:19 GMT

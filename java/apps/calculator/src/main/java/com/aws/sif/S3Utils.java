@@ -93,20 +93,14 @@ public class S3Utils {
                                                    SelectObjectContentResponseHandler handler) {
         log.debug("queryS3> in> req:{}", req);
 
-        var inputSerialization = InputSerialization.builder()
-                .csv(CSVInput.builder()
-                        .fileHeaderInfo( req.isContainsHeader() && (req.getStartByte()==null || req.getStartByte()==0) ? FileHeaderInfo.IGNORE : FileHeaderInfo.NONE)
-                        .fieldDelimiter(",")
-                        .build()
-                )
-                .compressionType(CompressionType.NONE)
-                .build();
+		var inputSerialization = InputSerialization.builder()
+			.json(JSONInput.builder()
+				.type(JSONType.LINES)
+				.build())
+			.compressionType(CompressionType.NONE)
+			.build();
 
-        var outputSerialization = OutputSerialization.builder()
-                .csv(CSVOutput.builder()
-                        .fieldDelimiter(",")
-                        .build())
-                .build();
+		var outputSerialization = OutputSerialization.builder().json(JSONOutput.builder().build()).build();
 
         var scanRange = (req.getStartByte()!=null && req.getEndByte()!=null && req.getEndByte()>0) ? ScanRange.builder()
                 .start(req.getStartByte())

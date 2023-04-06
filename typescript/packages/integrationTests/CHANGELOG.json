@@ -2,6 +2,71 @@
   "name": "@sif/integration-tests",
   "entries": [
     {
+      "version": "3.10.0",
+      "tag": "@sif/integration-tests_v3.10.0",
+      "date": "Wed, 05 Apr 2023 19:11:53 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add integration tests for inline processing"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.9.2",
+      "tag": "@sif/integration-tests_v3.9.2",
+      "date": "Mon, 03 Apr 2023 22:24:19 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "add scenario to grant/revoke processor to groups"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.9.1",
+      "tag": "@sif/integration-tests_v3.9.1",
+      "date": "Mon, 03 Apr 2023 20:15:09 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "integration test update"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.9.0",
+      "tag": "@sif/integration-tests_v3.9.0",
+      "date": "Fri, 31 Mar 2023 09:43:49 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": " new audit log query endpoint based on activity id"
+          }
+        ]
+      }
+    },
+    {
+      "version": "3.8.1",
+      "tag": "@sif/integration-tests_v3.8.1",
+      "date": "Fri, 31 Mar 2023 06:04:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "pipeline plugin feature related enhancement"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.3`"
+          }
+        ]
+      }
+    },
+    {
       "version": "3.8.0",
       "tag": "@sif/integration-tests_v3.8.0",
       "date": "Thu, 16 Mar 2023 04:36:57 GMT",

@@ -2,6 +2,23 @@
   "name": "@sif/events",
   "entries": [
     {
+      "version": "1.0.3",
+      "tag": "@sif/events_v1.0.3",
+      "date": "Fri, 31 Mar 2023 06:04:14 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "add license header"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "minor updates"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.0.2",
       "tag": "@sif/events_v1.0.2",
       "date": "Tue, 07 Feb 2023 16:06:19 GMT",

@@ -337,7 +337,7 @@ export class UserService {
 			existing.createdBy = securityContext.email;
 			existing.createdAt = new Date(Date.now()).toISOString();
 			await this.repository.create(existing);
-			await this.eventPublisher.publishEvent({
+			await this.eventPublisher.publishTenantEvent({
 				resourceType: 'user',
 				eventType: 'created',
 				id: updated.email,
@@ -361,7 +361,7 @@ export class UserService {
 
 			await this.repository.update(merged, tagDiff.toAdd, tagDiff.toDelete);
 
-			await this.eventPublisher.publishEvent({
+			await this.eventPublisher.publishTenantEvent({
 				resourceType: 'user',
 				eventType: 'updated',
 				id: existing.email,
@@ -421,7 +421,7 @@ export class UserService {
 			// delete from datastore
 			await this.repository.delete(email);
 
-			await this.eventPublisher.publishEvent({
+			await this.eventPublisher.publishTenantEvent({
 				resourceType: 'user',
 				eventType: 'deleted',
 				id: email,
@@ -433,7 +433,7 @@ export class UserService {
 			updated.updatedAt = new Date(Date.now()).toISOString();
 			await this.repository.update(updated, {}, updated.tags);
 
-			await this.eventPublisher.publishEvent({
+			await this.eventPublisher.publishTenantEvent({
 				resourceType: 'user',
 				eventType: 'updated',
 				id: email,

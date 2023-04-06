@@ -42,6 +42,7 @@ export interface DeploymentHelperConstructProperties {
 	rdsProxyRoleArn: string;
 	tenantSecret: DatabaseSecret;
 	tenantDatabaseUsername: string;
+	pipelineApiFunctionNameParameter: ssm.StringParameter;
 }
 
 export const customResourceProviderTokenParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/shared/customResourceProviderToken`;
@@ -65,6 +66,8 @@ export class DeploymentHelper extends Construct {
 
 		rdsSecurityGroup.addIngressRule(lambdaToRDSProxyGroup, Port.tcp(5432), 'allow lambda connection');
 
+		const pipelineLambda = NodejsFunction.fromFunctionName(this, 'PipelineLambda', props.pipelineApiFunctionNameParameter.stringValue);
+
 		// need to do this because of postgresql limitation
 		const deploymentHelperLambda = new NodejsFunction(this, 'DeploymentHelperLambda', {
 			functionName: `${namePrefix}-deploymentHelper`,
@@ -82,6 +85,7 @@ export class DeploymentHelper extends Construct {
 				ENVIRONMENT: props.environment,
 				RDS_PROXY_ENDPOINT: props.rdsProxyEndpoint,
 				RDS_PROXY_NAME: props.rdsProxyName,
+				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionNameParameter.stringValue
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
@@ -141,12 +145,18 @@ export class DeploymentHelper extends Construct {
 		});
 
 		props.tenantSecret.grantRead(deploymentHelperLambda);
+		pipelineLambda.grantInvoke(deploymentHelperLambda);
 
 		NagSuppressions.addResourceSuppressions([deploymentHelperLambda], [
 			{
 				id: 'AwsSolutions-IAM4',
 				reason: 'This only contains the policy the create and insert log to log group.',
 				appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole']
+			},
+			{
+				id: 'AwsSolutions-IAM5',
+				appliesTo: [`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<ApiFunctionNameParameterspipelineFunctionNameParameter88AFBC0C.Value>:*`],
+				reason: 'This policy is required for the deployment helper to invoke pipeline api.'
 			},
 			{
 				id: 'AwsSolutions-IAM4',

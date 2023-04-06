@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import type { PipelineExecution, PipelineExecutionList, SignedUrlListResponse, SignedUrlRequest, SignedUrlResponse, SignedUrlUploadInputRequest, UploadSignedUrlResponse } from './schemas.js';
+import type { PipelineExecution, PipelineExecutionList, PipelineExecutionRequest, SignedUrlListResponse, SignedUrlResponse, SignedUrlRequest } from './schemas.js';
 
 const id = 'ajcuhek13ks';
 
@@ -22,12 +22,21 @@ const createdAt = '2022-08-10T23:55:20.322Z';
 const createdBy = 'someone@somewhere.com';
 
 export const signedUrlRequestExample: SignedUrlRequest = {
-	expiration: 2000,
+	expiration: 2000
 };
 
-export const signedUrlUploadInputRequestExample: SignedUrlUploadInputRequest = {
+export const executionRequestExample: PipelineExecutionRequest = {
 	expiration: 2000,
-	actionType: 'create'
+	mode: 'job',
+	actionType: 'create',
+	connectorOverrides: {
+		'sif-csv-input-converter': {
+			parameters: {
+				key1: 'val1',
+				key2: 'val2'
+			}
+		}
+	}
 };
 
 export const signedUrlResponseExample: SignedUrlResponse = {
@@ -36,12 +45,6 @@ export const signedUrlResponseExample: SignedUrlResponse = {
 
 export const signedUrlListResponseExample: SignedUrlListResponse = {
 	urls: ['s3-signed-url...'],
-};
-
-export const uploadSignedUrlResponseExample: UploadSignedUrlResponse = {
-	url: 's3-signed-url...',
-	id,
-	pipelineId,
 };
 
 export const pipelineExecutionFullSuccess: PipelineExecution = {
@@ -54,7 +57,7 @@ export const pipelineExecutionFullSuccess: PipelineExecution = {
 	status: 'in_progress',
 	pipelineVersion: 1,
 	actionType: 'create',
-	groupContextId: '/group1'
+	groupContextId: '/'
 };
 
 export const pipelineExecutionFullFail: PipelineExecution = {
@@ -68,7 +71,7 @@ export const pipelineExecutionFullFail: PipelineExecution = {
 	pipelineVersion: 1,
 	statusMessage: 'some validation error related to input file',
 	actionType: 'create',
-	groupContextId: '/group1'
+	groupContextId: '/'
 };
 
 export const pipelineExecutionListExample = () => {

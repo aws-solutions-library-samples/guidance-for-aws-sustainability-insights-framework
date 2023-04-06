@@ -59,8 +59,8 @@ public class LocalInvokeArithmetic {
                         ).build(),
                         Transform.builder().index(4).formula(":co2").outputs(
                                 List.of(TransformOutput.builder().index(0).key("co2").type("number").includeAsUnique(false).build())
-                        ).build()))
-                .csvHeader("\"meter reading date\",\"equipment type\",\"equipment id\",\"fuel\",\"co2\"");
+                        ).build())
+				);
     }
 
 //    @Test
@@ -95,7 +95,7 @@ public class LocalInvokeArithmetic {
         sourceLocation.setKey(inputKeyPrefix);
 //        sourceLocation.setStartByte(0L);
 //        sourceLocation.setEndByte(10000L);
-        request.setCsvSourceDataLocation(sourceLocation);
+        request.setSourceDataLocation(sourceLocation);
         log.debug("arithmetic_s3> request: {}", request);
 
         // execute

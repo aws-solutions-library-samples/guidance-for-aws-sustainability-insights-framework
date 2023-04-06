@@ -2,6 +2,37 @@
   "name": "@sif/access-management",
   "entries": [
     {
+      "version": "4.0.15",
+      "tag": "@sif/access-management_v4.0.15",
+      "date": "Fri, 31 Mar 2023 06:04:14 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "docs for guidance publishing"
+          },
+          {
+            "comment": "Small documentation updates"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "plugin enhancements"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.5`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.4`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.0.14",
       "tag": "@sif/access-management_v4.0.14",
       "date": "Fri, 24 Feb 2023 22:03:30 GMT",

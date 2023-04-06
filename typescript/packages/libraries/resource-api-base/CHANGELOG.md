@@ -1,6 +1,11 @@
 # Change Log - @sif/resource-api-base
 
-This log was last generated on Fri, 24 Feb 2023 22:03:30 GMT and should not be manually modified.
+This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+
+## 3.5.4
+Fri, 31 Mar 2023 06:04:14 GMT
+
+_Version update only_
 
 ## 3.5.3
 Fri, 24 Feb 2023 22:03:30 GMT

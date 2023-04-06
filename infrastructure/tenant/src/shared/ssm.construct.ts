@@ -26,12 +26,22 @@ export const pipelinesApiFunctionNameParameter = (tenantId: string, environment:
 export const calculationsApiFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculations/apiFunctionName`;
 export const accessManagementApiFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/accessManagement/apiFunctionName`;
 export const calculatorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/functionName`;
+export const pipelineProcessorApiFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiFunctionNameV2`;
+
+
+// Connector parameters
+export const sifConnectorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/connectors/sif/functionName`;
+export const csvConnectorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/connectors/csv/functionName`;
+
 
 export class SSM extends Construct {
+    public pipelineApiFunctionNameParameter: ssm.StringParameter;
+
 	constructor(scope: Construct, id: string, props: SSMConstructProperties) {
 		super(scope, id);
 
 		const namePrefix = `sif-${props.tenantId}-${props.environment}`;
+		const connectorPrefix = `sif-${props.tenantId}-${props.environment}-connectors`;
 
 		new StringParameter(this, 'accessManagementApiFunctionNameParameter', {
 			parameterName: accessManagementApiFunctionNameParameter(props.tenantId, props.environment),
@@ -53,7 +63,7 @@ export class SSM extends Construct {
 			stringValue: `${namePrefix}-referenceDatasetsApi`,
 		});
 
-		new ssm.StringParameter(this, 'pipelineFunctionNameParameter', {
+		this.pipelineApiFunctionNameParameter =  new ssm.StringParameter(this, 'pipelineFunctionNameParameter', {
 			parameterName: pipelinesApiFunctionNameParameter(props.tenantId, props.environment),
 			stringValue: `${namePrefix}-pipelinesApi`,
 		});
@@ -62,6 +72,22 @@ export class SSM extends Construct {
 			parameterName: calculationsApiFunctionNameParameter(props.tenantId, props.environment),
 			stringValue: `${namePrefix}-calculationsApi`,
 		});
+
+		new ssm.StringParameter(this, 'pipelineProcessorFunctionNameParameter', {
+			parameterName: pipelineProcessorApiFunctionNameParameter(props.tenantId, props.environment),
+			stringValue: `${namePrefix}-pipelineProcessorsApi`,
+		});
+
+		new ssm.StringParameter(this, 'sifConnectorApiFunctionNameParameter', {
+			parameterName: sifConnectorFunctionNameParameter(props.tenantId, props.environment),
+			stringValue: `${connectorPrefix}-sif`,
+		});
+
+		new ssm.StringParameter(this, 'csvConnectorApiFunctionNameParameter', {
+			parameterName: csvConnectorFunctionNameParameter(props.tenantId, props.environment),
+			stringValue: `${connectorPrefix}-csv`,
+		});
+
 
 	}
 }

@@ -107,11 +107,11 @@ describe('ActivitiesRepository', () => {
 			],
 		});
 		const expectedQuery = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
 max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
 max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
 FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityStringValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -122,7 +122,7 @@ AND a."date" = timestamp '2023-01-26 18:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
 FROM "ActivityNumberValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -133,7 +133,7 @@ AND a."date" = timestamp '2023-01-26 18:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityBooleanValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -145,7 +145,7 @@ GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = 'raw'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
 
 ) as y
 WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
@@ -164,8 +164,7 @@ LIMIT 100 OFFSET 0`;
 					createdAt: '2023-01-25T00:00:00.750Z',
 					date: '2023-01-12T07:00:00.000Z',
 				},
-			],
-			nextToken: 100,
+			]
 		});
 
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
@@ -238,11 +237,11 @@ LIMIT 100 OFFSET 0`;
 			],
 		});
 		const expectedQuery = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
 max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
 max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
 FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityStringValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -252,7 +251,7 @@ AND a."pipelineId" = 'pipe1'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
 FROM "ActivityNumberValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -262,7 +261,7 @@ AND a."pipelineId" = 'pipe1'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityBooleanValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -273,7 +272,7 @@ GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = 'raw'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
 
 ) as y
 WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
@@ -337,8 +336,7 @@ LIMIT 100 OFFSET 0`;
 					booleanOutput: 'true',
 					createdAt: '2023-01-10T07:00:00.000Z',
 				},
-			],
-			nextToken: 100,
+			]
 		});
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 	});
@@ -375,11 +373,11 @@ LIMIT 100 OFFSET 0`;
 		});
 
 		const expectedQuery = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
 max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
 max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
 FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityStringValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -389,7 +387,7 @@ AND a."pipelineId" = 'pipe1'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
 FROM "ActivityNumberValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -399,7 +397,7 @@ AND a."pipelineId" = 'pipe1'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityBooleanValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -410,7 +408,7 @@ GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = 'raw'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
 
 ) as y
 WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
@@ -485,11 +483,11 @@ LIMIT 2 OFFSET 0`;
 			],
 		});
 		const expectedQuery = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
 max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
 max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
 FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityStringValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -501,7 +499,7 @@ AND a."date" <= timestamp '2023-01-12 07:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
 FROM "ActivityNumberValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -513,7 +511,7 @@ AND a."date" <= timestamp '2023-01-12 07:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityBooleanValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -526,7 +524,7 @@ GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = 'raw'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
 
 ) as y
 WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
@@ -563,8 +561,7 @@ LIMIT 100 OFFSET 0`;
 					stringOutput: '3-1-third',
 					createdAt: '2023-01-15T07:00:00.000Z',
 				},
-			],
-			nextToken: 100,
+			]
 		});
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 	});
@@ -597,11 +594,11 @@ LIMIT 100 OFFSET 0`;
 		});
 
 		const expectedQuery = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
 max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
 max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
 FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityStringValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -614,7 +611,7 @@ AND a."date" <= timestamp '2023-01-12 07:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
 FROM "ActivityNumberValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -627,7 +624,7 @@ AND a."date" <= timestamp '2023-01-12 07:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityBooleanValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -641,7 +638,7 @@ GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = 'raw'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
 HAVING max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) = '2-1-third'
 AND max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) = '400'
 ) as y
@@ -662,8 +659,7 @@ LIMIT 100 OFFSET 0`;
 					booleanOutput: 'false',
 					createdAt: '2023-01-14T07:00:00.000Z',
 				},
-			],
-			nextToken: 100,
+			]
 		});
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 	});
@@ -691,15 +687,14 @@ LIMIT 100 OFFSET 0`;
 					booleanOutput: 'false',
 					createdAt: '2023-01-15T07:00:00.000Z',
 				},
-			],
-			nextToken: 100,
+			]
 		});
 		const expectedQuery = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
 max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
 max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
 FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityStringValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -712,7 +707,7 @@ AND a."date" <= timestamp '2023-01-11 07:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
 FROM "ActivityNumberValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -725,7 +720,7 @@ AND a."date" <= timestamp '2023-01-11 07:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityBooleanValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -739,7 +734,7 @@ GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = 'raw'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
 HAVING max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) = '2-1-first'
 AND max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) = '400'
 ) as y
@@ -760,8 +755,7 @@ LIMIT 100 OFFSET 0`;
 					booleanOutput: 'false',
 					createdAt: '2023-01-15T07:00:00.000Z',
 				},
-			],
-			nextToken: 100,
+			]
 		});
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 	});
@@ -789,15 +783,14 @@ LIMIT 100 OFFSET 0`;
 					booleanOutput: 'false',
 					createdAt: '2023-01-15T07:00:00.000Z',
 				},
-			],
-			nextToken: 100,
+			]
 		});
 		const expectedQuery = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
 max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
 max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
 FROM "Activity" a1
-JOIN (SELECT t."activityId", t."name", t."createdAt", cast(t."val" as varchar), t."executionId"
+JOIN (SELECT t."activityId", t."name", t."auditId", t."createdAt", cast(t."val" as varchar), t."executionId"
 FROM "Activity" a
 JOIN "ActivityStringValue" t ON (a."activityId"=t."activityId")
 WHERE a."groupId" = '/a'
@@ -805,7 +798,7 @@ AND t."executionId" = 'pipe1-exec1'
 AND a."key1" = '2-1-first'
 AND a."date" = timestamp '2023-01-10 07:00:00'
 UNION
-SELECT t."activityId", t."name", t."createdAt", cast(t."val"::REAL as varchar), t."executionId"
+SELECT t."activityId", t."name", t."auditId", t."createdAt", cast(t."val"::REAL as varchar), t."executionId"
 FROM "Activity" a
 JOIN "ActivityNumberValue" t ON (a."activityId"=t."activityId")
 WHERE a."groupId" = '/a'
@@ -813,7 +806,7 @@ AND t."executionId" = 'pipe1-exec1'
 AND a."key1" = '2-1-first'
 AND a."date" = timestamp '2023-01-10 07:00:00'
 UNION
-SELECT t."activityId", t."name", t."createdAt", cast(t."val" as varchar), t."executionId"
+SELECT t."activityId", t."name", t."auditId", t."createdAt", cast(t."val" as varchar), t."executionId"
 FROM "Activity" a
 JOIN "ActivityBooleanValue" t ON (a."activityId"=t."activityId")
 WHERE a."groupId" = '/a'
@@ -822,7 +815,7 @@ AND a."key1" = '2-1-first'
 AND a."date" = timestamp '2023-01-10 07:00:00'
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = 'raw'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
 HAVING (max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) = '2-1-first' OR max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) IS NULL)
 AND (max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) = '400' OR max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) IS NULL)
 ) as y
@@ -843,8 +836,7 @@ LIMIT 100 OFFSET 0`;
 					booleanOutput: 'false',
 					createdAt: '2023-01-15T07:00:00.000Z',
 				},
-			],
-			nextToken: 100,
+			]
 		});
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 	});
@@ -865,16 +857,15 @@ LIMIT 100 OFFSET 0`;
 			};
 			// @ts-ignore
 			mockPostgresClient.query.mockResolvedValueOnce({
-				rows: [],
-				nextToken: 100,
+				rows: []
 			});
 
 			const expectedQuery = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
 max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
 max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
 FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityStringValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -886,7 +877,7 @@ AND a."date" = timestamp '2023-01-10 07:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
 FROM "ActivityNumberValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -898,7 +889,7 @@ AND a."date" = timestamp '2023-01-10 07:00:00'
 GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 UNION
-SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"
+SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
 FROM "ActivityBooleanValue" a
 JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
 FROM "Activity" a
@@ -911,7 +902,7 @@ GROUP BY t."activityId", t."name"
 ) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = 'aggregated'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
 HAVING max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) = '2-1-first'
 AND max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) = '400'
 ) as y

@@ -14,9 +14,6 @@
 import type { CustomResource } from './customResource';
 import type { CustomResourceEvent } from './customResource.model';
 import type { Logger } from 'pino';
-import type { S3Client } from '@aws-sdk/client-s3';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
 import * as fs from 'fs';
 import type { DatabaseSeederRepository } from './databaseSeeder.repository.js';
 import type { RDSClient } from '@aws-sdk/client-rds';
@@ -24,15 +21,14 @@ import { DescribeDBProxiesCommand, ModifyDBProxyCommand } from '@aws-sdk/client-
 import { DeleteRolePolicyCommand, IAMClient, PutRolePolicyCommand } from '@aws-sdk/client-iam';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 
-const StreamZip = require('node-stream-zip');
 // @ts-ignore
 import ow from 'ow';
+import type { ExtractCustomResourceArtifacts } from '../plugins/awilix.js';
 
 export class DatabaseSeederCustomResource implements CustomResource {
 	private readonly logger: Logger;
-	private readonly assetFolder: string;
+	private readonly extractCustomResourceArtifacts: ExtractCustomResourceArtifacts;
 	private readonly secretsManagerClient: SecretsManagerClient;
-	private readonly s3Client: S3Client;
 	private readonly databaseSeederRepository: DatabaseSeederRepository;
 	private readonly rdsClient: RDSClient;
 	private readonly iamClient: IAMClient;
@@ -42,11 +38,11 @@ export class DatabaseSeederCustomResource implements CustomResource {
 	private readonly tenantPolicyName: string;
 
 	constructor(logger: Logger, databaseSeederRepository: DatabaseSeederRepository,
-				rdsClient: RDSClient, iamClient: IAMClient, s3Client: S3Client,
-				secretsManagerClient: SecretsManagerClient, proxyName: string, tenantId: string, environment: string, assetFolder: string) {
+				rdsClient: RDSClient, iamClient: IAMClient,
+				secretsManagerClient: SecretsManagerClient, proxyName: string, tenantId: string, environment: string, extractCustomResourceArtifacts: ExtractCustomResourceArtifacts) {
+		this.extractCustomResourceArtifacts = extractCustomResourceArtifacts;
 		this.logger = logger;
 		this.secretsManagerClient = secretsManagerClient;
-		this.s3Client = s3Client;
 		this.rdsClient = rdsClient;
 		this.iamClient = iamClient;
 		this.databaseSeederRepository = databaseSeederRepository;
@@ -54,7 +50,6 @@ export class DatabaseSeederCustomResource implements CustomResource {
 		this.tenantId = tenantId;
 		this.environment = environment;
 		this.tenantPolicyName = `get-${this.tenantId}-${this.environment}-secret`;
-		this.assetFolder = assetFolder;
 	}
 
 	private async getUserNamePasswordFromSecretManager(secretArn: string): Promise<[string, string]> {
@@ -137,27 +132,14 @@ export class DatabaseSeederCustomResource implements CustomResource {
 	};
 
 	private async extractAssets(assetBucket: string, assetKey: string): Promise<[string, string]> {
-		const response = await this.s3Client.send(new GetObjectCommand({ Bucket: assetBucket, Key: assetKey }));
-		const fileContent = await sdkStreamMixin(response.Body).transformToByteArray();
+		const assetFolder = await this.extractCustomResourceArtifacts(assetBucket, assetKey);
 
-		const tmpZipFilePath = '/tmp/assets.zip';
-
-		fs.writeFileSync(tmpZipFilePath, fileContent);
-
-		const zip = new StreamZip.async({ file: tmpZipFilePath });
-
-		if (!fs.existsSync(this.assetFolder)) {
-			fs.mkdirSync(this.assetFolder);
-		}
-		await zip.extract(null, this.assetFolder);
-		await zip.close();
-
-		const folders = await fs.promises.readdir(this.assetFolder);
+		const folders = await fs.promises.readdir(assetFolder);
 
 		if (!folders.includes('migrations') || !folders.includes('seed')) {
 			throw new Error('missing migrations or seed folder');
 		}
-		return [`${this.assetFolder}/seed`, `${this.assetFolder}/migrations`];
+		return [`${assetFolder}/seed`, `${assetFolder}/migrations`];
 	}
 
 	async create(customResourceEvent: CustomResourceEvent): Promise<unknown> {

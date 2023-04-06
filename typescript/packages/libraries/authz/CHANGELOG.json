@@ -2,6 +2,18 @@
   "name": "@sif/authz",
   "entries": [
     {
+      "version": "2.1.5",
+      "tag": "@sif/authz_v2.1.5",
+      "date": "Fri, 31 Mar 2023 06:04:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "minor fix"
+          }
+        ]
+      }
+    },
+    {
       "version": "2.1.4",
       "tag": "@sif/authz_v2.1.4",
       "date": "Fri, 24 Feb 2023 22:03:30 GMT",

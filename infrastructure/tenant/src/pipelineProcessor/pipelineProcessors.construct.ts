@@ -33,6 +33,7 @@ import { vpcIdParameter } from '../shared/sharedTenant.stack.js';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { NagSuppressions } from 'cdk-nag';
+import { PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT } from '@sif/events';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +42,7 @@ export interface PipelineProcessorsConstructProperties {
 	tenantId: string;
 	calculatorFunctionName: string;
 	accessManagementApiFunctionName: string;
+	pipelineProcessorApiFunctionName: string;
 	environment: string;
 	eventBusName: string;
 	pipelineApiFunctionName: string;
@@ -59,18 +61,20 @@ export interface PipelineProcessorsConstructProperties {
 	activityStringValueTableName: string;
 	activityDateTimeValueTableName: string;
 	caCert: string;
-	auditFileProcessingTime: number;
 	downloadAuditFileParallelLimit: number;
+	csvConnectorName: string;
 }
 
 export const pipelineProcessorApiUrlParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiUrl`;
 export const pipelineProcessorApiNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiName`;
-export const pipelineProcessorApiFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiFunctionName`;
 export const pipelineProcessorApiFunctionArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiFunctionArn`;
 export const pipelineProcessorBucketPrefixParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/bucketPrefix`;
-export const pipelineProcessorStateMachineArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/stateMachineArn`;
+export const pipelineProcessorJobStateMachineArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/jobStateMachineArn`;
+export const pipelineProcessorInlineStateMachineArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/inlineStateMachineArn`;
 export const pipelineProcessorTableNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/configTableName`;
 export const metricsTableNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/metricsTableName`;
+
+export const INLINE_PROCESSING_ROWS_LIMIT = '100';
 
 export class PipelineProcessors extends Construct {
 	constructor(scope: Construct, id: string, props: PipelineProcessorsConstructProperties) {
@@ -203,6 +207,7 @@ export class PipelineProcessors extends Construct {
 			logRetention: RetentionDays.ONE_WEEK,
 			timeout: Duration.minutes(5),
 			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
 				TABLE_NAME: table.tableName,
@@ -213,6 +218,7 @@ export class PipelineProcessors extends Construct {
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				TENANT_ID: props.tenantId,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 			},
 
 			bundling: {
@@ -241,6 +247,7 @@ export class PipelineProcessors extends Construct {
 			logRetention: RetentionDays.ONE_WEEK,
 			timeout: Duration.minutes(10),
 			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
 				BUCKET_NAME: bucket.bucketName,
@@ -249,6 +256,7 @@ export class PipelineProcessors extends Construct {
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				TABLE_NAME: table.tableName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 			},
 			bundling: {
 				minify: true,
@@ -276,6 +284,7 @@ export class PipelineProcessors extends Construct {
 			logRetention: RetentionDays.ONE_WEEK,
 			timeout: Duration.minutes(5),
 			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
 				TABLE_NAME: table.tableName,
@@ -284,6 +293,7 @@ export class PipelineProcessors extends Construct {
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 			},
 			bundling: {
 				minify: true,
@@ -310,6 +320,7 @@ export class PipelineProcessors extends Construct {
 			logRetention: RetentionDays.ONE_WEEK,
 			timeout: Duration.minutes(5),
 			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
 				TABLE_NAME: table.tableName,
@@ -318,6 +329,7 @@ export class PipelineProcessors extends Construct {
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 				...auroraEnvironmentVariables,
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
@@ -351,6 +363,7 @@ export class PipelineProcessors extends Construct {
 			logRetention: RetentionDays.ONE_WEEK,
 			timeout: Duration.minutes(5),
 			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
 				TABLE_NAME: table.tableName,
@@ -359,6 +372,7 @@ export class PipelineProcessors extends Construct {
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 				...auroraEnvironmentVariables,
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
@@ -398,11 +412,11 @@ export class PipelineProcessors extends Construct {
 			lambdaFunction: resultProcessorLambda,
 		});
 
-		const metricAggregationTask = new LambdaInvoke(this, 'MetricAggregationTask', {
+		const jobMetricAggregationTask = new LambdaInvoke(this, 'JobMetricAggregationTask', {
 			lambdaFunction: metricAggregationLambda,
 		});
 
-		const pipelineAggregationTask = new LambdaInvoke(this, 'PipelineAggregationTask', {
+		const jobPipelineAggregationTask = new LambdaInvoke(this, 'JobPipelineAggregationTask', {
 			lambdaFunction: pipelineAggregationLambda,
 		});
 
@@ -413,47 +427,55 @@ export class PipelineProcessors extends Construct {
 
 		map.iterator(calculationTask);
 
-		const parallel = new Parallel(this, 'Post Processing Tasks').branch(resultProcessorTask).branch(metricAggregationTask).branch(pipelineAggregationTask);
+		const parallel = new Parallel(this, 'Post Processing Tasks').branch(resultProcessorTask).branch(jobMetricAggregationTask).branch(jobPipelineAggregationTask);
 
-		const stateMachineLogGroup = new LogGroup(this, 'StateMachineLogGroup', { logGroupName: `/aws/stepfunctions/${namePrefix}-pipelineProcessor`, removalPolicy: RemovalPolicy.DESTROY });
-
-		const pipelineProcessorStateMachine = new StateMachine(this, 'PipelineProcessorStateMachine', {
+		const jobStateMachineLogGroup = new LogGroup(this, 'JobStateMachineLogGroup', { logGroupName: `/aws/stepfunctions/${namePrefix}-job-pipelineProcessor`, removalPolicy: RemovalPolicy.DESTROY });
+		const pipelineProcessorJobStateMachine = new StateMachine(this, 'PipelineProcessorJobStateMachine', {
 			definition: verificationTask.next(map).next(parallel),
-			logs: { destination: stateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
-			stateMachineName: `${namePrefix}-pipelineProcessor`,
+			logs: { destination: jobStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
+			stateMachineName: `${namePrefix}-jobPipelineProcessor`,
 			tracingEnabled: true
 		});
 
-		new StringParameter(this, 'pipelineProcessorStateMachineArnParameter', {
-			parameterName: pipelineProcessorStateMachineArnParameter(props.tenantId, props.environment),
-			stringValue: pipelineProcessorStateMachine.stateMachineArn,
+		const inlineMetricAggregationTask = new LambdaInvoke(this, 'MetricAggregationTask', {
+			lambdaFunction: metricAggregationLambda,
 		});
 
-		const dataSourcesUploadRule = new Rule(this, 'DataSourcesUploadRule', {
-			eventPattern: {
-				source: ['aws.s3'],
-				detail: {
-					bucket: {
-						name: [props.bucketName],
-					},
-					object: {
-						key: [{ prefix: `${bucketPrefix}/` }],
-					},
-				},
-			},
+		const inlinePipelineAggregationTask = new LambdaInvoke(this, 'PipelineAggregationTask', {
+			lambdaFunction: pipelineAggregationLambda,
 		});
 
-		const bucketEventsLambda = new NodejsFunction(this, 'BucketEventsLambda', {
+		const inlineStateMachineLogGroup = new LogGroup(this, 'InlineStateMachineLogGroup', { logGroupName: `/aws/stepfunctions/${namePrefix}-inline-pipelineProcessor`, removalPolicy: RemovalPolicy.DESTROY });
+		const pipelineProcessorInlineStateMachine = new StateMachine(this, 'PipelineProcessorInlineStateMachine', {
+			definition: new Parallel(this, 'InlineAggregationTask').branch(inlineMetricAggregationTask).branch(inlinePipelineAggregationTask),
+			logs: { destination: inlineStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
+			stateMachineName: `${namePrefix}-inlinePipelineProcessor`,
+			tracingEnabled: true
+		});
+
+		new StringParameter(this, 'pipelineProcessorJobStateMachineArnParameter', {
+			parameterName: pipelineProcessorJobStateMachineArnParameter(props.tenantId, props.environment),
+			stringValue: pipelineProcessorJobStateMachine.stateMachineArn,
+		});
+
+		new StringParameter(this, 'pipelineProcessorInlineStateMachineArnParameter', {
+			parameterName: pipelineProcessorInlineStateMachineArnParameter(props.tenantId, props.environment),
+			stringValue: pipelineProcessorInlineStateMachine.stateMachineArn,
+		});
+
+		const eventIntegrationLambda = new NodejsFunction(this, 'BucketEventsLambda', {
 			description: `Pipeline Processors Bucket Events Handler: Tenant ${props.tenantId}`,
-			entry: path.join(__dirname, '../../../../typescript/packages/apps/pipeline-processors/src/lambda_eventbridge_s3events.ts'),
+			entry: path.join(__dirname, '../../../../typescript/packages/apps/pipeline-processors/src/lambda_eventbridge.ts'),
 			runtime: Runtime.NODEJS_16_X,
 			tracing: Tracing.ACTIVE,
 			functionName: `${namePrefix}-bucketEvents`,
 			memorySize: 256,
 			logRetention: RetentionDays.ONE_WEEK,
 			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
-				PIPELINE_STATE_MACHINE_ARN: pipelineProcessorStateMachine.stateMachineArn,
+				PIPELINE_JOB_STATE_MACHINE_ARN: pipelineProcessorJobStateMachine.stateMachineArn,
+				PIPELINE_INLINE_STATE_MACHINE_ARN: pipelineProcessorInlineStateMachine.stateMachineArn,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				EVENT_BUS_NAME: props.eventBusName,
@@ -461,6 +483,7 @@ export class PipelineProcessors extends Construct {
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 			},
 			bundling: {
 				minify: true,
@@ -474,10 +497,11 @@ export class PipelineProcessors extends Construct {
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
 		});
 
-		pipelineProcessorStateMachine.grantStartExecution(bucketEventsLambda);
-		table.grantReadWriteData(bucketEventsLambda);
-		bucket.grantReadWrite(bucketEventsLambda);
-		eventBus.grantPutEventsTo(bucketEventsLambda);
+		pipelineLambda.grantInvoke(eventIntegrationLambda);
+		pipelineProcessorJobStateMachine.grantStartExecution(eventIntegrationLambda);
+		table.grantReadWriteData(eventIntegrationLambda);
+		bucket.grantReadWrite(eventIntegrationLambda);
+		eventBus.grantPutEventsTo(eventIntegrationLambda);
 
 		const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
 
@@ -494,8 +518,37 @@ export class PipelineProcessors extends Construct {
 			}
 		}));
 
+		const dataSourcesUploadRule = new Rule(this, 'DataSourcesUploadRule', {
+			eventPattern: {
+				source: ['aws.s3'],
+				detail: {
+					bucket: {
+						name: [props.bucketName],
+					},
+					object: {
+						key: [{ prefix: `${bucketPrefix}/` }],
+					},
+				},
+			},
+		});
+
+		const connectorIntegrationResponseRule = new Rule(this, 'ConnectorIntegrationResponseRule', {
+			eventBus: eventBus,
+			eventPattern: {
+				detailType: [PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT]
+			}
+		});
+
+		connectorIntegrationResponseRule.addTarget(
+			new LambdaFunction(eventIntegrationLambda, {
+				deadLetterQueue: deadLetterQueue,
+				maxEventAge: Duration.minutes(5),
+				retryAttempts: 2,
+			})
+		);
+
 		dataSourcesUploadRule.addTarget(
-			new LambdaFunction(bucketEventsLambda, {
+			new LambdaFunction(eventIntegrationLambda, {
 				deadLetterQueue: deadLetterQueue,
 				maxEventAge: Duration.minutes(5),
 				retryAttempts: 2,
@@ -504,7 +557,7 @@ export class PipelineProcessors extends Construct {
 
 		eventBus.grantPutEventsTo(verificationLambda);
 		eventBus.grantPutEventsTo(calculationLambda);
-		eventBus.grantPutEventsTo(bucketEventsLambda);
+		eventBus.grantPutEventsTo(eventIntegrationLambda);
 		eventBus.grantPutEventsTo(resultProcessorLambda);
 
 		const kmsKey = Key.fromKeyArn(this, 'KmsKey', props.kmsKeyArn);
@@ -515,25 +568,27 @@ export class PipelineProcessors extends Construct {
 		const apiLambda = new NodejsFunction(this, 'Apilambda', {
 			description: `Pipeline Executions API: Tenant ${props.tenantId}`,
 			entry: path.join(__dirname, '../../../../typescript/packages/apps/pipeline-processors/src/lambda_apiGateway.ts'),
-			functionName: `${namePrefix}-pipelineProcessorsApi`,
+			functionName: `${props.pipelineProcessorApiFunctionName}`,
 			runtime: Runtime.NODEJS_16_X,
 			tracing: Tracing.ACTIVE,
 			memorySize: 256,
 			logRetention: RetentionDays.ONE_WEEK,
 			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
 				ACCESS_MANAGEMENT_FUNCTION_NAME: props.accessManagementApiFunctionName,
 				NODE_ENV: props.environment,
 				TABLE_NAME: table.tableName,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				EVENT_BUS_NAME: eventBus.eventBusName,
-				PIPELINE_STATE_MACHINE_ARN: pipelineProcessorStateMachine.stateMachineArn,
+				PIPELINE_JOB_STATE_MACHINE_ARN: pipelineProcessorJobStateMachine.stateMachineArn,
+				PIPELINE_INLINE_STATE_MACHINE_ARN: pipelineProcessorInlineStateMachine.stateMachineArn,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				TENANT_ID: props.tenantId,
-				AUDIT_FILE_PROCESSING_TIME: props.auditFileProcessingTime.toString(),
 				TASK_PARALLEL_LIMIT: props.downloadAuditFileParallelLimit.toString(),
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 				...auroraEnvironmentVariables,
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
@@ -558,11 +613,6 @@ export class PipelineProcessors extends Construct {
 
 		apiLambda.addToRolePolicy(rdsProxyPolicy);
 
-		new StringParameter(this, 'pipelineProcessorApiFunctionNameParameter', {
-			parameterName: pipelineProcessorApiFunctionNameParameter(props.tenantId, props.environment),
-			stringValue: apiLambda.functionName,
-		});
-
 		new StringParameter(this, 'pipelineProcessorApiFunctionArnParameter', {
 			parameterName: pipelineProcessorApiFunctionArnParameter(props.tenantId, props.environment),
 			stringValue: apiLambda.functionArn,
@@ -575,6 +625,8 @@ export class PipelineProcessors extends Construct {
 		eventBus.grantPutEventsTo(apiLambda);
 		pipelineLambda.grantInvoke(apiLambda);
 		metricsTable.grantReadData(apiLambda);
+		calculatorLambda.grantInvoke(apiLambda);
+		pipelineProcessorInlineStateMachine.grantStartExecution(apiLambda);
 
 		/**
 		 * Define the API Gateway
@@ -623,7 +675,7 @@ export class PipelineProcessors extends Construct {
 		const accessManagementLambda = Function.fromFunctionName(this, 'accessManagementLambda', props.accessManagementApiFunctionName);
 		accessManagementLambda.grantInvoke(apiLambda);
 
-		NagSuppressions.addResourceSuppressions([apiLambda, bucketEventsLambda],
+		NagSuppressions.addResourceSuppressions([apiLambda, eventIntegrationLambda],
 			[
 				{
 					id: 'AwsSolutions-IAM4',
@@ -637,6 +689,7 @@ export class PipelineProcessors extends Construct {
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
 						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<pipelineApiFunctionNameParameter>:*`
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
 
@@ -794,6 +847,15 @@ export class PipelineProcessors extends Construct {
 				},
 				{
 					id: 'AwsSolutions-IAM5',
+					appliesTo: [
+						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:*`,
+					],
+					reason: 'This policy is required for the lambda to access the resource api table.'
+
+				},
+				{
+					id: 'AwsSolutions-IAM5',
 					appliesTo: [`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<accessManagementApiFunctionNameParameter>:*`],
 					reason: 'This policy is required to invoke access management and calculation engine.'
 				}],
@@ -825,7 +887,27 @@ export class PipelineProcessors extends Construct {
 			],
 			true);
 
-		NagSuppressions.addResourceSuppressions([pipelineProcessorStateMachine],
+		NagSuppressions.addResourceSuppressions([pipelineProcessorInlineStateMachine],
+			[
+				{
+					id: 'AwsSolutions-IAM5',
+					appliesTo: ['Resource::<PipelineProcessorsProcessorMetricAggregationLambda4ABE57AD.Arn>:*', 'Resource::<PipelineProcessorsProcessorPipelineAggregationLambda21DC6AD2.Arn>:*'],
+					reason: 'this policy is required to invoke lambda specified in the state machine definition'
+				},
+				{
+					id: 'AwsSolutions-SF1',
+					reason: 'We only care about logging the error for now.'
+
+				},
+				{
+					id: 'AwsSolutions-IAM5',
+					reason: 'This resource policy only applies to log.',
+					appliesTo: ['Resource::*']
+
+				}],
+			true);
+
+		NagSuppressions.addResourceSuppressions([pipelineProcessorJobStateMachine],
 			[
 				{
 					id: 'AwsSolutions-IAM5',

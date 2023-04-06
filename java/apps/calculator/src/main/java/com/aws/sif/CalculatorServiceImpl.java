@@ -21,22 +21,22 @@ import com.aws.sif.execution.output.RdsWriter;
 import com.aws.sif.resources.users.UserNotFoundException;
 import com.aws.sif.resources.users.UsersClient;
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.typesafe.config.Config;
-import de.siegmar.fastcsv.reader.CsvReader;
-import de.siegmar.fastcsv.reader.CsvRow;
-import de.siegmar.fastcsv.writer.CsvWriter;
-import de.siegmar.fastcsv.writer.LineDelimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 public class CalculatorServiceImpl implements CalculatorService {
@@ -46,26 +46,22 @@ public class CalculatorServiceImpl implements CalculatorService {
 	private final Calculator calculator;
 	private final S3Utils s3;
 	private final Auditor auditor;
-	private final CsvReader.CsvReaderBuilder readerBuilder;
-	private final CsvWriter.CsvWriterBuilder writerBuilder;
 	private final Config config;
 	private final RdsWriter rdsWriter;
 	private final UsersClient usersClient;
 	private  Map<String, DynamicTypeValue> valueMap = new HashMap<>();
-
+	private final Gson gson;
 
 	@Inject
-	public CalculatorServiceImpl(Calculator calculator, S3Utils s3, Auditor auditor, Config config, RdsWriter rdsWriter, UsersClient usersClient) {
+	public CalculatorServiceImpl(Calculator calculator, S3Utils s3, Auditor auditor, Config config, RdsWriter rdsWriter, UsersClient usersClient, Gson gson) {
 		this.calculator = calculator;
 		this.s3 = s3;
 		this.auditor = auditor;
 		this.config = config;
 		this.usersClient = usersClient;
-		this.readerBuilder = CsvReader.builder();
+		this.gson = gson;
 
 		this.rdsWriter = rdsWriter;
-
-		this.writerBuilder = CsvWriter.builder().lineDelimiter(LineDelimiter.PLATFORM);
 	}
 
 	@Override
@@ -94,10 +90,9 @@ public class CalculatorServiceImpl implements CalculatorService {
 				}
 			}
 
-			var inputColumnMapping = identifyInputColumns(req.getCsvHeader());
 			var outputHeaders = identifyOutputColumns(req.getTransforms());
 
-			response = transformInput(req, authorizer, errors, outputHeaders, inputColumnMapping);
+			response = transformInput(req, authorizer, errors, outputHeaders);
 		} catch (Exception e) {
 			log.error("process> " + e.getMessage(), e);
 			throw e;
@@ -151,16 +146,43 @@ public class CalculatorServiceImpl implements CalculatorService {
 		return result;
 	}
 
-	private TransformResponse transformInput(TransformRequest req, Authorizer authorizer, List<String> errors, List<String> headers, Map<String, Integer> columnMapping) {
-		log.debug("transformInput> in> request:{}, errors:{}, headers:{}, columnMapping:{}", req, errors, headers, columnMapping);
+	private String transformedToJsonLine(Map<String, DynamicTypeValue> transformed, List<String> headers) {
+		log.debug("transformedToJson> in> transformed:{}, headers:{}", transformed, headers);
+		if (transformed == null) {
+			log.debug("transformedToJson> early exit:");
+			return "{}";
+		}
+
+		StringBuilder jsonLine = new StringBuilder("{");
+		for (var header : headers) {
+			jsonLine.append("\"").append(header).append("\":");
+			var value = transformed.get(header);
+			if (value instanceof ErrorValue) {
+				jsonLine.append(ERROR_EVALUATING);
+			} else if (value instanceof  NullValue) {
+				jsonLine.append("null");
+			} else if (value instanceof StringTypeValue || value instanceof DateTimeTypeValue) {
+				jsonLine.append("\"").append(value.asString()).append("\"");
+			} else {
+				jsonLine.append(value.asString());
+			}
+			jsonLine.append(",");
+		}
+		jsonLine.deleteCharAt(jsonLine.length()-1);	// remove last ","
+		jsonLine.append("}");
+		log.debug("transformedToJson> exit:{}", jsonLine);
+		return jsonLine.toString();
+	}
+
+	private TransformResponse transformInput(TransformRequest req, Authorizer authorizer, List<String> errors, List<String> headers) {
+		log.debug("transformInput> in> request:{}, errors:{}, headers:{}", req, errors, headers);
 
 		TransformResponse response;
 
-		var sourceLocation = (req.getCsvSourceDataLocation() == null) ? DataSourceLocation.inline : DataSourceLocation.s3;
+		var sourceLocation = (req.getSourceDataLocation() == null) ? DataSourceLocation.inline : DataSourceLocation.s3;
 
-		// prepare a csv writer. used for inline mode only
-		var csv = new StringWriter();
-		var csvWriter = this.writerBuilder.build(csv);
+		// collection of outputs for inline mode
+		var inlineResultJsonLines = new ArrayList<String>();
 
 		// no point proceeding if we detected an error during initialization or validation
 		if (errors.size() == 0) {
@@ -168,63 +190,72 @@ public class CalculatorServiceImpl implements CalculatorService {
 			// gather the source data
 			String sourceData;
 			if (DataSourceLocation.inline.equals(sourceLocation)) {
-				sourceData = String.join(System.lineSeparator(), req.getCsvSourceData());
+				sourceData = String.join(System.lineSeparator(), req.getSourceData());
 			} else {
-				sourceData = s3.download(req.getCsvSourceDataLocation());
+				sourceData = s3.download(req.getSourceDataLocation());
 			}
 
 			var outputMap = getOutputMap(req);
 
 			// initialize the RDS writer with the current context
 			rdsWriter.init(req.getGroupContextId(), req.getPipelineId(), req.getExecutionId(), outputMap);
-			try (var reader = this.readerBuilder.build(sourceData)) {
-				reader.forEach(row -> {
-					try {
-						var inputRow = marshallInputRow(req.getParameters(), columnMapping, req.getUniqueKey(), row);
-						var outputRow = transformRow(req, authorizer, inputRow, errors);
-						// if in inline mode we need to collect the generated output rows as we progress to return
-						if (DataSourceLocation.inline.equals(sourceLocation)) {
-							csvWriter.writeRow(flattenTransformed(outputRow, headers));
-						}
 
-						// if not in dry run mode we save the results to RDS
-						if (!req.isDryRun()) {
-							var time = outputRow.entrySet().stream()
-								.filter(x -> OutputType.time.equals(x.getValue().getOutputType()))
-								.findFirst().orElseThrow();
-							var uniqueIdColumns = outputRow.entrySet().stream()
-								.filter(x -> OutputType.uniqueId.equals(x.getValue().getOutputType()))
-								.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+			Type MapStringStringType = new TypeToken<Map<String, String>>() {}.getType();
 
-							var values = this.getValueMap(req,outputRow);
+			Stream<String> linesFromString = sourceData.lines();
+			linesFromString.forEach(l -> {
+                log.trace("l: {}", l);
+				Map<String, String> jsonLine = gson.fromJson(l, MapStringStringType);
+                log.trace("jsonLine: {}", jsonLine);
 
-							rdsWriter.addRecord((NumberTypeValue) time.getValue(), uniqueIdColumns, values);
-						}
+				try {
+					var inputRow = marshallInputRow(req.getParameters(), req.getUniqueKey(), jsonLine);
+					var outputRow = transformRow(req, authorizer, inputRow, errors);
 
-					} catch (Exception e) {
-						log.error("*****", e);
-						recordError(errors, "transformInput", String.format("Failed processing row %s, err: %s", row.getFields(), e.getMessage()));
+					// if in inline mode we need to collect the generated output rows as we progress to return
+					if (DataSourceLocation.inline.equals(sourceLocation)) {
+						inlineResultJsonLines.add(transformedToJsonLine(outputRow, headers));
 					}
-				});
 
-			} catch (Exception e) {
-				recordError(errors, "transformInput", String.format("Failed processing: %s", e.getMessage()));
-			}
+					// if not in dry run mode we save the results to RDS
+					if (!req.isDryRun()) {
+						var time = outputRow.entrySet().stream()
+							.filter(x -> OutputType.time.equals(x.getValue().getOutputType()))
+							.findFirst().get();
+
+						var uniqueIdColumns = outputRow.entrySet().stream()
+							.filter(x -> OutputType.uniqueId.equals(x.getValue().getOutputType()))
+							.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+
+						var auditId = outputRow.entrySet().stream()
+							.filter(x -> OutputType.auditId.equals(x.getValue().getOutputType()))
+							.findFirst().orElseThrow();
+
+
+						var values = this.getValueMap(req,outputRow);
+
+						rdsWriter.addRecord((NumberTypeValue) time.getValue(), uniqueIdColumns, values, (StringTypeValue)auditId.getValue());
+					}
+
+				} catch (Exception e) {
+					log.error("*****", e);
+					recordError(errors, "transformInput", String.format("Failed processing row %s, err: %s", jsonLine, e.getMessage()));
+				}
+			});
 		}
 
 		// post transformation step...
 		var bucket = config.getString("calculator.upload.s3.bucket");
-		S3Location auditLogLocation = (!req.isDryRun()) ? new S3Location(bucket, replaceKeyTokens(config.getString("calculator.upload.s3.audit.key"), req)) : null;
 		if (DataSourceLocation.s3.equals(sourceLocation)) {
 			S3Location errorLocation = null;
 			if (errors.size() > 0) {
 				errorLocation = new S3Location(bucket, replaceKeyTokens(config.getString("calculator.upload.s3.errors.key"), req));
 				s3.upload(errorLocation, String.join(System.lineSeparator(), errors));
 			}
-			response = new S3TransformResponse(errorLocation, auditLogLocation);
+			response = new S3TransformResponse(errorLocation);
 		} else {
-			var output = List.of(csv.toString().split(System.lineSeparator()));
-			response = new InlineTransformResponse(headers, output, errors, auditLogLocation);
+			response = new InlineTransformResponse(headers, inlineResultJsonLines, errors);
 		}
 
 		log.trace("transformInput> exit:{}", response);
@@ -267,11 +298,13 @@ public class CalculatorServiceImpl implements CalculatorService {
 
 		Map<String, DynamicTypeValue> transformed = new HashMap<>();
 
+		String auditId =  UUID.randomUUID().toString();
+
 		// common audit attributes regardless of the output column being evaluated
 		var auditMessageBuilder = AuditMessage.builder()
 			.pipelineId(req.getPipelineId())
 			.executionId(req.getExecutionId())
-			.rowId(source.get(ROW_IDENTIFIER).asString());
+			.auditId(auditId);
 
 		// loop each output of each transform to generate the output column
 		var outputs = new ArrayList<AuditMessage.Output>();
@@ -353,6 +386,11 @@ public class CalculatorServiceImpl implements CalculatorService {
 			auditMessageBuilder.outputs(outputs.toArray(outputsArray));
 			this.auditor.log(auditMessageBuilder.build());
 		}
+
+		var auditIdValue = new StringTypeValue(auditId);
+		auditIdValue.setOutputType(OutputType.auditId);
+		transformed.put("auditId", auditIdValue);
+
 
 		log.debug("transformRow> exit:{}", transformed);
 		return transformed;
@@ -442,26 +480,22 @@ public class CalculatorServiceImpl implements CalculatorService {
 			}
 		}
 
-		if (Strings.isNullOrEmpty(req.getCsvHeader())) {
-			recordError(errorMessages, "validateRequest", "No csvHeader provided.");
+		if (req.getSourceDataLocation() != null && req.getSourceData() != null) {
+			recordError(errorMessages, "process", "Only 1 of sourceDataLocation (S3 source) or sourceData (inline source) may be provided.");
 		}
 
-		if (req.getCsvSourceDataLocation() != null && req.getCsvSourceData() != null) {
-			recordError(errorMessages, "process", "Only 1 of csvSourceDataLocation (S3 source) or csvSourceData (inline source) may be provided.");
+		if (req.getSourceDataLocation() == null && (req.getSourceData() == null || req.getSourceData().size() == 0)) {
+			recordError(errorMessages, "process", "Either sourceDataLocation (S3 source) or sourceData (inline source) must be provided.");
 		}
 
-		if (req.getCsvSourceDataLocation() == null && (req.getCsvSourceData() == null || req.getCsvSourceData().size() == 0)) {
-			recordError(errorMessages, "process", "Either csvSourceDataLocation (S3 source) or csvSourceData (inline source) must be provided.");
-		}
-
-		if (req.getCsvSourceDataLocation() != null) {
-			if (Strings.isNullOrEmpty(req.getCsvSourceDataLocation().getBucket())) {
-				recordError(errorMessages, "process", "csvSourceDataLocation (S3 source) provided but no S3 bucket provided.");
+		if (req.getSourceDataLocation() != null) {
+			if (Strings.isNullOrEmpty(req.getSourceDataLocation().getBucket())) {
+				recordError(errorMessages, "process", "sourceDataLocation (S3 source) provided but no S3 bucket provided.");
 			}
-			if (Strings.isNullOrEmpty(req.getCsvSourceDataLocation().getKey())) {
-				recordError(errorMessages, "process", "csvSourceDataLocation (S3 source) provided but not S3 key provided.");
+			if (Strings.isNullOrEmpty(req.getSourceDataLocation().getKey())) {
+				recordError(errorMessages, "process", "sourceDataLocation (S3 source) provided but not S3 key provided.");
 			}
-			if (req.getCsvSourceDataLocation().getEndByte() != null && req.getChunkNo() == null) {
+			if (req.getSourceDataLocation().getEndByte() != null && req.getChunkNo() == null) {
 				recordError(errorMessages, "process", "An S3 chunk request was provided but the request has no `chunkNo`.");
 			}
 		}
@@ -470,53 +504,41 @@ public class CalculatorServiceImpl implements CalculatorService {
 		return errorMessages;
 	}
 
-	private Map<String, Integer> identifyInputColumns(String csvHeader) {
-		log.debug("identifyInputColumns> in> csvHeader:{}", csvHeader);
-
-		var columns = new HashMap<String, Integer>();
-		// TODO: improvement - use a csv parser for this
-		var split = csvHeader.split(",", -1);
-
-		for (var i = 0; i < split.length; i++) {
-			var name = split[i];
-			if (name.startsWith("\"") && name.endsWith("\"")) {
-				name = name.substring(1, name.length() - 1);
-			}
-			columns.put(name, i);
-		}
-		log.debug("identifyInputColumns> exit:{}", columns);
-		return columns;
-	}
-
-	private Map<String, DynamicTypeValue> marshallInputRow(List<TransformParameter> parameters, Map<String, Integer> columnsMapping, List<String> uniqueKeys, CsvRow inputData) {
-		log.debug("marshallInput> in> parameters:{}, columnsMapping:{}, uniqueKeys:{}, inputData:{}", parameters, columnsMapping, uniqueKeys, inputData);
+	private Map<String, DynamicTypeValue> marshallInputRow(List<TransformParameter> parameters, List<String> uniqueKeys, Map<String,String> inputJsonData) {
+		log.debug("marshallInput> in> parameters:{}, uniqueKeys:{}, inputData:{}", parameters, uniqueKeys, inputJsonData);
 
 		var data = new HashMap<String, DynamicTypeValue>();
+		var rowIdentifier = "";
 
 		// special case, add row identifier
 		if (uniqueKeys == null || uniqueKeys.size() == 0) {
-			data.put(ROW_IDENTIFIER, new StringTypeValue(inputData.getField(0)));
+			rowIdentifier = String.join("-", inputJsonData.values());
+			data.put(ROW_IDENTIFIER, new StringTypeValue(rowIdentifier));
 		} else {
-			var keyValues = new ArrayList<String>();
+			var values = new ArrayList<String>();
 			uniqueKeys.forEach(k -> {
-				var v = new StringTypeValue(inputData.getField(columnsMapping.get(k))).asString();
+				var v = new StringTypeValue(inputJsonData.get(k)).asString();
 				try {
-					keyValues.add(URLEncoder.encode(v, StandardCharsets.UTF_8.toString()));
+					values.add(URLEncoder.encode(v, StandardCharsets.UTF_8.toString()));
 				} catch (UnsupportedEncodingException e) {
 					var message = String.format("Failed encoding key: %s", e.getMessage());
 					log.error("marshallData> " + message);
 					throw new RuntimeException(message, e);
 				}
 			});
-			data.put(ROW_IDENTIFIER, new StringTypeValue(String.join("-", keyValues)));
+			rowIdentifier = String.join("-", values);
+			data.put(ROW_IDENTIFIER, new StringTypeValue(rowIdentifier));
 		}
 
 		for (var p : parameters) {
 			log.trace("marshallInput> p:'{}'", p);
-			var column = columnsMapping.get(p.getKey());
-			log.trace("marshallInput> column:'{}'", column);
-			var value = inputData.getField(column);
-			log.trace("marshallInput> value:'{}', type:{}", value, p.getType());
+
+			if (!inputJsonData.containsKey(p.getKey())) {
+				var message = String.format("Failed processing row: %s - row does not contain value for parameter: %s", rowIdentifier, p.getKey());
+				log.error("marshallData> " + message);
+				throw new RuntimeException(message);
+			}
+			var value = inputJsonData.get(p.getKey());
 
 			DynamicTypeValue result;
 			if (value == null || value.isEmpty()) {

@@ -37,33 +37,29 @@ public class LocalInvokeCalculation {
                 .pipelineId(String.format("pipe-%s",System.currentTimeMillis()))
                 .executionId(String.format("exe-%s", String.valueOf(System.currentTimeMillis())))
                 .groupContextId("/")
-                .username("pipeline_processor_admin@amazon.com")
+                .username("test@amazon.com")
                 .parameters(List.of(
-                        TransformParameter.builder().key("date").type("string").build(),
+                        TransformParameter.builder().key("timestamp").type("string").build(),
                         TransformParameter.builder().key("zipcode").type("string").build(),
                         TransformParameter.builder().key("kwh").type("number").build()
                 ))
                 .transforms(List.of(
-                        Transform.builder().index(0).formula("AS_TIMESTAMP(:date, 'M/d/yyyy')").outputs(
+                        Transform.builder().index(0).formula("AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')").outputs(
                                 List.of(TransformOutput.builder().index(0).key("timestamp").type("timestamp").build())
                         ).build(),
                         Transform.builder().index(1).formula(":zipcode").outputs(
-                                List.of(TransformOutput.builder().index(0).key("zipcode").type("string").build())
+                                List.of(TransformOutput.builder().index(0).key("zipcode").includeAsUnique(true)._keyMapping("key1").type("string").build())
                         ).build(),
                         Transform.builder().index(2).formula(":kwh").outputs(
                                 List.of(TransformOutput.builder().index(0).key("kwh").type("number").build())
                         ).build(),
                         Transform.builder().index(3).formula(":kwh*0.25").outputs(
                                 List.of(TransformOutput.builder().index(0).key("co2e").type("number").build())
-                        ).build(),
-                        Transform.builder().index(4).formula("IF(:zipcode=='80238',true,false)").outputs(
-                                List.of(TransformOutput.builder().index(0).key("colorado").type("boolean").build())
                         ).build()
 //                        Transform.builder().index(5).formula(":date").outputs(
 //                                List.of(TransformOutput.builder().index(0).key("date").type("timestamp").build())
 //                        ).build()
                 ))
-                .csvHeader("\"date\",\"zipcode\",\"kwh\"")
                 .chunkNo(0);
     }
 
@@ -124,15 +120,15 @@ public class LocalInvokeCalculation {
     public void calculation_s3() throws IOException {
         // prepare s3 mode request
         var request = prepareRequest().build();
-        var bucket = System.getProperty("BUCKET_NAME");
-        var inputKeyPrefix = "test/pipelines/pipeline001/electricity_input_small.csv";
-        log.debug("calculation_s3> bukcet: ", bucket,inputKeyPrefix);
+		var bucket = System.getenv("BUCKET_NAME");
+        var inputKeyPrefix = "test/pipelines/pipeline001/electricity_input_small.jl";
+        log.debug("calculation_s3> bucket: {} {}", bucket, inputKeyPrefix);
         var sourceLocation = new S3SourceLocation();
         sourceLocation.setBucket(bucket);
         sourceLocation.setKey(inputKeyPrefix);
         sourceLocation.setStartByte(0L);
         sourceLocation.setEndByte(10000L);
-        request.setCsvSourceDataLocation(sourceLocation);
+        request.setSourceDataLocation(sourceLocation);
         log.debug("calculation_s3> request: {}", request);
 
         // execute

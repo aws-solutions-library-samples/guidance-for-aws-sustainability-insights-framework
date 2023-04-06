@@ -26,7 +26,6 @@ import {
 	tenantDatabaseNameParameter,
 	tenantDatabaseUsernameParameter,
 	tenantSecretArnParameter,
-	customResourceProviderTokenParameter
 } from '../shared/auroraSeeder.construct.js';
 import {
 	accessManagementApiFunctionNameParameter,
@@ -38,6 +37,7 @@ import {
 } from '../shared/ssm.construct.js';
 import { NagSuppressions } from 'cdk-nag';
 import { kmsKeyArnParameter } from '../shared/kms.construct.js';
+import { customResourceProviderTokenParameter } from '../shared/deploymentHelper.construct.js';
 
 
 export type CalculatorStackProperties = StackProps & {

@@ -41,6 +41,7 @@ export async function errorHandler(error, _request, reply) {
 			case 'InvalidFileHeaderError':
 			case 'InvalidRequestError':
 			case 'InvalidParameterError':
+			case 'CalculatorDryRunError':
 				return reply.badRequest(error.message);
 			case 'AuditFilePendingError':
 				return reply.conflict(error.message);

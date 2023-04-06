@@ -20,8 +20,7 @@ import org.apache.commons.lang3.Validate;
 
 @Slf4j
 public class Auditor {
-
-    private final FirehoseProducer producer;
+    private final S3Writer writer;
 
     /** Remembers the last Async thrown exception */
     private transient volatile Throwable lastThrownException;
@@ -29,19 +28,19 @@ public class Auditor {
     /** Specify whether stop and fail in case of an error */
     private boolean failOnError;
 
-    public Auditor(FirehoseProducer producer ) {
-        this.producer = producer;
+    public Auditor(S3Writer writer) {
+        this.writer = writer;
     }
 
     public void log(AuditMessage message) throws Exception {
         log.debug("log> in> message:{}", message);
 
         Validate.notNull(message);
-        Validate.validState((producer != null && !producer.isDestroyed()), "Firehose producer has been destroyed");
+        Validate.validState((writer != null && !writer.isDestroyed()), "S3 writer has been destroyed");
 
         propagateAsyncExceptions();
 
-        producer
+        writer
                 .addAuditMessage(message)
                 .handleAsync((record, throwable) -> {
                     if (throwable != null) {
@@ -64,11 +63,10 @@ public class Auditor {
 
                     return null;
                 });
-
     }
 
     public void flushSync() {
-        this.producer.flushSync();
+        this.writer.flushSync();
     }
 
     private void propagateAsyncExceptions() throws Exception {

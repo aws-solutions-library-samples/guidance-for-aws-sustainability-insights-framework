@@ -42,7 +42,6 @@ export const activityStringValueTableParameter = (tenantId: string, environment:
 export const activityNumberValueTableParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/shared/activityNumberValueTable`;
 export const activityDateTimeValueTableParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/shared/activityDateTimeValueTable`;
 export const activityBooleanValueTableParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/shared/activityBooleanValueTable`;
-export const customResourceProviderTokenParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/shared/customResourceProviderToken`;
 
 export class AuroraSeeder extends Construct {
 

@@ -14,29 +14,29 @@
 import { asFunction, asValue, Lifetime } from 'awilix';
 import fp from 'fastify-plugin';
 import pkg from 'aws-xray-sdk';
+
 const { captureAWSv3Client } = pkg;
+import type { FastifyInstance } from 'fastify';
+import { Cradle, diContainer, FastifyAwilixOptions, fastifyAwilixPlugin } from '@fastify/awilix';
+import type { MetadataBearer, RequestPresigningArguments } from '@aws-sdk/types';
+import type { Client, Command } from '@aws-sdk/smithy-client';
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { S3Client } from '@aws-sdk/client-s3';
 import { SFNClient } from '@aws-sdk/client-sfn';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { Cradle, diContainer, FastifyAwilixOptions, fastifyAwilixPlugin } from '@fastify/awilix';
-import { SecurityScope } from '@sif/authz';
-import { EventPublisher } from '@sif/events';
+
+import { EventPublisher, PIPELINE_PROCESSOR_EVENT_SOURCE } from '@sif/events';
 import { BaseCradle, registerBaseAwilix } from '@sif/resource-api-base';
-import { CalculatorClient } from '@sif/clients';
-import { MetricClient } from '@sif/clients';
-import { PipelineClient } from '@sif/clients';
+import { CalculatorClient, ConnectorClient, MetricClient, PipelineClient } from '@sif/clients';
+import { DynamoDbUtils } from '@sif/dynamodb-utils';
+
 import { PipelineProcessorsRepository } from '../api/executions/repository.js';
 import { PipelineProcessorsService } from '../api/executions/service.js';
 import { MetricAggregationTaskService } from '../stepFunction/tasks/metricAggregationTask.service.js';
 import { CalculationTask } from '../stepFunction/tasks/calculationTask.js';
 import { ResultProcessorTask } from '../stepFunction/tasks/resultProcessorTask.js';
-import { TriggerTask } from '../stepFunction/tasks/triggerTask.js';
+import { EventProcessor } from '../events/event.processor.js';
 import { VerifyTask } from '../stepFunction/tasks/verifyTask.js';
-import type { FastifyInstance } from 'fastify';
-import type { MetadataBearer, RequestPresigningArguments } from '@aws-sdk/types';
-import type { Client, Command } from '@aws-sdk/smithy-client';
-import { DynamoDbUtils } from '@sif/dynamodb-utils';
 import { ActivityService } from '../api/activities/service.js';
 import { MetricsService } from '../api/metrics/service.js';
 import { MetricsRepository } from '../api/metrics/repository.js';
@@ -44,8 +44,22 @@ import { BaseRepositoryClient } from '../data/base.repository.js';
 import { ActivitiesRepository } from '../api/activities/repository.js';
 import { AggregationTaskAuroraRepository } from '../stepFunction/tasks/aggregationTask.aurora.repository.js';
 import { PipelineAggregationTaskService } from '../stepFunction/tasks/pipelineAggregationTask.service.js';
+import { ActivityAuditService } from '../api/activities/audits/service.js';
+import { ConnectorUtility } from '../utils/connectorUtility.js';
+
+import { SecurityScope, SecurityContext, convertGroupRolesToCognitoGroups } from '@sif/authz';
+import type { LambdaRequestContext } from '@sif/clients';
 
 const { BUCKET_NAME, BUCKET_PREFIX } = process.env;
+
+export type GetSecurityContext = (executionId: string, role?: string, groupContextId?: string) => Promise<SecurityContext>
+export type GetLambdaRequestContext = (sc: SecurityContext) => LambdaRequestContext
+export type GetSignedUrl = <InputTypesUnion extends object, InputType extends InputTypesUnion, OutputType extends MetadataBearer = MetadataBearer>(
+	client: Client<any, InputTypesUnion, MetadataBearer, any>,
+	command: Command<InputType, OutputType, any, InputTypesUnion, MetadataBearer>,
+	options?: RequestPresigningArguments
+) => Promise<string>;
+
 
 declare module '@fastify/awilix' {
 	interface Cradle extends BaseCradle {
@@ -60,25 +74,23 @@ declare module '@fastify/awilix' {
 		metricClient: MetricClient;
 		outputTask: ResultProcessorTask;
 		pipelineClient: PipelineClient;
+		connectorClient: ConnectorClient;
+		connectorUtility: ConnectorUtility;
 		pipelineProcessorsRepository: PipelineProcessorsRepository;
 		pipelineProcessorsService: PipelineProcessorsService;
 		s3Client: S3Client;
 		stepFunctionClient: SFNClient;
-		triggerTask: TriggerTask;
+		eventProcessor: EventProcessor;
 		verifyTask: VerifyTask;
-
 		activityService: ActivityService;
 		activitiesRepository: ActivitiesRepository;
 		metricsService: MetricsService;
 		metricsRepo: MetricsRepository;
-
+		activityAuditService: ActivityAuditService;
 		baseRepositoryClient: BaseRepositoryClient;
-
-		getSignedUrl: <InputTypesUnion extends object, InputType extends InputTypesUnion, OutputType extends MetadataBearer = MetadataBearer>(
-			client: Client<any, InputTypesUnion, MetadataBearer, any>,
-			command: Command<InputType, OutputType, any, InputTypesUnion, MetadataBearer>,
-			options?: RequestPresigningArguments
-		) => Promise<string>;
+		getSecurityContext: GetSecurityContext;
+		getLambdaRequestContext: GetLambdaRequestContext;
+		getSignedUrl: GetSignedUrl;
 	}
 }
 
@@ -105,13 +117,27 @@ class StepFunctionClientFactory {
 	}
 }
 
+const getLambdaRequestContext: GetLambdaRequestContext = (securityContext: SecurityContext): LambdaRequestContext => {
+	const { email, groupRoles, groupId } = securityContext;
+	const requestContext: LambdaRequestContext = {
+		authorizer: {
+			claims: {
+				email: email,
+				'cognito:groups': convertGroupRolesToCognitoGroups(groupRoles),
+				groupContextId: groupId,
+			},
+		},
+	};
+	return requestContext;
+};
+
+
 const registerContainer = (app?: FastifyInstance) => {
 	const commonInjectionOptions = {
 		lifetime: Lifetime.SINGLETON,
 	};
 
 	const taskParallelLimit = parseInt(process.env['TASK_PARALLEL_LIMIT']);
-	const auditFileProcessingTime = parseInt(process.env['AUDIT_FILE_PROCESSING_TIME']);
 	const awsRegion = process.env['AWS_REGION'];
 	const eventBusName = process.env['EVENT_BUS_NAME'];
 	const tableName = process.env['TABLE_NAME'];
@@ -120,7 +146,8 @@ const registerContainer = (app?: FastifyInstance) => {
 	const chunkSize = parseInt(process.env['CHUNK_SIZE']);
 	const sourceDataBucket = process.env['BUCKET_NAME'];
 	const sourceDataBucketPrefix = process.env['BUCKET_PREFIX'];
-	const stateMachineArn = process.env['PIPELINE_STATE_MACHINE_ARN'];
+	const workflowStateMachineArn = process.env['PIPELINE_JOB_STATE_MACHINE_ARN'];
+	const inlineStateMachineArn = process.env['PIPELINE_INLINE_STATE_MACHINE_ARN'];
 	const metricsTableName = process.env['METRICS_TABLE_NAME'];
 	const rdsDBHost = process.env['RDS_PROXY_ENDPOINT'];
 	const rdsTenantUsername = process.env['TENANT_USERNAME'];
@@ -133,12 +160,7 @@ const registerContainer = (app?: FastifyInstance) => {
 	const activitiesStringValueTableName = process.env['ACTIVITIES_STRING_VALUE_TABLE_NAME'];
 	const activitiesBooleanTableName = process.env['ACTIVITIES_BOOLEAN_VALUE_TABLE_NAME'];
 	const activitiesDateTimeTableName = process.env['ACTIVITIES_DATETIME_VALUE_TABLE_NAME'];
-
-	const securityContext = {
-		email: 'sif-pipeline-execution',
-		groupId: '/',
-		groupRoles: { '/': SecurityScope.reader },
-	};
+	const csvInputConnectorName = process.env['CSV_INPUT_CONNECTOR_NAME'];
 
 	diContainer.register({
 		getSignedUrl: asValue(getSignedUrl),
@@ -156,7 +178,7 @@ const registerContainer = (app?: FastifyInstance) => {
 		}),
 		dynamoDbUtils: asFunction((container: Cradle) => new DynamoDbUtils(app.log, container.dynamoDBDocumentClient)),
 
-		eventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, eventBusName, 'com.aws.sif.pipelinePublishers'), {
+		eventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, eventBusName, PIPELINE_PROCESSOR_EVENT_SOURCE), {
 			...commonInjectionOptions,
 		}),
 		pipelineProcessorsRepository: asFunction((container: Cradle) => new PipelineProcessorsRepository(app.log, container.dynamoDBDocumentClient, tableName), {
@@ -164,6 +186,22 @@ const registerContainer = (app?: FastifyInstance) => {
 		}),
 		pipelineClient: asFunction((container: Cradle) => new PipelineClient(app.log, container.invoker, pipelineFunctionName), {
 			...commonInjectionOptions,
+		}),
+		connectorClient: asFunction((container: Cradle) => new ConnectorClient(app.log, container.invoker, pipelineFunctionName), {
+			...commonInjectionOptions,
+		}),
+		connectorUtility: asFunction((container: Cradle) => new ConnectorUtility(
+			app.log,
+			container.s3Client,
+			container.getSignedUrl,
+			container.eventPublisher,
+			container.connectorClient,
+			BUCKET_NAME as string,
+			BUCKET_PREFIX as string,
+			eventBusName,
+			csvInputConnectorName
+		), {
+			...commonInjectionOptions
 		}),
 		pipelineProcessorsService: asFunction(
 			(container: Cradle) =>
@@ -177,8 +215,11 @@ const registerContainer = (app?: FastifyInstance) => {
 					BUCKET_PREFIX as string,
 					container.eventPublisher,
 					container.pipelineClient,
-					taskParallelLimit,
-					auditFileProcessingTime
+					container.connectorUtility,
+					container.getLambdaRequestContext,
+					container.calculatorClient,
+					container.stepFunctionClient,
+					inlineStateMachineArn
 				),
 			{
 				...commonInjectionOptions,
@@ -187,21 +228,21 @@ const registerContainer = (app?: FastifyInstance) => {
 		calculatorClient: asFunction((container: Cradle) => new CalculatorClient(app.log, container.lambdaClient, calculatorFunctionName), {
 			...commonInjectionOptions,
 		}),
-		triggerTask: asFunction(
+		eventProcessor: asFunction(
 			(container: Cradle) =>
-				new TriggerTask(app.log, container.stepFunctionClient, container.pipelineProcessorsService, sourceDataBucket, sourceDataBucketPrefix, stateMachineArn, securityContext, container.s3Client, container.eventPublisher),
+				new EventProcessor(app.log, container.stepFunctionClient, container.pipelineProcessorsService, container.getSecurityContext, container.connectorUtility, container.s3Client, workflowStateMachineArn, sourceDataBucket, sourceDataBucketPrefix, container.pipelineClient, container.getLambdaRequestContext),
 			{
 				...commonInjectionOptions,
 			}
 		),
-		calculationTask: asFunction((container: Cradle) => new CalculationTask(app.log, container.pipelineProcessorsService, container.calculatorClient, securityContext), {
+		calculationTask: asFunction((container: Cradle) => new CalculationTask(app.log, container.pipelineProcessorsService, container.calculatorClient, container.getSecurityContext), {
 			...commonInjectionOptions,
 		}),
 
-		verifyTask: asFunction((container: Cradle) => new VerifyTask(app.log, container.pipelineClient, container.pipelineProcessorsService, container.s3Client, securityContext, chunkSize), {
+		verifyTask: asFunction((container: Cradle) => new VerifyTask(app.log, container.pipelineClient, container.pipelineProcessorsService, container.s3Client, container.getSecurityContext, chunkSize, container.getLambdaRequestContext), {
 			...commonInjectionOptions,
 		}),
-		outputTask: asFunction((container: Cradle) => new ResultProcessorTask(app.log, securityContext, container.pipelineProcessorsService, container.s3Client, sourceDataBucket, sourceDataBucketPrefix), {
+		outputTask: asFunction((container: Cradle) => new ResultProcessorTask(app.log, container.getSecurityContext, container.pipelineProcessorsService, container.s3Client, sourceDataBucket, sourceDataBucketPrefix), {
 			...commonInjectionOptions,
 		}),
 		metricClient: asFunction((container: Cradle) => new MetricClient(app.log, container.invoker, pipelineFunctionName), {
@@ -226,11 +267,33 @@ const registerContainer = (app?: FastifyInstance) => {
 		activityService: asFunction((container: Cradle) => new ActivityService(app.log, container.activitiesRepository, container.authChecker, container.pipelineClient, container.pipelineProcessorsService), {
 			...commonInjectionOptions,
 		}),
-
+		activityAuditService: asFunction((container: Cradle) => new ActivityAuditService(app.log, container.s3Client, sourceDataBucket, container.activitiesRepository, container.authChecker, taskParallelLimit), {
+			...commonInjectionOptions,
+		}),
 		metricsRepo: asFunction((container: Cradle) => new MetricsRepository(app.log, container.dynamoDBDocumentClient, metricsTableName, container.dynamoDbUtils), {
 			...commonInjectionOptions,
 		}),
 		metricsService: asFunction((container: Cradle) => new MetricsService(app.log, container.metricsRepo, container.authChecker, container.metricClient), {
+			...commonInjectionOptions,
+		}),
+		getLambdaRequestContext: asValue(getLambdaRequestContext),
+		// This function construct the lambda request context with reduced scope but can be extended
+		getSecurityContext: asFunction((container: Cradle) => {
+			const getContext = async (executionId: string, role?: SecurityScope, groupContextId?: string) => {
+				if (!groupContextId) {
+					const pipelineExecution = await container.pipelineProcessorsRepository.getById(executionId);
+					groupContextId = pipelineExecution.groupContextId;
+				}
+
+				const securityContext = {
+					email: 'sif-pipeline-execution',
+					groupId: `${groupContextId}`,
+					groupRoles: { [`${groupContextId}`]: role ?? SecurityScope.contributor },
+				};
+				return securityContext;
+			};
+			return getContext;
+		}, {
 			...commonInjectionOptions,
 		}),
 	});

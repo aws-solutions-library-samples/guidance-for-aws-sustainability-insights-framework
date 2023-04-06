@@ -1,6 +1,6 @@
 {
 	"name": "@sif/deployment-helper",
-	"version": "0.1.2",
+	"version": "0.2.2",
 	"description": "Custom resources library to automate resource creation",
 	"author": "William Sia <willsia@amazon.com>",
 	"exports": {
@@ -26,10 +26,13 @@
 		"@aws-sdk/rds-signer": "3.229.0",
 		"@aws-sdk/client-rds": "3.229.0",
 		"@aws-sdk/client-iam": "3.229.0",
+		"@aws-sdk/client-lambda": "3.229.0",
 		"aws-xray-sdk": "3.4.1",
 		"axios": "1.2.5",
 		"@aws-sdk/client-secrets-manager": "3.229.0",
 		"@aws-sdk/util-stream-node": "3.226.0",
+		"@sif/clients": "workspace:*",
+		"@sif/lambda-invoker": "workspace:*",
 		"node-stream-zip": "~1.15.0",
 		"pg": "8.8.0",
 		"ow": "1.1.0",

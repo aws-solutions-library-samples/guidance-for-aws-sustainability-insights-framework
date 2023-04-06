@@ -11,21 +11,24 @@
  *  and limitations under the License.
  */
 
-import type { CalculationChunk, CalculationTaskEvent, CalculationContext, ResultProcessorTaskEvent, S3Location, AggregationTaskEvent } from './model.js';
+
 import type { BaseLogger } from 'pino';
-import type { PipelineProcessorsService } from '../../api/executions/service.js';
+
 import type { CalculatorClient, CalculatorRequest, CalculatorS3TransformResponse } from '@sif/clients';
-import type { SecurityContext } from '@sif/authz';
 import { validateNotEmpty, validateDefined } from '@sif/validators';
+import type { PipelineProcessorsService } from '../../api/executions/service.js';
+import type { CalculationChunk, CalculationTaskEvent, CalculationContext, ResultProcessorTaskEvent, S3Location, AggregationTaskEvent } from './model.js';
+import type { GetSecurityContext } from '../../plugins/module.awilix.js';
+
 
 export class CalculationTask {
 	private readonly log: BaseLogger;
 	private readonly pipelineProcessorsService: PipelineProcessorsService;
-	private readonly adminSecurityContext: SecurityContext;
+	private readonly getSecurityContext: GetSecurityContext;
 	private readonly calculatorClient: CalculatorClient;
 
-	constructor(log: BaseLogger, pipelineProcessorsService: PipelineProcessorsService, calculatorClient: CalculatorClient, adminSecurityContext: SecurityContext) {
-		this.adminSecurityContext = adminSecurityContext;
+	constructor(log: BaseLogger, pipelineProcessorsService: PipelineProcessorsService, calculatorClient: CalculatorClient, getSecurityContext: GetSecurityContext) {
+		this.getSecurityContext = getSecurityContext;
 		this.log = log;
 		this.pipelineProcessorsService = pipelineProcessorsService;
 		this.calculatorClient = calculatorClient;
@@ -52,14 +55,12 @@ export class CalculationTask {
 			executionId: context.pipelineExecutionId,
 			parameters: context.transformer.parameters,
 			transforms: context.transformer.transforms,
-			csvHeader: context.transformer.parameters.map((o) => o.key).join(','),
 			actionType: context.actionType,
-			csvSourceDataLocation: {
+			sourceDataLocation: {
 				bucket: source.bucket,
 				key: source.key,
 				startByte: chunk.startByte,
 				endByte: chunk.endByte,
-				containsHeader: chunk.startByte === 0 ? true : false,
 			},
 			username: pipelineCreatedBy,
 			chunkNo: sequence,
@@ -95,7 +96,8 @@ export class CalculationTask {
 			return response;
 		} catch (error) {
 			this.log.error(`CalculationTask > process > error : ${JSON.stringify(error)}`);
-			await this.pipelineProcessorsService.update(this.adminSecurityContext, pipelineId, pipelineExecutionId, {
+			const securityContext = await this.getSecurityContext(pipelineExecutionId, 'contributor', groupContextId);
+			await this.pipelineProcessorsService.update(securityContext, pipelineId, pipelineExecutionId, {
 				status: 'failed',
 				statusMessage: error.message,
 			});

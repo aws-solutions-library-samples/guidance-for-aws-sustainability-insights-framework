@@ -2,6 +2,24 @@
   "name": "@sif/resource-api-base",
   "entries": [
     {
+      "version": "3.5.4",
+      "tag": "@sif/resource-api-base_v3.5.4",
+      "date": "Fri, 31 Mar 2023 06:04:14 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.5`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.7`"
+          }
+        ]
+      }
+    },
+    {
       "version": "3.5.3",
       "tag": "@sif/resource-api-base_v3.5.3",
       "date": "Fri, 24 Feb 2023 22:03:30 GMT",

@@ -17,7 +17,7 @@ import { atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
 import { UnauthorizedError } from '@sif/resource-api-base';
 import type { PipelineClient, LambdaRequestContext } from '@sif/clients';
 import type { PipelineProcessorsService } from '../executions/service.js';
-import type { PipelineExecutionWithMetadata } from '../executions/schemas.js';
+import type { PipelineExecution } from '../executions/schemas.js';
 import type { QueryRequest, QueryResponse } from './models.js';
 import type { ActivitiesRepository } from './repository.js';
 import dayjs from 'dayjs';
@@ -100,7 +100,7 @@ export class ActivityService {
 		return result;
 	}
 
-	private async getPipelineExecution(executionId: string, sc: SecurityContext): Promise<PipelineExecutionWithMetadata> {
+	private async getPipelineExecution(executionId: string, sc: SecurityContext): Promise<PipelineExecution> {
 		this.log.debug(`ActivitiesRepository> getPipelineExecution executionId:${executionId}`);
 
 		let execution = await this.pipelineProcessorService.getById(sc, executionId);

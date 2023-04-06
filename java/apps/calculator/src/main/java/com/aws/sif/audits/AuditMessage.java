@@ -15,8 +15,6 @@ package com.aws.sif.audits;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.Value;
-
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +24,8 @@ public class AuditMessage {
 
     String pipelineId;
     String executionId;
+    String auditId;
     int executionNo;
-
-    String rowId;
 
     Output[] outputs;
 

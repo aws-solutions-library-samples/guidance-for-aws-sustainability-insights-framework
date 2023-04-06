@@ -41,6 +41,7 @@ export class Invoker {
 		this.log.debug(`Invoker> invoke> response statusCode: ${response.StatusCode}`);
 
 		const statusCode = response.StatusCode ?? -1;
+		this.log.debug(`Invoker> invoke> response statusCode: ${statusCode}`);
 		if (statusCode >= 200 && statusCode < 300) {
 			const payload = new LambdaApiGatewayEventResponse(response.Payload);
 			this.log.debug(`Invoker> invoke> response payload: ${JSON.stringify(payload)}`);

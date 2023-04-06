@@ -14,12 +14,11 @@
 import type { BaseLogger } from 'pino';
 import type { PipelineProcessorsService } from '../../api/executions/service';
 import type { CalculationTaskEvent, VerificationTaskEvent, VerificationTaskOutput, S3Location } from './model';
-import type { PipelineClient, LambdaRequestContext } from '@sif/clients';
-import type { SecurityContext } from '@sif/authz';
-import { HeadObjectCommand, HeadObjectCommandInput, S3Client, SelectObjectContentCommand, SelectObjectContentCommandInput } from '@aws-sdk/client-s3';
+import type { PipelineClient } from '@sif/clients';
+import { HeadObjectCommand, HeadObjectCommandInput, S3Client } from '@aws-sdk/client-s3';
 import type { Pipeline } from '@sif/clients';
-import { toUtf8 } from '@aws-sdk/util-utf8-node';
 import type { ActionType } from '@sif/clients';
+import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
 
 export class VerifyTask {
 	private readonly log: BaseLogger;
@@ -27,15 +26,17 @@ export class VerifyTask {
 	private readonly s3Client: S3Client;
 	private readonly pipelineClient: PipelineClient;
 	private readonly pipelineProcessorsService: PipelineProcessorsService;
-	private readonly adminSecurityContext;
+	private readonly getSecurityContext: GetSecurityContext;
+	private readonly getLambdaRequestContext: GetLambdaRequestContext;
 
-	constructor(log: BaseLogger, pipelineClient: PipelineClient, pipelineProcessorsService: PipelineProcessorsService, s3Client: S3Client, adminSecurityContext: SecurityContext, chunkSize: number) {
+	constructor(log: BaseLogger, pipelineClient: PipelineClient, pipelineProcessorsService: PipelineProcessorsService, s3Client: S3Client, getSecurityContext: GetSecurityContext, chunkSize: number, getLambdaRequestContext: GetLambdaRequestContext) {
 		this.chunkSize = chunkSize;
 		this.s3Client = s3Client;
 		this.pipelineClient = pipelineClient;
 		this.log = log;
 		this.pipelineProcessorsService = pipelineProcessorsService;
-		this.adminSecurityContext = adminSecurityContext;
+		this.getSecurityContext = getSecurityContext;
+		this.getLambdaRequestContext = getLambdaRequestContext;
 	}
 
 	private async createCalculationTaskBatches(inputFileLocation: S3Location, chunkSize: number): Promise<CalculationTaskEvent[]> {
@@ -71,89 +72,27 @@ export class VerifyTask {
 		return tasks;
 	}
 
-	private async getFileHeaders(bucket: string, key: string): Promise<string[] | undefined> {
-		this.log.info(`VerifyTask > getFileHeaders > in > bucket: ${bucket}, key: ${key}`);
-
-		const s3Params: SelectObjectContentCommandInput = {
-			Bucket: bucket,
-			Key: key,
-			ExpressionType: 'SQL',
-			Expression: 'SELECT * FROM s3object s LIMIT 1',
-			InputSerialization: {
-				CSV: {
-					FileHeaderInfo: 'NONE',
-					FieldDelimiter: ',',
-				},
-				CompressionType: 'NONE',
-			},
-			OutputSerialization: {
-				CSV: {
-					FieldDelimiter: ',',
-				},
-			},
-		};
-		const result = await this.s3Client.send(new SelectObjectContentCommand(s3Params));
-		let headers;
-		if (result.Payload) {
-			for await (const event of result.Payload) {
-				if (event.Records?.Payload) {
-					headers = toUtf8(event.Records.Payload).split(`\r\n`)[0]?.split(',');
-				}
-			}
-		}
-
-		this.log.info(`VerifyTask > getFileHeaders > exit > headers: ${JSON.stringify(headers)}`);
-		return headers;
-	}
-
 	public async process(event: VerificationTaskEvent): Promise<VerificationTaskOutput> {
 		this.log.info(`VerifyTask > process > event : ${JSON.stringify(event)}`);
 
 		const { pipelineId, pipelineExecutionId, source } = event;
 
-		const { groupContextId, pipelineVersion, actionType } = await this.pipelineProcessorsService.get(this.adminSecurityContext, pipelineId, pipelineExecutionId);
+		const securityContext = await this.getSecurityContext(pipelineExecutionId);
 
-		/*
-			Pipeline API lambda is wrapped around Fastify Auth check which requires context,
-			also the pipeline is created under a particular security context, we need to pass
-			in the right security context id
-		*/
-		const requestContext: LambdaRequestContext = {
-			authorizer: {
-				claims: {
-					email: '',
-					'cognito:groups': `${groupContextId}|||reader`,
-					groupContextId: groupContextId,
-				},
-			},
-		};
+		const { groupContextId, pipelineVersion, actionType } = await this.pipelineProcessorsService.get(securityContext, pipelineId, pipelineExecutionId);
 
 		let pipelineConfiguration: Pipeline;
 
 		try {
-			pipelineConfiguration = await this.pipelineClient.get(pipelineId, pipelineVersion, requestContext);
+			pipelineConfiguration = await this.pipelineClient.get(pipelineId, pipelineVersion, this.getLambdaRequestContext(securityContext));
 		} catch (error) {
 			const errorMessage = `Pipeline configuration '${pipelineId}' not found.`;
-			await this.pipelineProcessorsService.update(this.adminSecurityContext, pipelineId, pipelineExecutionId, {
+			await this.pipelineProcessorsService.update(securityContext, pipelineId, pipelineExecutionId, {
 				status: 'failed',
 				statusMessage: errorMessage,
 			});
 			throw error;
 		}
-
-		const configurationHeaders = pipelineConfiguration.transformer?.parameters?.map((o) => o.key);
-
-		const fileHeaders = await this.getFileHeaders(source.bucket, source.key);
-
-		if (!fileHeaders || !configurationHeaders.every((h) => fileHeaders.includes(h))) {
-			const errorMessage = `file header is invalid, expected : ${configurationHeaders}, actual: ${fileHeaders}`;
-			await this.pipelineProcessorsService.update(this.adminSecurityContext, pipelineId, pipelineExecutionId, {
-				status: 'failed',
-				statusMessage: errorMessage,
-			});
-			throw new Error(errorMessage);
-		}
-
 
 		const chunkSize = (pipelineConfiguration.processorOptions?.chunkSize ?? this.chunkSize) * 1000000;
 
@@ -164,7 +103,6 @@ export class VerifyTask {
 				return {
 					...t,
 					context: {
-						fileHeaders,
 						pipelineId,
 						pipelineExecutionId,
 						groupContextId,

@@ -26,7 +26,8 @@ export const moduleConfigSchema = Type.Object({
 	BUCKET_PREFIX: Type.String(),
 	CALCULATOR_FUNCTION_NAME: Type.String(),
 	PIPELINES_FUNCTION_NAME: Type.String(),
-	PIPELINE_STATE_MACHINE_ARN: Type.String(),
+	PIPELINE_JOB_STATE_MACHINE_ARN: Type.String(),
+	PIPELINE_INLINE_STATE_MACHINE_ARN: Type.String(),
 	PORT: Type.Number({ default: 30004 }),
 	TABLE_NAME: Type.String(),
 	METRICS_TABLE_NAME: Type.String(),
@@ -34,6 +35,7 @@ export const moduleConfigSchema = Type.Object({
 	TENANT_USERNAME: Type.String(),
 	TENANT_DATABASE_NAME: Type.String(),
 	TENANT_ID: Type.String(),
+	INLINE_PROCESSING_ROWS_LIMIT: Type.Number({ default: 100 })
 });
 export const configSchema = Type.Intersect([moduleConfigSchema, baseConfigSchema]);
 

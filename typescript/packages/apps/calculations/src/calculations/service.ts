@@ -142,8 +142,7 @@ export class CalculationService {
 			pipelineId: ulid(),
 			executionId: ulid(),
 			groupContextId: securityContext.groupId,
-			csvSourceData: calculation.dryRunOptions.data,
-			csvHeader: calculation.parameters.map((o) => o.key).join(','),
+			sourceData: calculation.dryRunOptions.data.map((d) => JSON.stringify(d)),
 			parameters: calculation.parameters,
 			transforms: [
 				{

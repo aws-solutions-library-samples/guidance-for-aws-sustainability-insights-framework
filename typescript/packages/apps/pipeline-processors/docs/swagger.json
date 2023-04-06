@@ -14,30 +14,95 @@
       }
     },
     "schemas": {
+      "pipelineExecution_request": {
+        "type": "object",
+        "properties": {
+          "inlineExecutionOptions": {
+            "type": "object",
+            "properties": {
+              "inputs": {
+                "type": "array",
+                "items": {
+                  "description": "An object with key values representing the inputs and its expected values.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "inputs"
+            ]
+          },
+          "mode": {
+            "description": "Pipeline execution mode, inline will run the calculation synchronously.",
+            "default": "job",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "inline"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "job"
+                ]
+              }
+            ]
+          },
+          "actionType": {
+            "description": "Type of operation to perform in this pipeline execution.",
+            "default": "create",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "create"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "delete"
+                ]
+              }
+            ]
+          },
+          "expiration": {
+            "description": "The number of seconds before file upload url expires in, default to 5 minutes",
+            "default": 300,
+            "type": "number"
+          },
+          "connectorOverrides": {
+            "description": "any overrides for the connectors which are configured on for the pipeline",
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "parameters": {
+                  "description": "any key:val attributes to pass config parameters through the input connector.",
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "parameters"
+              ]
+            }
+          }
+        },
+        "required": [
+          "mode",
+          "actionType",
+          "expiration"
+        ]
+      },
       "pipelineExecution_full": {
         "type": "object",
         "properties": {
-          "id": {
-            "description": "Unique id.",
-            "type": "string"
-          },
-          "pipelineId": {
-            "description": "Identifier of the pipeline configuration.",
-            "type": "string"
-          },
-          "pipelineVersion": {
-            "description": "The version of the pipeline when the execution is created.",
-            "type": "number"
-          },
-          "updatedAt": {
-            "description": "Date/time updated.",
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedBy": {
-            "description": "Email of the user who updated the pipeline.",
-            "type": "string"
-          },
           "actionType": {
             "description": "Type of operation to perform in this pipeline execution.",
             "default": "create",
@@ -65,36 +130,123 @@
             "description": "Email of the user who created the pipeline.",
             "type": "string"
           },
-          "status": {
-            "type": "string",
-            "enum": [
-              "waiting",
-              "in_progress",
-              "success",
-              "failed"
-            ],
-            "description": "Status of the pipeline execution."
-          },
-          "groupContextId": {
-            "description": "pipeline execution security context",
-            "type": "string"
-          },
           "executionArn": {
             "description": "Step Function execution arn.",
             "type": "string"
           },
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "inputUploadUrl": {
+            "description": "this property depends on if the execution requires a file uploaded for the execution. By default it generates a signed url for files which are in SIF format.",
+            "type": "string"
+          },
+          "pipelineId": {
+            "description": "Identifier of the pipeline configuration.",
+            "type": "string"
+          },
+          "pipelineVersion": {
+            "description": "The version of the pipeline when the execution is created.",
+            "type": "number"
+          },
+          "connectorOverrides": {
+            "description": "any overrides for the connectors which are configured on for the pipeline",
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "parameters": {
+                  "description": "any key:val attributes to pass config parameters through the input connector.",
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "parameters"
+              ]
+            }
+          },
+          "status": {
+            "description": "Status of the pipeline execution.",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "waiting"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "in_progress"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "success"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "failed"
+                ]
+              }
+            ]
+          },
           "statusMessage": {
             "description": "Execution status details message, in case there is meaningful message which needs to be reported, this property will be present with the message details.",
             "type": "string"
+          },
+          "groupContextId": {
+            "description": "security context id of the creator of this execution",
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "Date/time updated.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "description": "Email of the user who updated the pipeline.",
+            "type": "string"
+          },
+          "inlineExecutionOutputs": {
+            "type": "object",
+            "properties": {
+              "errors": {
+                "description": "List of error when processing the input rows.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "description": "An object with key values representing the outputs and its expected values.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "errors",
+              "outputs"
+            ]
           }
         },
         "required": [
-          "id",
-          "pipelineId",
-          "pipelineVersion",
           "actionType",
           "createdAt",
           "createdBy",
+          "id",
+          "pipelineId",
+          "pipelineVersion",
           "status",
           "groupContextId"
         ]
@@ -139,10 +291,6 @@
       "signedUrlUploadInput_request": {
         "type": "object",
         "properties": {
-          "expiration": {
-            "description": "The number of seconds before presigned url expires, default to 5 minutes",
-            "type": "number"
-          },
           "actionType": {
             "description": "Type of operation to perform in this pipeline execution.",
             "default": "create",
@@ -160,32 +308,14 @@
                 ]
               }
             ]
+          },
+          "expiration": {
+            "description": "The number of seconds before presigned url expires, default to 5 minutes",
+            "type": "number"
           }
         },
         "required": [
           "actionType"
-        ]
-      },
-      "upload_signedUrl_response": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "description": "Unique id.",
-            "type": "string"
-          },
-          "url": {
-            "description": "requested signed url",
-            "type": "string"
-          },
-          "pipelineId": {
-            "description": "Identifier of the pipeline configuration.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "url",
-          "pipelineId"
         ]
       },
       "signedUrl_response": {
@@ -464,250 +594,6 @@
         }
       }
     },
-    "/pipelines/{pipelineId}/inputUploadUrl": {
-      "post": {
-        "tags": [
-          "Pipelines"
-        ],
-        "description": "Returns a pre-signed URL to upload the input data file for to feed the pipeline.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/signedUrlUploadInput_request"
-              },
-              "examples": {
-                "New upload file signed url request": {
-                  "expiration": 2000,
-                  "actionType": "create"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "pipelineId",
-            "required": true,
-            "description": "Unique id."
-          },
-          {
-            "in": "header",
-            "name": "accept-version",
-            "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "accept",
-            "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "x-security-scopes": [
-          "contributor",
-          "admin",
-          "superAdmin"
-        ],
-        "responses": {
-          "201": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "Success.",
-                  "$ref": "#/components/schemas/upload_signedUrl_response"
-                },
-                "examples": {
-                  "Pipeline Execution Input Upload URL": {
-                    "summary": "pipeline execution input Upload URL",
-                    "value": {
-                      "url": "s3-signed-url...",
-                      "id": "ajcuhek13ks",
-                      "pipelineId": "7777777"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "Bad request.",
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pipelines/{pipelineId}/executions/{executionId}/auditDownloadUrl": {
-      "post": {
-        "tags": [
-          "Pipelines"
-        ],
-        "description": "Returns a pre-signed URL to download the pipeline execution audit file.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/signedUrl_request"
-              },
-              "examples": {
-                "New download audit signedUrl request": {
-                  "expiration": 2000
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "pipelineId",
-            "required": true,
-            "description": "Unique id."
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "executionId",
-            "required": true,
-            "description": "Identifier of a execution of the pipeline."
-          },
-          {
-            "in": "header",
-            "name": "accept-version",
-            "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "accept",
-            "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "x-security-scopes": [
-          "contributor",
-          "admin",
-          "superAdmin"
-        ],
-        "responses": {
-          "201": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "Success.",
-                  "$ref": "#/components/schemas/signedUrlList_response"
-                },
-                "examples": {
-                  "Pipeline Execution Audit Download Url": {
-                    "summary": "pipeline execution audit download url",
-                    "value": {
-                      "urls": [
-                        "s3-signed-url..."
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "Bad request.",
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "Conflict.",
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    },
-                    "syntaxErrors": {
-                      "type": "object",
-                      "properties": {
-                        "charPositionInLine": {
-                          "type": "integer"
-                        },
-                        "line": {
-                          "type": "integer"
-                        },
-                        "msg": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "charPositionInLine",
-                        "line",
-                        "msg"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/pipelines/{pipelineId}/executions/{executionId}": {
       "get": {
         "tags": [
@@ -780,7 +666,7 @@
                       "status": "in_progress",
                       "pipelineVersion": 1,
                       "actionType": "create",
-                      "groupContextId": "/group1"
+                      "groupContextId": "/"
                     }
                   },
                   "Existing pipeline failed execution details": {
@@ -796,7 +682,7 @@
                       "pipelineVersion": 1,
                       "statusMessage": "some validation error related to input file",
                       "actionType": "create",
-                      "groupContextId": "/group1"
+                      "groupContextId": "/"
                     }
                   }
                 }
@@ -908,7 +794,7 @@
                           "status": "in_progress",
                           "pipelineVersion": 1,
                           "actionType": "create",
-                          "groupContextId": "/group1"
+                          "groupContextId": "/"
                         },
                         {
                           "id": "ajcuhek13ks",
@@ -921,7 +807,7 @@
                           "pipelineVersion": 1,
                           "statusMessage": "some validation error related to input file",
                           "actionType": "create",
-                          "groupContextId": "/group1"
+                          "groupContextId": "/"
                         }
                       ],
                       "pagination": {
@@ -931,6 +817,411 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Pipeline Executions"
+        ],
+        "description": "Creates a new execution for a pipeline",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/pipelineExecution_request"
+              },
+              "examples": {
+                "Pipeline Execution request example": {
+                  "expiration": 2000,
+                  "mode": "job",
+                  "actionType": "create",
+                  "connectorOverrides": {
+                    "sif-csv-input-converter": {
+                      "parameters": {
+                        "key1": "val1",
+                        "key2": "val2"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "pipelineId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/pipelineExecution_full"
+                },
+                "examples": {
+                  "Pipeline Execution creation response": {
+                    "summary": "pipeline execution response",
+                    "value": {
+                      "id": "ajcuhek13ks",
+                      "pipelineId": "7777777",
+                      "createdAt": "2022-08-10T23:55:20.322Z",
+                      "updatedAt": "2022-08-10T23:55:20.322Z",
+                      "createdBy": "",
+                      "updatedBy": "someone@somewhere.com",
+                      "status": "in_progress",
+                      "pipelineVersion": 1,
+                      "actionType": "create",
+                      "groupContextId": "/"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{id}/audits": {
+      "get": {
+        "operationId": "list",
+        "tags": [
+          "Audits"
+        ],
+        "description": "Retrieve list of audit information for an activity.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "versionAsAt",
+            "required": false,
+            "description": "Filters by `asAt` or `createdAt` determine the latest resource version as that time."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "array",
+                  "items": {
+                    "description": "The audit information for an activity.",
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "examples": {
+                  "List of audit versions for an activity": {
+                    "summary": "Audit detail.",
+                    "value": [
+                      {
+                        "activityId": 1144,
+                        "date": "2022-01-03T16:00:00.000Z",
+                        "pipelineId": "01gwh2f5zwqryq789v42g1akrz",
+                        "executionId": "01gwh2hpz1dbpskw8vq531jg94",
+                        "auditId": "8e50a420-c138-406b-a794-4f1e973018f5",
+                        "createdAt": "2023-03-27T00:21:58.322Z",
+                        "executionNo": 0,
+                        "outputs": [
+                          {
+                            "index": 0,
+                            "name": "time",
+                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+                            "evaluated": {
+                              "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
+                              ":reading date": "1/4/22"
+                            },
+                            "result": "1641254400000"
+                          },
+                          {
+                            "index": 1,
+                            "name": "month",
+                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+                            "evaluated": {
+                              "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
+                              ":reading date": "1/4/22"
+                            },
+                            "result": "1640995200000"
+                          },
+                          {
+                            "index": 2,
+                            "name": "a",
+                            "formula": ":a",
+                            "evaluated": {
+                              ":a": "A"
+                            },
+                            "result": "A"
+                          },
+                          {
+                            "index": 3,
+                            "name": "b*c",
+                            "formula": ":b*:c",
+                            "evaluated": {
+                              ":b": "10",
+                              ":c": "1"
+                            },
+                            "result": "10"
+                          }
+                        ]
+                      },
+                      {
+                        "activityId": 1144,
+                        "date": "2022-01-03T16:00:00.000Z",
+                        "pipelineId": "01gwh2f5zwqryq789v42g1akrz",
+                        "executionId": "01gwh2g8k79v4qfq4m9pvz05q1",
+                        "auditId": "5ca76cb8-bb74-4a7b-ac9c-31b1b594b1f7",
+                        "createdAt": "2023-03-27T00:21:11.104Z",
+                        "executionNo": 0,
+                        "outputs": [
+                          {
+                            "index": 0,
+                            "name": "time",
+                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+                            "evaluated": {
+                              "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
+                              ":reading date": "1/4/22"
+                            },
+                            "result": "1641254400000"
+                          },
+                          {
+                            "index": 1,
+                            "name": "month",
+                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+                            "evaluated": {
+                              "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
+                              ":reading date": "1/4/22"
+                            },
+                            "result": "1640995200000"
+                          },
+                          {
+                            "index": 2,
+                            "name": "a",
+                            "formula": ":a",
+                            "evaluated": {
+                              ":a": "A"
+                            },
+                            "result": "A"
+                          },
+                          {
+                            "index": 3,
+                            "name": "b*c",
+                            "formula": ":b*:c"
+                          }
+                        ]
+                      },
+                      {
+                        "activityId": 1144,
+                        "date": "2022-01-03T16:00:00.000Z",
+                        "pipelineId": "01gwh2f5zwqryq789v42g1akrz",
+                        "executionId": "01gwh2fb3g2e33ghb08pab5hma",
+                        "auditId": "80eda70e-cc36-480e-9b95-6c010cf951d0",
+                        "createdAt": "2023-03-27T00:20:52.759Z",
+                        "executionNo": 0,
+                        "outputs": [
+                          {
+                            "index": 0,
+                            "name": "time",
+                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+                            "evaluated": {
+                              "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
+                              ":reading date": "1/4/22"
+                            },
+                            "result": "1641254400000"
+                          },
+                          {
+                            "index": 1,
+                            "name": "month",
+                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+                            "evaluated": {
+                              "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
+                              ":reading date": "1/4/22"
+                            },
+                            "result": "1640995200000"
+                          },
+                          {
+                            "index": 2,
+                            "name": "a",
+                            "formula": ":a",
+                            "evaluated": {
+                              ":a": "A"
+                            },
+                            "result": "A"
+                          },
+                          {
+                            "index": 3,
+                            "name": "b*c",
+                            "formula": ":b*:c",
+                            "evaluated": {
+                              ":b": "10",
+                              ":c": "1"
+                            },
+                            "result": "10"
+                          }
+                        ]
+                      },
+                      {
+                        "activityId": 1144,
+                        "date": "2022-01-03T16:00:00.000Z",
+                        "pipelineId": "01gwh2f5zwqryq789v42g1akrz",
+                        "executionId": "01gwh2fb3g2e33ghb08pab5hma",
+                        "auditId": "ab633d60-c50c-424e-add1-e6810766b1b4",
+                        "createdAt": "2023-03-27T00:20:52.722Z",
+                        "executionNo": 0,
+                        "outputs": [
+                          {
+                            "index": 0,
+                            "name": "time",
+                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+                            "evaluated": {
+                              "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
+                              ":reading date": "1/4/22"
+                            },
+                            "result": "1641254400000"
+                          },
+                          {
+                            "index": 1,
+                            "name": "month",
+                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+                            "evaluated": {
+                              "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
+                              ":reading date": "1/4/22"
+                            },
+                            "result": "1640995200000"
+                          },
+                          {
+                            "index": 2,
+                            "name": "a",
+                            "formula": ":a",
+                            "evaluated": {
+                              ":a": "A"
+                            },
+                            "result": "A"
+                          },
+                          {
+                            "index": 3,
+                            "name": "b*c",
+                            "formula": ":b*:c",
+                            "evaluated": {
+                              ":b": "10",
+                              ":c": "1"
+                            },
+                            "result": "10"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }
@@ -1295,7 +1586,7 @@
                       "metrics": [
                         {
                           "date": "2021-12-31T16:00:00.000Z",
-                          "metricId": "01GVD0C751E3HZGSBE3VTVYPDZ",
+                          "metricId": "01GX5R7PM3A0AYAN0T4KHE327G",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 1,
@@ -1307,7 +1598,7 @@
                         },
                         {
                           "date": "2022-01-31T16:00:00.000Z",
-                          "metricId": "01GVD0C751E3HZGSBE3VTVYPDZ",
+                          "metricId": "01GX5R7PM3A0AYAN0T4KHE327G",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 2,
@@ -1319,7 +1610,7 @@
                         },
                         {
                           "date": "2022-02-28T16:00:00.000Z",
-                          "metricId": "01GVD0C751E3HZGSBE3VTVYPDZ",
+                          "metricId": "01GX5R7PM3A0AYAN0T4KHE327G",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 3,

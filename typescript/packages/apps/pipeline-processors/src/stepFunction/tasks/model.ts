@@ -24,7 +24,6 @@ export type VerificationTaskEvent = {
 };
 
 export type CalculationContext = {
-	fileHeaders: string[];
 	pipelineId: string;
 	pipelineExecutionId: string;
 	actionType: ActionType;
@@ -67,7 +66,6 @@ export type ResultProcessorTaskEvent = {
 	pipelineExecutionId: string;
 	sequence: number;
 	output: {
-		auditLogLocation: S3Location;
 		errorLocation: S3Location;
 	};
 };

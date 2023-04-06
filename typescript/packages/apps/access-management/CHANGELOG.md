@@ -1,6 +1,13 @@
 # Change Log - @sif/access-management
 
-This log was last generated on Fri, 24 Feb 2023 22:03:30 GMT and should not be manually modified.
+This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+
+## 4.0.15
+Fri, 31 Mar 2023 06:04:14 GMT
+
+### Patches
+
+- plugin enhancements
 
 ## 4.0.14
 Fri, 24 Feb 2023 22:03:30 GMT

@@ -12,6 +12,7 @@
  */
 package com.aws.sif.execution.output;
 
+import com.aws.sif.audits.AuditMessage;
 import com.aws.sif.execution.*;
 import com.aws.sif.execution.output.exceptions.PipelineOutputException;
 import com.aws.sif.execution.output.exceptions.TimeoutExpiredException;
@@ -139,17 +140,17 @@ public class RdsWriter {
 
     public CompletableFuture<Void> addRecord(final NumberTypeValue time,
             final Map<String, DynamicTypeValue> uniqueIdColumns,
-            final Map<String, DynamicTypeValue> values)
+            final Map<String, DynamicTypeValue> values, final StringTypeValue auditId)
             throws TimeoutExpiredException, InterruptedException {
-        return addRecord(time, uniqueIdColumns, values, maxOperationTimeoutInMillis);
+        return addRecord(time, uniqueIdColumns, values, maxOperationTimeoutInMillis, auditId);
     }
 
     public CompletableFuture<Void> addRecord(final NumberTypeValue time,
             final Map<String, DynamicTypeValue> uniqueIdColumns,
-            final Map<String, DynamicTypeValue> values, final long timeoutInMillis)
+            final Map<String, DynamicTypeValue> values, final long timeoutInMillis, final StringTypeValue auditId)
             throws TimeoutExpiredException, InterruptedException {
-        log.debug("addRecord> in> time:{}, uniqueIdColumns: {}, values:{}", time, uniqueIdColumns,
-                values);
+        log.debug("addRecord> in> time:{}, uniqueIdColumns: {}, values:{}, auditId: {}", time, uniqueIdColumns,
+                values, auditId);
 
         Validate.notNull(time, "Time cannot be null.");
         Validate.notNull(uniqueIdColumns, "Unique id columns cannot be null.");
@@ -181,7 +182,7 @@ public class RdsWriter {
                 producerBufferLock.wait(bufferFullWaitTimeoutInMillis);
             }
 
-            var statement = buildInsertStatement(time, uniqueIdColumns, values);
+            var statement = buildInsertStatement(time, uniqueIdColumns, values, auditId);
             producerBuffer.offer(statement);
 
             /*
@@ -198,9 +199,9 @@ public class RdsWriter {
     }
 
     private PreparedStatement buildInsertStatement(NumberTypeValue time,
-            Map<String, DynamicTypeValue> uniqueIdColumns, Map<String, DynamicTypeValue> values) {
-        log.debug("buildInsertStatement> in> time:{}, uniqueIdColumns: {}, values:{}, outputMap:{}", time,
-                uniqueIdColumns, values, outputMap);
+            Map<String, DynamicTypeValue> uniqueIdColumns, Map<String, DynamicTypeValue> values, final StringTypeValue auditId) {
+        log.debug("buildInsertStatement> in> time:{}, uniqueIdColumns: {}, values:{}, outputMap:{}, auditId:{}", time,
+                uniqueIdColumns, values, outputMap, auditId);
         Connection connection = rdsConnection.getConnection(this.config);
 
         PreparedStatement result = null;
@@ -218,7 +219,7 @@ public class RdsWriter {
 
             // Append the insert statement for the values to the query string
             StringBuffer valuesQuery =
-                    buildValuesInsertStatement(uniqueInsertId, uniqueIdColumns, values);
+                    buildValuesInsertStatement(uniqueInsertId, uniqueIdColumns, values, auditId);
             insertQuery.append(valuesQuery);
 
             PreparedStatement insertStatement = connection.prepareStatement(insertQuery.toString());
@@ -304,9 +305,9 @@ public class RdsWriter {
      * records but it is more rigid
      */
     private StringBuffer buildValuesInsertStatement(String activityInsertId,
-            Map<String, DynamicTypeValue> uniqueIdColumns, Map<String, DynamicTypeValue> values) {
-        log.debug("buildValuesInsertStatement> in> uniqueIdColumns:{}, values:{}, outputMap:{}",
-                uniqueIdColumns, values, outputMap);
+            Map<String, DynamicTypeValue> uniqueIdColumns, Map<String, DynamicTypeValue> values, final StringTypeValue auditId) {
+        log.debug("buildValuesInsertStatement> in> uniqueIdColumns:{}, values:{}, outputMap:{}, auditId: {}",
+                uniqueIdColumns, values, outputMap, auditId);
         StringBuffer valuesInsertStatement = new StringBuffer("");
         int numberOfValues = outputMap.size();
         int count = 0;
@@ -316,6 +317,9 @@ public class RdsWriter {
 
         // All values for a given activity write should have the same createdAt time
         Double createdAt = (double) Instant.now().toEpochMilli() / 1000;
+        
+        String auditIdSql =  String.format("\'%s\'", auditId.getValue());
+
         for (String key : outputMap.keySet()) {
             count++;
 
@@ -367,9 +371,9 @@ public class RdsWriter {
                         ((ErrorValue) value).getErrorMessage().replaceAll("'", "''"));
             }
 
-            valuesInsertStatement.append(String.format(
-                    "INSERT INTO \"%s\"(\"activityId\", \"name\", \"createdAt\", \"executionId\", \"val\", \"error\", \"errorMessage\") VALUES ((SELECT \"activityId\" from \"%s\"), \'%s\', to_timestamp(\'%.3f\'), ? , %s, %s, %s)",
-                    tableName, activityInsertId, key, createdAt, valueSql, error, errorMessage));
+             valuesInsertStatement.append(String.format(
+            "INSERT INTO \"%s\"(\"activityId\", \"name\", \"createdAt\", \"executionId\", \"val\", \"auditId\", \"error\", \"errorMessage\") VALUES ((SELECT \"activityId\" from \"%s\"), \'%s\', to_timestamp(\'%.3f\'), ? , %s, %s , %s, %s)",
+                tableName, activityInsertId, key, createdAt, valueSql, auditIdSql, error, errorMessage));
 
         }
 
@@ -481,7 +485,6 @@ public class RdsWriter {
                 statements);
 
         Integer lastResult;
-        String warnMessage = null;
         for (int attempts = 0; attempts < numberOfRetries; attempts++) {
             try {
                 log.debug("submitBatchWithRetry> Trying to flush Buffer of size: {} on attempt: {}",
@@ -516,7 +519,7 @@ public class RdsWriter {
     /**
      * Sends the actual batch of statements to Aurora
      *
-     * @param statements a Collection of statements
+     * @param statements a Collection of statement and audit message pair
      * @return {@code PutRecordBatchResult}
      */
     private Integer submitBatch(final Queue<PreparedStatement> statements) {
@@ -526,11 +529,14 @@ public class RdsWriter {
         // TODO: need to figure out return value (successful statements processed?)
         // TODO: this should batch writes
         // TODO: retries?
-
         statements.forEach(s -> {
             try {
+                // Execute insert statement
                 s.execute();
             } catch (SQLException e) {
+                log.error("submitBatch> Failed: " + e.getMessage(), e);
+                throw new RuntimeException(e);
+            } catch (Exception e) {
                 log.error("submitBatch> Failed: " + e.getMessage(), e);
                 throw new RuntimeException(e);
             }

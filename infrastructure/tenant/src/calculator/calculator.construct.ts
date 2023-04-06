@@ -16,12 +16,10 @@ import { ScalableTarget, ServiceNamespace } from 'aws-cdk-lib/aws-applicationaut
 import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
 import { AttributeType, BillingMode, Table, TableEncryption } from 'aws-cdk-lib/aws-dynamodb';
 import { Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
-import { Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
-import { CfnDeliveryStream } from 'aws-cdk-lib/aws-kinesisfirehose';
-import { Key } from 'aws-cdk-lib/aws-kms';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Alias, Code, Function, Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 import { execSync, ExecSyncOptions } from 'child_process';
@@ -93,7 +91,6 @@ export class CalculatorModule extends Construct {
 
 		const accountId = Stack.of(this).account;
 		const region = Stack.of(this).region;
-		const stackName = Stack.of(this).stackName;
 		const rdsProxyPolicy = new PolicyStatement({
 			actions: ['rds-db:connect'],
 			resources: [`arn:aws:rds-db:${region}:${accountId}:dbuser:${Fn.select(6, Fn.split(':', props.rdsProxyArn))}/${props.tenantDatabaseUsername}`],
@@ -131,106 +128,6 @@ export class CalculatorModule extends Construct {
 			removalPolicy: RemovalPolicy.DESTROY,
 		});
 
-		const kmsKey = Key.fromKeyArn(this, 'KmsKey', props.kmsKeyArn);
-
-		const logGroup = new LogGroup(this, 'KinesisLogGroup', {
-			logGroupName: `/aws/kinesisfirehose/${stackName}`,
-			retention: RetentionDays.ONE_WEEK,
-			removalPolicy: RemovalPolicy.DESTROY
-		});
-
-		const deliveryStreamRole = new Role(this, 'DeliveryStreamRole', {
-			assumedBy: new ServicePrincipal('firehose.amazonaws.com')
-		});
-
-		deliveryStreamRole.addToPolicy(new PolicyStatement({
-			sid: 's3',
-			effect: Effect.ALLOW,
-			actions: ['s3:AbortMultipartUpload',
-				's3:GetBucketLocation',
-				's3:GetObject',
-				's3:ListBucket',
-				's3:ListBucketMultipartUploads',
-				's3:PutObject'],
-			resources: [bucket.bucketArn, `${bucket.bucketArn}/*`]
-		}));
-
-		deliveryStreamRole.addToPolicy(new PolicyStatement({
-			sid: 'kms',
-			effect: Effect.ALLOW,
-			actions: ['kms:GenerateDataKey',
-				'kms:Decrypt'],
-			resources: [kmsKey.keyArn],
-			conditions: {
-				'StringEquals': {
-					'kms:ViaService': `s3.${region}.amazonaws.com`
-				},
-				'StringLike': {
-					'kms:EncryptionContext:aws:s3:arn': [bucket.bucketArn, `${bucket.bucketArn}/*`]
-				}
-			}
-		}));
-		var deliveryStreamName = `${namePrefix}-calculatorAudits`;
-
-		deliveryStreamRole.addToPolicy(new PolicyStatement({
-			sid: 'logs',
-			effect: Effect.ALLOW,
-			actions: ['logs:PutLogEvents'],
-			resources: [`${logGroup.logGroupArn}: *`],
-		}));
-
-		const kinesisDeliveryStream = new CfnDeliveryStream(this, 'DeliveryStream', {
-			deliveryStreamName,
-			deliveryStreamEncryptionConfigurationInput: {
-				keyType: 'AWS_OWNED_CMK'
-			},
-			extendedS3DestinationConfiguration: {
-				cloudWatchLoggingOptions: {
-					logGroupName: logGroup.logGroupName,
-					logStreamName: 'auditlog',
-					enabled: true
-				},
-				bucketArn: bucket.bucketArn,
-				roleArn: deliveryStreamRole.roleArn,
-				encryptionConfiguration: {
-					kmsEncryptionConfig: {
-						awskmsKeyArn: kmsKey.keyArn
-					}
-				},
-				prefix: 'pipelines/!{partitionKeyFromQuery:pipelineId}/executions/!{partitionKeyFromQuery:executionId}/audit/',
-				errorOutputPrefix: 'pipelines/deliveryFailures/!{firehose:error-output-type}',
-				bufferingHints: {
-					intervalInSeconds: 60,
-					sizeInMBs: 64,
-				},
-				dynamicPartitioningConfiguration: {
-					enabled: true,
-					retryOptions: {
-						durationInSeconds: 60
-					}
-				},
-				processingConfiguration: {
-					enabled: true,
-					processors: [{
-						type: 'MetadataExtraction',
-						parameters: [
-							{ parameterName: 'MetadataExtractionQuery', parameterValue: '{pipelineId:.pipelineId,executionId:.executionId}' },
-							{ parameterName: 'JsonParsingEngine', parameterValue: 'JQ-1.6' }]
-
-					}, {
-						type: 'AppendDelimiterToRecord',
-						parameters: [
-							{
-								parameterName: 'Delimiter',
-								parameterValue: '\\n'
-							}
-						]
-
-					}]
-				}
-			}
-		});
-
 		const calculatorPath = path.join(__dirname, '../../../../java/apps/calculator');
 
 		const calculatorLambda = new Function(this, 'CalculatorHandler', {
@@ -253,7 +150,6 @@ export class CalculatorModule extends Construct {
 				'IMPACTS_FUNCTION_NAME': props.impactsApiFunctionName,
 				'USERS_FUNCTION_NAME': props.accessManagementApiFunctionName,
 				'RESOURCE_MAPPING_TABLE_NAME': resourceMappingTable.tableName,
-				'DELIVERY_STREAM_NAME': kinesisDeliveryStream.deliveryStreamName,
 				'PROCESSED_ACTIVITIES_DATABASE_RDS_NAME': props.tenantDatabaseName,
 				'PROCESSED_ACTIVITIES_DATABASE_USER': props.tenantDatabaseUsername,
 				'PROCESSED_ACTIVITIES_DATABASE_WRITER_ENDPOINT': props.rdsProxyEndpoint,
@@ -298,12 +194,10 @@ export class CalculatorModule extends Construct {
 			}),
 		});
 
-
 		new StringParameter(this, 'calculatorFunctionArnParameter', {
 			parameterName: calculatorFunctionArnParameter(props.tenantId, props.environment),
 			stringValue: calculatorLambda.functionArn,
 		});
-
 
 		resourceMappingTable.grantReadWriteData(calculatorLambda);
 		bucket.grantReadWrite(calculatorLambda);
@@ -312,15 +206,6 @@ export class CalculatorModule extends Construct {
 		calculationsLambda.grantInvoke(calculatorLambda);
 		referenceDatasetsLambda.grantInvoke(calculatorLambda);
 		impactsLambda.grantInvoke(calculatorLambda);
-
-		calculatorLambda.addToRolePolicy(new PolicyStatement({
-			sid: 'firehose',
-			effect: Effect.ALLOW,
-			actions: [
-				'firehose:PutRecord',
-				'firehose:PutRecordBatch'],
-			resources: [kinesisDeliveryStream.attrArn]
-		}));
 
 		calculatorLambda.addToRolePolicy(new PolicyStatement({
 			sid: 'vpc',
@@ -381,19 +266,6 @@ export class CalculatorModule extends Construct {
 		});
 
 		scalableTarget.scaleToTrackMetric('PCU', { customMetric: maximumMetric, targetValue: 0.7 });
-
-		NagSuppressions.addResourceSuppressions([deliveryStreamRole],
-			[
-				{
-					id: 'AwsSolutions-IAM5',
-					appliesTo: [
-						'Resource::arn:<AWS::Partition>:s3:::<bucketNameParameter>/*',
-						'Resource::<CalculatorKinesisLogGroup1E496427.Arn>: *'
-					],
-					reason: 'This policy is needed for kinesis delivery stream to store data in bucket and do logging.'
-				}
-			],
-			true);
 
 		NagSuppressions.addResourceSuppressions([calculatorLambda],
 			[

@@ -14,18 +14,14 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { FastifyInstance } from 'fastify';
 import { fastify } from 'fastify';
-
 import { tags } from '@sif/resource-api-base';
 import { authzPlugin } from '@sif/authz';
-
 import config from './plugins/config.js';
 import swagger from './plugins/swagger.js';
 import awilix from './plugins/module.awilix.js';
 import sensible from './plugins/sensible.js';
 import { errorHandler } from './common/errors.js';
-
 import { editPipelineRequestBody, pipelineResource, newPipelineRequestBody, pipelineList, pipelineVersionList } from './pipelines/schemas.js';
-
 import createPipelineRoute from './pipelines/handlers/create.handler.js';
 import updatePipelineRoute from './pipelines/handlers/update.handler.js';
 import getPipelineRoute from './pipelines/handlers/get.handler.js';
@@ -46,6 +42,14 @@ import listMetricVersionsRoute from './metrics/handlers/listVersions.handler.js'
 import grantMetricToGroupRoute from './metrics/handlers/groups/put.handler.js';
 import revokeMetricToGroupRoute from './metrics/handlers/groups/delete.handler.js';
 import deleteMetricRoute from './metrics/handlers/delete.handler.js';
+import { connector, connectorCreateParams, connectorList, connectorUpdateParams } from './connectors/schemas.js';
+import createConnectorRoute from './connectors/handlers/create.handler.js';
+import getConnectorRoute from './connectors/handlers/get.handler.js';
+import listConnectorsRoute from './connectors/handlers/list.handler.js';
+import updateConnectorRoute from './connectors/handlers/update.handler.js';
+import grantConnectorToGroupRoute from './connectors/handlers/groups/put.handler.js';
+import revokeConnectorToGroupRoute from './connectors/handlers/groups/delete.handler.js';
+import deleteConnectorRoute from './connectors/handlers/delete.handler.js';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
 	const environment = process.env['NODE_ENV'] as string;
@@ -80,14 +84,14 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 			plugins: [
 				// eslint-disable-next-line @typescript-eslint/typedef
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				function (ajv: any) {
+				function(ajv: any) {
 					ajv.addKeyword({ keyword: 'x-examples' });
 				},
 			],
 		},
 	}).withTypeProvider<TypeBoxTypeProvider>();
 
-	// register all plugins
+	// register all connectors
 	await app.register(config);
 	await app.register(swagger);
 	await app.register(awilix);
@@ -115,9 +119,6 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	await app.register(listPipelineVersionsRoute);
 	await app.register(grantPipelineToGroupRoute);
 	await app.register(revokePipelineToGroupRoute);
-	if (app.config.ENABLE_DELETE_RESOURCE) {
-		await app.register(deletePipelineRoute);
-	}
 
 	// register the metric schemas and routes
 	app.addSchema(newMetricRequestBody);
@@ -133,8 +134,24 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	await app.register(listMetricVersionsRoute);
 	await app.register(grantMetricToGroupRoute);
 	await app.register(revokeMetricToGroupRoute);
+
+	// register pipeline connectors schemas and routes
+	app.addSchema(connector);
+	app.addSchema(connectorCreateParams);
+	app.addSchema(connectorUpdateParams);
+	app.addSchema(connectorList);
+
+	await app.register(createConnectorRoute);
+	await app.register(getConnectorRoute);
+	await app.register(listConnectorsRoute);
+	await app.register(updateConnectorRoute);
+	await app.register(grantConnectorToGroupRoute);
+	await app.register(revokeConnectorToGroupRoute);
+
 	if (app.config.ENABLE_DELETE_RESOURCE) {
 		await app.register(deleteMetricRoute);
+		await app.register(deleteConnectorRoute);
+		await app.register(deletePipelineRoute);
 	}
 
 	return app as unknown as FastifyInstance;

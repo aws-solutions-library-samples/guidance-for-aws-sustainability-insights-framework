@@ -2,6 +2,32 @@
   "name": "@sif/impacts",
   "entries": [
     {
+      "version": "4.2.8",
+      "tag": "@sif/impacts_v4.2.8",
+      "date": "Fri, 31 Mar 2023 06:04:14 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "docs for guidance publishing"
+          },
+          {
+            "comment": "Small documentation updates"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.1.5`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.1.7`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.5.4`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.2.7",
       "tag": "@sif/impacts_v4.2.7",
       "date": "Mon, 27 Feb 2023 23:02:40 GMT",

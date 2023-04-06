@@ -39,7 +39,6 @@ public class TransformRequest {
     private List<TransformParameter> parameters;
     private List<Transform> transforms;
 
-    private String csvHeader;
 
     /**
     * the combination of field names that represent the unique columns of a row. Used
@@ -57,12 +56,12 @@ public class TransformRequest {
     /**
      * required only for s3 processing
      */
-    private S3SourceLocation csvSourceDataLocation;
+    private S3SourceLocation sourceDataLocation;
 
     /**
      * required only for inline processing
      */
-    private List<String> csvSourceData;
+    private List<String> sourceData;
 
     /**
      * when in dry run mode, no audit should be published

@@ -15,7 +15,7 @@ import type { BaseLogger } from 'pino';
 import { InvokeCommand, InvokeCommandInput, LambdaClient } from '@aws-sdk/client-lambda';
 import { Buffer } from 'buffer';
 import { ClientServiceBase } from '../common/common.js';
-import { CalculatorDryRunError, CalculatorRequest, CalculatorInlineTransformResponse, CalculatorS3TransformResponse } from './calculator.models.js';
+import { CalculatorDryRunError, CalculatorInlineTransformResponse, CalculatorRequest, CalculatorS3TransformResponse } from './calculator.models.js';
 
 export class CalculatorClient extends ClientServiceBase {
 	private readonly lambdaClient: LambdaClient;
@@ -40,7 +40,7 @@ export class CalculatorClient extends ClientServiceBase {
 		const result = await this.lambdaClient.send(new InvokeCommand(input));
 		const payload = JSON.parse(Buffer.from(result.Payload as Uint8Array).toString());
 
-		if (payload.errors && payload.errors.length > 0) {
+		if (transformRequest.dryRun && payload.errors && payload.errors.length > 0) {
 			this.log.error(`CalculatorClient > process > error : ${JSON.stringify(payload)}`);
 			throw new CalculatorDryRunError(payload.errors);
 		}

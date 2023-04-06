@@ -15,10 +15,11 @@ import { CalculationTask } from './calculationTask';
 import pino from 'pino';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
-import type { CalculationContext } from './model';
-import type { PipelineProcessorsService } from '../../api/executions/service';
+import type { CalculationContext } from './model.js';
+import type { PipelineProcessorsService } from '../../api/executions/service.js';
 import type { CalculatorClient } from '@sif/clients';
 import type { SecurityContext } from '@sif/authz';
+import type { GetSecurityContext } from '../../plugins/module.awilix.js';
 
 const sampleParameters = [
 	{
@@ -33,7 +34,7 @@ const sampleParameters = [
 const sampleTransforms = [
 	{
 		index: 0,
-		formula: "if(:one=='ok',50,1)",
+		formula: 'if(:one==\'ok\',50,1)',
 		outputs: [
 			{
 				index: 0,
@@ -78,15 +79,20 @@ describe('Calculation Task', () => {
 		mockedPipelineProcessorsService = mock<PipelineProcessorsService>();
 		mockedCalculatorClient.process.mockReset();
 		mockedCalculatorClient.process.mockResolvedValue({
+			data: [],
 			auditLogLocation: { bucket: 'unit-test-bucket', key: 'audit-test-key' },
 			errorLocation: { bucket: 'unit-test-bucket', key: 'error-test-key' },
 		});
-		underTest = new CalculationTask(logger, mockedPipelineProcessorsService, mockedCalculatorClient, {} as SecurityContext);
+
+		const mockGetContext: GetSecurityContext = async (): Promise<SecurityContext> => {
+			return {} as unknown as SecurityContext;
+		};
+
+		underTest = new CalculationTask(logger, mockedPipelineProcessorsService, mockedCalculatorClient, mockGetContext);
 	});
 
 	it('happy path first chunk', async () => {
 		const context: CalculationContext = {
-			fileHeaders: ['one', 'two'],
 			transformer: {
 				transforms: sampleTransforms,
 				parameters: sampleParameters,
@@ -104,13 +110,11 @@ describe('Calculation Task', () => {
 			executionId: 'unit-test-pipeline-execution',
 			parameters: sampleParameters,
 			transforms: sampleTransforms,
-			csvHeader: 'one,two',
-			csvSourceDataLocation: {
+			sourceDataLocation: {
 				bucket: sampleSource.bucket,
 				key: sampleSource.key,
 				startByte: sampleChunkFirst.startByte,
-				endByte: sampleChunkFirst.endByte,
-				containsHeader: true,
+				endByte: sampleChunkFirst.endByte
 			},
 			chunkNo: 0,
 		});
@@ -120,13 +124,13 @@ describe('Calculation Task', () => {
 		expect(result.sequence).toEqual(0);
 		expect(result.output).toEqual({
 			auditLogLocation: { bucket: 'unit-test-bucket', key: 'audit-test-key' },
-			errorLocation: { bucket: 'unit-test-bucket', key: 'error-test-key' },
+			data: [],
+			errorLocation: { bucket: 'unit-test-bucket', key: 'error-test-key' }
 		});
 	});
 
 	it('happy path second chunk', async () => {
 		const context: CalculationContext = {
-			fileHeaders: ['one', 'two'],
 			transformer: {
 				transforms: sampleTransforms,
 				parameters: sampleParameters,
@@ -144,13 +148,11 @@ describe('Calculation Task', () => {
 			executionId: 'unit-test-pipeline-execution',
 			parameters: sampleParameters,
 			transforms: sampleTransforms,
-			csvHeader: 'one,two',
-			csvSourceDataLocation: {
+			sourceDataLocation: {
 				bucket: sampleSource.bucket,
 				key: sampleSource.key,
 				startByte: sampleChunkSecond.startByte,
 				endByte: sampleChunkSecond.endByte,
-				containsHeader: false,
 			},
 			chunkNo: 1,
 		});
@@ -161,6 +163,7 @@ describe('Calculation Task', () => {
 		expect(result.output).toEqual({
 			auditLogLocation: { bucket: 'unit-test-bucket', key: 'audit-test-key' },
 			errorLocation: { bucket: 'unit-test-bucket', key: 'error-test-key' },
+			data: []
 		});
 	});
 });

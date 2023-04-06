@@ -53,6 +53,14 @@ Headers:
 
 Body:
 {
+	// since this walkthrough is based on uploading a CSV file we will configure a default csv connector to pre-process the csv input into SIF compatible format
+    "connectorConfig": {
+        "input": [
+            {
+                "name": "sif-csv-pipeline-input-connector"
+            }
+        ]
+    },
     "name": "shapeTransformPipeline",
 
     // Tags can be specified to be used as searchable attributes using the list type api calls. Tags can be hierarchical in
@@ -399,7 +407,7 @@ Once we have defined a pipeline we can request a data file upload url to feed a 
 **REQUEST**
 
 ```http request
-POST /pipelines/<REPLACE_WITH_PIPELINE_ID>/inputUploadUrl
+POST /pipelines/<REPLACE_WITH_PIPELINE_ID>/executions
 
 Headers
     Content-Type: application/json
@@ -415,7 +423,22 @@ Headers
 202 Accepted
 
 {
-    "url": "https://<bucket-url>/pipelines/01gg87pq1jecs04rbgcr1423xq/executions/gq6jg1nlj/input.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha...."
+	"actionType": "create",
+	"createdAt": "2023-03-23T18:03:43.725Z",
+	"createdBy": "someone@somewhere.com",
+	"id": "01gw7t84qd9b9c8sd8xv4ec86t",
+	"inputUploadUrl": "https://<bucket>.s3.us-east-1.amazonaws.com/pipelines/01gw7t7pz6ehfhs60ea11qs21j/executions/01gw7t84qd9b9c8sd8xv4ec86t/input/raw?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-C...",
+	"pipelineId": "01gw7t7pz6ehfhs60ea11qs21j",
+	"pipelineVersion": 1,
+	"connectorOverrides": {
+		"my-custom-connector": {
+			"parameters": {
+				"key1": "val1"
+			}
+		}
+	},
+	"status": "waiting",
+	"groupContextId": "/"
 }
 ```
 

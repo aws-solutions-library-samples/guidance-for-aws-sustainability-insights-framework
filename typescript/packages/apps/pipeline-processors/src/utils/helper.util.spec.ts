@@ -17,6 +17,7 @@ import type { Pipeline } from '@sif/clients';
 
 describe('HelperUtil', () => {
 	const pipeline: Pipeline = {
+		'id' : '123',
 		'createdBy': 'e2e_tests_admin@amazon.com',
 		'transformer': {
 			'transforms': [
@@ -93,7 +94,8 @@ describe('HelperUtil', () => {
 			'parameters': [
 				{
 					'key': 'reading date',
-					'type': 'string'
+					'type': 'string',
+					'label' : 'reading date'
 				},
 				{
 					'key': 'zipcode',

@@ -21,5 +21,4 @@ import lombok.ToString;
 @AllArgsConstructor
 @ToString
 public abstract class TransformResponse {
-    protected final S3Location auditLogLocation;
 }

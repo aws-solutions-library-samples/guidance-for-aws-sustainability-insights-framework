@@ -655,6 +655,13 @@ Content-Type: application/json
 Accept-Version: 1.0.0
 Authorization: <token>
 {
+    "pluginConfig": {
+        "input": [
+            {
+                "name": "sif-csv-pipeline-plugin"
+            }
+        ]
+    },
     "attributes": {
         "scope": "1",
         "type": "stationary combustion"
@@ -736,7 +743,7 @@ that we're uploading utility bill for `company1`):
 #### Request
 
 ```shell
-POST <pipelineProcessorUrl>/pipelines/<pipelineId>/inputUploadUrl
+POST <pipelineProcessorUrl>/pipelines/<pipelineId>/executions
 x-groupcontextid: /usa/company1
 Accept-Type: application/json
 Content-Type: application/json
@@ -751,9 +758,22 @@ Authorization: <token>
 
 ```json
 {
-	"id": "01grqjekm0e92pnvnef7tntxmt",
-	"url": "https://s3-presigned-url-goes-here",
-	"pipelineId": "01grqje46497rz2gvtgjzbwmf3"
+	"actionType": "create",
+	"createdAt": "2023-03-23T18:03:43.725Z",
+	"createdBy": "someone@somewhere.com",
+	"id": "01gw7t84qd9b9c8sd8xv4ec86t",
+	"inputUploadUrl": "https://<bucket>.s3.us-east-1.amazonaws.com/pipelines/01gw7t7pz6ehfhs60ea11qs21j/executions/01gw7t84qd9b9c8sd8xv4ec86t/input/raw?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-C...",
+	"pipelineId": "01gw7t7pz6ehfhs60ea11qs21j",
+	"pipelineVersion": 1,
+	"pluginOverrides": {
+		"my-custom-plugin": {
+			"parameters": {
+				"key1": "val1"
+			}
+		}
+	},
+	"status": "waiting",
+	"groupContextId": "/"
 }
 ```
 
@@ -943,7 +963,7 @@ Now try uploading another sample utility [bill](../typescript/packages/integrati
 #### Request
 
 ```shell
-POST <pipelineProcessorUrl>/pipelines/<pipelineId>/inputUploadUrl
+POST <pipelineProcessorUrl>/pipelines/<pipelineId>/executions
 x-groupcontextid: /usa/company2
 Accept-Type: application/json
 Content-Type: application/json
@@ -958,9 +978,22 @@ Authorization: <token>
 
 ```json
 {
-	"id": "01grqjekm0e92pnvnef7tntxmt",
-	"url": "https://s3-presigned-url-goes-here",
-	"pipelineId": "01grqje46497rz2gvtgjzbwmf3"
+	"actionType": "create",
+	"createdAt": "2023-03-23T18:03:43.725Z",
+	"createdBy": "someone@somewhere.com",
+	"id": "01gw7t84qd9b9c8sd8xv4ec86t",
+	"inputUploadUrl": "https://<bucket>.s3.us-east-1.amazonaws.com/pipelines/01gw7t7pz6ehfhs60ea11qs21j/executions/01gw7t84qd9b9c8sd8xv4ec86t/input/raw?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-C...",
+	"pipelineId": "01gw7t7pz6ehfhs60ea11qs21j",
+	"pipelineVersion": 1,
+	"pluginOverrides": {
+		"my-custom-plugin": {
+			"parameters": {
+				"key1": "val1"
+			}
+		}
+	},
+	"status": "waiting",
+	"groupContextId": "/"
 }
 ```
 

@@ -188,7 +188,7 @@ export class ReferenceDatasetService {
 
 		await this.tagService.submitGroupSummariesProcess(securityContext.groupId, PkType.ReferenceDataset, referenceDatasetNew.tags, {});
 
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			id,
 			resourceType: 'referenceDataset',
 			eventType: 'created',
@@ -368,7 +368,7 @@ export class ReferenceDatasetService {
 			await this.executeIndexerStateMachine(merged);
 		}
 
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			id,
 			resourceType: 'referenceDataset',
 			eventType: 'created',
@@ -507,7 +507,7 @@ export class ReferenceDatasetService {
 		// async tag group processing
 		await this.tagService.submitGroupSummariesProcess(securityContext.groupId, PkType.ReferenceDataset, {}, existing.tags);
 
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			id,
 			resourceType: 'referenceDataset',
 			eventType: 'deleted',

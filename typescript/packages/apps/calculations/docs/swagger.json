@@ -194,10 +194,13 @@
             "type": "object",
             "properties": {
               "data": {
-                "description": "dry run options",
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "description": "An object with key values representing the parameters and its expected values.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             },
@@ -255,10 +258,13 @@
             "type": "object",
             "properties": {
               "data": {
-                "description": "dry run options",
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "description": "An object with key values representing the parameters and its expected values.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             },
@@ -381,10 +387,13 @@
             "type": "object",
             "properties": {
               "data": {
-                "description": "dry run options",
                 "type": "array",
                 "items": {
-                  "type": "string"
+                  "description": "An object with key values representing the parameters and its expected values.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               }
             },
@@ -782,10 +791,13 @@
                       "type": "object",
                       "properties": {
                         "data": {
-                          "description": "dry run options",
                           "type": "array",
                           "items": {
-                            "type": "string"
+                            "description": "An object with key values representing the parameters and its expected values.",
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
                           }
                         }
                       },
@@ -1720,10 +1732,13 @@
                       "type": "object",
                       "properties": {
                         "data": {
-                          "description": "dry run options",
                           "type": "array",
                           "items": {
-                            "type": "string"
+                            "description": "An object with key values representing the parameters and its expected values.",
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
                           }
                         }
                       },
@@ -2089,10 +2104,13 @@
                       "type": "object",
                       "properties": {
                         "data": {
-                          "description": "dry run options",
                           "type": "array",
                           "items": {
-                            "type": "string"
+                            "description": "An object with key values representing the parameters and its expected values.",
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
                           }
                         }
                       },

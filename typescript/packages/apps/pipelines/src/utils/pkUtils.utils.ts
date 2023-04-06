@@ -16,5 +16,6 @@ export enum PkType {
 	PipelineVersion = 'pv',
 	Metric = 'k',
 	MetricVersion = 'kv',
-	PipelineActivationTime = 'pa'
+	PipelineActivationTime = 'pa',
+	Connector = 'c',
 }

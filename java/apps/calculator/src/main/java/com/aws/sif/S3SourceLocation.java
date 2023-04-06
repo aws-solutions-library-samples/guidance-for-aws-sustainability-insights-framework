@@ -21,9 +21,6 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class S3SourceLocation extends S3Location {
-
-    boolean containsHeader = true;
-
     // used if chunking only
     Long startByte;
     Long endByte;

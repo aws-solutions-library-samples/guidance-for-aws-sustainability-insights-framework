@@ -1,6 +1,48 @@
 # Change Log - @sif/pipeline-processors
 
-This log was last generated on Thu, 23 Mar 2023 19:27:15 GMT and should not be manually modified.
+This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+
+## 4.7.0
+Wed, 05 Apr 2023 19:11:53 GMT
+
+### Minor changes
+
+- allow user to do inline execution of pipeline
+
+## 4.6.3
+Tue, 04 Apr 2023 03:26:15 GMT
+
+### Patches
+
+- fix an issue where we're still expecting the nextToken to be returned
+
+## 4.6.2
+Mon, 03 Apr 2023 22:24:19 GMT
+
+### Patches
+
+- implement authorization check when using pipeline processor api
+
+## 4.6.1
+Mon, 03 Apr 2023 20:15:09 GMT
+
+### Patches
+
+- fix to return the correct pagination token for activities
+
+## 4.6.0
+Fri, 31 Mar 2023 09:43:49 GMT
+
+### Minor changes
+
+-  new audit log query endpoint based on activity id
+
+## 4.5.2
+Fri, 31 Mar 2023 06:04:14 GMT
+
+### Patches
+
+- pipeline plugin feature related enhancement
 
 ## 4.5.1
 Thu, 23 Mar 2023 19:27:15 GMT

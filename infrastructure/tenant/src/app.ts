@@ -26,6 +26,8 @@ import axios from 'axios';
 import { Aspects } from 'aws-cdk-lib';
 import { AwsSolutionsChecks } from 'cdk-nag';
 import { CalculatorApiStack } from './calculator/calculator.stack.js';
+import { SifConnectorStack } from './connectors/sif.stack.js';
+import { CsvConnectorStack } from './connectors/csv.stack.js';
 
 const tenantApp = new cdk.App();
 
@@ -49,7 +51,6 @@ const permittedOutgoingTenantPaths = tenantApp.node.tryGetContext('outgoingTenan
 const externallySharedGroupIds = tenantApp.node.tryGetContext('externallySharedGroupIds') as string;
 
 //optional requirements for audit file features in pipeline processors module
-const auditFileProcessingTime = tenantApp.node.tryGetContext('auditFileProcessingTime') as number ?? 15;
 const downloadAuditFileParallelLimit = tenantApp.node.tryGetContext('downloadAuditFileParallelLimit') as number ?? 5;
 
 //optional requirements for calculation engine lambda scaling
@@ -78,6 +79,9 @@ cdk.Tags.of(tenantApp).add('sif:environment', environment);
 Aspects.of(tenantApp).add(new AwsSolutionsChecks({ verbose: true }));
 
 const tenantStackNamePrefix = `sif-${tenantId}-${environment}`;
+
+const csvConnectorName = 'sif-csv-pipeline-input-connector';
+const sifConnectorName = 'sif-activity-pipeline-input-connector';
 
 const tenantStackName = (suffix: string) => `${tenantStackNamePrefix}-${suffix}`;
 const tenantStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module -- Guidance for Sustainability Insights Framework on AWS (SO9161)`;
@@ -142,9 +146,9 @@ const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'Pipel
 	env,
 	tenantId,
 	environment,
+	csvConnectorName,
 	caCert: getCaCertResponse.data,
-	auditFileProcessingTime,
-	downloadAuditFileParallelLimit
+	downloadAuditFileParallelLimit,
 });
 pipelineProcessorsStack.node.addDependency(sharedInfrastructureStack);
 pipelineProcessorsStack.node.addDependency(calculatorStack);
@@ -194,3 +198,26 @@ const calculationApiStack = new CalculationApiStack(tenantApp, 'Calculations', {
 	externallySharedGroupIds,
 });
 calculationApiStack.node.addDependency(sharedInfrastructureStack);
+
+// Connectors
+
+const sifConnectorStack = new SifConnectorStack(tenantApp, 'sifConnector', {
+	stackName: tenantStackName('sifConnector'),
+	description: tenantStackDescription('sifConnector'),
+	env,
+	tenantId,
+	environment,
+	connectorName: sifConnectorName
+});
+sifConnectorStack.node.addDependency(pipelineApiStack);
+
+
+const csvConnectorStack = new CsvConnectorStack(tenantApp, 'csvConnector', {
+	stackName: tenantStackName('csvConnector'),
+	description: tenantStackDescription('csvConnector'),
+	env,
+	tenantId,
+	environment,
+	connectorName: csvConnectorName
+});
+csvConnectorStack.node.addDependency(pipelineApiStack);

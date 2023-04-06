@@ -15,7 +15,7 @@ import type { BaseLogger } from 'pino';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import type { BaseRepositoryClient } from '../../data/base.repository.js';
-import type { Aggregate, PipelineMetadata, QueryRequest, QueryResponse } from './models.js';
+import type { ActivityReference, Aggregate, PipelineMetadata, QueryRequest, QueryResponse } from './models.js';
 import type { AffectedTimeRange } from '../metrics/models.js';
 import type { Client } from 'pg';
 import { validateNotEmpty } from '@sif/validators';
@@ -106,17 +106,58 @@ env ON (a."activityId"=env."activityId")`;
 		return response;
 	}
 
+	public async getActivityReferenceList(req: { activityId: string, groupId: string, versionAsAt?: Date }): Promise<ActivityReference[]> {
+		this.log.info(`ActivitiesRepository> getActivityReferenceList> in: req:${JSON.stringify(req)}`);
+
+		const { activityId, groupId, versionAsAt } = req;
+
+		let limitFilter = '';
+		let createDateFilter = '';
+
+		if (versionAsAt) {
+			createDateFilter = `and x."createdAt"  <= timestamp '${dayjs.utc(versionAsAt).format('YYYY-MM-DD HH:mm:ss.SSS')}'`;
+			limitFilter = 'LIMIT 1';
+		}
+
+		const innerQuery =
+			Object.values(this.attributeTableNameMap).map(table => {
+				const query = `SELECT b."activityId", a."auditId", b."createdAt", a."executionId"
+FROM "${table}" a
+JOIN (SELECT t."activityId", t."createdAt" FROM "${this.activitiesTableName}" a
+JOIN "${table}" t ON a."activityId" = t."activityId"
+GROUP BY t."activityId", t."createdAt"
+) b ON (a."activityId" = b."activityId" and a."createdAt" = b."createdAt")`;
+				return query;
+			}).join(` UNION `);
+
+		const query = `SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
+FROM "${this.activitiesTableName}" a1
+JOIN ( ${innerQuery} )
+as x ON a1."activityId" = x."activityId"
+WHERE a1."activityId" = '${activityId}' and a1."groupId" = '${groupId}' ${createDateFilter}
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
+ORDER BY  "createdAt" desc
+${limitFilter}`;
+
+		const queryResponse = await this.executeQuery(query);
+		const data: ActivityReference[] =
+			queryResponse.map(row => this.assemble(row, Array.from(['date', 'createdAt']))) as unknown as ActivityReference[];
+
+		this.log.info(`ActivitiesRepository> getActivityReferenceList> exit: data:${JSON.stringify(data)}`);
+		return data;
+	}
+
 	public async get(req: QueryRequest, pipelineMetadata: PipelineMetadata, runAggregate = false): Promise<QueryResponse> {
 		this.log.info(`ActivitiesRepository> get> in: req:${JSON.stringify(req)}`);
 
 		// we will default the maxRows which can be retrieved to the default limit set
-		// dont want to return thousands of records, works like a fail safe
+		// don't want to return thousands of records, works like a fail-safe
 		if (!req.maxRows) {
 			req.maxRows = this.defaultLimit;
 		}
 
-		// nextToken will always start from 0 if one hasnt been provided through the request,
-		// since we are dealing with an offset which is our nextToke, we want that that next
+		// nextToken will always start from 0 if one hasn't been provided through the request,
+		// since we are dealing with an offset which is our nextToken, we want that that next
 		if (!req.nextToken) {
 			req.nextToken = 0;
 		}
@@ -137,9 +178,18 @@ env ON (a."activityId"=env."activityId")`;
 		const data = rows.map(row => this.assemble(row, Array.from(timestampFields)));
 
 		const queryResult: QueryResponse = {
-			nextToken: req.maxRows + req.nextToken || 0,
 			data,
 		};
+
+		// check if the data returned is greater or equal to the max rows which can be returned
+		// we will only add the next token if the condition is met. If the condition isn't met,
+		// then we don't return anything. example: If there are 24 activities, and we requested 100,
+		// we only get 24 back which is less than the requested 100, so we will not return the token back.
+		// If there are 1204 activities, and we request 100, we get 100 back. that means there are more activities,
+		// we return the token since it is equal or more than the requested 100 activities.
+		if(data.length === req.maxRows) {
+			queryResult.nextToken = req.maxRows + req.nextToken
+		}
 
 		this.log.info(`ActivitiesRepository> get> out: result:${JSON.stringify(queryResult)}`);
 		return queryResult;
@@ -405,12 +455,12 @@ ${pagination}`;
 		}
 
 		const query = `SELECT * from (
-SELECT a1."date", a1."pipelineId", x."executionId", x."createdAt", ${this.createColumnSelects(pipelineMetadata.outputKeys)}
+SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", ${this.createColumnSelects(pipelineMetadata.outputKeys)}
 FROM "${this.activitiesTableName}" a1
 JOIN (${this.createOuterUnionQuery(pipelineMetadata.outputTypes, pipelineMetadata.transformKeyMap, req)}
 ) as x ON a1."activityId" = x."activityId"
 WHERE a1."type" = '${rowType}'
-GROUP BY a1."date", a1."pipelineId", x."executionId", x."createdAt"${groupByUniqueKeyFields}
+GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"${groupByUniqueKeyFields}
 ${this.createAttributeFilters(req)}
 ) as y
 ${this.createOutputFilter(fields, req)}
@@ -467,13 +517,13 @@ ${pagination}`;
 		const conditionalSelect = req.showHistory
 			? `${
 				tableName === 'ActivityNumberValue'
-					? 'SELECT t."activityId", t."name", t."createdAt", cast(t."val"::REAL as varchar), t."executionId"'
-					: 'SELECT t."activityId", t."name", t."createdAt", cast(t."val" as varchar), t."executionId"'
+					? 'SELECT t."activityId", t."name", t."auditId", t."createdAt", cast(t."val"::REAL as varchar), t."executionId"'
+					: 'SELECT t."activityId", t."name", t."auditId", t."createdAt", cast(t."val" as varchar), t."executionId"'
 			}`
 			: `${
 				tableName === 'ActivityNumberValue'
-					? 'SELECT b."activityId", b."name", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"'
-					: 'SELECT b."activityId", b."name", b."createdAt", cast(a."val" as varchar), a."executionId"'
+					? 'SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"'
+					: 'SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"'
 			}`;
 
 		// lets construct the query itself, this is the most inner part of the query

@@ -2,6 +2,73 @@
   "name": "@sif/infrastructure-tenant",
   "entries": [
     {
+      "version": "7.6.0",
+      "tag": "@sif/infrastructure-tenant_v7.6.0",
+      "date": "Wed, 05 Apr 2023 19:11:53 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add new state machine for inline processing"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.5.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.5.1",
+      "tag": "@sif/infrastructure-tenant_v7.5.1",
+      "date": "Mon, 03 Apr 2023 22:24:19 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.5.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.5.0",
+      "tag": "@sif/infrastructure-tenant_v7.5.0",
+      "date": "Fri, 31 Mar 2023 09:43:49 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "new audit log query endpoint based on activity id"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.4.0",
+      "tag": "@sif/infrastructure-tenant_v7.4.0",
+      "date": "Fri, 31 Mar 2023 06:04:14 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "plugin features added"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/access-management\" to `4.0.15`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.5.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.0.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.0.3`"
+          }
+        ]
+      }
+    },
+    {
       "version": "7.3.0",
       "tag": "@sif/infrastructure-tenant_v7.3.0",
       "date": "Fri, 17 Mar 2023 04:01:21 GMT",

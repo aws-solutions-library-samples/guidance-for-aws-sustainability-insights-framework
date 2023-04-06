@@ -17,7 +17,7 @@ import com.aws.sif.CalculatorService;
 import com.aws.sif.CalculatorServiceImpl;
 import com.aws.sif.S3Utils;
 import com.aws.sif.audits.Auditor;
-import com.aws.sif.audits.FirehoseProducer;
+import com.aws.sif.audits.S3Writer;
 import com.aws.sif.execution.*;
 import com.aws.sif.execution.output.RdsConnection;
 import com.aws.sif.execution.output.RdsWriter;
@@ -34,6 +34,8 @@ import com.aws.sif.resources.referenceDatasets.DatasetsClient;
 import com.aws.sif.resources.referenceDatasets.DatasetsList;
 import com.aws.sif.resources.users.User;
 import com.aws.sif.resources.users.UsersClient;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import dagger.Module;
@@ -154,11 +156,17 @@ public class CalculatorModule {
         return new UsersClient(userInvoker, config);
     }
 
+	@Provides
+	@Singleton
+	public Gson provideGson() {
+		return new GsonBuilder().create();
+	}
+
     @Provides
     @Singleton
     public CalculatorService provideCalculatorService(Calculator calculator, S3Utils s3Utils, Auditor auditor,
-                                                      Config config, FirehoseProducer producer, RdsWriter rdsWriter, UsersClient usersClient) {
-        return new CalculatorServiceImpl(calculator, s3Utils, auditor, config, rdsWriter, usersClient);
+                                                      Config config, RdsWriter rdsWriter, UsersClient usersClient, Gson gson) {
+        return new CalculatorServiceImpl(calculator, s3Utils, auditor, config, rdsWriter, usersClient, gson);
     }
 
     @Provides
@@ -168,14 +176,15 @@ public class CalculatorModule {
     }
 
     @Provides
-    public FirehoseProducer provideFirehoseProducer(FirehoseAsyncClient firehoseClient, Config config) {
-        return new FirehoseProducer(firehoseClient, config);
+    public S3Writer provideS3Writer(S3Utils s3Utils, Config config) {
+        return new S3Writer(s3Utils, config);
     }
 
     @Provides
-    public Auditor provideAuditor(FirehoseProducer producer) {
-        return new Auditor(producer);
+    public Auditor provideAuditor(S3Writer writer) {
+        return new Auditor(writer);
     }
+
 
     @Provides
     public RdsWriter provideRdsWriter(RdsConnection rdsConnection, Config config) {

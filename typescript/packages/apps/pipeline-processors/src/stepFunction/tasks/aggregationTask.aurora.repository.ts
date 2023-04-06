@@ -14,9 +14,9 @@
 import type { BaseLogger } from 'pino';
 import type { AffectedTimeRange } from '../../api/metrics/models';
 import { validateNotEmpty } from '@sif/validators';
-import type { BaseRepositoryClient } from '../../data/base.repository';
+import type { BaseRepositoryClient } from '../../data/base.repository.js';
 import type { Client } from 'pg';
-import type { AggregationResult } from './model';
+import type { AggregationResult } from './model.js';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 

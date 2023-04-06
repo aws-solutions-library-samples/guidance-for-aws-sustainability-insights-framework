@@ -340,6 +340,7 @@ export class PipelineRepository {
 			attributes: i['attributes'],
 			createdAt: i['createdAt'],
 			createdBy: i['createdBy'],
+			connectorConfig: i['connectorConfig'],
 			description: i['description'],
 			groups: i['groups'],
 			id: pk?.[1] as string,

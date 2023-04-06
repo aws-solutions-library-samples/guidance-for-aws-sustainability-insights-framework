@@ -16,26 +16,14 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 import type { PipelineProcessorsService } from '../../api/executions/service';
 import { VerifyTask } from './verifyTask';
 import pino from 'pino';
-import { HeadObjectCommand, S3Client, SelectObjectContentCommand, SelectObjectContentEventStream } from '@aws-sdk/client-s3';
+import { HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { PipelineClient } from '@sif/clients';
 import { mockClient } from 'aws-sdk-client-mock';
 import type { SecurityContext } from '@sif/authz';
 import type { VerificationTaskEvent } from './model';
-import { fromUtf8 } from '@aws-sdk/util-utf8-node';
 import type { Pipeline } from '@sif/clients';
-
-function getIterable(data: string[]): AsyncIterable<SelectObjectContentEventStream> {
-	const iterableDataRows = {
-		async *[Symbol.asyncIterator]() {
-			yield {
-				Records: {
-					Payload: fromUtf8(data.join('\r\n')),
-				},
-			};
-		},
-	};
-	return iterableDataRows;
-}
+import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix';
+import type { LambdaRequestContext } from '@sif/clients/dist';
 
 describe('Verify Task', () => {
 	const mockedS3Client = mockClient(S3Client);
@@ -44,6 +32,22 @@ describe('Verify Task', () => {
 
 	const ONE_MB = 1000000;
 	const chunkSize = 1;
+
+	const mockGetContext: GetSecurityContext = async (): Promise<SecurityContext> => {
+		return {} as unknown as SecurityContext;
+	};
+
+	const mockGetLambdaRequestContext: GetLambdaRequestContext = (): LambdaRequestContext => {
+		return {
+			authorizer: {
+				claims: {
+					email: 'email',
+					'cognito:groups': `/|||reader`,
+					groupContextId: '/',
+				},
+			},
+		};
+	};
 
 	beforeEach(() => {
 		const logger = pino(
@@ -56,7 +60,7 @@ describe('Verify Task', () => {
 		mockedPipelineClient = mock<PipelineClient>();
 		mockedS3Client.reset();
 
-		underTest = new VerifyTask(logger, mockedPipelineClient, mockedPipelineProcessorsService, mockedS3Client as unknown as S3Client, {} as SecurityContext, chunkSize);
+		underTest = new VerifyTask(logger, mockedPipelineClient, mockedPipelineProcessorsService, mockedS3Client as unknown as S3Client, mockGetContext, chunkSize, mockGetLambdaRequestContext);
 	});
 
 	const sampleEvent: VerificationTaskEvent = {
@@ -97,10 +101,6 @@ describe('Verify Task', () => {
 			ContentLength: ONE_MB * expectedChunkNum,
 		});
 
-		mockedS3Client.on(SelectObjectContentCommand).resolves({
-			Payload: getIterable(['one,two', '10,30']),
-		});
-
 		const result = await underTest.process(sampleEvent);
 
 		expect(result.tasks.length).toBe(5);
@@ -109,7 +109,6 @@ describe('Verify Task', () => {
 		expect(result.tasks[0].chunk.endByte).toBe(1000000);
 		// Check that context is being inserted correctly
 		expect(result.tasks[0].context).toEqual({
-			fileHeaders: ['one', 'two'],
 			pipelineId: sampleEvent.pipelineId,
 			pipelineExecutionId: sampleEvent.pipelineExecutionId,
 			groupContextId: mockPipelineExecution.groupContextId,
@@ -118,20 +117,5 @@ describe('Verify Task', () => {
 		// Check the last chunk
 		expect(result.tasks[expectedChunkNum - 1].chunk.startByte).toBe(4000004);
 		expect(result.tasks[expectedChunkNum - 1].chunk.endByte).toBe(ONE_MB * expectedChunkNum);
-	});
-
-	it('should throws exception if file header differs than configuration', async () => {
-		const expectedChunkNum = 1;
-		mockedS3Client.on(HeadObjectCommand).resolves({
-			ContentLength: ONE_MB * expectedChunkNum,
-		});
-
-		const invalidHeaders = 'three,four';
-
-		mockedS3Client.on(SelectObjectContentCommand).resolves({
-			Payload: getIterable([invalidHeaders, '10,30']),
-		});
-
-		await expect(underTest.process(sampleEvent)).rejects.toThrowError(new Error('file header is invalid, expected : one,two, actual: three,four'));
 	});
 });

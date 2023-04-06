@@ -50,6 +50,18 @@ const name: TString = Type.String({ description: 'Pipeline name.' });
 
 const attributeType = stringEnum(['string', 'number', 'boolean', 'timestamp'], 'Attribute type.');
 
+export const pipelineConnector = Type.Object({
+	name: Type.String({ description: 'name of the connector' }),
+	parameters: Type.Optional(Type.Record(Type.String(), Type.Any(), {
+		description: 'connectors config related parameters passed down as default for the pipeline itself',
+	}))
+});
+
+const connectorConfig = Type.Object({
+	input: Type.Array(pipelineConnector, { description: 'specifies list of input connectors,currently only 1 connector can be specified for input' }),
+	output: Type.Optional(Type.Array(pipelineConnector, { description: 'specifies list of output connectors' }))
+});
+
 const aggregateType = stringEnum(['groupBy', 'sum', 'mean', 'max', 'min', 'count'], 'Aggregate type.');
 
 const transformer = Type.Object(
@@ -118,9 +130,9 @@ const processorOptions = Type.Object({
 });
 
 const dryRunOptions = Type.Object({
-	data: Type.Array(Type.String(), {
-		description: 'dry run options',
-	}),
+	data: Type.Array(Type.Record(Type.String(), Type.String(), {
+		description: 'An object with key values representing the parameters and its expected values.'
+	})),
 });
 
 export const dryRunResponse = Type.Object(
@@ -162,36 +174,41 @@ export const dryRunResponse = Type.Object(
  */
 export const newPipelineRequestBody = Type.Object(
 	{
+		activeAt: Type.Optional(activeAt),
 		attributes: Type.Optional(attributes),
 		description: Type.Optional(description),
+		dryRunOptions: Type.Optional(dryRunOptions),
 		name,
+		connectorConfig: Type.Optional(connectorConfig),
 		processorOptions: Type.Optional(processorOptions),
 		transformer,
 		tags: Type.Optional(tags),
-		dryRunOptions: Type.Optional(dryRunOptions),
-		activeAt: Type.Optional(activeAt),
 	},
 	{ $id: 'newPipelineRequestBody' }
 );
 
 export const editPipelineRequestBody = Type.Object(
 	{
-		name: Type.Optional(name),
-		processorOptions: Type.Optional(processorOptions),
-		transformer: Type.Optional(transformer),
-		tags: Type.Optional(tags),
-		state: Type.Optional(state),
+		activeAt: Type.Optional(activeAt),
 		attributes: Type.Optional(attributes),
 		description: Type.Optional(description),
 		dryRunOptions: Type.Optional(dryRunOptions),
-		activeAt: Type.Optional(activeAt),
+		name: Type.Optional(name),
+		connectorConfig: Type.Optional(connectorConfig),
+		processorOptions: Type.Optional(processorOptions),
+		transformer: Type.Optional(transformer),
+		state: Type.Optional(state),
+		tags: Type.Optional(tags),
 	},
 	{ $id: 'editPipelineRequestBody' }
 );
 
 export const pipelineResource = Type.Object(
 	{
+		_aggregatedOutputKeyAndTypeMap: Type.Optional(Type.Record(Type.String(), Type.String())),
+		activeAt: Type.Optional(activeAt),
 		attributes: Type.Optional(attributes),
+		dryRunOptions: Type.Optional(dryRunOptions),
 		createdAt,
 		createdBy,
 		description: Type.Optional(description),
@@ -199,15 +216,13 @@ export const pipelineResource = Type.Object(
 		id,
 		name,
 		processorOptions: Type.Optional(processorOptions),
+		connectorConfig: Type.Optional(connectorConfig),
 		state,
 		tags: Type.Optional(tags),
 		transformer,
 		updatedAt: Type.Optional(updatedAt),
-		activeAt: Type.Optional(activeAt),
 		updatedBy: Type.Optional(updatedBy),
 		version,
-		dryRunOptions: Type.Optional(dryRunOptions),
-		_aggregatedOutputKeyAndTypeMap: Type.Optional(Type.Record(Type.String(), Type.String())),
 	},
 	{ $id: 'pipelineResource' }
 );
@@ -249,3 +264,4 @@ export type PipelineUpdateParams = Static<typeof editPipelineRequestBody>;
 export type Transformer = Static<typeof transformer>;
 export type DryRunResponse = Static<typeof dryRunResponse>;
 export type Groups = Static<typeof groups>;
+export type PipelineConnectors = Static<typeof connectorConfig>;

@@ -24,10 +24,10 @@ export async function streamToString(stream: Readable): Promise<string> {
 	});
 }
 
-export const INPUT_DATA_FILENAME = 'input.csv';
+export const INPUT_DATA_FILENAME = 'input';
 
-export function getPipelineInputKey(bucketPrefix: string, pipelineId: string, pipelineExecutionId: string): string {
-	return `${bucketPrefix}/${pipelineId}/executions/${pipelineExecutionId}/${INPUT_DATA_FILENAME}`;
+export function getPipelineInputKey(bucketPrefix: string, pipelineId: string, pipelineExecutionId: string, type: 'raw' | 'transformed' | 'archived'): string {
+	return `${bucketPrefix}/${pipelineId}/executions/${pipelineExecutionId}/input/${type}`;
 }
 
 export const ERROR_DATA_FILENAME = 'errors.txt';

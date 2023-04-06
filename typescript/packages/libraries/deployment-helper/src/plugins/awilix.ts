@@ -15,13 +15,15 @@ import { asFunction, createContainer, Lifetime } from 'awilix';
 import pino, { Logger } from 'pino';
 import axios from 'axios';
 import pgPkg from 'pg';
+import os from 'os';
+import path from 'path';
 
 const { Client } = pgPkg;
 
 import pkg from 'aws-xray-sdk';
 
 const { captureAWSv3Client } = pkg;
-import { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import pretty from 'pino-pretty';
 import { DatabaseSeederCustomResource } from '../customResources/databaseSeeder.customResource';
 import { CustomResourceManager } from '../customResources/customResource.manager';
@@ -31,6 +33,13 @@ import nodePgMigrate from 'node-pg-migrate';
 import { DatabaseSeederRepository } from '../customResources/databaseSeeder.repository';
 import { RDSClient } from '@aws-sdk/client-rds';
 import { IAMClient } from '@aws-sdk/client-iam';
+import { ConnectorClient } from '@sif/clients';
+import { Invoker } from '@sif/lambda-invoker';
+import { LambdaClient } from '@aws-sdk/client-lambda';
+import { ConnectorSeederCustomResource } from '../customResources/connectorSeederCustomResource';
+import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
+import fs from 'fs';
+import StreamZip from 'node-stream-zip';
 // @ts-ignore
 const migrate = nodePgMigrate.default;
 const container = createContainer({
@@ -77,6 +86,13 @@ class SecretsManagerClientFactory {
 	}
 }
 
+
+class LambdaClientFactory {
+	public static create(region: string): LambdaClient {
+		return captureAWSv3Client(new LambdaClient({ region }));
+	}
+}
+
 const defaultPort = 5432;
 const awsRegion = process.env['AWS_REGION'];
 const platformUsername = process.env['PLATFORM_USERNAME'];
@@ -85,8 +101,34 @@ const assetFolder = `/tmp/sqlAssets`;
 const tenantId = process.env['TENANT_ID'];
 const rdsProxyName = process.env['RDS_PROXY_NAME'];
 const environment = process.env['NODE_ENV'];
+const pipelineFunctionName = process.env['PIPELINES_FUNCTION_NAME'];
 
-const getPostgresqlClient = async (databaseName = 'postgres'): Promise<pgPkg.Client> => {
+
+export type ExtractCustomResourceArtifacts = (assetBucket: string, assetKey: string) => Promise<string>
+
+export type GetSqlClient = (databaseName?: string) => Promise<pgPkg.Client>
+
+const extractCustomResourceArtifacts: ExtractCustomResourceArtifacts = async (assetBucket: string, assetKey: string) => {
+
+	const s3Client = S3ClientFactory.create(awsRegion);
+	const response = await s3Client.send(new GetObjectCommand({ Bucket: assetBucket, Key: assetKey }));
+	const fileContent = await sdkStreamMixin(response.Body).transformToByteArray();
+	const tmpZipFilePath = os.tmpdir()+ path.sep +'assets.zip';
+
+	fs.writeFileSync(tmpZipFilePath, fileContent);
+
+	const zip = new StreamZip.async({ file: tmpZipFilePath });
+
+	if (!fs.existsSync(assetFolder)) {
+		fs.mkdirSync(assetFolder);
+	}
+	await zip.extract(null, assetFolder);
+	await zip.close();
+
+	return assetFolder;
+};
+
+const getPostgresqlClient: GetSqlClient = async (databaseName = 'postgres'): Promise<pgPkg.Client> => {
 	logger.debug(`awilix > getPostgresqlClient > in:`);
 
 	const { data: caCert } = await axios.get('https://www.amazontrust.com/repository/AmazonRootCA1.pem');
@@ -127,20 +169,33 @@ container.register({
 	iamClient: asFunction(() => IAMClientFactory.create(awsRegion), {
 		...commonInjectionOptions,
 	}),
+	lambdaClient: asFunction(() => LambdaClientFactory.create(awsRegion), {
+		...commonInjectionOptions
+	}),
+	invoker: asFunction((container) => new Invoker(logger, container.lambdaClient), {
+		...commonInjectionOptions
+	}),
 	secretsManagerClient: asFunction(() => SecretsManagerClientFactory.create(awsRegion), {
 		...commonInjectionOptions,
 	}),
 	databaseSeederRepository: asFunction(() => new DatabaseSeederRepository(logger, getPostgresqlClient, migrate), {
 		...commonInjectionOptions,
 	}),
+	connectorClient: asFunction((container) => new ConnectorClient(logger, container.invoker, pipelineFunctionName), {
+		...commonInjectionOptions,
+	}),
 	databaseSeederCustomResource: asFunction((container) => new DatabaseSeederCustomResource(
-		logger, container.databaseSeederRepository, container.rdsClient, container.iamClient, container.s3Client, container.secretsManagerClient,
-		rdsProxyName, tenantId, environment, assetFolder), {
+		logger, container.databaseSeederRepository, container.rdsClient, container.iamClient, container.secretsManagerClient,
+		rdsProxyName, tenantId, environment, extractCustomResourceArtifacts), {
 		...commonInjectionOptions,
 	}),
-	customResourceManager: asFunction((container) => new CustomResourceManager(logger, container.databaseSeederCustomResource), {
+	connectorSeederCustomResource: asFunction((container) => new ConnectorSeederCustomResource(
+		logger, container.connectorClient), {
 		...commonInjectionOptions,
 	}),
+	customResourceManager: asFunction((container) => new CustomResourceManager(logger, container.databaseSeederCustomResource, container.connectorSeederCustomResource), {
+		...commonInjectionOptions,
+	})
 });
 
 export {

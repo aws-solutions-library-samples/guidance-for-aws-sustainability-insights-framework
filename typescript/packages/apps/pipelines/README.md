@@ -7,6 +7,7 @@ achieve the desired output. The walk-through(s) below dive deep into defining pi
 
 ## Walk-through(s)
 - [Simple Area of Shape Transformation](./docs/simple-area-of-shape-transformation.md)
+- [Pipeline Connectors](./docs/pipeline-connectors.md)
 
 ## Additonal Links
 - [Design Document](./docs/design.md)

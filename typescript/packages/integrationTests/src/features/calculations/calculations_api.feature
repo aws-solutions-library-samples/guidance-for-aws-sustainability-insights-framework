@@ -41,7 +41,7 @@ Feature:
 
 	Scenario: Admin can dry run a calculation before updating
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "dryRunOptions": { "data": ["10,10"] } }
+		And I set body to { "dryRunOptions": { "data": [{"left": "10", "right": "10"}] } }
 		When I PATCH /calculations/`custom_add_calculation_id`?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -359,11 +359,11 @@ Feature:
 
 	Scenario: Should return error when formula has invalid syntax
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "name": "invalid_calculation_syntax", "summary": "Adds 2 numbers.", "formula": ":left+:right+#invalidFormula(:left)", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": ["10,10"] } }
+		And I set body to { "name": "invalid_calculation_syntax", "summary": "Adds 2 numbers.", "formula": ":left+:right+#invalidFormula(:left)", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": [{"left": "10", "right": "10"}] } }
 		When I POST to /calculations
 		Then response code should be 400
 		And response body should contain Calculation with name 'invalidFormula' not found.
-		And I set body to { "name": "invalid_calculation_syntax", "summary": "Adds 2 numbers.", "formula": ":left+:right+:undefined_parameter", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": ["10,10"] } }
+		And I set body to { "name": "invalid_calculation_syntax", "summary": "Adds 2 numbers.", "formula": ":left+:right+:undefined_parameter", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": [{"left": "10", "right": "10"}] } }
 		When I POST to /calculations
 		Then response code should be 400
 		And response body should contain Provided token 'undefined_parameter' not found as a pipeline parameter or variable.
@@ -378,7 +378,7 @@ Feature:
 
 	Scenario: Admin Can dry run a calculation successfully before creating
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "name": "custom_add", "summary": "Adds 2 numbers.", "formula": ":left+:right", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": ["10,10"] } }
+		And I set body to { "name": "custom_add", "summary": "Adds 2 numbers.", "formula": ":left+:right", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": [{"left": "10", "right": "10"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -388,7 +388,7 @@ Feature:
 
 	Scenario: Admin Can dry run a calculation unsuccessfully before creating
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "name": "custom_add", "summary": "Adds 2 numbers.", "formula": ":left+:right", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": ["10,A"] } }
+		And I set body to { "name": "custom_add", "summary": "Adds 2 numbers.", "formula": ":left+:right", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": [{"left": "10", "right": "A"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 400
 		And response body should contain message

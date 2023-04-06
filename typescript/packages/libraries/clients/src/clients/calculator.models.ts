@@ -26,7 +26,6 @@ export interface S3Location {
 }
 
 export interface S3SourceLocation extends S3Location {
-	containsHeader: boolean;
 	startByte: number;
 	endByte: number;
 }
@@ -41,7 +40,6 @@ export interface CalculatorRequest {
 	parameters: Parameter[];
 	transforms: Transform[];
 	actionType: ActionType;
-	csvHeader: string;
 
 	/**
 	 * the combination of field names that represent the unique columns of a row. Used
@@ -59,12 +57,12 @@ export interface CalculatorRequest {
 	/**
 	 * required only for s3 processing
 	 */
-	csvSourceDataLocation?: S3SourceLocation;
+	sourceDataLocation?: S3SourceLocation;
 
 	/**
 	 * required only for inline processing
 	 */
-	csvSourceData?: string[];
+	sourceData?: string[];
 
 	/**
 	 * when in dry run mode, no audit should be published
@@ -88,6 +86,7 @@ export const isCalculatorInlineTransformResponse = (obj: unknown): obj is Calcul
 
 export interface CalculatorS3TransformResponse extends CalculatorBaseTransformResponse {
 	errorLocation: S3Location;
+	data: string[];
 }
 
 export const isCalculatorS3TransformResponse = (obj: unknown): obj is CalculatorS3TransformResponse => {

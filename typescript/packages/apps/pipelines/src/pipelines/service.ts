@@ -13,20 +13,24 @@
 
 import type { FastifyBaseLogger } from 'fastify';
 import { ulid } from 'ulid';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc.js';
+dayjs.extend(utc);
+
 import type { SecurityContext } from '@sif/authz';
 import { GroupPermissions, SecurityScope, atLeastAdmin, atLeastReader, atLeastContributor } from '@sif/authz';
 import { AlternateIdInUseError, NotFoundError, UnauthorizedError, GroupService, TagService, ResourceService, MergeUtils, InvalidRequestError } from '@sif/resource-api-base';
-import type { CalculatorClient, CalculatorRequest, Transform } from '@sif/clients';
+import type { CalculatorClient, CalculatorRequest, ConnectorConfig, Transform } from '@sif/clients';
 import type { TransformerValidator } from '@sif/validators';
-import type { Pipeline, PipelineUpdateParams, PipelineCreateParams, PipelineVersionListType, DryRunResponse, Transformer } from './schemas.js';
+
+import type { Pipeline, PipelineUpdateParams, PipelineCreateParams, PipelineVersionListType, DryRunResponse, Transformer, PipelineConnectors } from './schemas.js';
 import type { PipelineListOptions, PipelineListPaginationKey, PipelineRepository, PipelineVersionPaginationKey } from './repository.js';
 import { PkType } from '../utils/pkUtils.utils.js';
 import { InvalidOutputMetricError, PipelineDefinitionError } from '../common/errors.js';
 import type { MetricService } from '../metrics/service.js';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
+import type { ConnectorService } from '../connectors/service.js';
+import type { Connector } from '../connectors/schemas.js';
 
-dayjs.extend(utc);
 
 export class PipelineService {
 	private readonly log: FastifyBaseLogger;
@@ -39,6 +43,7 @@ export class PipelineService {
 	private readonly mergeUtils: MergeUtils;
 	private readonly calculatorClient: CalculatorClient;
 	private readonly metricService: MetricService;
+	private readonly connectorService: ConnectorService
 
 	public constructor(
 		log: FastifyBaseLogger,
@@ -50,7 +55,8 @@ export class PipelineService {
 		validator: TransformerValidator,
 		mergeUtils: MergeUtils,
 		calculatorClient: CalculatorClient,
-		metricService: MetricService
+		metricService: MetricService,
+		connectorService: ConnectorService
 	) {
 		this.log = log;
 		this.authChecker = authChecker;
@@ -62,6 +68,7 @@ export class PipelineService {
 		this.mergeUtils = mergeUtils;
 		this.calculatorClient = calculatorClient;
 		this.metricService = metricService;
+		this.connectorService = connectorService;
 	}
 
 	private async validateOutputMetrics(metrics: Metrics): Promise<void> {
@@ -91,6 +98,13 @@ export class PipelineService {
 
 		// validate any referenced metrics
 		const metrics = await this.extractMetrics(sc, params.transformer, true);
+
+		// if connectors config is defined on the pipeline, lets validate it
+		if(params.connectorConfig) {
+			await this.validateConnectorConfig(sc, params.connectorConfig)
+		} else {
+			throw new PipelineDefinitionError(`Input connector config is required. Specify connectorConfig and an input connector for the pipeline. To check the available default connectors, The list can be retrieved from the connectors API`);
+		}
 
 		// validate that destination metric does not have other metric as an input
 		await this.validateOutputMetrics(metrics);
@@ -228,8 +242,7 @@ export class PipelineService {
 			pipelineId: ulid(),
 			executionId: ulid(),
 			groupContextId: sc.groupId,
-			csvSourceData: pipeline.dryRunOptions.data,
-			csvHeader: pipeline.transformer.parameters.map((o) => o.key).join(','),
+			sourceData: pipeline.dryRunOptions.data.map((d) => JSON.stringify(d)),
 			parameters: pipeline.transformer.parameters,
 			transforms: pipeline.transformer.transforms,
 			username: sc.email
@@ -360,26 +373,31 @@ export class PipelineService {
 		return response;
 	}
 
-	public async update(sc: SecurityContext, pipelineId: string, pipelineUpdateParams: PipelineUpdateParams & { groups?: string[] }): Promise<Pipeline> {
-		this.log.debug(`PipelineService.create(sc, params): [${sc}, ${pipelineId}, ${JSON.stringify(pipelineUpdateParams)}]`);
+	public async update(sc: SecurityContext, pipelineId: string, params: PipelineUpdateParams & { groups?: string[] }): Promise<Pipeline> {
+		this.log.debug(`PipelineService.create(sc, params): [${sc}, ${pipelineId}, ${JSON.stringify(params)}]`);
 
 		// perform authorization check
 		this.validateAccess(sc, atLeastContributor);
 
-		if (pipelineUpdateParams.activeAt && !dayjs(pipelineUpdateParams.activeAt).isValid()) {
+		if (params.activeAt && !dayjs(params.activeAt).isValid()) {
 			throw new InvalidRequestError('Invalid Date specified double check if the date/time is in ISO8601 local time');
 		}
 
 		// check if the pipeline exist
 		const existing = await this.get(sc, pipelineId, undefined, true);
 
+		// if connectors config is defined on the pipeline, lets validate it
+		if(params.connectorConfig) {
+			await this.validateConnectorConfig(sc, params.connectorConfig)
+		}
+
 		// merge the existing and to be updated
-		const merged = this.mergeUtils.mergeResource(existing, pipelineUpdateParams) as Pipeline;
+		const merged = this.mergeUtils.mergeResource(existing, params) as Pipeline;
 
 		merged.updatedAt = new Date(Date.now()).toISOString();
 		merged.updatedBy = sc.email;
 		merged.version = existing.version + 1;
-		merged.activeAt = pipelineUpdateParams.activeAt ? dayjs.utc(pipelineUpdateParams.activeAt).toISOString() : undefined;
+		merged.activeAt = params.activeAt ? dayjs.utc(params.activeAt).toISOString() : undefined;
 
 		this.validateOutputIncludeAsUniqueChange(existing.transformer.transforms, merged.transformer.transforms);
 
@@ -403,7 +421,7 @@ export class PipelineService {
 
 		this.mapTransformOutputsToKeyIndexes(merged);
 
-		if (pipelineUpdateParams.transformer) {
+		if (params.transformer) {
 			this.createAggregatedOutputsKeyList(merged);
 		}
 
@@ -616,7 +634,7 @@ export class PipelineService {
 	 * @private
 	 */
 	private sanitizePipelineObject(pipeline: Pipeline): void {
-		this.log.debug(`PipelinesService>sanitizePipelieObject> in> pipeline:${JSON.stringify(pipeline)}`);
+		this.log.debug(`PipelinesService> sanitizePipelineObject> in> pipeline:${JSON.stringify(pipeline)}`);
 
 		pipeline.transformer.transforms.forEach((transform) => {
 			transform.outputs.forEach((output) => {
@@ -625,7 +643,7 @@ export class PipelineService {
 		});
 		delete pipeline._aggregatedOutputKeyAndTypeMap;
 
-		this.log.debug(`PipelinesService> sanitizePipelieObject> out>`);
+		this.log.debug(`PipelinesService> sanitizePipelineObject> out>`);
 	}
 
 	/**
@@ -647,6 +665,52 @@ export class PipelineService {
 				}
 			});
 		});
+	}
+
+	private validateConnectorConfigParameters(connectorConfig: ConnectorConfig, connector: Connector): void {
+		// validate the specified parameters if they are provided on the connectorConfig for the pipeline
+		if(connectorConfig.parameters) {
+			// lets get all the parameter names from the connector obeject itself, we will use these for our comparison
+			const parameterNames = connector.parameters.map((p) => p.name);
+			// we will get the keys for the parameters overrided on the pipeline's connectorConfiguration object and then do a match,
+			// if we dont find a match, it means we have a parameter override which isnt define on the connectors parameter config
+			const isMatch = Object.keys(connectorConfig.parameters).every(k => parameterNames.includes(k))
+
+			// if it doenst match, then we will throw an error here
+			if(!isMatch) {
+				throw new InvalidRequestError(`unknown parameter overrides specified: ${JSON.stringify(connectorConfig.parameters)}, valid parameters for this connector are: ${JSON.stringify(parameterNames)}`);
+			}
+		}
+	}
+
+	private async validateConnectorConfig(sc:SecurityContext,  connectors: PipelineConnectors): Promise<void> {
+		this.log.debug(`PipelineService> validateConnectorConfig: in> connectorsConfig:${connectors}`);
+
+		// check if config for input connectors is specified
+		if(connectors.input) {
+			// if so, then check if there is more than 1
+			if(connectors.input.length > 1) {
+				// throw an error if there is more than 1, we can only have 1 input connector for now
+				throw new PipelineDefinitionError('Can only have one input connector specified for a pipeline');
+			}
+			// let's get the connectorConfig specified for the input
+			const connectorConfig = connectors.input[0];
+			// this will throw an error if a connector by the name isn't found
+			const connector = await this.connectorService.getByName(sc, connectorConfig.name);
+			// if its found, lets validate if the connector is the correct type, only of type 'input' can be defined in the input section of the connector config
+			if(connector.type !== 'input'){
+				throw new PipelineDefinitionError('Only connectors of type input can be specified in the input configuration section of the pipeline');
+			}
+
+			// lets validate the overridden parameters for the pipeline
+			this.validateConnectorConfigParameters(connectorConfig, connector);
+		}
+
+		// we will validate the output connector config separately
+		if(connectors.output) {
+			// for now, you cannot define output connectors. Only input connectors are supported for now.
+			throw new PipelineDefinitionError('No output connectors are supported for pipelines ');
+		}
 	}
 }
 

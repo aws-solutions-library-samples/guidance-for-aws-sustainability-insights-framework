@@ -89,18 +89,16 @@ export type S3SourceLocation = {
 
 export type CalculatorRequest = {
 	groupContextId: string;
-	csvHeader: string;
 	pipelineId: string;
 	executionId: string;
-	csvSourceDataLocation: S3SourceLocation;
+	sourceDataLocation: S3SourceLocation;
 	chunkNo: number;
 	uniqueKey?: string[];
 	username: string;
 } & Transformer;
 
 export type CalculatorResponse = {
-	csvSourceDataLocation: S3SourceLocation;
+	sourceDataLocation: S3SourceLocation;
 	csvOutputDataLocation: S3Location;
 	errorLocation: S3Location;
-	csvHeaders: string[];
 };

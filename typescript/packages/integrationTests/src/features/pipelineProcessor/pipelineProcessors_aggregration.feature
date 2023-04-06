@@ -42,7 +42,7 @@ Feature: Pipeline Processors API - aggregation feature
 		Given I'm using the pipelines api
 		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /metricsAggregationTests/a
-		And I set body to {"attributes":{"type":"E2E"},"name":"first pipeline","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'M/d/yyyy HH:mm:ss')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh","label":"kWh","type":"number","metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"first pipeline","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'M/d/yyyy HH:mm:ss')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh","label":"kWh","type":"number","metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -53,12 +53,12 @@ Feature: Pipeline Processors API - aggregation feature
 		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /metricsAggregationTests/a
 		And I set body to { "expiration" : 300}
-		When I POST to /pipelines/`pipeline_1_a_id`/inputUploadUrl
+		When I POST to /pipelines/`pipeline_1_a_id`/executions
 		Then response code should be 201
 		And response body should contain id
 		And response body path $.pipelineId should be `pipeline_1_a_id`
-		And response body should contain url
-		And I store the value of body path $.url as pipeline_1_a_upload_url in global scope
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_1_a_upload_url in global scope
 		And I store the value of body path $.id as pipeline_1_a_execution_id in global scope
 		When I GET /pipelines/`pipeline_1_a_id`/executions/`pipeline_1_a_execution_id`
 		And response body path $.pipelineId should be `pipeline_1_a_id`
@@ -101,12 +101,12 @@ Feature: Pipeline Processors API - aggregation feature
 		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /metricsAggregationTests/a
 		And I set body to { "expiration" : 300}
-		When I POST to /pipelines/`pipeline_1_a_id`/inputUploadUrl
+		When I POST to /pipelines/`pipeline_1_a_id`/executions
 		Then response code should be 201
 		And response body should contain id
 		And response body path $.pipelineId should be `pipeline_1_a_id`
-		And response body should contain url
-		And I store the value of body path $.url as pipeline_1_a_upload_url in global scope
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_1_a_upload_url in global scope
 		And I store the value of body path $.id as pipeline_1_a_execution_id in global scope
 		When I GET /pipelines/`pipeline_1_a_id`/executions/`pipeline_1_a_execution_id`
 		And response body path $.pipelineId should be `pipeline_1_a_id`
@@ -153,7 +153,7 @@ Feature: Pipeline Processors API - aggregation feature
 		Given I'm using the pipelines api
 		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /metricsAggregationTests/a
-		And I set body to {"attributes":{"type":"E2E"},"name":"second pipeline pipeline","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'M/d/yyyy HH:mm:ss')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*100","outputs":[{"description":"input * 10","index":0,"key":"kwh","label":"kWh","type":"number","metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"second pipeline pipeline","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'M/d/yyyy HH:mm:ss')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*100","outputs":[{"description":"input * 10","index":0,"key":"kwh","label":"kWh","type":"number","metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -164,12 +164,12 @@ Feature: Pipeline Processors API - aggregation feature
 		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /metricsAggregationTests/a
 		And I set body to { "expiration" : 300}
-		When I POST to /pipelines/`pipeline_2_a_id`/inputUploadUrl
+		When I POST to /pipelines/`pipeline_2_a_id`/executions
 		Then response code should be 201
 		And response body should contain id
 		And response body path $.pipelineId should be `pipeline_2_a_id`
-		And response body should contain url
-		And I store the value of body path $.url as pipeline_2_a_upload_url in global scope
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_2_a_upload_url in global scope
 		And I store the value of body path $.id as pipeline_2_a_execution_id in global scope
 		When I GET /pipelines/`pipeline_2_a_id`/executions/`pipeline_2_a_execution_id`
 		And response body path $.pipelineId should be `pipeline_2_a_id`
@@ -210,7 +210,7 @@ Feature: Pipeline Processors API - aggregation feature
 		Given I'm using the pipelines api
 		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /metricsAggregationTests/b
-		And I set body to {"attributes":{"type":"E2E"},"name":"first pipeline","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'M/d/yyyy HH:mm:ss')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh","label":"kWh","type":"number","metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"first pipeline","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'M/d/yyyy HH:mm:ss')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh","label":"kWh","type":"number","metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -222,12 +222,12 @@ Feature: Pipeline Processors API - aggregation feature
 		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /metricsAggregationTests/b
 		And I set body to { "expiration" : 300}
-		When I POST to /pipelines/`pipeline_1_b_id`/inputUploadUrl
+		When I POST to /pipelines/`pipeline_1_b_id`/executions
 		Then response code should be 201
 		And response body should contain id
 		And response body path $.pipelineId should be `pipeline_1_b_id`
-		And response body should contain url
-		And I store the value of body path $.url as pipeline_1_b_upload_url in global scope
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_1_b_upload_url in global scope
 		And I store the value of body path $.id as pipeline_1_b_execution_id in global scope
 		When I GET /pipelines/`pipeline_1_b_id`/executions/`pipeline_1_b_execution_id`
 		And response body path $.pipelineId should be `pipeline_1_b_id`
@@ -325,12 +325,12 @@ Feature: Pipeline Processors API - aggregation feature
 		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /metricsAggregationTests/b
 		And I set body to { "expiration" : 300, "actionType": "delete"}
-		When I POST to /pipelines/`pipeline_1_b_id`/inputUploadUrl
+		When I POST to /pipelines/`pipeline_1_b_id`/executions
 		Then response code should be 201
 		And response body should contain id
 		And response body path $.pipelineId should be `pipeline_1_b_id`
-		And response body should contain url
-		And I store the value of body path $.url as pipeline_1_b_delete_upload_url in global scope
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_1_b_delete_upload_url in global scope
 		And I store the value of body path $.id as pipeline_1_b_delete_execution_id in global scope
 		When I GET /pipelines/`pipeline_1_b_id`/executions/`pipeline_1_b_delete_execution_id`
 		And response body path $.pipelineId should be `pipeline_1_b_id`
@@ -341,7 +341,7 @@ Feature: Pipeline Processors API - aggregation feature
 			| date               | zipcode | kwh |
 			| 1/5/2022 02:02:02  | 75001   | 50  |
 			| 4/10/2022 02:02:02 | 75001   | 50  |
-		Then I pause for 10000ms
+		Then I pause for 30000ms
 		When I GET /pipelines/`pipeline_1_b_id`/executions/`pipeline_1_b_delete_execution_id`
 		Then response code should be 200
 		And response body path $.status should be success

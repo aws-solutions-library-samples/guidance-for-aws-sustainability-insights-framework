@@ -93,9 +93,9 @@ export const version = Type.Integer({
  * calculation specific resources
  */
 const dryRunOptions = Type.Object({
-	data: Type.Array(Type.String(), {
-		description: 'dry run options',
-	}),
+	data: Type.Array(Type.Record(Type.String(), Type.String(), {
+		description: 'An object with key values representing the parameters and its expected values.'
+	})),
 });
 
 export const dryRunResponse = Type.Object(

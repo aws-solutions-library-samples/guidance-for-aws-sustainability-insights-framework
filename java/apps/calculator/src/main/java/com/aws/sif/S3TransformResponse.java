@@ -22,9 +22,7 @@ public class S3TransformResponse extends TransformResponse {
     @Getter
     private S3Location errorLocation;
 
-    public S3TransformResponse(S3Location errorLocation, S3Location auditLogLocation) {
-
-        super(auditLogLocation);
+    public S3TransformResponse(S3Location errorLocation) {
         this.errorLocation = errorLocation;
     }
 }

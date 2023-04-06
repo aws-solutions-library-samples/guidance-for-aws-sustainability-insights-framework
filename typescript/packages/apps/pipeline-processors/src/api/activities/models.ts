@@ -11,6 +11,15 @@
  *  and limitations under the License.
  */
 
+export type ActivityReference = {
+	activityId: string;
+	pipelineId: string;
+	executionId: string;
+	auditId: string;
+	date: Date;
+	createdAt: Date;
+}
+
 export type QueryRequest = {
 	groupId: string;
 	pipelineId?: string;

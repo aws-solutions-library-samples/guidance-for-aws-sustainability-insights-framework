@@ -26,11 +26,15 @@ import { TransformerValidator } from '@sif/validators';
 import { CalculatorClient } from '@sif/clients';
 import { MetricRepository } from '../metrics/repository.js';
 import { MetricService } from '../metrics/service.js';
+import { ConnectorRepository } from '../connectors/repository.js';
+import { ConnectorService } from '../connectors/service.js';
 
 declare module '@fastify/awilix' {
 	interface Cradle extends BaseCradle {
 		pipelineRepository: PipelineRepository;
 		pipelineService: PipelineService;
+		connectorRepository: ConnectorRepository;
+		connectorService: ConnectorService;
 		metricRepository: MetricRepository;
 		metricService: MetricService;
 		dynamoDbUtils: DynamoDbUtils;
@@ -81,10 +85,40 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 					container.validator,
 					container.mergeUtils,
 					container.calculatorClient,
-					container.metricService
+					container.metricService,
+					container.connectorService
 				),
 			{
 				...commonInjectionOptions,
+			}
+		),
+		connectorRepository: asFunction(
+			(container) =>
+				new ConnectorRepository(
+					app.log,
+					container.dynamoDBDocumentClient,
+					app.config.TABLE_NAME,
+					container.tagRepository,
+					container.groupRepository,
+					container.dynamoDbUtils
+				),
+			{
+				...commonInjectionOptions,
+			}
+		),
+		connectorService: asFunction(
+			(container) =>
+				new ConnectorService(
+					app.log,
+					container.authChecker,
+					container.connectorRepository,
+					container.groupService,
+					container.tagService,
+					container.resourceService,
+					container.mergeUtils,
+				),
+			{
+				...commonInjectionOptions
 			}
 		),
 

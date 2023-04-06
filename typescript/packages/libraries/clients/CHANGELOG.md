@@ -1,6 +1,27 @@
 # Change Log - @sif/clients
 
-This log was last generated on Thu, 16 Mar 2023 04:36:57 GMT and should not be manually modified.
+This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+
+## 1.5.1
+Wed, 05 Apr 2023 19:11:53 GMT
+
+### Patches
+
+- differentiate between dry run error and calculator error
+
+## 1.5.0
+Mon, 03 Apr 2023 22:24:19 GMT
+
+### Minor changes
+
+- pipeline resource should return id and groups
+
+## 1.4.1
+Fri, 31 Mar 2023 06:04:14 GMT
+
+### Patches
+
+- pipeline plugin feature related enhancement
 
 ## 1.4.0
 Thu, 16 Mar 2023 04:36:57 GMT

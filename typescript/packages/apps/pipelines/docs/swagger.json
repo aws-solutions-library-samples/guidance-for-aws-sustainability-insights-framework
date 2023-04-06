@@ -31,6 +31,11 @@
       "newPipelineRequestBody": {
         "type": "object",
         "properties": {
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          },
           "attributes": {
             "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
             "type": "object",
@@ -40,9 +45,77 @@
             "description": "Expanded description of the pipeline.",
             "type": "string"
           },
+          "dryRunOptions": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "description": "An object with key values representing the parameters and its expected values.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "data"
+            ]
+          },
           "name": {
             "description": "Pipeline name.",
             "type": "string"
+          },
+          "connectorConfig": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "description": "specifies list of input connectors,currently only 1 connector can be specified for input",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "name of the connector",
+                      "type": "string"
+                    },
+                    "parameters": {
+                      "description": "connectors config related parameters passed down as default for the pipeline itself",
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              },
+              "output": {
+                "description": "specifies list of output connectors",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "name of the connector",
+                      "type": "string"
+                    },
+                    "parameters": {
+                      "description": "connectors config related parameters passed down as default for the pipeline itself",
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "input"
+            ]
           },
           "processorOptions": {
             "type": "object",
@@ -110,9 +183,10 @@
                             "enum": [
                               "groupBy",
                               "sum",
-                              "avg",
+                              "mean",
                               "max",
-                              "min"
+                              "min",
+                              "count"
                             ],
                             "description": "Aggregate type."
                           },
@@ -207,26 +281,6 @@
                 }
               ]
             }
-          },
-          "dryRunOptions": {
-            "type": "object",
-            "properties": {
-              "data": {
-                "description": "dry run options",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": [
-              "data"
-            ]
-          },
-          "activeAt": {
-            "description": "Date/time resource is active",
-            "format": "date-time",
-            "type": "string"
           }
         },
         "required": [
@@ -237,10 +291,39 @@
       "pipelineResource": {
         "type": "object",
         "properties": {
+          "_aggregatedOutputKeyAndTypeMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          },
           "attributes": {
             "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
             "type": "object",
             "additionalProperties": {}
+          },
+          "dryRunOptions": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "description": "An object with key values representing the parameters and its expected values.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "data"
+            ]
           },
           "createdAt": {
             "description": "Date/time created",
@@ -281,6 +364,56 @@
                 "type": "number"
               }
             }
+          },
+          "connectorConfig": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "description": "specifies list of input connectors,currently only 1 connector can be specified for input",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "name of the connector",
+                      "type": "string"
+                    },
+                    "parameters": {
+                      "description": "connectors config related parameters passed down as default for the pipeline itself",
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              },
+              "output": {
+                "description": "specifies list of output connectors",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "name of the connector",
+                      "type": "string"
+                    },
+                    "parameters": {
+                      "description": "connectors config related parameters passed down as default for the pipeline itself",
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "input"
+            ]
           },
           "state": {
             "type": "string",
@@ -360,9 +493,10 @@
                             "enum": [
                               "groupBy",
                               "sum",
-                              "avg",
+                              "mean",
                               "max",
-                              "min"
+                              "min",
+                              "count"
                             ],
                             "description": "Aggregate type."
                           },
@@ -449,11 +583,6 @@
             "format": "date-time",
             "type": "string"
           },
-          "activeAt": {
-            "description": "Date/time resource is active",
-            "format": "date-time",
-            "type": "string"
-          },
           "updatedBy": {
             "description": "Last ID of user who made a change.",
             "type": "string"
@@ -461,27 +590,6 @@
           "version": {
             "description": "version number of the pipeline. The pipeline version is always incremented when there is an update to the pipeline configuration itself.",
             "type": "number"
-          },
-          "dryRunOptions": {
-            "type": "object",
-            "properties": {
-              "data": {
-                "description": "dry run options",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": [
-              "data"
-            ]
-          },
-          "_aggregatedOutputKeyAndTypeMap": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
           }
         },
         "required": [
@@ -498,9 +606,91 @@
       "editPipelineRequestBody": {
         "type": "object",
         "properties": {
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "description": {
+            "description": "Expanded description of the pipeline.",
+            "type": "string"
+          },
+          "dryRunOptions": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "description": "An object with key values representing the parameters and its expected values.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "data"
+            ]
+          },
           "name": {
             "description": "Pipeline name.",
             "type": "string"
+          },
+          "connectorConfig": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "description": "specifies list of input connectors,currently only 1 connector can be specified for input",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "name of the connector",
+                      "type": "string"
+                    },
+                    "parameters": {
+                      "description": "connectors config related parameters passed down as default for the pipeline itself",
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              },
+              "output": {
+                "description": "specifies list of output connectors",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "description": "name of the connector",
+                      "type": "string"
+                    },
+                    "parameters": {
+                      "description": "connectors config related parameters passed down as default for the pipeline itself",
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "input"
+            ]
           },
           "processorOptions": {
             "type": "object",
@@ -568,9 +758,10 @@
                             "enum": [
                               "groupBy",
                               "sum",
-                              "avg",
+                              "mean",
                               "max",
-                              "min"
+                              "min",
+                              "count"
                             ],
                             "description": "Aggregate type."
                           },
@@ -652,6 +843,15 @@
               "parameters"
             ]
           },
+          "state": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "frozen",
+              "disabled"
+            ],
+            "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
+          },
           "tags": {
             "description": "User-defined searchable tags",
             "type": "object",
@@ -665,44 +865,6 @@
                 }
               ]
             }
-          },
-          "state": {
-            "type": "string",
-            "enum": [
-              "enabled",
-              "frozen",
-              "disabled"
-            ],
-            "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
-          },
-          "attributes": {
-            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
-            "type": "object",
-            "additionalProperties": {}
-          },
-          "description": {
-            "description": "Expanded description of the pipeline.",
-            "type": "string"
-          },
-          "dryRunOptions": {
-            "type": "object",
-            "properties": {
-              "data": {
-                "description": "dry run options",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": [
-              "data"
-            ]
-          },
-          "activeAt": {
-            "description": "Date/time resource is active",
-            "format": "date-time",
-            "type": "string"
           }
         }
       },
@@ -714,10 +876,39 @@
             "items": {
               "type": "object",
               "properties": {
+                "_aggregatedOutputKeyAndTypeMap": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "activeAt": {
+                  "description": "Date/time resource is active",
+                  "format": "date-time",
+                  "type": "string"
+                },
                 "attributes": {
                   "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
                   "type": "object",
                   "additionalProperties": {}
+                },
+                "dryRunOptions": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "description": "An object with key values representing the parameters and its expected values.",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
                 },
                 "createdAt": {
                   "description": "Date/time created",
@@ -758,6 +949,56 @@
                       "type": "number"
                     }
                   }
+                },
+                "connectorConfig": {
+                  "type": "object",
+                  "properties": {
+                    "input": {
+                      "description": "specifies list of input connectors,currently only 1 connector can be specified for input",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "description": "name of the connector",
+                            "type": "string"
+                          },
+                          "parameters": {
+                            "description": "connectors config related parameters passed down as default for the pipeline itself",
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      }
+                    },
+                    "output": {
+                      "description": "specifies list of output connectors",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "description": "name of the connector",
+                            "type": "string"
+                          },
+                          "parameters": {
+                            "description": "connectors config related parameters passed down as default for the pipeline itself",
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "input"
+                  ]
                 },
                 "state": {
                   "type": "string",
@@ -837,9 +1078,10 @@
                                   "enum": [
                                     "groupBy",
                                     "sum",
-                                    "avg",
+                                    "mean",
                                     "max",
-                                    "min"
+                                    "min",
+                                    "count"
                                   ],
                                   "description": "Aggregate type."
                                 },
@@ -926,11 +1168,6 @@
                   "format": "date-time",
                   "type": "string"
                 },
-                "activeAt": {
-                  "description": "Date/time resource is active",
-                  "format": "date-time",
-                  "type": "string"
-                },
                 "updatedBy": {
                   "description": "Last ID of user who made a change.",
                   "type": "string"
@@ -938,27 +1175,6 @@
                 "version": {
                   "description": "version number of the pipeline. The pipeline version is always incremented when there is an update to the pipeline configuration itself.",
                   "type": "number"
-                },
-                "dryRunOptions": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "description": "dry run options",
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ]
-                },
-                "_aggregatedOutputKeyAndTypeMap": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
                 }
               },
               "required": [
@@ -999,10 +1215,39 @@
             "items": {
               "type": "object",
               "properties": {
+                "_aggregatedOutputKeyAndTypeMap": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "activeAt": {
+                  "description": "Date/time resource is active",
+                  "format": "date-time",
+                  "type": "string"
+                },
                 "attributes": {
                   "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
                   "type": "object",
                   "additionalProperties": {}
+                },
+                "dryRunOptions": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "description": "An object with key values representing the parameters and its expected values.",
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
                 },
                 "createdAt": {
                   "description": "Date/time created",
@@ -1043,6 +1288,56 @@
                       "type": "number"
                     }
                   }
+                },
+                "connectorConfig": {
+                  "type": "object",
+                  "properties": {
+                    "input": {
+                      "description": "specifies list of input connectors,currently only 1 connector can be specified for input",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "description": "name of the connector",
+                            "type": "string"
+                          },
+                          "parameters": {
+                            "description": "connectors config related parameters passed down as default for the pipeline itself",
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      }
+                    },
+                    "output": {
+                      "description": "specifies list of output connectors",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "description": "name of the connector",
+                            "type": "string"
+                          },
+                          "parameters": {
+                            "description": "connectors config related parameters passed down as default for the pipeline itself",
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "input"
+                  ]
                 },
                 "state": {
                   "type": "string",
@@ -1122,9 +1417,10 @@
                                   "enum": [
                                     "groupBy",
                                     "sum",
-                                    "avg",
+                                    "mean",
                                     "max",
-                                    "min"
+                                    "min",
+                                    "count"
                                   ],
                                   "description": "Aggregate type."
                                 },
@@ -1211,11 +1507,6 @@
                   "format": "date-time",
                   "type": "string"
                 },
-                "activeAt": {
-                  "description": "Date/time resource is active",
-                  "format": "date-time",
-                  "type": "string"
-                },
                 "updatedBy": {
                   "description": "Last ID of user who made a change.",
                   "type": "string"
@@ -1223,27 +1514,6 @@
                 "version": {
                   "description": "version number of the pipeline. The pipeline version is always incremented when there is an update to the pipeline configuration itself.",
                   "type": "number"
-                },
-                "dryRunOptions": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "description": "dry run options",
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ]
-                },
-                "_aggregatedOutputKeyAndTypeMap": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
                 }
               },
               "required": [
@@ -1693,6 +1963,437 @@
         "required": [
           "metrics"
         ]
+      },
+      "connector": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "description": "Date/time created",
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "description": "ID of owner.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Expanded description of the connector.",
+            "type": "string"
+          },
+          "groups": {
+            "description": "Groups that have access to the calculation.",
+            "type": "array",
+            "items": {
+              "description": "The group ID as managed by the Access Management module.",
+              "type": "string"
+            }
+          },
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "isManaged": {
+            "description": "this marks the connector if its managed via SIF or not",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Connector name.",
+            "type": "string"
+          },
+          "parameters": {
+            "description": "list of connector configuration parameter objects",
+            "type": "array",
+            "items": {
+              "description": "connector configuration object which specifies any configuration related key/val pairs passed down though the connector integration request",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "name or key of the parameter, should be unique",
+                  "type": "string"
+                },
+                "description": {
+                  "description": "relevant description related to the specified parameter",
+                  "type": "string"
+                },
+                "defaultValue": {
+                  "description": "default value for the parameter",
+                  "type": "string"
+                },
+                "required": {
+                  "description": "specify true/false if this parameter is added to this list then at the time of pipeline execution this list will be evaluated against the parameters compiled together from the connector, pipeline and execution.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          },
+          "requiresFileUpload": {
+            "description": "this specifies if the connector requires a file to be uploaded through the execution, if this is specified as true, then a signed url will be generated to the execution request",
+            "default": false,
+            "type": "boolean"
+          },
+          "tags": {
+            "description": "User-defined searchable tags",
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": {
+            "description": "type of the connector, this specified if the connector should be used as an input of a pipeline or an output",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "input"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "output"
+                ]
+              }
+            ]
+          },
+          "updatedAt": {
+            "description": "Date/time updated",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedBy": {
+            "description": "Last ID of user who made a change.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "createdAt",
+          "createdBy",
+          "groups",
+          "id",
+          "name",
+          "type",
+          "updatedAt"
+        ]
+      },
+      "connectorCreateParams": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "Expanded description of the connector.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Connector name.",
+            "type": "string"
+          },
+          "parameters": {
+            "description": "list of connector configuration parameter objects",
+            "type": "array",
+            "items": {
+              "description": "connector configuration object which specifies any configuration related key/val pairs passed down though the connector integration request",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "name or key of the parameter, should be unique",
+                  "type": "string"
+                },
+                "description": {
+                  "description": "relevant description related to the specified parameter",
+                  "type": "string"
+                },
+                "defaultValue": {
+                  "description": "default value for the parameter",
+                  "type": "string"
+                },
+                "required": {
+                  "description": "specify true/false if this parameter is added to this list then at the time of pipeline execution this list will be evaluated against the parameters compiled together from the connector, pipeline and execution.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          },
+          "requiresFileUpload": {
+            "description": "this specifies if the connector requires a file to be uploaded through the execution, if this is specified as true, then a signed url will be generated to the execution request",
+            "default": false,
+            "type": "boolean"
+          },
+          "tags": {
+            "description": "User-defined searchable tags",
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "isManaged": {
+            "description": "this marks the connector if its managed via SIF or not",
+            "default": false,
+            "type": "boolean"
+          },
+          "type": {
+            "description": "type of the connector, this specified if the connector should be used as an input of a pipeline or an output",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "input"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "output"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      },
+      "connectorUpdateParams": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "Expanded description of the connector.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Connector name.",
+            "type": "string"
+          },
+          "parameters": {
+            "description": "list of connector configuration parameter objects",
+            "type": "array",
+            "items": {
+              "description": "connector configuration object which specifies any configuration related key/val pairs passed down though the connector integration request",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "name or key of the parameter, should be unique",
+                  "type": "string"
+                },
+                "description": {
+                  "description": "relevant description related to the specified parameter",
+                  "type": "string"
+                },
+                "defaultValue": {
+                  "description": "default value for the parameter",
+                  "type": "string"
+                },
+                "required": {
+                  "description": "specify true/false if this parameter is added to this list then at the time of pipeline execution this list will be evaluated against the parameters compiled together from the connector, pipeline and execution.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          },
+          "requiresFileUpload": {
+            "description": "this specifies if the connector requires a file to be uploaded through the execution, if this is specified as true, then a signed url will be generated to the execution request",
+            "default": false,
+            "type": "boolean"
+          },
+          "tags": {
+            "description": "User-defined searchable tags",
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": {
+            "description": "type of the connector, this specified if the connector should be used as an input of a pipeline or an output",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "input"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "output"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "connectorList": {
+        "type": "object",
+        "properties": {
+          "connectors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "createdAt": {
+                  "description": "Date/time created",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "createdBy": {
+                  "description": "ID of owner.",
+                  "type": "string"
+                },
+                "description": {
+                  "description": "Expanded description of the connector.",
+                  "type": "string"
+                },
+                "groups": {
+                  "description": "Groups that have access to the calculation.",
+                  "type": "array",
+                  "items": {
+                    "description": "The group ID as managed by the Access Management module.",
+                    "type": "string"
+                  }
+                },
+                "id": {
+                  "description": "Unique id.",
+                  "type": "string"
+                },
+                "isManaged": {
+                  "description": "this marks the connector if its managed via SIF or not",
+                  "type": "boolean"
+                },
+                "name": {
+                  "description": "Connector name.",
+                  "type": "string"
+                },
+                "parameters": {
+                  "description": "list of connector configuration parameter objects",
+                  "type": "array",
+                  "items": {
+                    "description": "connector configuration object which specifies any configuration related key/val pairs passed down though the connector integration request",
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "name or key of the parameter, should be unique",
+                        "type": "string"
+                      },
+                      "description": {
+                        "description": "relevant description related to the specified parameter",
+                        "type": "string"
+                      },
+                      "defaultValue": {
+                        "description": "default value for the parameter",
+                        "type": "string"
+                      },
+                      "required": {
+                        "description": "specify true/false if this parameter is added to this list then at the time of pipeline execution this list will be evaluated against the parameters compiled together from the connector, pipeline and execution.",
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ]
+                  }
+                },
+                "requiresFileUpload": {
+                  "description": "this specifies if the connector requires a file to be uploaded through the execution, if this is specified as true, then a signed url will be generated to the execution request",
+                  "default": false,
+                  "type": "boolean"
+                },
+                "tags": {
+                  "description": "User-defined searchable tags",
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": {
+                  "description": "type of the connector, this specified if the connector should be used as an input of a pipeline or an output",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "input"
+                      ]
+                    },
+                    {
+                      "type": "string",
+                      "enum": [
+                        "output"
+                      ]
+                    }
+                  ]
+                },
+                "updatedAt": {
+                  "description": "Date/time updated",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "updatedBy": {
+                  "description": "Last ID of user who made a change.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "createdAt",
+                "createdBy",
+                "groups",
+                "id",
+                "name",
+                "type",
+                "updatedAt"
+              ]
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "description": "No. of results returned when pagination requested.",
+                "type": "integer"
+              },
+              "lastEvaluatedToken": {
+                "description": "Token used to paginate to the next page of search result.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "connectors"
+        ]
       }
     }
   },
@@ -1738,7 +2439,8 @@
               "type": "string",
               "enum": [
                 "pipeline",
-                "metric"
+                "metric",
+                "connector"
               ]
             },
             "in": "query",
@@ -3044,10 +3746,39 @@
                     {
                       "type": "object",
                       "properties": {
+                        "_aggregatedOutputKeyAndTypeMap": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "activeAt": {
+                          "description": "Date/time resource is active",
+                          "format": "date-time",
+                          "type": "string"
+                        },
                         "attributes": {
                           "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
                           "type": "object",
                           "additionalProperties": {}
+                        },
+                        "dryRunOptions": {
+                          "type": "object",
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "description": "An object with key values representing the parameters and its expected values.",
+                                "type": "object",
+                                "additionalProperties": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "required": [
+                            "data"
+                          ]
                         },
                         "createdAt": {
                           "description": "Date/time created",
@@ -3088,6 +3819,56 @@
                               "type": "number"
                             }
                           }
+                        },
+                        "connectorConfig": {
+                          "type": "object",
+                          "properties": {
+                            "input": {
+                              "description": "specifies list of input connectors,currently only 1 connector can be specified for input",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "description": "name of the connector",
+                                    "type": "string"
+                                  },
+                                  "parameters": {
+                                    "description": "connectors config related parameters passed down as default for the pipeline itself",
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                  }
+                                },
+                                "required": [
+                                  "name"
+                                ]
+                              }
+                            },
+                            "output": {
+                              "description": "specifies list of output connectors",
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "description": "name of the connector",
+                                    "type": "string"
+                                  },
+                                  "parameters": {
+                                    "description": "connectors config related parameters passed down as default for the pipeline itself",
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                  }
+                                },
+                                "required": [
+                                  "name"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "input"
+                          ]
                         },
                         "state": {
                           "type": "string",
@@ -3167,9 +3948,10 @@
                                           "enum": [
                                             "groupBy",
                                             "sum",
-                                            "avg",
+                                            "mean",
                                             "max",
-                                            "min"
+                                            "min",
+                                            "count"
                                           ],
                                           "description": "Aggregate type."
                                         },
@@ -3256,11 +4038,6 @@
                           "format": "date-time",
                           "type": "string"
                         },
-                        "activeAt": {
-                          "description": "Date/time resource is active",
-                          "format": "date-time",
-                          "type": "string"
-                        },
                         "updatedBy": {
                           "description": "Last ID of user who made a change.",
                           "type": "string"
@@ -3268,27 +4045,6 @@
                         "version": {
                           "description": "version number of the pipeline. The pipeline version is always incremented when there is an update to the pipeline configuration itself.",
                           "type": "number"
-                        },
-                        "dryRunOptions": {
-                          "type": "object",
-                          "properties": {
-                            "data": {
-                              "description": "dry run options",
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "required": [
-                            "data"
-                          ]
-                        },
-                        "_aggregatedOutputKeyAndTypeMap": {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "string"
-                          }
                         }
                       },
                       "required": [
@@ -4376,99 +5132,6 @@
             "name": "groupId",
             "required": true,
             "description": "Group id."
-          },
-          {
-            "in": "header",
-            "name": "accept-version",
-            "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "accept",
-            "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "x-security-scopes": [
-          "admin",
-          "superAdmin"
-        ],
-        "responses": {
-          "204": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "Success.",
-                  "type": "object",
-                  "properties": {}
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "Forbidden.",
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "description": "Not found.",
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/pipelines/{id}": {
-      "delete": {
-        "tags": [
-          "Pipelines"
-        ],
-        "description": "Delete pipeline (CAUTION: Will delete all the versions as well)\n\nPermissions:\n- Only `Admin` may delete reference pipeline.\n",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "description": "Unique id."
           },
           {
             "in": "header",
@@ -5702,6 +6365,777 @@
         }
       }
     },
+    "/connectors": {
+      "post": {
+        "operationId": "create",
+        "tags": [
+          "Pipeline Connectors"
+        ],
+        "description": "Creates a new Pipeline Connector",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/connectorCreateParams"
+              },
+              "examples": {
+                "New Pipeline connector Configuration": {
+                  "summary": "Creates a new Pipeline connector configuration.",
+                  "value": {
+                    "description": "this connector transforms a csv pipeline input as a file upload into SIF compatible pipeline format",
+                    "requiresFileUpload": true,
+                    "name": "sif-csv-pipeline-input-connector",
+                    "parameters": [
+                      {
+                        "name": "apiKey",
+                        "description": "some api key which my connector will need to utilize",
+                        "required": true
+                      },
+                      {
+                        "name": "endpoint",
+                        "description": "some endpoint which my connector will need to utilize",
+                        "required": true,
+                        "defaultValue": "https://...."
+                      }
+                    ],
+                    "type": "input"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/connector"
+                },
+                "examples": {
+                  "New connector": {
+                    "summary": "New pipeline connector response",
+                    "value": {
+                      "createdAt": "2022-08-10T23:55:20.322Z",
+                      "createdBy": "someone@somewhere.com",
+                      "description": "this connector transforms a csv pipeline input as a file upload into SIF compatible pipeline format",
+                      "groups": [
+                        "/"
+                      ],
+                      "id": "ajcuhek13ks",
+                      "isManaged": true,
+                      "name": "sif-csv-pipeline-input-connector",
+                      "parameters": [
+                        {
+                          "name": "apiKey",
+                          "description": "some api key which my connector will need to utilize",
+                          "required": true
+                        },
+                        {
+                          "name": "endpoint",
+                          "description": "some endpoint which my connector will need to utilize",
+                          "required": true,
+                          "defaultValue": "https://...."
+                        }
+                      ],
+                      "requiresFileUpload": true,
+                      "type": "input",
+                      "updatedAt": "2022-08-10T23:55:20.322Z",
+                      "updatedBy": "someone@somewhere.com"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Conflict.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "syntaxErrors": {
+                      "type": "object",
+                      "properties": {
+                        "charPositionInLine": {
+                          "type": "integer"
+                        },
+                        "line": {
+                          "type": "integer"
+                        },
+                        "msg": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "charPositionInLine",
+                        "line",
+                        "msg"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Pipeline Connectors"
+        ],
+        "description": "Lists connectors.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromToken",
+            "required": false,
+            "description": "Token used to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "description": "Filters by `name` based on the group access of the caller."
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "description": "Tag key and value in the format of `key:value`.",
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "description": "Tag keys and values to filter by."
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeParentGroups",
+            "required": false,
+            "description": "Include all parent groups result."
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "includeChildGroups",
+            "required": false,
+            "description": "Include all children groups result."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/connectorList"
+                },
+                "examples": {
+                  "List of connectors": {
+                    "summary": "Paginated list of connectors.",
+                    "value": {
+                      "connectors": [
+                        {
+                          "createdAt": "2022-08-10T23:55:20.322Z",
+                          "createdBy": "someone@somewhere.com",
+                          "description": "this connector transforms a csv pipeline input as a file upload into SIF compatible pipeline format",
+                          "groups": [
+                            "/"
+                          ],
+                          "id": "ajcuhek13ks",
+                          "isManaged": true,
+                          "name": "sif-csv-pipeline-input-connector",
+                          "parameters": [
+                            {
+                              "name": "apiKey",
+                              "description": "some api key which my connector will need to utilize",
+                              "required": true
+                            },
+                            {
+                              "name": "endpoint",
+                              "description": "some endpoint which my connector will need to utilize",
+                              "required": true,
+                              "defaultValue": "https://...."
+                            }
+                          ],
+                          "requiresFileUpload": true,
+                          "type": "input",
+                          "updatedAt": "2022-08-10T23:55:20.322Z",
+                          "updatedBy": "someone@somewhere.com"
+                        }
+                      ],
+                      "pagination": {
+                        "count": 2,
+                        "lastEvaluatedToken": "ajcuhek13ks"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connectors/{connectorId}": {
+      "get": {
+        "tags": [
+          "Pipeline connectors"
+        ],
+        "description": "Retrieve details of an existing connector.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "connectorId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/connector"
+                },
+                "examples": {
+                  "Existing connector": {
+                    "summary": "Existing connector details.",
+                    "value": {
+                      "createdAt": "2022-08-10T23:55:20.322Z",
+                      "createdBy": "someone@somewhere.com",
+                      "description": "this connector transforms a csv pipeline input as a file upload into SIF compatible pipeline format",
+                      "groups": [
+                        "/"
+                      ],
+                      "id": "ajcuhek13ks",
+                      "isManaged": true,
+                      "name": "sif-csv-pipeline-input-connector",
+                      "parameters": [
+                        {
+                          "name": "apiKey",
+                          "description": "some api key which my connector will need to utilize",
+                          "required": true
+                        },
+                        {
+                          "name": "endpoint",
+                          "description": "some endpoint which my connector will need to utilize",
+                          "required": true,
+                          "defaultValue": "https://...."
+                        }
+                      ],
+                      "requiresFileUpload": true,
+                      "type": "input",
+                      "updatedAt": "2022-08-10T23:55:20.322Z",
+                      "updatedBy": "someone@somewhere.com"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "update",
+        "tags": [
+          "Pipeline Connectors"
+        ],
+        "description": "Updates an existing connector.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/connectorUpdateParams"
+              },
+              "examples": {
+                "Update Connector name and parameters": {
+                  "summary": "Update Connector",
+                  "value": {
+                    "name": "some-new-name",
+                    "parameters": [
+                      {
+                        "name": "apiKey",
+                        "description": "some api key which my connector will need to utilize",
+                        "required": true
+                      },
+                      {
+                        "name": "endpoint",
+                        "description": "some endpoint which my connector will need to utilize",
+                        "required": true,
+                        "defaultValue": "https://...."
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "connectorId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/connector"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connectors/{id}/groups/{groupId}": {
+      "put": {
+        "operationId": "grant",
+        "summary": "Grants access",
+        "tags": [
+          "Pipeline Connectors"
+        ],
+        "description": "Grants access of the connector to the provided group.\n\n\t\t\tPermissions:\n\t\t\t- `admin` and above of both the active group in context and the target group required.\n\t\t\t",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "description": "Group id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "revoke",
+        "summary": "Revoke access",
+        "tags": [
+          "Pipeline Connectors"
+        ],
+        "description": "Revokes access of the Connector to the provided group.\n\nPermissions:\n- `admin` and above of both the active group in context and the target group required.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "description": "Group id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/metrics/{id}": {
       "delete": {
         "operationId": "deleteMetric",
@@ -5709,6 +7143,192 @@
           "Metrics"
         ],
         "description": "Delete metric (CAUTION: Will delete all the versions as well).\n\nPermissions:\n- Only `Admin` may delete metric.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connectors/{id}": {
+      "delete": {
+        "tags": [
+          "Pipeline Connectors"
+        ],
+        "description": "Delete connector\n\nPermissions:\n- Only `Admin` may delete reference connector.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pipelines/{id}": {
+      "delete": {
+        "tags": [
+          "Pipelines"
+        ],
+        "description": "Delete pipeline (CAUTION: Will delete all the versions as well)\n\nPermissions:\n- Only `Admin` may delete reference pipeline.\n",
         "parameters": [
           {
             "schema": {

@@ -1,6 +1,6 @@
 {
 	"name": "@sif/lambda-invoker",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Lambda Invoker",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {

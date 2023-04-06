@@ -62,7 +62,7 @@ export class SharedTenantInfrastructureStack extends Stack {
 			throw new Error('administratorEmail is required');
 		}
 
-		new SSM(this, 'ApiFunctionNameParameters', {
+		const ssmConstruct = new SSM(this, 'ApiFunctionNameParameters', {
 			tenantId: props.tenantId,
 			environment: props.environment
 		});
@@ -139,7 +139,8 @@ export class SharedTenantInfrastructureStack extends Stack {
 			environment: props.environment,
 			privateSubnetIds: Fn.split(',', subnetIdList.valueAsString),
 			tenantSecret: auroraSeeder.tenantSecret,
-			tenantDatabaseUsername: auroraSeeder.tenantDatabaseUsername
+			tenantDatabaseUsername: auroraSeeder.tenantDatabaseUsername,
+			pipelineApiFunctionNameParameter: ssmConstruct.pipelineApiFunctionNameParameter
 		});
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [

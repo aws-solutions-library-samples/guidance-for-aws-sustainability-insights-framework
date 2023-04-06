@@ -1,6 +1,6 @@
 {
 	"name": "@sif/clients",
-	"version": "1.4.0",
+	"version": "1.5.1",
 	"description": "Calculator client",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"exports": {
@@ -19,8 +19,7 @@
 	},
 	"dependencies": {
 		"@aws-sdk/client-lambda": "3.229.0",
-		"@sif/lambda-invoker": "workspace:*",
-		"@sinclair/typebox": "0.25.16"
+		"@sif/lambda-invoker": "workspace:*"
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",

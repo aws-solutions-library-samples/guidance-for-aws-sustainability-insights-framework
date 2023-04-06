@@ -134,7 +134,7 @@ export class GroupModuleService {
 		await this.tagRepository.updateGroupSummaries(groupId, PkType.Group, saved.tags, {});
 
 		// publish event
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'group',
 			eventType: 'created',
 			id: saved.id,
@@ -224,7 +224,7 @@ export class GroupModuleService {
 		await this.repository.delete(groupId);
 
 		// publish event
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'group',
 			eventType: 'deleted',
 			id: groupId,
@@ -268,7 +268,7 @@ export class GroupModuleService {
 		);
 
 		// publish event
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'group',
 			eventType: 'updated',
 			id: groupId,
@@ -424,7 +424,7 @@ export class GroupModuleService {
 		await this.repository.saveMembership(membership);
 
 		// publish event
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'groupMembership',
 			eventType: 'created',
 			id: email,
@@ -476,7 +476,7 @@ export class GroupModuleService {
 		await this.repository.deleteMembership(email, securityContext.groupId);
 
 		// publish event
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'groupMembership',
 			eventType: 'deleted',
 			id: email,

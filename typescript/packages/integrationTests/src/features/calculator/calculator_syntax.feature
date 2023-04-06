@@ -64,7 +64,7 @@ Feature:
 	Scenario: Should be able to set local variable to be used in a formula
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :new = 20 \n :left+:right+:new", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": ["10,10"] } }
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :new = 20 \n :left+:right+:new", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": [{"left":10,"right":10}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -75,7 +75,7 @@ Feature:
 	Scenario: Should be able to use IF for branching condition
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "IF(:left>:right,:left,:right)", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": ["1000,2000"] } }
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "IF(:left>:right,:left,:right)", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": [{"left":1000,"right":2000}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -86,7 +86,7 @@ Feature:
 	Scenario: Should be able to use concatenate strings
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "CONCAT(:left,'_',:right)", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "string" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "string" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": ["left_text,right_text"] } }
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "CONCAT(:left,'_',:right)", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "string" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "string" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": [{"left":"left_text","right":"right_text"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -97,7 +97,7 @@ Feature:
 	Scenario: Should be able return condition based on switch statement
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "SWITCH(:input, 'first', 'match first', 'second', 'match second')", "parameters": [ { "index": 0, "key": "input", "label": "input", "description": "sample input parameter", "type": "string" }], "outputs": [ { "name": "result", "description": "The result.", "type": "string" } ], "dryRunOptions": { "data": ["second"] } }
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "SWITCH(:input, 'first', 'match first', 'second', 'match second')", "parameters": [ { "index": 0, "key": "input", "label": "input", "description": "sample input parameter", "type": "string" }], "outputs": [ { "name": "result", "description": "The result.", "type": "string" } ], "dryRunOptions": { "data": [{"input":"second"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -108,21 +108,21 @@ Feature:
 	Scenario: Should be able to combine multiple syntax
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :value=100\nSWITCH(:input, 'first', 0, 'second', IF(:left>:right,:left*:value,:right*:value))", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ,  { "index": 2, "key": "input", "label": "input", "description": "text input", "type": "string" }],"outputs": [ { "name": "output", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": ["1000,2000,second"] } }
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :value=100\nSWITCH(:input, 'first', 0, 'second', IF(:left>:right,:left*:value,:right*:value))", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ,  { "index": 2, "key": "input", "label": "input", "description": "text input", "type": "string" }],"outputs": [ { "name": "output", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": [{"left":1000,"right":2000,"input":"second"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
 		And response body path $.data[0] should be 200000
-		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :value=100\nSWITCH(:input, 'first', 0, 'second', IF(:left>:right,:left*:value,:right*:value))", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ,  { "index": 2, "key": "input", "label": "input", "description": "text input", "type": "string" }],"outputs": [ { "name": "output", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": ["3000,2000,second"] } }
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :value=100\nSWITCH(:input, 'first', 0, 'second', IF(:left>:right,:left*:value,:right*:value))", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ,  { "index": 2, "key": "input", "label": "input", "description": "text input", "type": "string" }],"outputs": [ { "name": "output", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": [{"left":3000,"right":2000,"input":"second"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
 		And response body path $.data[0] should be 300000
-		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :value=100\nSWITCH(:input, 'first', CONCAT('sif','-','framework'), 'second', IF(:left>:right,:left*:value,:right*:value))", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ,  { "index": 2, "key": "input", "label": "input", "description": "text input", "type": "string" }],"outputs": [ { "name": "output", "description": "The total.", "type": "string" } ], "dryRunOptions": { "data": ["3000,2000,first"] } }
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :value=100\nSWITCH(:input, 'first', CONCAT('sif','-','framework'), 'second', IF(:left>:right,:left*:value,:right*:value))", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ,  { "index": 2, "key": "input", "label": "input", "description": "text input", "type": "string" }],"outputs": [ { "name": "output", "description": "The total.", "type": "string" } ], "dryRunOptions": { "data": [{"left":1000,"right":2000,"input":"first"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -133,7 +133,7 @@ Feature:
 	Scenario: Testing Calculator syntax that references version 1 of other resources
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to validate calculator syntax.","formula":"(#calculator_sample(:input,version=1) + IMPACT('activity_sample','co2e','co2',version=1)) * LOOKUP('Car','dataset_sample','Type','Multiplier',version=1)","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The total.","type":"number"}],"dryRunOptions":{"data":["1"]}}
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to validate calculator syntax.","formula":"(#calculator_sample(:input,version=1) + IMPACT('activity_sample','co2e','co2',version=1)) * LOOKUP('Car','dataset_sample','Type','Multiplier',version=1)","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The total.","type":"number"}],"dryRunOptions":{"data":[{"input":1}]}}
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -144,7 +144,7 @@ Feature:
 	Scenario: Testing Calculator syntax that references version 2 of other resources
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to validate calculator syntax.","formula":"(#calculator_sample(:input,version=2) + IMPACT('activity_sample','co2e','co2',version=2)) * LOOKUP('Car','dataset_sample','Type','Multiplier',version=2)","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The total.","type":"number"}],"dryRunOptions":{"data":["1"]}}
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to validate calculator syntax.","formula":"(#calculator_sample(:input,version=2) + IMPACT('activity_sample','co2e','co2',version=2)) * LOOKUP('Car','dataset_sample','Type','Multiplier',version=2)","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The total.","type":"number"}],"dryRunOptions":{"data":[{"input":1}]}}
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -155,7 +155,7 @@ Feature:
 	Scenario: Testing Calculator syntax by specifying versionAsAt 2023-02-21T01:00:00.000Z (resolves to version 1)
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to validate calculator syntax.","formula":"(#calculator_sample(:input,versionAsAt='2023-02-21T01:00:00.000Z') + IMPACT('activity_sample','co2e','co2',versionAsAt='2023-02-21T01:00:00.000Z')) * LOOKUP('Car','dataset_sample','Type','Multiplier',versionAsAt='2023-02-21T01:00:00.000Z')","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The total.","type":"number"}],"dryRunOptions":{"data":["1"]}}
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to validate calculator syntax.","formula":"(#calculator_sample(:input,versionAsAt='2023-02-21T01:00:00.000Z') + IMPACT('activity_sample','co2e','co2',versionAsAt='2023-02-21T01:00:00.000Z')) * LOOKUP('Car','dataset_sample','Type','Multiplier',versionAsAt='2023-02-21T01:00:00.000Z')","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The total.","type":"number"}],"dryRunOptions":{"data":[{"input":1}]}}
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
@@ -166,7 +166,7 @@ Feature:
 	Scenario: Testing Calculator syntax by specifying versionAsAt 2023-02-24T01:00:00.000Z (resolves to version 2)
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to validate calculator syntax.","formula":"(#calculator_sample(:input,versionAsAt='2023-02-24T01:00:00.000Z') + IMPACT('activity_sample','co2e','co2',versionAsAt='2023-02-24T01:00:00.000Z')) * LOOKUP('Car','dataset_sample','Type','Multiplier',versionAsAt='2023-02-24T01:00:00.000Z')","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The total.","type":"number"}],"dryRunOptions":{"data":["1"]}}
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to validate calculator syntax.","formula":"(#calculator_sample(:input,versionAsAt='2023-02-24T01:00:00.000Z') + IMPACT('activity_sample','co2e','co2',versionAsAt='2023-02-24T01:00:00.000Z')) * LOOKUP('Car','dataset_sample','Type','Multiplier',versionAsAt='2023-02-24T01:00:00.000Z')","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The total.","type":"number"}],"dryRunOptions":{"data":[{"input":1}]}}
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers

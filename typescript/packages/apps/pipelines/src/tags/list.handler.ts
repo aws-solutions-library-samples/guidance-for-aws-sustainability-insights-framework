@@ -57,7 +57,7 @@ Permissions:
 				count: countPaginationQS,
 				fromValue: fromValuePaginationQS,
 				parentValue: parentValueQS,
-				resourceType: stringEnum(['pipeline', 'metric'], 'Resource type'),
+				resourceType: stringEnum(['pipeline', 'metric', 'connector'], 'Resource type'),
 			}),
 			response: {
 				200: {
@@ -123,8 +123,11 @@ Permissions:
 				case 'metric':
 					resourceKeyPrefix = PkType.Metric;
 					break;
+				case 'connector':
+					resourceKeyPrefix = PkType.Connector;
+					break;
 				default:
-					throw new PipelineDefinitionError('Unrecognized ?resourceType provided.')
+					throw new PipelineDefinitionError('Unrecognized ?resourceType provided.');
 			}
 
 			const [values, lastEvaluatedValue] = await svc.listByGroupId(request.authz, key, {

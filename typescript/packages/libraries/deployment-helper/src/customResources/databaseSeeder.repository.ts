@@ -12,8 +12,8 @@
  */
 
 import type { Logger } from 'pino';
-import type { Client } from 'pg';
 import fs from 'fs';
+import type { GetSqlClient } from '../plugins/awilix.js';
 
 const activityTable = 'Activity';
 const activityStringValueTable = 'ActivityStringValue';
@@ -21,8 +21,6 @@ const activityNumberValueTable = 'ActivityNumberValue';
 const activityDateTimeValueTable = 'ActivityDateTimeValue';
 const activityBooleanValueTable = 'ActivityBooleanValue';
 
-export type GetSqlClient =
-	(databaseName?: string) => Promise<Client>
 
 export class DatabaseSeederRepository {
 	private readonly logger: Logger;

@@ -16,5 +16,6 @@ package com.aws.sif.execution.output;
 public enum OutputType {
     time,
     uniqueId,
-    value
+    value,
+    auditId
 }

@@ -91,6 +91,8 @@ export class PipelineAggregationTaskService {
 			if (data.length > 0) {
 				// set the offset for the next query
 				fromOffset = nextToken;
+				// if nextToken is undefined, that means no more data to process
+				moreRowsToProcess = !!nextToken;
 				yield [data, fromOffset] as const;
 			} else {
 				// no more rows to process

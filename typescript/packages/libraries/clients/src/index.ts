@@ -11,10 +11,15 @@
  *  and limitations under the License.
  */
 
+export * from './clients/activity.models.js';
+export * from './clients/activity.client.js';
 export * from './clients/calculator.models.js';
 export * from './clients/calculator.client.js';
 export * from './clients/metric.client.js';
 export * from './clients/metric.models.js';
 export * from './clients/pipeline.client.js';
 export * from './clients/pipeline.models.js';
+export * from './clients/connector.client.js';
+export * from './clients/connector.models.js';
 export * from './common/models.js';
+

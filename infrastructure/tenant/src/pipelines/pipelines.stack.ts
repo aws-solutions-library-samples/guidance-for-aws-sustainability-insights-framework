@@ -60,6 +60,7 @@ export class PipelineApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
+
 		const base = new ResourceApiBase(this, 'ResourceApiBase', {
 			tenantId: props.tenantId,
 			environment: props.environment,

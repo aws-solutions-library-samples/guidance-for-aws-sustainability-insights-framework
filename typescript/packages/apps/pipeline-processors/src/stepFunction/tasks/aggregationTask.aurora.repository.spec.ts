@@ -14,7 +14,7 @@
 import { afterAll, beforeEach, describe, it, expect } from 'vitest';
 import { AggregationTaskAuroraRepository } from './aggregationTask.aurora.repository';
 import pino from 'pino';
-import type { BaseRepositoryClient } from '../../data/base.repository';
+import type { BaseRepositoryClient } from '../../data/base.repository.js';
 import { mock, MockProxy } from 'vitest-mock-extended';
 import type { Client } from 'pg';
 

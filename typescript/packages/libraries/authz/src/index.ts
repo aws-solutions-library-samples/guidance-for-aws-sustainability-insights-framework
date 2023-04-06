@@ -15,3 +15,4 @@ export * from './fgac.js';
 
 export { default as authzPlugin, IGroupService } from './fastify-plugins/authz.js';
 export * from './scopes.js';
+export * from './utils.js';

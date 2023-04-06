@@ -70,7 +70,8 @@ await getValues(TENANT_ID, 'calculator', {
 await getValues(TENANT_ID, 'pipeline-processor', {
 	TABLE_NAME: 'configTableName',
 	BUCKET_PREFIX: 'bucketPrefix',
-	PIPELINE_STATE_MACHINE_ARN: 'stateMachineArn',
+	PIPELINE_JOB_STATE_MACHINE_ARN: 'workflowStateMachineArn',
+	PIPELINE_INLINE_STATE_MACHINE_ARN: 'inlineStateMachineArn',
 	METRICS_TABLE_NAME: 'metricsTableName',
 });
 

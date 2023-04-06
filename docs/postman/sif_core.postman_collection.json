@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "3364a707-393d-437e-9c05-f0c5b8e87481",
+		"_postman_id": "0f8a255a-75f7-4797-ae5d-0e3c96d88c24",
 		"name": "SIF (Core)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "8840028"
@@ -2948,7 +2948,7 @@
 					"response": []
 				},
 				{
-					"name": "get pipeline data upload url",
+					"name": "execute pipeline",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -2970,7 +2970,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"expiration\": 900\n}",
+							"raw": "{\n    \"expiration\": 900,\n    \"pluginOverrides\": {\n        \"my-custom-plugin\": {\n            \"parameters\": {\n                \"key1\": \"val1\"\n            }\n        }\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2978,19 +2978,19 @@
 							}
 						},
 						"url": {
-							"raw": "{{pipeline_processor_base_url}}/pipelines/:pipelineId/inputUploadUrl",
+							"raw": "{{pipeline_processor_base_url}}/pipelines/:pipelineId/executions",
 							"host": [
 								"{{pipeline_processor_base_url}}"
 							],
 							"path": [
 								"pipelines",
 								":pipelineId",
-								"inputUploadUrl"
+								"executions"
 							],
 							"variable": [
 								{
 									"key": "pipelineId",
-									"value": "01ggwgwa5pgcg57ewt2v76n4xt"
+									"value": "01gw7t7pz6ehfhs60ea11qs21j"
 								}
 							]
 						}
@@ -3161,6 +3161,232 @@
 			"name": "pipelines",
 			"item": [
 				{
+					"name": "connectors",
+					"item": [
+						{
+							"name": "create connector",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-groupcontextid",
+										"value": "{{group_context_id}}",
+										"type": "text"
+									},
+									{
+										"key": "Accept-Version",
+										"value": "{{pipelines_version}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "{{content_type}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"custom-input-plugin\",\n    \"description\": \"This plugin transforms pipeline ingestion input into SIF compatible\",\n    \"requiresFileUpload\": \"true\",\n    \"type\": \"input\",\n    \"parameters\": {\n        \"key1\": \"val1\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{pipelines_base_url}}/connectors",
+									"host": [
+										"{{pipelines_base_url}}"
+									],
+									"path": [
+										"connectors"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "list connectors",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-groupcontextid",
+										"value": "{{group_context_id}}",
+										"type": "text"
+									},
+									{
+										"key": "Accept-Version",
+										"value": "{{pipelines_version}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{pipelines_base_url}}/plugins",
+									"host": [
+										"{{pipelines_base_url}}"
+									],
+									"path": [
+										"plugins"
+									],
+									"query": [
+										{
+											"key": "count",
+											"value": "10",
+											"disabled": true
+										},
+										{
+											"key": "fromToken",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "includeChildGroups",
+											"value": "false",
+											"disabled": true
+										},
+										{
+											"key": "includeParentGroups",
+											"value": "false",
+											"disabled": true
+										},
+										{
+											"key": "name",
+											"value": "Household Electricity Carbon Footprint",
+											"disabled": true
+										},
+										{
+											"key": "tags",
+											"value": "source:useeio",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "delete connector",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-groupcontextid",
+										"value": "{{group_context_id}}",
+										"type": "text"
+									},
+									{
+										"key": "Accept-Version",
+										"value": "{{pipelines_version}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{pipelines_base_url}}/connectors/:connectorId",
+									"host": [
+										"{{pipelines_base_url}}"
+									],
+									"path": [
+										"connectors",
+										":connectorId"
+									],
+									"variable": [
+										{
+											"key": "connectorId",
+											"value": null
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "get connector",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-groupcontextid",
+										"value": "{{group_context_id}}",
+										"type": "text"
+									},
+									{
+										"key": "Accept-Version",
+										"value": "{{pipelines_version}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{pipelines_base_url}}/connectors/:connectorId",
+									"host": [
+										"{{pipelines_base_url}}"
+									],
+									"path": [
+										"connectors",
+										":connectorId"
+									],
+									"variable": [
+										{
+											"key": "connectorId",
+											"value": null
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "update connector",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-groupcontextid",
+										"value": "{{group_context_id}}",
+										"type": "text"
+									},
+									{
+										"key": "Accept-Version",
+										"value": "{{pipelines_version}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "{{content_type}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"description\": \"description being updated\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{pipelines_base_url}}/plugins/:pluginId",
+									"host": [
+										"{{pipelines_base_url}}"
+									],
+									"path": [
+										"plugins",
+										":pluginId"
+									],
+									"variable": [
+										{
+											"key": "pluginId",
+											"value": null
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
 					"name": "create pipeline",
 					"request": {
 						"method": "POST",
@@ -3183,7 +3409,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"attributes\": {\n        \"source\": \"useeio\"\n    },\n    \"tags\": {\n        \"source\": \"useeio\"\n    },\n    \"name\": \"Household Electricity Carbon Footprint\",\n    \"description\": \"Pipeline to calculation carbon from electricity consumption\",\n    \"processorOptions\": {\n        \"chunkSize\": 1\n    },\n    \"transformer\": {\n        \"transforms\": [\n            {\n                \"index\": 0,\n                \"formula\": \":zipcode\",\n                \"outputs\": [\n                    {\n                        \"description\": \"Zipcode where electricity consumption occurred\",\n                        \"index\": 0,\n                        \"key\": \"zipcode\",\n                        \"label\": \"Zip\",\n                        \"type\": \"string\"\n                    }\n                ]\n            },\n            {\n                \"index\": 1,\n                \"formula\": \":month\",\n                \"outputs\": [\n                    {\n                        \"description\": \"Month of electricity consumption\",\n                        \"index\": 0,\n                        \"key\": \"month\",\n                        \"label\": \"Month\",\n                        \"type\": \"string\"\n                    }\n                ]\n            },\n            {\n                \"index\": 2,\n                \"formula\": \":kwh\",\n                \"outputs\": [\n                    {\n                        \"description\": \"kWh of electricity consumption in the month\",\n                        \"index\": 0,\n                        \"key\": \"kwh\",\n                        \"label\": \"kWh\",\n                        \"type\": \"number\"\n                    }\n                ]\n            },\n            {\n                \"index\": 3,\n                \"formula\": \"#electricity_emissions(:kwh,IMPACT(LOOKUP(LOOKUP(LOOKUP(:zipcode, 'ZipcodeToState', 'state'), 'StatePrimaryGen', 'primary_gen'), 'GenToImpact', 'if'), 'co2e', 'co2'))\",\n                \"outputs\": [\n                    {\n                        \"description\": \"CO2e of electricty generation (in tonnes)\",\n                        \"index\": 0,\n                        \"key\": \"co2e\",\n                        \"label\": \"CO2e\",\n                        \"type\": \"number\"\n                    }\n                ]\n            }\n        ],\n        \"parameters\": [\n            {\n                \"index\": 0,\n                \"key\": \"zipcode\",\n                \"label\": \"Zipcode\",\n                \"description\": \"Zipcode of electricity consumption\",\n                \"type\": \"string\"\n            },\n            {\n                \"index\": 1,\n                \"key\": \"month\",\n                \"label\": \"Month\",\n                \"description\": \"Month of electricity generation\",\n                \"type\": \"string\"\n            },\n            {\n                \"index\": 2,\n                \"key\": \"kwh\",\n                \"label\": \"kWh\",\n                \"description\": \"kWh of electricity generation in the month\",\n                \"type\": \"number\"\n            }\n        ]\n    }\n}",
+							"raw": "{\n    \"pluginConfig\": {\n        \"input\": [\n            {\n                \"name\": \"sif-csv-pipeline-plugin\"\n            }\n        ]\n    },\n    \"attributes\": {\n        \"source\": \"useeio\"\n    },\n    \"tags\": {\n        \"source\": \"useeio\"\n    },\n    \"name\": \"Household Electricity Carbon Footprint\",\n    \"description\": \"Pipeline to calculation carbon from electricity consumption\",\n    \"processorOptions\": {\n        \"chunkSize\": 1\n    },\n    \"transformer\": {\n        \"transforms\": [\n            {\n                \"index\": 0,\n                \"formula\": \"AS_TIMESTAMP(:reading date,'M/d/yy')\",\n                \"outputs\": [\n                    {\n                        \"description\": \"Timestamp of business activity.\",\n                        \"index\": 0,\n                        \"key\": \"time\",\n                        \"label\": \"Time\",\n                        \"type\": \"timestamp\"\n                    }\n                ]\n            },\n            {\n                \"index\": 1,\n                \"formula\": \":zipcode\",\n                \"outputs\": [\n                    {\n                        \"description\": \"Zipcode where electricity consumption occurred\",\n                        \"index\": 0,\n                        \"key\": \"zipcode\",\n                        \"label\": \"Zip\",\n                        \"type\": \"string\"\n                    }\n                ]\n            },\n            {\n                \"index\": 2,\n                \"formula\": \":month\",\n                \"outputs\": [\n                    {\n                        \"description\": \"Month of electricity consumption\",\n                        \"index\": 0,\n                        \"key\": \"month\",\n                        \"label\": \"Month\",\n                        \"type\": \"string\"\n                    }\n                ]\n            },\n            {\n                \"index\": 3,\n                \"formula\": \":kwh\",\n                \"outputs\": [\n                    {\n                        \"description\": \"kWh of electricity consumption in the month\",\n                        \"index\": 0,\n                        \"key\": \"kwh\",\n                        \"label\": \"kWh\",\n                        \"type\": \"number\"\n                    }\n                ]\n            },\n            {\n                \"index\": 4,\n                \"formula\": \"#electricity_emissions(:kwh,IMPACT(LOOKUP(LOOKUP(LOOKUP(:zipcode, 'ZipcodeToState', 'state'), 'StatePrimaryGen', 'primary_gen'), 'GenToImpact', 'if'), 'co2e', 'co2'))\",\n                \"outputs\": [\n                    {\n                        \"description\": \"CO2e of electricty generation (in tonnes)\",\n                        \"index\": 0,\n                        \"key\": \"co2e\",\n                        \"label\": \"CO2e\",\n                        \"type\": \"number\"\n                    }\n                ]\n            }\n        ],\n        \"parameters\": [\n            {\n                \"index\": 0,\n                \"key\": \"zipcode\",\n                \"label\": \"Zipcode\",\n                \"description\": \"Zipcode of electricity consumption\",\n                \"type\": \"string\"\n            },\n            {\n                \"index\": 1,\n                \"key\": \"month\",\n                \"label\": \"Month\",\n                \"description\": \"Month of electricity generation\",\n                \"type\": \"string\"\n            },\n            {\n                \"index\": 2,\n                \"key\": \"kwh\",\n                \"label\": \"kWh\",\n                \"description\": \"kWh of electricity generation in the month\",\n                \"type\": \"number\"\n            }\n        ]\n    }\n}",
 							"options": {
 								"raw": {
 									"language": "json"

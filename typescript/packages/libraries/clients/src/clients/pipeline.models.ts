@@ -41,6 +41,8 @@ export interface Transformer {
 }
 
 export interface Pipeline {
+	id: string;
+	connectorConfig?: PipelineConnectorConfig
 	transformer: Transformer;
 	version: number;
 	createdBy: string;
@@ -53,3 +55,14 @@ export interface Pipeline {
 export interface PipelineVersionList {
 	pipelines: Pipeline[];
 }
+
+export interface PipelineConnectorConfig {
+	input: ConnectorConfig[];
+	output?: ConnectorConfig[];
+}
+
+export interface ConnectorConfig {
+	name: string;
+	parameters?: Record<string, string>;
+}
+

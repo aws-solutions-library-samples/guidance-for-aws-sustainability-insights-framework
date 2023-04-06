@@ -7,6 +7,16 @@ Feature:
 		And group /e2e exists
 		And group / has user e2e_tests_admin@amazon.com with role admin and password p@ssword1
 
+	Scenario: Grant group /e2e access to sif-csv-pipeline-input-connector processor
+		Given I'm using the pipelines api
+		And I authenticate using email e2e_tests_admin@amazon.com and password p@ssword1
+		When I GET /connectors?name=sif-csv-pipeline-input-connector
+		Then response code should be 200
+		And I store the value of body path $.connectors[0].id as connector_id in global scope
+		When I remove header Content-Type
+		When I PUT /connectors/`connector_id`/groups/%2fe2e
+		Then response code should be 204
+
 	Scenario: List groups
 		Given I'm using the accessManagement api
 		And I authenticate using email e2e_tests_admin@amazon.com and password p@ssword1
@@ -133,7 +143,7 @@ Feature:
 		Given I'm using the pipelines api
 		And I authenticate using email e2e_tests_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /e2e
-		And I set body to {"attributes":{"type":"E2E"},"name":"Household Electricity Carbon Footprint","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":month","outputs":[{"description":"Month of electricity consumption","index":0,"key":"month","label":"Month","type":"string"}]},{"index":3,"formula":":kwh","outputs":[{"description":"kWh of electricity consumption in the month","index":0,"key":"kwh","label":"kWh","type":"number"}]},{"index":4,"formula":"#electricity_emissions(:kwh,IMPACT(LOOKUP(LOOKUP(LOOKUP(:zipcode, 'ZipcodeToState', 'zipcode', 'state'), 'StatePrimaryGen', 'state', 'primary_gen'), 'GenToImpact', 'gen', 'if'), 'co2e', 'co2'))","outputs":[{"description":"CO2e of electricty generation (in tonnes)","index":0,"key":"co2e","label":"CO2e","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"month","label":"Month","description":"Month of electricity generation","type":"string"},{"index":3,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"Household Electricity Carbon Footprint","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":month","outputs":[{"description":"Month of electricity consumption","index":0,"key":"month","label":"Month","type":"string"}]},{"index":3,"formula":":kwh","outputs":[{"description":"kWh of electricity consumption in the month","index":0,"key":"kwh","label":"kWh","type":"number"}]},{"index":4,"formula":"#electricity_emissions(:kwh,IMPACT(LOOKUP(LOOKUP(LOOKUP(:zipcode, 'ZipcodeToState', 'zipcode', 'state'), 'StatePrimaryGen', 'state', 'primary_gen'), 'GenToImpact', 'gen', 'if'), 'co2e', 'co2'))","outputs":[{"description":"CO2e of electricty generation (in tonnes)","index":0,"key":"co2e","label":"CO2e","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"month","label":"Month","description":"Month of electricity generation","type":"string"},{"index":3,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -144,12 +154,12 @@ Feature:
 		And I authenticate using email e2e_tests_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /e2e
 		And I set body to { "expiration" : 300}
-		When I POST to /pipelines/`e2e_pipeline_id`/inputUploadUrl
+		When I POST to /pipelines/`e2e_pipeline_id`/executions
 		Then response code should be 201
 		And response body should contain id
 		And response body path $.pipelineId should be `e2e_pipeline_id`
-		And response body should contain url
-		And I store the value of body path $.url as e2e_upload_url in global scope
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as e2e_upload_url in global scope
 		And I store the value of body path $.id as household_electricity_carbon_footprint_pipeline_execution_id in global scope
 		When I GET /pipelines/`e2e_pipeline_id`/executions/`household_electricity_carbon_footprint_pipeline_execution_id`
 		And response body path $.pipelineId should be `e2e_pipeline_id`
@@ -265,6 +275,13 @@ Feature:
 		When I GET /referenceDatasets
 		Then response code should be 200
 		And response body path $.referenceDatasets.length should be 0
+
+	Scenario: Revoke access to connector from group e2e
+		When I'm using the pipelines api
+		Given I authenticate using email e2e_tests_admin@amazon.com and password p@ssword1
+		When I remove header Content-Type
+		And I DELETE /connectors/`connector_id`/groups/%2fe2e
+		Then response code should be 204
 
 	Scenario: Teardown - Cleanup users
 		When I'm using the accessManagement api

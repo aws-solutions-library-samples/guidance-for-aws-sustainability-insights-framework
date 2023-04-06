@@ -12,22 +12,21 @@
  */
 
 import type { FastifyBaseLogger } from 'fastify';
-import type { GroupPermissions } from '@sif/authz';
-import type { MetadataBearer, RequestPresigningArguments } from '@aws-sdk/types';
-import type { Client, Command } from '@aws-sdk/smithy-client';
 import { ulid } from 'ulid';
-import { GetObjectCommand, ListObjectsCommand, ListObjectsCommandInput, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { atLeastContributor, atLeastReader } from '@sif/authz';
-import { NotFoundError, UnauthorizedError } from '@sif/resource-api-base';
-import { getPipelineAuditKey, getPipelineErrorKey, getPipelineInputKey } from '../../utils/helper.utils.js';
-import type { SecurityContext } from '@sif/authz';
-import type { PipelineExecutionUpdate, PipelineExecutionList, PipelineExecutionWithMetadata, SignedUrlResponse, UploadSignedUrlResponse, SignedUrlListResponse, ActionType } from './schemas.js';
-import type { PipelineProcessorsRepository } from './repository.js';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { atLeastContributor, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
+import { NotImplementedError, UnauthorizedError } from '@sif/resource-api-base';
 import type { EventPublisher } from '@sif/events';
-import type { PipelineClient, LambdaRequestContext } from '@sif/clients';
-import { AuditFilePendingError } from '../../common/errors.js';
-import pLimit from 'p-limit';
+import { getPipelineErrorKey, getPipelineInputKey } from '../../utils/helper.utils.js';
+import type { InlineExecutionOutputs, PipelineExecution, PipelineExecutionList, PipelineExecutionRequest, PipelineExecutionUpdateParams, SignedUrlResponse } from './schemas.js';
+import type { PipelineProcessorsRepository } from './repository.js';
+import type { ConnectorUtility } from '../../utils/connectorUtility';
+import type { GetLambdaRequestContext, GetSignedUrl } from '../../plugins/module.awilix';
+import type { CalculatorClient, CalculatorInlineTransformResponse, CalculatorRequest, Pipeline, PipelineClient, Transform, Transformer } from '@sif/clients';
+import { validateNotEmpty } from '@sif/validators';
 import dayjs from 'dayjs';
+import type { AggregationTaskEvent } from '../../stepFunction/tasks/model.js';
+import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 
 const FIVE_MINUTES = 5 * 60;
 
@@ -36,38 +35,33 @@ export class PipelineProcessorsService {
 	private readonly s3Client: S3Client;
 	private readonly authChecker: GroupPermissions;
 	private readonly pipelineClient: PipelineClient;
+	private readonly connectorUtility: ConnectorUtility;
 	private readonly pipelineProcessorsRepository: PipelineProcessorsRepository;
 	private readonly bucketName: string;
 	private readonly eventPublisher: EventPublisher;
 	private readonly bucketPrefix: string;
-	private readonly auditFileProcessingTimeInMinutes: number;
-	private readonly concurrencyLimit: number;
-
-	private readonly getSignedUrl: <InputTypesUnion extends object, InputType extends InputTypesUnion, OutputType extends MetadataBearer = MetadataBearer>(
-		client: Client<any, InputTypesUnion, MetadataBearer, any>,
-		command: Command<InputType, OutputType, any, InputTypesUnion, MetadataBearer>,
-		options?: RequestPresigningArguments
-	) => Promise<string>;
-
+	private readonly getLambdaRequestContext: GetLambdaRequestContext;
+	private readonly getSignedUrl: GetSignedUrl;
+	private readonly calculatorClient: CalculatorClient;
+	private readonly sfnClient: SFNClient;
+	private readonly inlineStateMachineArn: string;
 
 	public constructor(
 		log: FastifyBaseLogger,
 		authChecker: GroupPermissions,
 		s3Client: S3Client,
-		getSignedUrl: <InputTypesUnion extends object, InputType extends InputTypesUnion, OutputType extends MetadataBearer = MetadataBearer>(
-			client: Client<any, InputTypesUnion, MetadataBearer, any>,
-			command: Command<InputType, OutputType, any, InputTypesUnion, MetadataBearer>,
-			options?: RequestPresigningArguments
-		) => Promise<string>,
+		getSignedUrl: GetSignedUrl,
 		pipelineProcessorsRepository: PipelineProcessorsRepository,
 		bucketName: string,
 		bucketPrefix: string,
 		eventPublisher: EventPublisher,
 		pipelineClient: PipelineClient,
-		concurrencyLimit: number,
-		auditFileProcessingTimeInMinutes: number
+		connectorUtility: ConnectorUtility,
+		getLambdaRequestContext: GetLambdaRequestContext,
+		calculatorClient: CalculatorClient,
+		sfnClient: SFNClient,
+		inlineStateMachineArn: string
 	) {
-		this.concurrencyLimit = concurrencyLimit;
 		this.pipelineClient = pipelineClient;
 		this.log = log;
 		this.s3Client = s3Client;
@@ -77,10 +71,204 @@ export class PipelineProcessorsService {
 		this.pipelineProcessorsRepository = pipelineProcessorsRepository;
 		this.eventPublisher = eventPublisher;
 		this.bucketPrefix = bucketPrefix;
-		this.auditFileProcessingTimeInMinutes = auditFileProcessingTimeInMinutes;
+		this.connectorUtility = connectorUtility;
+		this.getLambdaRequestContext = getLambdaRequestContext;
+		this.calculatorClient = calculatorClient;
+		this.sfnClient = sfnClient;
+		this.inlineStateMachineArn = inlineStateMachineArn;
 	}
 
-	public async get(securityContext: SecurityContext, pipelineId: string, id: string): Promise<PipelineExecutionWithMetadata | undefined> {
+	private validatePipelineExecutionAccess(resourceGroups: string[], groupContextId, executionId: string) {
+		this.log.trace(`PipelineProcessorsService>  validatePipelineExecutionAccess> resourceGroups:${resourceGroups}, groupContextId: ${groupContextId}, executionId: ${executionId}`);
+		const isAllowed = this.authChecker.matchGroup(resourceGroups, groupContextId);
+		if (!isAllowed) {
+			throw new UnauthorizedError(`The caller does not have access to the group(s) that pipeline execution '${executionId}' is part of.`);
+		}
+		this.log.trace(`PipelineProcessorsService>  validatePipelineExecutionAccess> exit> isAllowed:${isAllowed}`);
+	}
+
+	private async runJobMode(sc: SecurityContext, pipeline: Pipeline, newExecution: PipelineExecution, params: { expiration: number }): Promise<PipelineExecution> {
+		this.log.trace(`PipelineProcessorService> runJobMode> pipeline: ${pipeline}, newExecution: ${newExecution}`);
+
+		const { id: pipelineId } = pipeline;
+		const { id: executionId } = newExecution;
+
+		const connector = await this.connectorUtility.resolveConnectorFromPipeline(sc, pipeline);
+		await this.connectorUtility.validateConnectorParameters(connector, pipeline, newExecution);
+
+		await this.pipelineProcessorsRepository.put(newExecution);
+		// publish pipeline execution created event
+		await this.eventPublisher.publishTenantEvent({
+			resourceType: 'pipelineExecution',
+			eventType: 'created',
+			id: executionId,
+		});
+
+		// let's add the rawInputUploadUrl to the execution response
+		if (connector.requiresFileUpload) {
+			newExecution.inputUploadUrl = await this.generatePipelineExecutionInputUrl(sc, pipelineId, executionId, params.expiration, 'raw');
+		} else {
+			// since the connector doesn't require a file to be uploaded, we will fire the connector integration event
+			await this.connectorUtility.publishConnectorIntegrationEvent(pipeline, newExecution, connector, sc);
+		}
+		this.log.trace(`PipelineProcessorService> runJobMode> newExecution: ${newExecution}`);
+		return newExecution;
+	}
+
+	private async triggerAggregationStateMachine(groupContextId: string, pipelineId: string, pipelineExecutionId: string, transformer: Transformer) {
+		this.log.trace(`PipelineProcessorService> triggerAggregationStateMachine> groupContextId: ${groupContextId}, pipelineId: ${pipelineId}, pipelineExecutionId: ${pipelineExecutionId}, transformer: ${transformer}`);
+
+		const aggregationTaskEvent: AggregationTaskEvent[] = [{
+			pipelineId,
+			transformer,
+			groupContextId,
+			pipelineExecutionId,
+		}];
+
+		const executionCommandResponse = await this.sfnClient.send(
+			new StartExecutionCommand({
+				stateMachineArn: this.inlineStateMachineArn,
+				input: JSON.stringify(aggregationTaskEvent),
+			})
+		);
+
+		this.log.trace(`PipelineProcessorService> triggerAggregationStateMachine> exit> executionCommandResponse: ${executionCommandResponse}`);
+	}
+
+	private assembleCalculatorInlineResponse(response: CalculatorInlineTransformResponse, transforms: Transform[]): InlineExecutionOutputs {
+		this.log.trace(`PipelineProcessorService> assembleCalculatorInlineResponse> response: ${response}, transforms: ${JSON.stringify(transforms)}`);
+
+		// we need to figure which output field is timestamp, so we can format it as ISO string
+		const timestampFields = transforms
+			.filter(o => o?.outputs?.[0].type === 'timestamp' && o?.outputs?.[0].key !== undefined)
+			.map(o => o.outputs[0].key);
+
+		const outputs = {
+			errors: response.errors.length === 0 ? undefined : response.errors,
+			outputs: response.data.length === 0 ? undefined : response.data
+				// data is array of JSON string
+				.map(d => JSON.parse(d))
+				// properly format the timestamp field to ISO string
+				.map(d => {
+					for (const key in d) {
+						if (timestampFields.includes(key) && dayjs.utc(d[key]).isValid()) {
+							d[key] = dayjs.utc(d[key]).toISOString();
+						}
+					}
+					return d;
+				})
+		};
+
+		this.log.trace(`PipelineProcessorService> assembleCalculatorInlineResponse> outputs: ${outputs}`);
+		return outputs;
+	}
+
+	private async runInlineMode(sc: SecurityContext, pipeline: Pipeline, newExecution: PipelineExecution, options: { inputs: unknown[] }): Promise<PipelineExecution> {
+		this.log.trace(`PipelineProcessorService> runInlineMode> pipelineId: ${pipeline}, newExecution: ${newExecution}`);
+
+		const { id: pipelineId, transformer } = pipeline;
+		const { id: executionId } = newExecution;
+		const { groupId: groupContextId, email } = sc;
+
+		validateNotEmpty(options.inputs, 'inputs');
+
+		// create the initial pipeline execution in waiting state
+		await this.pipelineProcessorsRepository.put(newExecution);
+
+		const calculatorRequest: CalculatorRequest = {
+			pipelineId,
+			executionId,
+			groupContextId,
+			actionType: 'create',
+			username: email,
+			sourceData: options.inputs.map((d) => JSON.stringify(d)),
+			parameters: transformer.parameters,
+			transforms: transformer.transforms,
+			dryRun: false
+		};
+
+		try {
+			const calculatorResponse = await this.calculatorClient.process(calculatorRequest) as CalculatorInlineTransformResponse;
+			// store the error using the appropriate error object key (similar with job mode)
+			if (calculatorResponse.errors.length > 0) {
+				await this.s3Client.send(
+					new PutObjectCommand({
+						Body: calculatorResponse.errors.join('\r\n'),
+						Bucket: this.bucketName,
+						Key: getPipelineErrorKey(this.bucketPrefix, pipelineId, executionId),
+					})
+				);
+			}
+			// set the execution status based on errors
+			newExecution.status = calculatorResponse.errors.length > 0 ? 'failed' : 'success';
+			// set the execution outputs from the calculator response
+			newExecution.inlineExecutionOutputs = this.assembleCalculatorInlineResponse(calculatorResponse, transformer.transforms);
+			// Trigger pipeline/metric aggregation state machine
+			await this.triggerAggregationStateMachine(groupContextId, pipelineId, executionId, transformer);
+		} catch (Exception) {
+			this.log.error(`PipelineProcessorService> runInlineMode> error> Exception: ${Exception}`);
+			newExecution.status = 'failed';
+			newExecution.inlineExecutionOutputs = {
+				errors: [Exception]
+			};
+		} finally {
+			// we will not store the inlineExecutionOutputs because DynamoDB limit issue
+			const { inlineExecutionOutputs, ...executionWithoutInlineExecutionOutputs } = newExecution;
+			// update the pipeline execution status
+			await this.pipelineProcessorsRepository.put(executionWithoutInlineExecutionOutputs);
+		}
+
+		this.log.trace(`PipelineProcessorService> runInlineMode> exit> newExecution: ${newExecution}`);
+		return newExecution;
+	}
+
+	public async create(sc: SecurityContext, pipelineId: string, executionParams: PipelineExecutionRequest): Promise<PipelineExecution> {
+		this.log.info(`PipelineProcessorService> create> pipelineId: ${pipelineId}, executionParams: ${JSON.stringify(executionParams)}`);
+
+		// authorization role check
+		const isAuthorized = this.authChecker.isAuthorized([sc.groupId], sc.groupRoles, atLeastContributor, 'all');
+		if (!isAuthorized) {
+			throw new UnauthorizedError(`The caller is not an \`contributor\` of the group in context \`${JSON.stringify(sc.groupId)}`);
+		}
+
+		// check if the pipeline exists
+		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(sc));
+
+		// create pipeline execution object
+		// ensure that execution id is always lower case
+		const executionId = ulid().toLowerCase();
+		const execution: PipelineExecution = {
+			actionType: executionParams.actionType,
+			createdBy: sc.email,
+			createdAt: new Date(Date.now()).toISOString(),
+			id: executionId,
+			pipelineId,
+			pipelineVersion: pipeline.version,
+			connectorOverrides: executionParams.connectorOverrides,
+			groupContextId: sc.groupId,
+			status: 'waiting',
+			// If no file is uploaded against this execution resource, the data will be removed automatically by DynamoDB
+			// TODO: Ticket(349) need to rethink the ttl part here, does the user need to know there is a ttl on this ? if this is being removed by dynamodb, we might have to consume the stream and update the status of a an expired
+			// TODO: execution to show its failed with a message that "expired because no file uploaded etc"
+			// ttl: expirationTime,
+		};
+
+		let updatedExecution;
+		switch (executionParams.mode) {
+			case 'inline' :
+				updatedExecution = await this.runInlineMode(sc, pipeline, execution, executionParams.inlineExecutionOptions);
+				break;
+			case 'job':
+				updatedExecution = await this.runJobMode(sc, pipeline, execution, { expiration: executionParams.expiration });
+				break;
+			default:
+				throw new NotImplementedError(`Execution mode ${executionParams.mode} is not supported.`);
+		}
+
+		return updatedExecution;
+	}
+
+	public async get(securityContext: SecurityContext, pipelineId: string, id: string): Promise<PipelineExecution | undefined> {
 		this.log.info(`PipelineProcessorsService>  get> id:${id}`);
 
 		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastReader, 'all');
@@ -89,17 +277,14 @@ export class PipelineProcessorsService {
 		}
 
 		const pipelineExecution = await this.pipelineProcessorsRepository.get(pipelineId, id);
-
-		if (!pipelineExecution) {
-			throw new NotFoundError(`Pipeline Execution ${id} cannot be found`);
-		}
+		await this.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
 
 		this.log.info(`PipelineProcessorsService> get> exit> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
 		return pipelineExecution;
 	}
 
-	public async getById(securityContext: SecurityContext, executionId: string): Promise<PipelineExecutionWithMetadata> {
-		this.log.info(`PipelineProcessorsService>  getById> id:${executionId}`);
+	public async getById(securityContext: SecurityContext, executionId: string): Promise<PipelineExecution> {
+		this.log.info(`PipelineProcessorService>  getById> id:${executionId}`);
 
 		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastReader, 'all');
 		if (!isAuthorized) {
@@ -107,33 +292,49 @@ export class PipelineProcessorsService {
 		}
 
 		const pipelineExecution = await this.pipelineProcessorsRepository.getById(executionId);
-
-		if (!pipelineExecution) {
-			throw new NotFoundError(`Pipeline Execution ${executionId} cannot be found`);
-		}
+		await this.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
 
 		this.log.info(`PipelineProcessorsService> getById> exit> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
 		return pipelineExecution;
 	}
 
-	public async update(securityContext: SecurityContext, pipelineId: string, id: string, toUpdate: PipelineExecutionUpdate): Promise<void> {
-		this.log.info(`PipelineProcessorsService>  update> pipelineId:${pipelineId}, id:${id}, toUpdate:${toUpdate}`);
-
-		const existing = await this.get(securityContext, pipelineId, id);
-
-		// if status is no longer in waiting that means execution has started
-		if (toUpdate.status !== 'waiting') {
-			delete existing['ttl'];
+	public async generatePipelineErrorUrl(securityContext: SecurityContext, pipelineId: string, executionId: string, expiresIn = FIVE_MINUTES): Promise<SignedUrlResponse> {
+		this.log.info(` > generatePipelineErrorUrl > pipelineId: ${pipelineId}, executionId: ${executionId} `);
+		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastContributor, 'all');
+		if (!isAuthorized) {
+			throw new UnauthorizedError(`The caller is not an \`contributor\` of the group in context \`${JSON.stringify(securityContext.groupId)}`);
 		}
 
-		await this.pipelineProcessorsRepository.put({
-			...existing,
-			...toUpdate,
-			updatedBy: securityContext.email,
-			updatedAt: new Date(Date.now()).toISOString(),
+		// check to see if pipeline execution exists (will throw NotFoundError if not)
+		const pipelineExecution = await this.pipelineProcessorsRepository.get(pipelineId, executionId);
+		await this.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
+
+		const params: GetObjectCommand = new GetObjectCommand({
+			Bucket: this.bucketName,
+			Key: getPipelineErrorKey(this.bucketPrefix, pipelineId, executionId),
+		});
+		const signedUrl = await this.getSignedUrl(this.s3Client, params, { expiresIn: expiresIn });
+
+		this.log.info(` > generatePipelineErrorUrl > exit`);
+		return { url: signedUrl };
+	}
+
+	private async generatePipelineExecutionInputUrl(securityContext: SecurityContext, pipelineId: string, executionId: string, expiresIn = FIVE_MINUTES, type?: 'raw' | 'transformed'): Promise<string> {
+		this.log.info(` > generatePipelineInputUploadUrl > , pipelineId: ${pipelineId}, executionId: ${executionId}, expiresIn: ${expiresIn}`);
+
+
+		// This will throw Exception if user does not have access to the pipeline
+		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(securityContext));
+
+		const params: PutObjectCommand = new PutObjectCommand({
+			Bucket: this.bucketName,
+			Key: getPipelineInputKey(this.bucketPrefix, pipeline.id, executionId, type),
 		});
 
-		this.log.info(`PipelineProcessorsService> update> exit>`);
+		const url = await this.getSignedUrl(this.s3Client, params, { expiresIn });
+
+		this.log.info(` > generatePipelineUploadUrl > exit`);
+		return url;
 	}
 
 	public async list(securityContext: SecurityContext, pipelineId: string, fromId?: string, count?: number): Promise<PipelineExecutionList> {
@@ -144,9 +345,12 @@ export class PipelineProcessorsService {
 			throw new UnauthorizedError(`The caller's role should be at least a \`reader\` of the group in context \`${JSON.stringify(securityContext.groupId)}`);
 		}
 
+		// This will throw exception if user does not have access to the pipeline
+		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(securityContext));
+
 		let pipelineExecutionList: PipelineExecutionList;
 
-		const [pipelineExecutions, paginationKey] = await this.pipelineProcessorsRepository.list(pipelineId, fromId ? { id: fromId } : undefined, count);
+		const [pipelineExecutions, paginationKey] = await this.pipelineProcessorsRepository.list(pipeline.id, fromId ? { id: fromId } : undefined, count);
 
 		pipelineExecutionList = {
 			executions: pipelineExecutions,
@@ -163,127 +367,33 @@ export class PipelineProcessorsService {
 		return pipelineExecutionList;
 	}
 
-	public async generatePipelineAuditUrl(securityContext: SecurityContext, pipelineId: string, executionId: string, expiresIn = FIVE_MINUTES): Promise<SignedUrlListResponse> {
-		this.log.info(` > generatePipelineAuditUrl > pipelineId: ${pipelineId}, executionId: ${executionId} `);
-		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastReader, 'all');
+	public async update(sc: SecurityContext, pipelineId: string, id: string, params: PipelineExecutionUpdateParams): Promise<void> {
+		this.log.info(`PipelineProcessorsService>  update> pipelineId:${pipelineId}, id:${id}, toUpdate:${params}`);
+
+		// authorization role check
+		const isAuthorized = this.authChecker.isAuthorized([sc.groupId], sc.groupRoles, atLeastContributor, 'all');
 		if (!isAuthorized) {
-			throw new UnauthorizedError(`The caller is not an \`reader\` of the group in context \`${JSON.stringify(securityContext.groupId)}`);
+			throw new UnauthorizedError(`The caller is not an \`contributor\` of the group in context \`${JSON.stringify(sc.groupId)}`);
 		}
 
-		// check to see if pipeline execution exists (will throw NotFoundError if not)
-		const { status, updatedAt } = await this.pipelineProcessorsRepository.get(pipelineId, executionId);
+		const execution = await this.get(sc, pipelineId, id);
 
-		if (!['success', 'failed'].includes(status)) {
-			throw new AuditFilePendingError(`pipeline execution is not finished yet.`);
-		}
-
-		const listObjectParams: ListObjectsCommandInput = {
-			Bucket: this.bucketName,
-			Prefix: getPipelineAuditKey(this.bucketPrefix, pipelineId, executionId),
-		};
-
-		const results = await this.s3Client.send(new ListObjectsCommand(listObjectParams));
-
-		if (!results.Contents || results.Contents.length < 1 || (dayjs(Date.now()).diff(dayjs(updatedAt), 'minutes') < this.auditFileProcessingTimeInMinutes)) {
-			throw new AuditFilePendingError(`audit files are still being processed.`);
-		}
-
-		const limit = pLimit(this.concurrencyLimit);
-
-		const getSignedUrlFutures = results.Contents.map((o) => {
-			return limit(async () => {
-				const params: GetObjectCommand = new GetObjectCommand({
-					Bucket: this.bucketName,
-					Key: o.Key
-				});
-				const signedUrl = await this.getSignedUrl(this.s3Client, params, { expiresIn: expiresIn });
-				return signedUrl;
-			});
-		});
-
-		const signedUrlList = (await Promise.all(getSignedUrlFutures)).flat();
-
-		this.log.info(` > generatePipelineAuditUrl > exit`);
-		return { urls: signedUrlList };
-	}
-
-	public async generatePipelineErrorUrl(securityContext: SecurityContext, pipelineId: string, executionId: string, expiresIn = FIVE_MINUTES): Promise<SignedUrlResponse> {
-		this.log.info(` > generatePipelineErrorUrl > pipelineId: ${pipelineId}, executionId: ${executionId} `);
-		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastContributor, 'all');
-		if (!isAuthorized) {
-			throw new UnauthorizedError(`The caller is not an \`contributor\` of the group in context \`${JSON.stringify(securityContext.groupId)}`);
-		}
-
-		// check to see if pipeline execution exists (will throw NotFoundError if not)
-		await this.pipelineProcessorsRepository.get(pipelineId, executionId);
-
-		const params: GetObjectCommand = new GetObjectCommand({
-			Bucket: this.bucketName,
-			Key: getPipelineErrorKey(this.bucketPrefix, pipelineId, executionId),
-		});
-		const signedUrl = await this.getSignedUrl(this.s3Client, params, { expiresIn: expiresIn });
-
-		this.log.info(` > generatePipelineErrorUrl > exit`);
-		return { url: signedUrl };
-	}
-
-	public async generatePipelineExecutionInputUrl(securityContext: SecurityContext, pipelineId: string, expiresIn = FIVE_MINUTES, actionType?: ActionType): Promise<UploadSignedUrlResponse> {
-		this.log.info(` > generatePipelineUploadUrl > securityContext: ${JSON.stringify(securityContext)}, pipelineId: ${pipelineId}`);
-
-		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastContributor, 'all');
-		if (!isAuthorized) {
-			throw new UnauthorizedError(`The caller is not an \`contributor\` of the group in context \`${JSON.stringify(securityContext.groupId)}`);
-		}
-
-		const requestContext: LambdaRequestContext = {
-			authorizer: {
-				claims: {
-					email: securityContext.email,
-					'cognito:groups': `${securityContext.groupId}|||reader`,
-					groupContextId: securityContext.groupId,
-				},
-			},
-		};
-
-		const existingPipeline = await this.pipelineClient.get(pipelineId, undefined, requestContext);
-
-		if (!existingPipeline) {
-			throw new NotFoundError(`pipeline ${pipelineId} not found`);
-		}
-
-		// ensure that execution id is always lower case
-		const executionId = ulid().toLowerCase();
-
-		const params: PutObjectCommand = new PutObjectCommand({
-			Bucket: this.bucketName,
-			Key: getPipelineInputKey(this.bucketPrefix, pipelineId, executionId),
-		});
-
-		const signedUrl = await this.getSignedUrl(this.s3Client, params, { expiresIn });
-
-		const secondsSinceEpoch = Math.round(Date.now() / 1000);
-		const expirationTime = secondsSinceEpoch + expiresIn;
+		await this.validatePipelineExecutionAccess([execution.groupContextId], sc.groupId, id);
 
 		await this.pipelineProcessorsRepository.put({
-			pipelineId,
-			id: executionId,
-			pipelineVersion: existingPipeline.version,
-			createdBy: securityContext.email,
-			createdAt: new Date(Date.now()).toISOString(),
-			groupContextId: securityContext.groupId,
-			actionType: actionType,
-			status: 'waiting',
-			// If no file is uploaded against this execution resource, the data will be removed automatically by DynamoDB
-			ttl: expirationTime,
+			...execution,
+			...params,
+			updatedBy: sc.email,
+			updatedAt: new Date(Date.now()).toISOString(),
 		});
 
-		await this.eventPublisher.publishEvent({
+		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'pipelineExecution',
-			eventType: 'created',
-			id: executionId,
+			eventType: 'updated',
+			id: execution.id
 		});
 
-		this.log.info(` > generatePipelineUploadUrl > exit`);
-		return { url: signedUrl, id: executionId, pipelineId };
+		this.log.info(`PipelineProcessorsService> update> exit>`);
 	}
 }
+

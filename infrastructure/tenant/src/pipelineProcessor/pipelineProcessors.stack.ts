@@ -29,15 +29,15 @@ import {
 	tenantDatabaseUsernameParameter
 } from '../shared/auroraSeeder.construct.js';
 import { NagSuppressions } from 'cdk-nag';
-import { accessManagementApiFunctionNameParameter, calculatorFunctionNameParameter, pipelinesApiFunctionNameParameter } from '../shared/ssm.construct.js';
+import { accessManagementApiFunctionNameParameter, calculatorFunctionNameParameter, pipelineProcessorApiFunctionNameParameter, pipelinesApiFunctionNameParameter } from '../shared/ssm.construct.js';
 import { kmsKeyArnParameter } from '../shared/kms.construct.js';
 
 export type PipelineProcessorsStackProperties = StackProps & {
 	tenantId: string;
 	environment: string;
 	caCert: string;
-	auditFileProcessingTime: number;
 	downloadAuditFileParallelLimit: number;
+	csvConnectorName: string;
 };
 
 export class PipelineProcessorsApiStack extends Stack {
@@ -134,10 +134,17 @@ export class PipelineProcessorsApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
+		const pipelineProcessorApiFunctionName = StringParameter.fromStringParameterAttributes(this, 'FunctionName', {
+			parameterName: pipelineProcessorApiFunctionNameParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
+
 		new PipelineProcessors(this, 'PipelineProcessors', {
 			...props,
 			accessManagementApiFunctionName,
 			pipelineApiFunctionName,
+			pipelineProcessorApiFunctionName,
 			cognitoUserPoolId,
 			eventBusName,
 			bucketName,
@@ -155,8 +162,9 @@ export class PipelineProcessorsApiStack extends Stack {
 			caCert: props.caCert,
 			kmsKeyArn,
 			calculatorFunctionName,
-			auditFileProcessingTime: props.auditFileProcessingTime,
-			downloadAuditFileParallelLimit: props.downloadAuditFileParallelLimit
+			downloadAuditFileParallelLimit: props.downloadAuditFileParallelLimit,
+			csvConnectorName: props.csvConnectorName
+
 		});
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [

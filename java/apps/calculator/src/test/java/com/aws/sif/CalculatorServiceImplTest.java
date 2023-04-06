@@ -16,6 +16,9 @@ package com.aws.sif;
 import com.aws.sif.resources.users.User;
 import com.aws.sif.resources.users.UserNotFoundException;
 import com.aws.sif.resources.users.UsersClient;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import org.joda.time.DateTime;
 import com.aws.sif.audits.Auditor;
 import com.aws.sif.execution.*;
@@ -33,11 +36,14 @@ import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.jupiter.SystemStub;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.*;
+import java.util.stream.Stream;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -72,6 +78,9 @@ class CalculatorServiceImplTest {
 
         private Authorizer AUTHORIZER = new Authorizer("someone@somewhere.com", GROUP_CONTEXT_ID, Set.of(GROUP_CONTEXT_ID));
 
+		private Gson testGson = new GsonBuilder().create();
+		Type MapStringStringType = new TypeToken<Map<String, String>>() {}.getType();
+
         @BeforeEach
         public void initEach() {
                 environmentVariables
@@ -79,7 +88,7 @@ class CalculatorServiceImplTest {
                                 .set("TENANT_ID", "abc123")
                                 .set("ENVIRONMENT", "dev");
 
-                underTest = new CalculatorServiceImpl(calculator, s3Utils, auditor, config, rdsWriter, usersClient);
+                underTest = new CalculatorServiceImpl(calculator, s3Utils, auditor, config, rdsWriter, usersClient, new Gson());
 
                 when(config.getString("calculator.upload.s3.bucket")).thenReturn("myBucket");
         }
@@ -88,9 +97,8 @@ class CalculatorServiceImplTest {
         public void invalidRequestDefinition() throws InterruptedException {
                 // request...
                 var request = TransformRequest.builder()
-                                .csvHeader("\"one\",\"two\"")
-                                .csvSourceData(List.of(
-                                                "1,x"))
+                                .sourceData(List.of(
+                                                "{\"one\":1,\"two\":x}"))
                                 .parameters(List.of(
                                                 new TransformParameter("one", "number"),
                                                 new TransformParameter("two", "number")))
@@ -99,10 +107,6 @@ class CalculatorServiceImplTest {
                                                                 List.of(new TransformOutput(0, "sum", "number", false, null,
                                                                                 null)))))
                                 .build();
-
-                // mock
-                when(config.getString("calculator.upload.s3.audit.key"))
-                                .thenReturn("pipelines/<pipelineId>/executions/<executionId>/audit/");
 
                 // test
                 var actual = (InlineTransformResponse) underTest.process(request);
@@ -132,11 +136,10 @@ class CalculatorServiceImplTest {
                                                 new TransformParameter("one", "number"),
                                                 new TransformParameter("two", "string"),
                                                 new TransformParameter("three", "boolean")))
-                                .csvHeader("\"time\",\"one\",\"two\",\"three\",\"four\"")
-                                .csvSourceData(List.of(
-                                                "2022-12-06 12:07,1,\"one\",true,999",
-                                                "2022-12-06 12:08,2,\"two\",false,999",
-												"2022-12-06 12:09,,,,"
+                                .sourceData(List.of(
+                                                "{\"time\":\"2022-12-06 12:07\",\"one\":1,\"two\":\"one\",\"three\":true}",
+												"{\"time\":\"2022-12-06 12:08\",\"one\":2,\"two\":\"two\",\"three\":false}",
+												"{\"time\":\"2022-12-06 12:09\",\"one\":null,\"two\":null,\"three\":null}"
                                                 ))
                                 .transforms(List.of(
                                                 new Transform(0, ":time",
@@ -157,16 +160,13 @@ class CalculatorServiceImplTest {
                 // mocks
                 mockGetUser("someone@somewhere.com", GROUP_CONTEXT_ID);
 
-                when(config.getString("calculator.upload.s3.audit.key"))
-                                .thenReturn("pipelines/<pipelineId>/executions/<executionId>/audit/");
-
                 var output0Formula = request.getTransforms().get(0).getFormula();
                 var output1Formula = request.getTransforms().get(1).getFormula();
                 var output2Formula = request.getTransforms().get(2).getFormula();
                 var output3Formula = request.getTransforms().get(3).getFormula();
 
                 var row1Params = new LinkedHashMap<String, DynamicTypeValue>();
-                row1Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:07"));
+                row1Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:07-1-one-true"));
                 row1Params.put("time", new StringTypeValue("2022-12-06 12:07"));
                 row1Params.put("one", new NumberTypeValue(1));
                 row1Params.put("two", new StringTypeValue("one"));
@@ -231,7 +231,7 @@ class CalculatorServiceImplTest {
                                                 "REF('squared')", "1")).build());
 
                 var row2Params = new LinkedHashMap<String, DynamicTypeValue>();
-                row2Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:08"));
+                row2Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:08-2-two-false"));
                 row2Params.put("time", new StringTypeValue("2022-12-06 12:08"));
                 row2Params.put("one", new NumberTypeValue(2));
                 row2Params.put("two", new StringTypeValue("two"));
@@ -297,7 +297,7 @@ class CalculatorServiceImplTest {
 
 
  				var row3Params = new LinkedHashMap<String, DynamicTypeValue>();
-                row3Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:09"));
+                row3Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:09-null-null-null"));
                 row3Params.put("time", new StringTypeValue("2022-12-06 12:09"));
                 row3Params.put("one", new NullValue());
                 row3Params.put("two", new NullValue());
@@ -367,22 +367,22 @@ class CalculatorServiceImplTest {
                 // verify
                 assertEquals(0, actual.getErrors().size());
                 assertEquals(3, actual.getData().size());
-                var row1 = actual.getData().get(0).split(",");
-                assertEquals(4, row1.length);
-                assertEquals(row1Step0Result.asString(), row1[0]);
-                assertEquals(row1Step1Result.asString(), row1[1]);
-                assertEquals(row1Step2Result.asString(), row1[2]);
-                assertEquals(row1Step3Result.asString(), row1[3]);
-                var row2 = actual.getData().get(1).split(",");
-                assertEquals(4, row2.length);
-                assertEquals(row2Step0Result.asString(), row2[0]);
-                assertEquals(row2Step1Result.asString(), row2[1]);
-                assertEquals(row2Step2Result.asString(), row2[2]);
-                assertEquals(row2Step3Result.asString(), row2[3]);
-				var row3 = actual.getData().get(2).split(",");
-                assertEquals(1, row3.length);
-                assertEquals(row3Step0Result.asString(), row3[0]);
-
+                var row1 = actual.getData().get(0);
+				Map<String, String> row1Json = testGson.fromJson(row1, MapStringStringType);
+                assertEquals(row1Step0Result.asString(), row1Json.get("time"));
+                assertEquals(row1Step1Result.asString(), row1Json.get("squared"));
+                assertEquals(row1Step2Result.asString(), row1Json.get("word"));
+                assertEquals(row1Step3Result.asString(), row1Json.get("copy"));
+				var row2 = actual.getData().get(1);
+				Map<String, String> row2Json = testGson.fromJson(row2, MapStringStringType);
+				assertEquals(row2Step0Result.asString(), row2Json.get("time"));
+				assertEquals(row2Step1Result.asString(), row2Json.get("squared"));
+				assertEquals(row2Step2Result.asString(), row2Json.get("word"));
+				assertEquals(row2Step3Result.asString(), row2Json.get("copy"));
+				var row3 = actual.getData().get(2);
+				System.out.println("### row3: " + row3);
+				Map<String, String> row3Json = testGson.fromJson(row3, MapStringStringType);
+				assertEquals(row3Step0Result.asString(), row3Json.get("time"));
         }
 
         private void mockGetUser(String username, String groupContextId) throws UserNotFoundException {
@@ -406,10 +406,9 @@ class CalculatorServiceImplTest {
                                                 new TransformParameter("one", "number"),
                                                 new TransformParameter("two", "string"),
                                                 new TransformParameter("three", "boolean")))
-                                .csvHeader("\"time\",\"one\",\"two\",\"three\",\"four\"")
-                                .csvSourceData(List.of(
-                                                "2022-12-06 12:07,1,\"one\",true,999",
-                                                "2022-12-06 12:08,2,\"two\",false,999"))
+                                .sourceData(List.of(
+												"{\"time\":\"2022-12-06 12:07\",\"one\":1,\"two\":\"one\",\"three\":true}",
+												"{\"time\":\"2022-12-06 12:08\",\"one\":2,\"two\":\"two\",\"three\":false}"))
                                 .transforms(List.of(
                                                 new Transform(0, ":time",
                                                                 List.of(new TransformOutput(0, "time", "timestamp", false, null,
@@ -429,8 +428,6 @@ class CalculatorServiceImplTest {
 
                 // mocks
                 mockGetUser("someone@somewhere.com", GROUP_CONTEXT_ID);
-                when(config.getString("calculator.upload.s3.audit.key"))
-                                .thenReturn("pipelines/<pipelineId>/executions/<executionId>/audit/");
 
                 var output0Formula = request.getTransforms().get(0).getFormula();
                 var output1Formula = request.getTransforms().get(1).getFormula();
@@ -438,7 +435,7 @@ class CalculatorServiceImplTest {
                 var output3Formula = request.getTransforms().get(3).getFormula();
 
                 var row1Params = new LinkedHashMap<String, DynamicTypeValue>();
-                row1Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:07"));
+                row1Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:07-1-one-true"));
                 row1Params.put("time", new StringTypeValue("2022-12-06 12:07"));
                 row1Params.put("one", new NumberTypeValue(1));
                 row1Params.put("two", new StringTypeValue("one"));
@@ -495,7 +492,7 @@ class CalculatorServiceImplTest {
                                 .thenThrow(new ParseCancellationException("Hit a mocked error!"));
 
                 var row2Params = new LinkedHashMap<String, DynamicTypeValue>();
-                row2Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:08"));
+                row2Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:08-2-two-false"));
                 row2Params.put("time", new StringTypeValue("2022-12-06 12:08"));
                 row2Params.put("one", new NumberTypeValue(2));
                 row2Params.put("two", new StringTypeValue("two"));
@@ -557,23 +554,213 @@ class CalculatorServiceImplTest {
                 // verify
                 assertEquals(2, actual.getErrors().size());
                 assertEquals(actual.getErrors().get(0),
-                                "Row '2022-12-06 12:07' column 'copy' encountered error evaluating formula `IF(:three,REF('squared'),REF('word')` - Hit a mocked error!");
+                                "Row '2022-12-06 12:07-1-one-true' column 'copy' encountered error evaluating formula `IF(:three,REF('squared'),REF('word')` - Hit a mocked error!");
                 assertEquals(actual.getErrors().get(1),
-                                "Row '2022-12-06 12:08' column 'copy' encountered error evaluating formula `IF(:three,REF('squared'),REF('word')` - Hit a mocked error!");
+                                "Row '2022-12-06 12:08-2-two-false' column 'copy' encountered error evaluating formula `IF(:three,REF('squared'),REF('word')` - Hit a mocked error!");
 
                 assertEquals(2, actual.getData().size());
-                var row1 = actual.getData().get(0).split(",");
-                assertEquals(4, row1.length);
-                assertEquals(row1Step0Result.asString(), row1[0]);
-                assertEquals(row1Step1Result.asString(), row1[1]);
-                assertEquals(row1Step2Result.asString(), row1[2]);
-                assertEquals("___ERROR___", row1[3]); // this encountered and error so was unable to write value
-                var row2 = actual.getData().get(1).split(",");
-                assertEquals(4, row2.length);
-                assertEquals(row2Step0Result.asString(), row2[0]);
-                assertEquals(row2Step1Result.asString(), row2[1]);
-                assertEquals(row2Step2Result.asString(), row2[2]);
-                assertEquals("___ERROR___", row2[3]); // this encountered and error so was unable to write value
+				var row1 = actual.getData().get(0);
+				Map<String, String> row1Json = testGson.fromJson(row1, MapStringStringType);
+				assertEquals(row1Step0Result.asString(), row1Json.get("time"));
+				assertEquals(row1Step1Result.asString(), row1Json.get("squared"));
+				assertEquals(row1Step2Result.asString(), row1Json.get("word"));
+				assertEquals("___ERROR___", row1Json.get("copy")); // this encountered and error so was unable to write value
+				var row2 = actual.getData().get(1);
+				Map<String, String> row2Json = testGson.fromJson(row2, MapStringStringType);
+				assertEquals(row2Step0Result.asString(), row2Json.get("time"));
+				assertEquals(row2Step1Result.asString(), row2Json.get("squared"));
+				assertEquals(row2Step2Result.asString(), row2Json.get("word"));
+				assertEquals("___ERROR___", row2Json.get("copy")); // this encountered and error so was unable to write value
         }
+	@Test
+	public void missingDataError() throws UserNotFoundException, InterruptedException {
+		// request...
+		var pipelineId = "pipe1";
+		var executionId = "run1";
+		var request = TransformRequest.builder()
+			.pipelineId(pipelineId)
+			.executionId(executionId)
+			.groupContextId(GROUP_CONTEXT_ID)
+			.parameters(List.of(
+				new TransformParameter("time", "string"),
+				new TransformParameter("one", "number"),
+				new TransformParameter("two", "string"),
+				new TransformParameter("three", "boolean")))
+			.sourceData(List.of(
+				"{\"time\":\"2022-12-06 12:07\",\"one\":1,\"two\":\"one\",\"three\":true}",
+				"{\"time\":\"2022-12-06 12:08\"}",	// <-- should error, missing data for parameters one, two, and three
+				"{\"time\":\"2022-12-06 12:09\",\"one\":2,\"two\":\"two\",\"three\":false}"))
+			.transforms(List.of(
+				new Transform(0, ":time",
+					List.of(new TransformOutput(0, "time", "timestamp", false, null,
+						null))),
+				new Transform(1, ":one*10",
+					List.of(new TransformOutput(0, "times10", "number", false, null,
+						null))),
+				new Transform(2, ":two",
+					List.of(new TransformOutput(0, "twoVal", "string", false, null,
+						null))),
+				new Transform(3, ":three",
+					List.of(new TransformOutput(0, "threeVal", "string", false, null,
+						null)))))
+			.username("someone@somewhere.com")
+			.build();
 
+		// mocks
+		mockGetUser("someone@somewhere.com", GROUP_CONTEXT_ID);
+
+		var output0Formula = request.getTransforms().get(0).getFormula();
+		var output1Formula = request.getTransforms().get(1).getFormula();
+		var output2Formula = request.getTransforms().get(2).getFormula();
+		var output3Formula = request.getTransforms().get(3).getFormula();
+
+		// row 1
+		var row1Params = new LinkedHashMap<String, DynamicTypeValue>();
+		row1Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:07-1-one-true"));
+		row1Params.put("time", new StringTypeValue("2022-12-06 12:07"));
+		row1Params.put("one", new NumberTypeValue(1));
+		row1Params.put("two", new StringTypeValue("one"));
+		row1Params.put("three", new BooleanTypeValue(true));
+
+		var row1EvaluateExpressionRequestBuilder = CalculatorImpl.EvaluateExpressionRequest.builder()
+			.pipelineId(pipelineId)
+			.executionId(executionId)
+			.groupContextId(GROUP_CONTEXT_ID)
+			.authorizer(AUTHORIZER)
+			.parameters(row1Params);
+		var row1Step0Context = new LinkedHashMap<String, DynamicTypeValue>();
+		var evaluateExpressionRequest0 = row1EvaluateExpressionRequestBuilder
+			.expression(output0Formula)
+			.context(row1Step0Context)
+			.build();
+		var row1Step0Result = new NumberTypeValue(1670353620000L);
+		when(calculator.evaluateExpression(evaluateExpressionRequest0))
+			.thenReturn(EvaluateResponse.builder().result(row1Step0Result).evaluated(Map.of(
+				":time", "1670353620000")).build());
+
+		var row1Step1Context = new LinkedHashMap<String, DynamicTypeValue>();
+		row1Step1Context.put("time", row1Step0Result);
+		var evaluateExpressionRequest1 = row1EvaluateExpressionRequestBuilder
+			.expression(output1Formula)
+			.context(row1Step1Context)
+			.build();
+		var row1Step1Result = new NumberTypeValue(10);
+		when(calculator.evaluateExpression(evaluateExpressionRequest1))
+			.thenReturn(EvaluateResponse.builder().result(row1Step1Result).evaluated(Map.of(
+				":one", "1",
+				":one*10", "10")).build());
+
+		var row1Step2Context = new LinkedHashMap<String, DynamicTypeValue>();
+		row1Step2Context.put("time", row1Step0Result);
+		row1Step2Context.put("times10", row1Step1Result);
+		var evaluateExpressionRequest2 = row1EvaluateExpressionRequestBuilder
+			.expression(output2Formula)
+			.context(row1Step2Context)
+			.build();
+		var row1Step2Result = new StringTypeValue("one");
+		when(calculator.evaluateExpression(evaluateExpressionRequest2))
+			.thenReturn(EvaluateResponse.builder().result(row1Step2Result).evaluated(Map.of(
+				":two", "one")).build());
+
+		var row1Step3Context = new LinkedHashMap<String, DynamicTypeValue>();
+		row1Step3Context.put("time", row1Step0Result);
+		row1Step3Context.put("times10", row1Step1Result);
+		row1Step3Context.put("twoVal", row1Step2Result);
+		var evaluateExpressionRequest3 = row1EvaluateExpressionRequestBuilder
+			.expression(output3Formula)
+			.context(row1Step3Context)
+			.build();
+		var row1Step3Result = new BooleanTypeValue(true);
+		when(calculator.evaluateExpression(evaluateExpressionRequest3))
+			.thenReturn(EvaluateResponse.builder().result(row1Step3Result).evaluated(Map.of(
+				":three", "true")).build());
+
+		// row 2 throws an error before evaluation
+
+		// row 3
+		var row3Params = new LinkedHashMap<String, DynamicTypeValue>();
+		row3Params.put("___row_identifier___", new StringTypeValue("2022-12-06 12:09-2-two-false"));
+		row3Params.put("time", new StringTypeValue("2022-12-06 12:09"));
+		row3Params.put("one", new NumberTypeValue(2));
+		row3Params.put("two", new StringTypeValue("two"));
+		row3Params.put("three", new BooleanTypeValue(false));
+
+		var row3EvaluateExpressionRequestBuilder = CalculatorImpl.EvaluateExpressionRequest.builder()
+			.pipelineId(pipelineId)
+			.executionId(executionId)
+			.groupContextId(GROUP_CONTEXT_ID)
+			.authorizer(AUTHORIZER)
+			.parameters(row3Params);
+		var row3Step0Context = new LinkedHashMap<String, DynamicTypeValue>();
+		var evaluateExpressionRequest4 = row3EvaluateExpressionRequestBuilder
+			.expression(output0Formula)
+			.context(row3Step0Context)
+			.build();
+		var row3Step0Result = new NumberTypeValue(1670353620000L);
+		when(calculator.evaluateExpression(evaluateExpressionRequest4))
+			.thenReturn(EvaluateResponse.builder().result(row3Step0Result).evaluated(Map.of(
+				":time", "1670353620000")).build());
+
+		var row3Step1Context = new LinkedHashMap<String, DynamicTypeValue>();
+		row3Step1Context.put("time", row3Step0Result);
+		var evaluateExpressionRequest5 = row3EvaluateExpressionRequestBuilder
+			.expression(output1Formula)
+			.context(row3Step1Context)
+			.build();
+		var row3Step1Result = new NumberTypeValue(20);
+		when(calculator.evaluateExpression(evaluateExpressionRequest5))
+			.thenReturn(EvaluateResponse.builder().result(row3Step1Result).evaluated(Map.of(
+				":one", "2",
+				":one*10", "20")).build());
+
+		var row3Step2Context = new LinkedHashMap<String, DynamicTypeValue>();
+		row3Step2Context.put("time", row3Step0Result);
+		row3Step2Context.put("times10", row3Step1Result);
+		var evaluateExpressionRequest6 = row3EvaluateExpressionRequestBuilder
+			.expression(output2Formula)
+			.context(row3Step2Context)
+			.build();
+		var row3Step2Result = new StringTypeValue("two");
+		when(calculator.evaluateExpression(evaluateExpressionRequest6))
+			.thenReturn(EvaluateResponse.builder().result(row3Step2Result).evaluated(Map.of(
+				":two", "two")).build());
+
+		var row3Step3Context = new LinkedHashMap<String, DynamicTypeValue>();
+		row3Step3Context.put("time", row3Step0Result);
+		row3Step3Context.put("times10", row3Step1Result);
+		row3Step3Context.put("twoVal", row3Step2Result);
+		var evaluateExpressionRequest7 = row3EvaluateExpressionRequestBuilder
+			.expression(output3Formula)
+			.context(row3Step3Context)
+			.build();
+		var row3Step3Result = new BooleanTypeValue(false);
+		when(calculator.evaluateExpression(evaluateExpressionRequest7))
+			.thenReturn(EvaluateResponse.builder().result(row3Step3Result).evaluated(Map.of(
+				":three", "false")).build());
+
+		// test
+		var actual = (InlineTransformResponse) underTest.process(request);
+
+		// verify
+		assertEquals(2, actual.getData().size());
+		assertEquals(1, actual.getErrors().size());
+
+		var row1 = actual.getData().get(0);
+		Map<String, String> row1Json = testGson.fromJson(row1, MapStringStringType);
+		assertEquals(row1Step0Result.asString(), row1Json.get("time"));
+		assertEquals(row1Step1Result.asString(), row1Json.get("times10"));
+		assertEquals(row1Step2Result.asString(), row1Json.get("twoVal"));
+		assertEquals(row1Step3Result.asString(), row1Json.get("threeVal"));
+
+		assertEquals(
+			"Failed processing row {time=2022-12-06 12:08}, err: Failed processing row: 2022-12-06 12:08 - row does not contain value for parameter: one",
+			actual.getErrors().get(0));
+
+		var row3 = actual.getData().get(1);
+		Map<String, String> row3Json = testGson.fromJson(row3, MapStringStringType);
+		assertEquals(row3Step0Result.asString(), row3Json.get("time"));
+		assertEquals(row3Step1Result.asString(), row3Json.get("times10"));
+		assertEquals(row3Step2Result.asString(), row3Json.get("twoVal"));
+		assertEquals(row3Step3Result.asString(), row3Json.get("threeVal"));
+	}
 }

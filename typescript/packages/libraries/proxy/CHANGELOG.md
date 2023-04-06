@@ -1,6 +1,11 @@
 # Change Log - @sif/proxy
 
-This log was last generated on Fri, 24 Feb 2023 09:59:15 GMT and should not be manually modified.
+This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+
+## 1.1.7
+Fri, 31 Mar 2023 06:04:14 GMT
+
+_Version update only_
 
 ## 1.1.6
 Fri, 24 Feb 2023 09:59:15 GMT

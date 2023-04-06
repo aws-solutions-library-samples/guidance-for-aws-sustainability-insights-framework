@@ -28,8 +28,7 @@ public class InlineTransformResponse extends TransformResponse {
     private List<String> errors;
 
     @Builder
-    public InlineTransformResponse(List<String> headers, List<String> data, List<String> errors, S3Location auditLogLocation) {
-        super(auditLogLocation);
+    public InlineTransformResponse(List<String> headers, List<String> data, List<String> errors) {
         this.headers = headers;
         this.data = data;
         this.errors = errors;

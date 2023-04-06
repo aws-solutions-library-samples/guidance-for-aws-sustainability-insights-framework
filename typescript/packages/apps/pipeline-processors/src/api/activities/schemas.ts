@@ -110,3 +110,6 @@ export const activityVersionsList = Type.Object(
 	{ $id: 'activityVersionsList' }
 );
 export type ActivityVersionsList = Static<typeof activityVersionsList>;
+
+export const versionParam = Type.Optional(Type.String({ description: 'specify the version number or latest to retrieve latest data.', default: 'latest' }));
+

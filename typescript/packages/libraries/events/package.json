@@ -1,6 +1,6 @@
 {
 	"name": "@sif/events",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Platform events",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {
@@ -18,7 +18,8 @@
 		"build": "npx tsc -b"
 	},
 	"dependencies": {
-		"@aws-sdk/client-eventbridge": "3.229.0"
+		"@aws-sdk/client-eventbridge": "3.229.0",
+		"@sinclair/typebox": "0.25.16"
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",

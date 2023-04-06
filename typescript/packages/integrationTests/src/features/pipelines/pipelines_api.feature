@@ -8,6 +8,40 @@ Feature:
 		And group /pipelinesApiTests has user pipelinesApiTests_contributor@amazon.com with role contributor and password p@ssword1
 		And group /pipelinesApiTests has user pipelinesApiTests_reader@amazon.com with role reader and password p@ssword1
 
+	Scenario: Admin can create new input connector
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"name":"pipeline_input_connector1","description":"input connector that will be used by pipeline","type":"input","tags":{"source":"sap"},"parameters":[{"name":"endpoint","description":"some endpoint which my connector will nee to utilize","required":true,"defaultValue":"https://..."}]}
+		When I POST to /connectors
+		Then response code should be 201
+		And response body should contain id
+		And I store the value of body path $.id as pipeline_input_connector1_id in global scope
+
+	Scenario: Admin can create new output connector
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"name":"pipeline_output_connector1","description":"input connector that will be used by pipeline","type":"output","tags":{"source":"sap"},"parameters":[{"name":"endpoint","description":"some endpoint which my connector will nee to utilize","required":true,"defaultValue":"https://..."}]}
+		When I POST to /connectors
+		Then response code should be 201
+		And response body should contain id
+		And I store the value of body path $.id as pipeline_output_connector1_id in global scope
+
+	Scenario: Admin cannot create pipeline that specify output connector as the input connector
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"name":"pipeline1_configured_with_input_connector1","connectorConfig":{"input":[{"name":"pipeline_output_connector1","parameters":{}}]},"transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1","outputs":[{"index":0,"key":"sum","label":"sum","description":"copied value of value_1","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"}}
+		When I POST to /pipelines
+		Then response code should be 400
+		And response body path $.message should be Only connectors of type input can be specified in the input configuration section of the pipeline
+
+	Scenario: Admin can create new pipeline that has pipeline_connector1 as the input connector
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"name":"pipeline1_configured_with_input_connector1","connectorConfig":{"input":[{"name":"pipeline_input_connector1","parameters":{}}]},"transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1","outputs":[{"index":0,"key":"sum","label":"sum","description":"copied value of value_1","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"}}
+		When I POST to /pipelines
+		Then response code should be 201
+		And response body should contain id
+		And response body should contain createdAt
+		And I store the value of body path $.id as pipeline1_configured_with_input_connector1_id in global scope
+		And response body path $.name should be pipeline1_configured_with_input_connector1
+		And response body path $.state should be enabled
+
 	Scenario: Admin can create new metric
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
 		And I set body to {"name":"ghg:scope1","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
@@ -23,14 +57,14 @@ Feature:
 
 	Scenario: Should throw error when activeAt is not set to the right date time format
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"pipeline1", "activeAt": "invalidDate", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "invalidDate", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 400
 		And response body path $.message should be body/activeAt must match format "date-time"
 
 	Scenario: Admin can create new pipeline with configuration that aggregates to the pipeline output
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"aggregated_pipeline" , "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp", "aggregate": "groupBy"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "aggregate": "sum"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"aggregated_pipeline" , "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp", "aggregate": "groupBy"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "aggregate": "sum"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -62,21 +96,21 @@ Feature:
 
 	Scenario: Admin cannot create pipeline that contains multiple timestamp fields to be aggregated
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"multiple_aggregate_timestamp_pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp","aggregate":"groupBy"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number","aggregate":"sum"}]},{"index":2,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy',roundDownTo='month')","outputs":[{"description":"Duplicate time field.","index":0,"key":"duplicate_time","label":"Time","type":"timestamp","aggregate":"groupBy"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"multiple_aggregate_timestamp_pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp","aggregate":"groupBy"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number","aggregate":"sum"}]},{"index":2,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy',roundDownTo='month')","outputs":[{"description":"Duplicate time field.","index":0,"key":"duplicate_time","label":"Time","type":"timestamp","aggregate":"groupBy"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"}}
 		When I POST to /pipelines
 		Then response code should be 400
 		And response body path $.message should be Only 1 timestamp field can be aggregated, the field will be used as date field for the aggregated output.
 
 	Scenario: Admin cannot create pipeline that aggregates non number field using aggregation function other than groupBy
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"invalid_string_field_pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp","aggregate":"groupBy"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number","aggregate":"sum"}]},{"index":2,"formula":":value_3","outputs":[{"description":"String field cannot be aggregated using function other than groupBy.","index":0,"key":"invalid_field","label":"Invalid Field","type":"string","aggregate":"mean"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"},{"index":3,"key":"value_3","label":"value 3","description":"a string value ","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"invalid_string_field_pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp","aggregate":"groupBy"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number","aggregate":"sum"}]},{"index":2,"formula":":value_3","outputs":[{"description":"String field cannot be aggregated using function other than groupBy.","index":0,"key":"invalid_field","label":"Invalid Field","type":"string","aggregate":"mean"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"},{"index":3,"key":"value_3","label":"value 3","description":"a string value ","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"}}
 		When I POST to /pipelines
 		Then response code should be 400
 		And response body path $.message should be Only fields with number type can be aggregated using aggregation functions other than groupBy.
 
 	Scenario: Admin can create new pipeline that output to ghg:scope1:mobile metric
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"pipeline1", "activeAt": "2023-02-21T14:48:00.000Z", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "2023-02-21T14:48:00.000Z", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -110,18 +144,18 @@ Feature:
 
 	Scenario: Admin can dry run a calculation before updating
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to { "dryRunOptions": { "data": ["1/1/22,10,10"] } }
+		And I set body to {"dryRunOptions":{"data":[{"reading date":"1/1/22","value_1":"10","value_2":"10"}]}}
 		When I PATCH /pipelines/`pipeline1_pipeline_id`?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be time
 		And response body path $.headers[1] should be sum
-		And response body path $.data[0] should be 1640995200000,20
+		And response body path $.data[0] should be {"time":1640995200000,"sum":20}
 
 	Scenario: Admin cannot create new pipeline with metric that had been setup with other metric as an input
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"pipeline_metric_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number","metrics":["ghg:scope1"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline_metric_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number","metrics":["ghg:scope1"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 400
 		And response body path $.message should be These output metrics \[ghg\:scope1\] has metric as an input
@@ -147,14 +181,14 @@ Feature:
 
 	Scenario: Contributor can create new pipeline
 		Given I authenticate using email pipelinesApiTests_contributor@amazon.com and password p@ssword1
-		And I set body to {"name":"contr_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"contr_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And I store the value of body path $.id as contr_pipeline_id in global scope
 
 	Scenario: Reader cannot create new pipeline
 		Given I authenticate using email pipelinesApiTests_reader@amazon.com and password p@ssword1
-		And I set body to {"name":"reader_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"reader_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 403
 
@@ -378,7 +412,7 @@ Feature:
 
 	Scenario: Setup: Admin can create another pipeline (to help test list api)
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"pipeline2","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index": 0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap","category":"A"},"attributes":{"key":"val"}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline2","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index": 0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap","category":"A"},"attributes":{"key":"val"}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -491,34 +525,34 @@ Feature:
 
 	Scenario: Should return error when formula has invalid syntax
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"invalid_pipeline_syntax","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2+#invalid_formula(:value1)","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1},"dryRunOptions":{"data":["1/1/22,10,10"]}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"invalid_pipeline_syntax","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2+#invalid_formula(:value_1)","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1},"dryRunOptions":{"data":[{"reading date":"1/1/22","value_1":"10","value_2":"10"}]}}
 		When I POST to /pipelines
 		Then response code should be 400
-		And I set body to {"name":"invalid_pipeline_syntax","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2+:invalid_value","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1},"dryRunOptions":{"data":["1/1/22,10,10"]}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"invalid_pipeline_syntax","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2+:invalid_value","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1},"dryRunOptions":{"data":[{"reading date":"1/1/22","value_1":"10","value_2":"10"}]}}
 		When I POST to /pipelines
 		Then response code should be 400
 
 	Scenario: Should skip calculator validation if dryRunOptions is not specified
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"skip_validation_pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2+#invalid_formula(:value1)","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"skip_validation_pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2+#invalid_formula(:value1)","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And I store the value of body path $.id as skip_validation_pipeline_id in global scope
 
 	Scenario: Admin Can dry run a pipeline successfully before creating
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"pipeline1","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1},"dryRunOptions":{"data":["1/1/22,10,10"]}}
+		And I set body to {"name":"pipeline1","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1},"dryRunOptions":{"data":[{"reading date":"1/1/22","value_1": "10","value_2":"10"}]}}
 		When I POST to /pipelines?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be time
 		And response body path $.headers[1] should be sum
-		And response body path $.data[0] should be 1640995200000,20
+		And response body path $.data[0] should be {"time":1640995200000,"sum":20}
 
 	Scenario: Admin Can dry run a pipeline unsuccessfully before creating
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"pipeline1","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1},"dryRunOptions":{"data":["A,10,A"]}}
+		And I set body to {"name":"pipeline1","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1},"dryRunOptions":{"data":[{"reading date":"1/1/22","value_1": "10","value_2":"A"}]}}
 		When I POST to /pipelines?dryRun=true
 		Then response code should be 400
 		And response body should contain message
@@ -529,6 +563,11 @@ Feature:
 		When I DELETE /pipelines/`pipeline1_pipeline_id`
 		Then response code should be 204
 		When I GET /pipelines/`pipeline1_pipeline_id`
+		Then response code should be 404
+
+		When I DELETE /pipelines/`pipeline1_configured_with_input_connector1_id`
+		Then response code should be 204
+		When I GET /pipelines/`pipeline1_configured_with_input_connector1_id`
 		Then response code should be 404
 
 		When I DELETE /pipelines/`skip_validation_pipeline_id`
@@ -559,6 +598,16 @@ Feature:
 		When I DELETE /pipelines/`aggregated_pipeline_id`
 		Then response code should be 204
 		When I GET /pipelines/`aggregated_pipeline_id`
+		Then response code should be 404
+
+		When I DELETE /connectors/`pipeline_output_connector1_id`
+		Then response code should be 204
+		When I GET /connectors/`pipeline_output_connector1_id`
+		Then response code should be 404
+
+		When I DELETE /connectors/`pipeline_input_connector1_id`
+		Then response code should be 204
+		When I GET /connectors/`pipeline_input_connector1_id`
 		Then response code should be 404
 
 	Scenario: Teardown: delete users and group
