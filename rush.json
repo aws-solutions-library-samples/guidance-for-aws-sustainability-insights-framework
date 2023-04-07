@@ -479,6 +479,18 @@
 			"projectFolder": "typescript/packages/apps/pipelines",
 			"reviewCategory": "production",
 			"shouldPublish": true
+		},
+		{
+			"packageName": "@sif/activity-pipeline-input-connector",
+			"projectFolder": "typescript/packages/connectors/sif",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sif/csv-pipeline-input-connector",
+			"projectFolder": "typescript/packages/connectors/csv",
+			"reviewCategory": "production",
+			"shouldPublish": true
 		}
 		// {
 		//   /**
