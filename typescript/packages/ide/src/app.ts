@@ -25,17 +25,15 @@ export function getOrThrow(app: App, name: string): string {
 	return attribute;
 }
 
-const tenantId = getOrThrow(app, 'tenantId');
 const environment = getOrThrow(app, 'environment');
 const ownerArn = getOrThrow(app, 'ownerArn');
-const repositoryUrl = getOrThrow(app, 'repositoryUrl');
-const instanceType = getOrThrow(app, 'instanceType');
+const instanceType = app.node.tryGetContext('instanceType') as string ?? 't2.large';
+const repositoryUrl = app.node.tryGetContext('repositoryUrl') as string ?? 'https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git';
 
 new IDEStack(app, 'IdeStack', {
-	stackName: `sif-${tenantId}-${environment}-ide`,
-	tenantId,
+	stackName: `sif-${environment}-ide`,
 	ownerArn,
 	instanceType,
-	repositoryUrl,
 	environment,
+	repositoryUrl
 });

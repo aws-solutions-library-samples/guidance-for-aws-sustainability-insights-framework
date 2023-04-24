@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import { Duration, Fn, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { Aspects, Duration, Fn, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import { Function, Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -23,7 +23,7 @@ import { LogLevel, Map, Parallel, StateMachine } from 'aws-cdk-lib/aws-stepfunct
 import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { AttributeType, BillingMode, ProjectionType, StreamViewType, Table, TableEncryption } from 'aws-cdk-lib/aws-dynamodb';
-import { AccessLogFormat, AuthorizationType, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
+import { AccessLogFormat, AuthorizationType, CfnMethod, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -656,10 +656,20 @@ export class PipelineProcessors extends Construct {
 			},
 			defaultCorsPreflightOptions: {
 				allowOrigins: Cors.ALL_ORIGINS,
+				allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent', 'Accept-Version', 'x-groupcontextid']
 			},
 			endpointTypes: [EndpointType.REGIONAL],
 			defaultMethodOptions: authOptions,
 		});
+
+		Aspects.of(apigw).add({
+			visit(node) {
+				if (node instanceof CfnMethod && node.httpMethod === 'OPTIONS') {
+					node.addPropertyOverride('AuthorizationType', 'NONE');
+				}
+			}
+		});
+
 		apigw.node.addDependency(apiLambda);
 
 		new StringParameter(this, 'pipelineProcessorApiUrlParameter', {

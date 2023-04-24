@@ -2,6 +2,18 @@
   "name": "@sif/integration-tests",
   "entries": [
     {
+      "version": "3.10.1",
+      "tag": "@sif/integration-tests_v3.10.1",
+      "date": "Mon, 24 Apr 2023 00:20:29 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "add tests tha uses camel case and capital case when specifyin variable in calculation"
+          }
+        ]
+      }
+    },
+    {
       "version": "3.10.0",
       "tag": "@sif/integration-tests_v3.10.0",
       "date": "Wed, 05 Apr 2023 19:11:53 GMT",

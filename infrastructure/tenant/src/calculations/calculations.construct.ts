@@ -11,8 +11,8 @@
  *  and limitations under the License.
  */
 
-import { aws_iam, Duration, Stack } from 'aws-cdk-lib';
-import { AccessLogFormat, AuthorizationType, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
+import { Aspects, aws_iam, Duration, Stack } from 'aws-cdk-lib';
+import { AccessLogFormat, AuthorizationType, CfnMethod, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
 import { UserPool } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { EventBus } from 'aws-cdk-lib/aws-events';
@@ -183,6 +183,7 @@ export class CalculationsModule extends Construct {
 			},
 			defaultCorsPreflightOptions: {
 				allowOrigins: Cors.ALL_ORIGINS,
+				allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent', 'Accept-Version', 'x-groupcontextid']
 			},
 			endpointTypes: [EndpointType.REGIONAL],
 			defaultMethodOptions: {
@@ -190,6 +191,15 @@ export class CalculationsModule extends Construct {
 				authorizer,
 			},
 		});
+
+		Aspects.of(apigw).add({
+			visit(node) {
+				if (node instanceof CfnMethod && node.httpMethod === 'OPTIONS') {
+					node.addPropertyOverride('AuthorizationType', 'NONE');
+				}
+			}
+		});
+
 		apigw.node.addDependency(apiLambda);
 
 		new ssm.StringParameter(this, 'calculationsApiUrlParameter', {

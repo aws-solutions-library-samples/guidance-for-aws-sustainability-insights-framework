@@ -14,7 +14,6 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { FastifyInstance } from 'fastify';
 import { fastify } from 'fastify';
-
 import { authzPlugin } from '@sif/authz';
 
 import createCalculationRoute from './calculations/create.handler.js';
@@ -46,6 +45,7 @@ import deleteCalculationRoute from './calculations/delete.handler.js';
 import { tags } from '@sif/resource-api-base';
 import { listTagsRoute } from './tags/list.handler.js';
 import { proxyPlugin } from '@sif/proxy';
+import cors from '@fastify/cors';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
 	const environment = process.env['NODE_ENV'] as string;
@@ -91,6 +91,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	// register all custom plugins
 	await app.register(sensible);
 	await app.register(config);
+	await app.register(cors, {});
 	await app.register(moduleAwilix);
 	await app.register(proxyPlugin);
 	await app.register(authzPlugin);

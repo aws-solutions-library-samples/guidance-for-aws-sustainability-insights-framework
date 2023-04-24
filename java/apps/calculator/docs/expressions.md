@@ -143,7 +143,7 @@ Where:
 Returns a specific emission impact factor.
 
 ```
-IMPACT( 'activity', 'impact', 'component', version=?, group=?, tenant=? )
+IMPACT( 'activity', 'impact', 'component', version=?, versionAsAt=?, group=?, tenant=? )
 ```
 
 Where:
@@ -152,6 +152,7 @@ Where:
 - `'impact`' (required) represents the impact of an activity.
 - `'component'` (required) represents a specific component of an impact (e.g. a specific pollutant) to return.
 - if `version=?` (optional - number) is specified, a specific version of the impact factor is returned. If not, the latest version is always returned.
+- if `versionAsAt=?` (optional - date string) is specified, the latest version of the impact factor bounded by `createdAt` or [`activeAt`](../../../../typescript/packages/apps/impacts/src/activities/schemas.ts#L71)  property. If not, the latest version is always returned. If both `versionAsAt` and `version` are specified, the former will take precedence.
 - if `group=?` (optional - string) is specified, the impact factor will be read from the specified group instead of the current group by default.
 - if `tenant=?` (optional - string) is specified, the impact factor will be read from the specified tenant instead of the current tenant by default.
 
@@ -177,7 +178,7 @@ Where:
 Returns a specific value from a reference dataset.
 
 ```
-LOOKUP( 'value', 'name',  'keyColumn', 'outputColumn',  version=?, group=?, tenant=? )
+LOOKUP( 'value', 'name',  'keyColumn', 'outputColumn',  version=?, versionAsAt=?, group=?, tenant=? )
 ```
 
 Where:
@@ -187,6 +188,7 @@ Where:
 - `'keyColumn'` (required) is the name of the column within the reference dataset to key on.
 - `'outputColumn'` (required) is the name of the column within the reference dataset to return.
 - if `version=?` (optional - number) is specified, a specific version of the reference dataset is returned. If not, the latest version is always returned.
+- if `versionAsAt=?` (optional - date string) is specified, the latest version of the reference dataset bounded by `createdAt` or [`activeAt`](../../../../typescript/packages/apps/reference-datasets/src/referenceDatasets/schemas.ts#L83) property. If not, the latest version is always returned. If both `versionAsAt` and `version` are specified, the former will take precedence.
 - if `group=?` (optional - string) is specified, the reference dataset will be read from the specified group instead of the current group by default.
 - if `tenant=?` (optional - string) is specified, the reference dataset will be read from the specified tenant instead of the current tenant by default.
 
@@ -209,13 +211,14 @@ Where:
 Custom defined functions are referenced by prefixing the name of the function with a `#`.
 
 ```
-#custom_function ( parameters..., version=?, group=?, tenant=? )
+#custom_function ( parameters..., version=?, versionAstAt=?, group=?, tenant=? )
 ```
 
 Where:
 - `custom_function` (required) is the name of the custom defined calculation.
 - `parameters` (required) represent any defined parameters for the calculation.
 - if `version=?` (optional) is specified, a specific version of the calculation is returned. If not, the latest version is always returned.
+- if `versionAsAt=?` (optional - date string) is specified, the latest version of the calculation bounded by `createdAt` or [`activeAt`](../../../../typescript/packages/apps/calculations/src/calculations/schemas.ts#L147) property. If not, the latest version is always returned. If both `versionAsAt` and `version` are specified, the former will take precedence.
 - if `group=?` (optional) is specified, the calculation will be read from the specified group instead of the current group by default.
 - if `tenant=?` (optional) is specified, the calculation will be read from the specified tenant instead of the current tenant by default.
 

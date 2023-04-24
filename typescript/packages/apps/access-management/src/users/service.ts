@@ -181,7 +181,12 @@ export class UserService {
 			includeParentGroups: options?.includeParentGroups,
 		});
 
-		let users = userIds ? await this.repository.listByIds(userIds) : [];
+		const users = (userIds ? await this.repository.listByIds(userIds) : [])
+			// To handle existing users, we will set the undefined default group to the first on the list
+			.map(user => {
+				user.defaultGroup = user.defaultGroup ?? Object.keys(user.groups)?.[0];
+				return user;
+			});
 
 		this.log.debug(`UserService> list> exit:${JSON.stringify([users, paginationKey])}`);
 		return [users, paginationKey];
@@ -252,6 +257,11 @@ export class UserService {
 				throw err;
 			}
 		}
+
+		// Grant is being called on new and existing user (granting access to another group).
+		// For granting access to another group case, we're not going to modify the defaultGroup
+		// unless user explicitly specify the defaultGroup. We should use the existing security group
+		updated.defaultGroup = updated.defaultGroup ?? existing.defaultGroup ?? securityContext.groupId;
 
 		// Authz check - Only `admin` of current user's groups may create grant users.
 		if (!isNewUser) {
@@ -399,6 +409,11 @@ export class UserService {
 
 		const updated = clone(existing);
 		delete updated.groups[securityContext.groupId];
+
+		// Once user is revoked from a group, we should set the default group to the one he/she has access to
+		if (updated.defaultGroup === securityContext.groupId) {
+			updated.defaultGroup = Object.keys(updated.groups)?.[0];
+		}
 
 		// if the user has no more roles, delete
 		if (Object.keys(updated.groups).length === 0) {

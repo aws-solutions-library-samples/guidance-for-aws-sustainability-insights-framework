@@ -1,6 +1,13 @@
 # Change Log - @sif/pipeline-processors
 
-This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+This log was last generated on Fri, 14 Apr 2023 16:13:35 GMT and should not be manually modified.
+
+## 4.7.1
+Fri, 14 Apr 2023 16:13:35 GMT
+
+### Patches
+
+- enable cors headers to be returned in http response
 
 ## 4.7.0
 Wed, 05 Apr 2023 19:11:53 GMT

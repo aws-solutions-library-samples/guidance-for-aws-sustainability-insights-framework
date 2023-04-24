@@ -50,6 +50,7 @@ import updateConnectorRoute from './connectors/handlers/update.handler.js';
 import grantConnectorToGroupRoute from './connectors/handlers/groups/put.handler.js';
 import revokeConnectorToGroupRoute from './connectors/handlers/groups/delete.handler.js';
 import deleteConnectorRoute from './connectors/handlers/delete.handler.js';
+import cors from '@fastify/cors';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
 	const environment = process.env['NODE_ENV'] as string;
@@ -93,6 +94,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
 	// register all connectors
 	await app.register(config);
+	await app.register(cors, {});
 	await app.register(swagger);
 	await app.register(awilix);
 	await app.register(authzPlugin);

@@ -41,7 +41,6 @@ First timers need to bootstrap
 
 ```shell
 npm run cdk -- bootstrap \
- -c tenantId=? \
  -c environment=? \
  -c repositoryUrl=? \
  -c instanceType=? \
@@ -51,19 +50,17 @@ npm run cdk -- bootstrap \
 
 More details on the context that you can provide when deploying the cdk application can be found below:
 
-| Context Name  |                                                                                                           Detail                                                                                                            |
-|---------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-| tenantId      |                                                                                                      Id of the tenant                                                                                                       |
-| environment   |                                                                                                  Environment of the tenant                                                                                                  |
-| repositoryUrl |          Http address of your repository, if your repository is private, the username and password has to be included in the curl, e.g. <br /> `git clone https://username:password@github.com/aws/sif-core.git`          |
-| ownerArn      | The Amazon Resource Name (ARN) of the environment owner. This ARN can be the ARN of any AWS Identity and Access Management principal. <br />If this value is not specified, the ARN defaults to this environment's creator. |
-| instanceType  |                                                                        The type of instance to connect to the environment (for example, t2.micro ).                                                                         |
+| Context Name  | Detail                                                                                                                                                                                          | Required |                                                  Default                                                  |
+|---------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------|:---------------------------------------------------------------------------------------------------------:|
+| environment   | The value will be used as prefix when creating Cloud9 resources.                                                                                                                                | &#9989;  |                                                                                                           |
+| ownerArn      | The owner of the `Cloud9` instance. This ARN can be the ARN of any AWS Identity and Access Management principal.                                                                                | &#9989;  |                                                                                                           |
+| repositoryUrl | Url of your repository, if your repository is private, the username and password has to be included in the curl, e.g. <br /> `git clone https://username:password@github.com/aws/sif-core.git`. | &#10060; | `https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git` |
+| instanceType  | The type of instance to connect to the environment (if none specified, default is `t2.large`).                                                                                                  | &#10060; |                                                `t2.large`                                                 |
 
 ### Making the deployment
 
 ```shell
 npm run cdk -- deploy \
- -c tenantId=? \
  -c environment=? \
  -c repositoryUrl=? \
  -c instanceType=? \
@@ -75,7 +72,7 @@ npm run cdk -- deploy \
 
 Once the deployment finish, you can go to cloud9 console and click on `Open IDE` on the environment you had just created. The name of the environment would be `sustainability-<tenant>-<environment>-ide`
 
-The repository that you had specified in the context argument can be located under the `sif-core` folder under the home directory.
+The repository that you had specified in the context argument can be located under the `sif` folder under the home directory.
 
 ![location for sif-core repository](../ide/images/sif-core-folder.png)
 

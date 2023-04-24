@@ -655,10 +655,10 @@ Content-Type: application/json
 Accept-Version: 1.0.0
 Authorization: <token>
 {
-    "pluginConfig": {
+    "connectorConfig": {
         "input": [
             {
-                "name": "sif-csv-pipeline-plugin"
+                "name": "sif-csv-pipeline-input-connector"
             }
         ]
     },

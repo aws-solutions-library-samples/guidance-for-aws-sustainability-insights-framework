@@ -72,6 +72,28 @@ Feature:
 		And response body path $.headers[0] should be sum
 		And response body path $.data[0] should be 40
 
+	Scenario: Should be able to use camelCase for variable
+		Given I'm using the calculations api
+		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :new = 20 \n :leftSide+:rightSide+:new", "parameters": [ { "index": 0, "key": "leftSide", "label": "leftSide", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "rightSide", "label": "rightSide", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": [{"leftSide":10,"rightSide":10}] } }
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be sum
+		And response body path $.data[0] should be 40
+
+	Scenario: Should be able to use CAPITAL case for variable
+		Given I'm using the calculations api
+		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :new = 20 \n :LEFT+:RIGHT+:new", "parameters": [ { "index": 0, "key": "LEFT", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "RIGHT", "label": "RIGHT", "description": "right side of operand", "type": "number" } ], "outputs": [ { "name": "sum", "description": "The total.", "type": "number" } ], "tags": { "datasource": "GHG Protocol", "type": "Material/Metal/Steel" }, "dryRunOptions": { "data": [{"LEFT":10,"RIGHT":10}] } }
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be sum
+		And response body path $.data[0] should be 40
+
 	Scenario: Should be able to use IF for branching condition
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1

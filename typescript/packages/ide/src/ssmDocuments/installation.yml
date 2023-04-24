@@ -16,6 +16,15 @@ mainSteps:
         - . /home/ec2-user/.bashrc
         - yum -y install sqlite telnet jq strace tree gcc glibc-static python3 python3-pip gettext bash-completion
         - PATH=$PATH:/usr/bin
+        - sudo rm -rf /usr/local/apache-maven/
+        - wget http://mirror.olnevhost.net/pub/apache/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz
+        - tar xvf apache-maven-3.5.4-bin.tar.gz
+        - sudo mv apache-maven-3.5.4  /usr/local/apache-maven
+        - |
+          cat <<EOT >> /home/ec2-user/.bashrc
+          export PATH=/usr/local/apache-maven/bin:$PATH
+          EOT
+        - . /home/ec2-user/.bashrc
         - echo '=== INSTALL and CONFIGURE default software components ==='
         - sudo -H -u ec2-user bash -c "pip3 install --user -U boto boto3 botocore awscli"
         - sudo -H -u ec2-user -i /bin/bash -c "npm install -g @microsoft/rush@5.76.1 esbuild"

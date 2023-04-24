@@ -1,6 +1,13 @@
 # Change Log - @sif/reference-datasets
 
-This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+This log was last generated on Fri, 14 Apr 2023 16:13:35 GMT and should not be manually modified.
+
+## 4.3.8
+Fri, 14 Apr 2023 16:13:35 GMT
+
+### Patches
+
+- enable cors headers to be returned in http response
 
 ## 4.3.7
 Fri, 31 Mar 2023 06:04:14 GMT

@@ -1,6 +1,13 @@
 # Change Log - @sif/integration-tests
 
-This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+This log was last generated on Mon, 24 Apr 2023 00:20:29 GMT and should not be manually modified.
+
+## 3.10.1
+Mon, 24 Apr 2023 00:20:29 GMT
+
+### Patches
+
+- add tests tha uses camel case and capital case when specifyin variable in calculation
 
 ## 3.10.0
 Wed, 05 Apr 2023 19:11:53 GMT

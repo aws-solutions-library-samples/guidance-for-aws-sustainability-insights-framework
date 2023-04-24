@@ -20,6 +20,7 @@ import {
 	LambdaRestApi,
 	LogGroupLogDestination,
 	MethodLoggingLevel,
+	CfnMethod
 } from 'aws-cdk-lib/aws-apigateway';
 import { UserPool } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
@@ -32,7 +33,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
-import { Stack } from 'aws-cdk-lib';
+import { Aspects, Stack } from 'aws-cdk-lib';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -147,6 +148,7 @@ export class AccessManagementModule extends Construct {
 			},
 			defaultCorsPreflightOptions: {
 				allowOrigins: Cors.ALL_ORIGINS,
+				allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent', 'Accept-Version', 'x-groupcontextid']
 			},
 			endpointTypes: [EndpointType.REGIONAL],
 			defaultMethodOptions: {
@@ -154,6 +156,16 @@ export class AccessManagementModule extends Construct {
 				authorizer,
 			},
 		});
+
+		Aspects.of(apigw).add({
+			visit(node) {
+				if (node instanceof CfnMethod && node.httpMethod === 'OPTIONS') {
+					node.addPropertyOverride('AuthorizationType', 'NONE');
+				}
+			}
+		});
+
+
 		apigw.node.addDependency(apiLambda);
 
 		new StringParameter(this, 'accessManagementApiUrlParameter', {

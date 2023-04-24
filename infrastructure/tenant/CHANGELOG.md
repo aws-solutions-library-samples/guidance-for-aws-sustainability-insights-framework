@@ -1,6 +1,25 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Apr 2023 21:57:49 GMT and should not be manually modified.
+
+## 7.6.3
+Thu, 20 Apr 2023 21:57:49 GMT
+
+_Version update only_
+
+## 7.6.2
+Fri, 14 Apr 2023 22:53:56 GMT
+
+### Patches
+
+- allow x-groupcontextid header
+
+## 7.6.1
+Fri, 14 Apr 2023 16:13:35 GMT
+
+### Patches
+
+- enable cors headers to be returned in http response
 
 ## 7.6.0
 Wed, 05 Apr 2023 19:11:53 GMT

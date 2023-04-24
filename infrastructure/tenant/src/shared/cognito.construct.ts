@@ -24,6 +24,7 @@ import {
 	UserPool,
 	UserPoolClient,
 	UserPoolClientIdentityProvider,
+	UserPoolDomain,
 	UserPoolEmail
 } from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
@@ -201,6 +202,13 @@ export class Cognito extends Construct {
 		new ssm.StringParameter(this, 'cognitoUserPoolArnParameter', {
 			parameterName: userPoolArnParameter(props.tenantId, props.environment),
 			stringValue: userPool.userPoolArn
+		});
+
+		new UserPoolDomain(this, 'UserPoolDomain', {
+			userPool: userPool,
+			cognitoDomain: {
+				domainPrefix: `${cdk.Stack.of(this).account}-${props.tenantId}-${props.environment}`
+			}
 		});
 
 		// TODO: email via SES

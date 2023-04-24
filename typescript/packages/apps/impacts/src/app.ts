@@ -55,6 +55,7 @@ import getTaskItemRoute from './taskItems/get.handler.js';
 import listActivityStatusRoute from './taskItems/list.handler.js';
 import { taskItemList, taskItemResource } from './taskItems/schemas.js';
 import { listTagsRoute } from './tags/list.handler.js';
+import cors from '@fastify/cors';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
 	const environment = process.env['NODE_ENV'] as string;
@@ -99,6 +100,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	await app.register(config);
 	await app.register(swagger);
 	await app.register(awilix);
+	await app.register(cors, {});
 	await app.register(fastifySensible);
 	await app.register(proxyPlugin);
 	await app.register(authzPlugin);

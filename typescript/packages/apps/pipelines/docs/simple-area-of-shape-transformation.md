@@ -216,7 +216,7 @@ Body:
                         "type": "number",
                         // the optional aggregate field is used to specify what aggegration function to apply
                         // to the output key
-                        "aggregate": "avg"
+                        "aggregate": "mean"
                     }
                 ]
             },
@@ -369,7 +369,7 @@ Body:
                         "key": "area",
                         "label": "Area",
                         "type": "number",
-                        "aggregate": "avg"
+                        "aggregate": "mean"
                     }
                 ]
             },
@@ -645,7 +645,7 @@ Body:
                         "key": "area",
                         "label": "Area",
                         "type": "number",
-                        "aggregate": "avg"
+                        "aggregate": "mean"
                     }
                 ]
             },

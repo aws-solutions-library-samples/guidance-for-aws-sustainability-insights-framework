@@ -2,6 +2,18 @@
   "name": "@sif/pipeline-processors",
   "entries": [
     {
+      "version": "4.7.1",
+      "tag": "@sif/pipeline-processors_v4.7.1",
+      "date": "Fri, 14 Apr 2023 16:13:35 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "enable cors headers to be returned in http response"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.7.0",
       "tag": "@sif/pipeline-processors_v4.7.0",
       "date": "Wed, 05 Apr 2023 19:11:53 GMT",

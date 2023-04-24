@@ -1,6 +1,13 @@
 # Change Log - @sif/ide
 
-This log was last generated on Thu, 09 Feb 2023 05:43:19 GMT and should not be manually modified.
+This log was last generated on Wed, 12 Apr 2023 09:55:33 GMT and should not be manually modified.
+
+## 1.1.0
+Wed, 12 Apr 2023 09:55:33 GMT
+
+### Minor changes
+
+- bootstrapping cloud9 will include maven
 
 ## 1.0.6
 Thu, 09 Feb 2023 05:43:19 GMT

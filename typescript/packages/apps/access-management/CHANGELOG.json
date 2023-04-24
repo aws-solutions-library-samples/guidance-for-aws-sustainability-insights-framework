@@ -2,6 +2,30 @@
   "name": "@sif/access-management",
   "entries": [
     {
+      "version": "4.0.17",
+      "tag": "@sif/access-management_v4.0.17",
+      "date": "Thu, 20 Apr 2023 21:57:48 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "should always set the defaultGroup in the backend"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.0.16",
+      "tag": "@sif/access-management_v4.0.16",
+      "date": "Fri, 14 Apr 2023 16:13:35 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "enable cors headers to be returned in http response"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.0.15",
       "tag": "@sif/access-management_v4.0.15",
       "date": "Fri, 31 Mar 2023 06:04:14 GMT",

@@ -38,6 +38,7 @@ import { authzPlugin } from '@sif/authz';
 import { proxyPlugin } from '@sif/proxy';
 import { handleError } from './common/errors.js';
 import { listTagsRoute } from './tags/list.handler.js';
+import cors from '@fastify/cors';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
 	const environment = process.env['NODE_ENV'] as string;
@@ -83,6 +84,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	// register all plugins
 	await app.register(swagger);
 	await app.register(config);
+	await app.register(cors, {});
 	await app.register(multipart, { attachFieldsToBody: 'keyValues' });
 	await app.register(moduleAwilix);
 	await app.register(proxyPlugin);

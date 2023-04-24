@@ -1,6 +1,20 @@
 # Change Log - @sif/access-management
 
-This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Apr 2023 21:57:48 GMT and should not be manually modified.
+
+## 4.0.17
+Thu, 20 Apr 2023 21:57:48 GMT
+
+### Patches
+
+- should always set the defaultGroup in the backend
+
+## 4.0.16
+Fri, 14 Apr 2023 16:13:35 GMT
+
+### Patches
+
+- enable cors headers to be returned in http response
 
 ## 4.0.15
 Fri, 31 Mar 2023 06:04:14 GMT

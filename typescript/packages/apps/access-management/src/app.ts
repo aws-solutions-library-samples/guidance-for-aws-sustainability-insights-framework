@@ -14,7 +14,7 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { FastifyInstance } from 'fastify';
 import { fastify } from 'fastify';
-
+import cors from '@fastify/cors';
 import fastifySensible from '@fastify/sensible';
 import { authzPlugin } from '@sif/authz';
 import { tags } from '@sif/resource-api-base';
@@ -70,7 +70,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 			plugins: [
 				// eslint-disable-next-line @typescript-eslint/typedef
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				function (ajv: any) {
+				function(ajv: any) {
 					ajv.addKeyword({ keyword: 'x-examples' });
 				},
 			],
@@ -82,6 +82,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	// register all plugins
 	await app.register(config);
 	await app.register(swagger);
+	await app.register(cors, {});
 	await app.register(moduleAwilix);
 	await app.register(authzPlugin, { skipGroupCheck: true });
 	await app.register(fastifySensible);

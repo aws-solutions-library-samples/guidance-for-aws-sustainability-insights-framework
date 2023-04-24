@@ -255,7 +255,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     @Override public DynamicTypeValue visitTokenAtom(CalculationsParser.TokenAtomContext ctx) {
         log.trace("visitTokenAtom> in> {}", ctx.getText());
 
-        var name = ctx.TOKEN().getText().substring(1).toLowerCase();
+        var name = ctx.TOKEN().getText().substring(1);
 		DynamicTypeValue result;
 
 		// first see if the provided token represents a pipeline parameters
@@ -300,7 +300,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 		log.trace("visitSetVariableExpr> in> {}", ctx.getText());
 
 		// the provided token cannot be used if it is already representing a parameter
-		var name = ctx.name.getText().substring(1).toLowerCase();
+		var name = ctx.name.getText().substring(1);
 		if (parameters.containsKey(name)) {
 			throw new ArithmeticException(String.format("Provided token '%s' is already being used as a pipeline parameter.", name));
 		}

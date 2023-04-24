@@ -2,6 +2,18 @@
   "name": "@sif/reference-datasets",
   "entries": [
     {
+      "version": "4.3.8",
+      "tag": "@sif/reference-datasets_v4.3.8",
+      "date": "Fri, 14 Apr 2023 16:13:35 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "enable cors headers to be returned in http response"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.3.7",
       "tag": "@sif/reference-datasets_v4.3.7",
       "date": "Fri, 31 Mar 2023 06:04:14 GMT",

@@ -30,6 +30,7 @@ import listActivitiesRoute from './api/activities/list.handler.js';
 import { metricResource, metricsList } from './api/metrics/schemas.js';
 import listMetricsRoute from './api/metrics/list.handler.js';
 import createExecution from './api/executions/createExecution.js';
+import cors from '@fastify/cors';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
 	const environment = process.env['NODE_ENV'] as string;
@@ -76,6 +77,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	await app.register(config);
 	await app.register(swagger);
 	await app.register(awilix);
+	await app.register(cors, {});
 	await app.register(authzPlugin);
 	await app.register(fastifySensible);
 

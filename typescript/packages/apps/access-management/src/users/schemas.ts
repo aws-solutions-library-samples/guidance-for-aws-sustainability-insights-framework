@@ -42,7 +42,7 @@ const groups = Type.Record(Type.String(), userGroupRole, { description: 'Access 
 
 const userState = stringEnum(['invited', 'active', 'disabled'], 'User state');
 
-const defaultGroup = Type.String({ description: 'The default group the user will be logged into' });
+const defaultGroup = Type.String({ description: 'The default group the user will be logged into, if this is not specified it will be set to the current group context' });
 
 /**
  * User specific resources

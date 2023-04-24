@@ -28,11 +28,10 @@ import * as cr from 'aws-cdk-lib/custom-resources';
 import { OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 export interface IdeStackProperties {
-	tenantId: string;
 	environment: string;
 	ownerArn: string;
-	repositoryUrl: string;
 	instanceType: string;
+	repositoryUrl: string;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,7 +43,7 @@ export class IDEStack extends Stack {
 
 		const installationFile = parse(fs.readFileSync(path.join(__dirname, './ssmDocuments/installation.yml'), 'utf-8'));
 
-		const namePrefix = `sif-${props.tenantId}-${props.environment}`;
+		const namePrefix = `sif-${props.environment}`;
 
 		const documentName = `${namePrefix}-bootstrap-cloud9`;
 
@@ -90,7 +89,7 @@ export class IDEStack extends Stack {
 		const customResourceLambda = new NodejsFunction(this, 'CustomResourceLambda', {
 			entry: path.join(__dirname, './customResources/checkAssociation.ts'),
 			functionName: `${namePrefix}-checkSsmAssociation`,
-			description: `SIF IDE Stack: Tenant ${props.tenantId}`,
+			description: `SIF IDE Stack: Tenant ${props.environment}`,
 			runtime: Runtime.NODEJS_16_X,
 			tracing: Tracing.ACTIVE,
 			timeout: Duration.minutes(15),

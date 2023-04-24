@@ -11,8 +11,8 @@
  *  and limitations under the License.
  */
 
-import { aws_iam, Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
-import { AccessLogFormat, AuthorizationType, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
+import { Aspects, aws_iam, Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { AccessLogFormat, AuthorizationType, CfnMethod, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
 import { Code, Function, Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
@@ -319,9 +319,18 @@ export class ReferenceDatasetsModule extends Construct {
 			},
 			defaultCorsPreflightOptions: {
 				allowOrigins: Cors.ALL_ORIGINS,
+				allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent', 'Accept-Version', 'x-groupcontextid']
 			},
 			endpointTypes: [EndpointType.REGIONAL],
 			defaultMethodOptions: authOptions,
+		});
+
+		Aspects.of(apigw).add({
+			visit(node) {
+				if (node instanceof CfnMethod && node.httpMethod === 'OPTIONS') {
+					node.addPropertyOverride('AuthorizationType', 'NONE');
+				}
+			}
 		});
 
 		apigw.node.addDependency(apiLambda);

@@ -11,8 +11,8 @@
  *  and limitations under the License.
  */
 
-import { Duration, Stack } from 'aws-cdk-lib';
-import { AccessLogFormat, AuthorizationType, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
+import { Aspects, Duration, Stack } from 'aws-cdk-lib';
+import { AccessLogFormat, AuthorizationType, CfnMethod, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
 import { UserPool } from 'aws-cdk-lib/aws-cognito';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Function, Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
@@ -135,10 +135,20 @@ export class PipelinesModule extends Construct {
 			},
 			defaultCorsPreflightOptions: {
 				allowOrigins: Cors.ALL_ORIGINS,
+				allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent', 'Accept-Version', 'x-groupcontextid']
 			},
 			endpointTypes: [EndpointType.REGIONAL],
 			defaultMethodOptions: authOptions,
 		});
+
+		Aspects.of(apigw).add({
+			visit(node) {
+				if (node instanceof CfnMethod && node.httpMethod === 'OPTIONS') {
+					node.addPropertyOverride('AuthorizationType', 'NONE');
+				}
+			}
+		});
+
 		apigw.node.addDependency(apiLambda);
 
 		new ssm.StringParameter(this, 'pipelineApiUrlParameter', {
