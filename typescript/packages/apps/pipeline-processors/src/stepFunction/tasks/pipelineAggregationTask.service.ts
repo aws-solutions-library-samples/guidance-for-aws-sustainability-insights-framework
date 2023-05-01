@@ -79,14 +79,14 @@ export class PipelineAggregationTaskService {
 		let moreRowsToProcess = true, fromOffset = 0;
 
 		while (moreRowsToProcess) {
-			const { data, nextToken } = await this.activitiesRepository.get({
+			const { data, nextToken } = await this.activitiesRepository.aggregateRaw({
 				dateFrom,
 				dateTo,
 				pipelineId,
 				groupId: groupContextId,
 				nextToken: fromOffset,
 				maxRows: 1000
-			}, pipelineMetadata, true);
+			}, pipelineMetadata);
 
 			if (data.length > 0) {
 				// set the offset for the next query

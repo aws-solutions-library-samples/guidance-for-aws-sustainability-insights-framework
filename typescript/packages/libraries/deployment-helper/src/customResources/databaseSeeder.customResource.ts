@@ -175,7 +175,7 @@ export class DatabaseSeederCustomResource implements CustomResource {
 				await this.attachSecretToRdsProxy(tenantSecretArn);
 			}
 			// performing database migration if any
-			await this.databaseSeederRepository.upgradeDatabaseVersion(tenantDatabaseName, migrationsFolderPath);
+			await this.databaseSeederRepository.upgradeDatabaseVersion(tenantDatabaseName, migrationsFolderPath, username);
 		} catch (Exception) {
 			this.logger.error(`databaseSeeder.customResource > create > error : ${Exception}`);
 		}
@@ -188,16 +188,19 @@ export class DatabaseSeederCustomResource implements CustomResource {
 
 		ow(customResourceEvent.ResourceProperties, ow.object.nonEmpty);
 
-		const { assetBucket, assetPath, tenantDatabaseName } = customResourceEvent.ResourceProperties;
+		const { assetBucket, assetPath, tenantDatabaseName, tenantSecretArn } = customResourceEvent.ResourceProperties;
 
 		ow(assetBucket, ow.string.nonEmpty);
 		ow(assetPath, ow.string.nonEmpty);
 		ow(tenantDatabaseName, ow.string.nonEmpty);
+		ow(tenantSecretArn, ow.string.nonEmpty);
+
+		const [username, _password] = await this.getUserNamePasswordFromSecretManager(tenantSecretArn);
 
 		const [_, migrationsFolderPath] = await this.extractAssets(assetBucket, assetPath);
 
 		try {
-			await this.databaseSeederRepository.upgradeDatabaseVersion(tenantDatabaseName, migrationsFolderPath);
+			await this.databaseSeederRepository.upgradeDatabaseVersion(tenantDatabaseName, migrationsFolderPath, username);
 		} catch (Exception) {
 			this.logger.error(`databaseSeeder.customResource > update > error : ${Exception}`);
 		}

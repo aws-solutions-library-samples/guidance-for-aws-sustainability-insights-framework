@@ -102,6 +102,13 @@ export class Cognito extends Construct {
 			depsLockFilePath
 		});
 
+		NagSuppressions.addResourceSuppressions(preTokenGenerationLambdaTrigger, [
+			{
+				id: 'AwsSolutions-L1',
+				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+			},
+		]);
+
 		const invokeLambdaPolicy = new PolicyStatement({
 			actions: ['lambda:InvokeFunction'],
 			resources: [`arn:aws:lambda:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:function:${accessManagementApiFunctionName}`]

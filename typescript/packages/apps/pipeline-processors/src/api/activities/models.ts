@@ -49,9 +49,15 @@ export type Aggregate = {
 }
 
 export type PipelineMetadata = {
-	outputKeys: string[];
+	/* creation/update of the pipeline */
+	updatedAt: Date;
+	/* copy of pipeline._aggregatedOutputKeyAndTypeMap */
+	outputKeysAndTypes: Record<string, string>;
+	/* the unique types used as part of the transform definition */
 	outputTypes: string[];
+	/*  map of transform (include as unique) output to key* activity field */
 	transformKeyMap: Record<string, string>;
+	/* summary of aggregation config  */
 	aggregate?: {
 		fields: Aggregate[],
 		timestampField: string

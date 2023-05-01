@@ -13,6 +13,7 @@
 
 import * as fs from 'fs';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 
 const { TENANT_ID, ENVIRONMENT, AWS_REGION } = process.env;
 
@@ -21,8 +22,40 @@ if (!TENANT_ID || !ENVIRONMENT || !AWS_REGION) {
 }
 
 const ssm = new SSMClient({ region: process.env['AWS_REGION'] });
+const secretsManager = new SecretsManagerClient({ region: process.env['AWS_REGION'] });
 
-const getValues = async (tenantId: string, module: string, mapping: Record<string, string>) => {
+const getDbPassword = async (): Promise<void> => {
+	const secret = await secretsManager.send(
+		new GetSecretValueCommand({
+			SecretId: `sif-${ENVIRONMENT}-credentials`
+		})
+	);
+	const { username, password } = JSON.parse(secret.SecretString);
+	outputFile += `TENANT_USERNAME=${username}\r\n`;
+	outputFile += `DB_USER_PASSWORD=${password}\r\n`;
+};
+
+const getSharedEnvironmentValues = async (module: string, mapping: Record<string, string>) => {
+	for (const key in mapping) {
+		const prefix = `/sif/shared/${ENVIRONMENT}/${module}/`;
+		const name = `${prefix}${mapping[key]}`;
+		try {
+			const response = await ssm.send(
+				new GetParameterCommand({
+					Name: name,
+					WithDecryption: false,
+				})
+			);
+			if (response) {
+				outputFile += `${key}=${response.Parameter?.Value}\r\n`;
+			}
+		} catch (e) {
+			throw new Error(`Parameter ${name} NOT Found !!!`);
+		}
+	}
+};
+
+const getTenantValues = async (tenantId: string, module: string, mapping: Record<string, string>) => {
 	for (const key in mapping) {
 		const prefix = `/sif/${tenantId}/${ENVIRONMENT}/${module}/`;
 		const name = `${prefix}${mapping[key]}`;
@@ -44,33 +77,36 @@ const getValues = async (tenantId: string, module: string, mapping: Record<strin
 
 let outputFile = `NODE_ENV=local\r\n`;
 outputFile += 'ENABLE_DELETE_RESOURCE=true\r\n';
+outputFile += 'TASK_PARALLEL_LIMIT=10\r\n';
 
-await getValues(TENANT_ID, 'shared', {
+await getDbPassword();
+
+await getTenantValues(TENANT_ID, 'shared', {
 	EVENT_BUS_NAME: 'eventBusName',
 	BUCKET_NAME: 'bucketName',
-	ACTIVITIES_TABLE_NAME: 'activityTable',
-	ACTIVITIES_NUMBER_VALUE_TABLE_NAME: 'activityNumberValueTable',
-	ACTIVITIES_STRING_VALUE_TABLE_NAME: 'activityStringValueTable',
-	ACTIVITIES_BOOLEAN_VALUE_TABLE_NAME: 'activityBooleanValueTable',
-	ACTIVITIES_DATETIME_VALUE_TABLE_NAME: 'activityDateTimeValueTable',
+	TENANT_DATABASE_NAME: 'tenantDatabaseName'
 });
 
-await getValues(TENANT_ID, 'accessManagement', {
+await getSharedEnvironmentValues('aurora', {
+	RDS_PROXY_ENDPOINT: 'rdsClusterWriterEndpoint'
+});
+
+await getTenantValues(TENANT_ID, 'accessManagement', {
 	ACCESS_MANAGEMENT_FUNCTION_NAME: 'apiFunctionName',
 });
 
-await getValues(TENANT_ID, 'pipelines', {
+await getTenantValues(TENANT_ID, 'pipelines', {
 	PIPELINES_FUNCTION_NAME: 'apiFunctionName',
 });
 
-await getValues(TENANT_ID, 'calculator', {
+await getTenantValues(TENANT_ID, 'calculator', {
 	CALCULATOR_FUNCTION_NAME: 'functionName',
 });
 
-await getValues(TENANT_ID, 'pipeline-processor', {
+await getTenantValues(TENANT_ID, 'pipeline-processor', {
 	TABLE_NAME: 'configTableName',
 	BUCKET_PREFIX: 'bucketPrefix',
-	PIPELINE_JOB_STATE_MACHINE_ARN: 'workflowStateMachineArn',
+	PIPELINE_JOB_STATE_MACHINE_ARN: 'jobStateMachineArn',
 	PIPELINE_INLINE_STATE_MACHINE_ARN: 'inlineStateMachineArn',
 	METRICS_TABLE_NAME: 'metricsTableName',
 });

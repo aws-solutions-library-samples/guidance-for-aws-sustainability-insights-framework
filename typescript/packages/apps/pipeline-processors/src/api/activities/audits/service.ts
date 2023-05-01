@@ -44,7 +44,7 @@ export class ActivityAuditService {
 			throw new UnauthorizedError(`The caller is not authorized of the group in context \`${JSON.stringify(securityContext.groupId)}`);
 		}
 
-		let activityReferenceList: ActivityReference[] = await this.repository.getActivityReferenceList({ activityId, groupId: securityContext.groupId, versionAsAt });
+		let activityReferenceList: ActivityReference[] = await this.repository.listActivityReferences({ activityId, groupId: securityContext.groupId, versionAsAt });
 
 		// if versionAsAt specified only return the audit closest to the date
 		if (versionAsAt) {

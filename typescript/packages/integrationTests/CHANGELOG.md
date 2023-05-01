@@ -1,6 +1,13 @@
 # Change Log - @sif/integration-tests
 
-This log was last generated on Mon, 24 Apr 2023 00:20:29 GMT and should not be manually modified.
+This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+
+## 3.11.0
+Mon, 01 May 2023 00:31:09 GMT
+
+### Minor changes
+
+- refactor integration tests for schema changes
 
 ## 3.10.1
 Mon, 24 Apr 2023 00:20:29 GMT

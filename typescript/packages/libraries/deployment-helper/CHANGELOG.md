@@ -1,6 +1,23 @@
 # Change Log - @sif/deployment-helper
 
-This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+
+## 0.3.1
+Mon, 01 May 2023 00:31:09 GMT
+
+_Version update only_
+
+## 0.3.0
+Wed, 26 Apr 2023 18:03:55 GMT
+
+### Minor changes
+
+- should set tenant username as environment variable so migration scripts can use the value
+
+## 0.2.3
+Wed, 26 Apr 2023 03:24:22 GMT
+
+_Version update only_
 
 ## 0.2.2
 Wed, 05 Apr 2023 19:11:53 GMT

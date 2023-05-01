@@ -78,6 +78,13 @@ export class SifConnector extends Construct {
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
 		});
 
+		NagSuppressions.addResourceSuppressions(connectorLambda, [
+			{
+				id: 'AwsSolutions-L1',
+				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+			},
+		]);
+
 		// create dead letter queue
 		const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
 

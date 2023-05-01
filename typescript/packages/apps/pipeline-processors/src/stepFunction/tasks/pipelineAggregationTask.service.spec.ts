@@ -213,25 +213,25 @@ describe('PipelineAggregationTaskService', () => {
 	});
 
 	it('Should paginate through all results from aggregated query and insert aggregated result back to Activity table', async () => {
-		mockedActivitiesRepository.get.mockResolvedValueOnce({
+		mockedActivitiesRepository.aggregateRaw.mockResolvedValueOnce({
 			data: Array.from({ length: 1000 }, (value: string) => {
 				return { id: value };
 			}), nextToken: 10
 		});
 
-		mockedActivitiesRepository.get.mockResolvedValueOnce({ data: [], nextToken: undefined });
+		mockedActivitiesRepository.aggregateRaw.mockResolvedValueOnce({ data: [], nextToken: undefined });
 
 		const testEvent: AggregationTaskEvent = {
 			groupContextId: '/tests', pipelineExecutionId: 'execution-1', pipelineId: 'pipeline-1', transformer: transformerWithAggregation
 		};
 
 		await underTest.process(testEvent);
-		expect(mockedActivitiesRepository.get).toBeCalledTimes(2);
+		expect(mockedActivitiesRepository.aggregateRaw).toBeCalledTimes(2);
 		expect(mockedActivitiesRepository.createAggregatedActivities).toBeCalledTimes(1);
 	});
 
 	it('All activities results fits in first result page', async () => {
-		mockedActivitiesRepository.get.mockResolvedValueOnce({
+		mockedActivitiesRepository.aggregateRaw.mockResolvedValueOnce({
 			data: Array.from({ length: 1000 }, (value: string) => {
 				return { id: value };
 			}), nextToken: undefined
@@ -243,7 +243,7 @@ describe('PipelineAggregationTaskService', () => {
 		};
 
 		await underTest.process(testEvent);
-		expect(mockedActivitiesRepository.get).toBeCalledTimes(1);
+		expect(mockedActivitiesRepository.aggregateRaw).toBeCalledTimes(1);
 		expect(mockedActivitiesRepository.createAggregatedActivities).toBeCalledTimes(1);
 	});
 

@@ -2,6 +2,30 @@
   "name": "@sif/clients",
   "entries": [
     {
+      "version": "1.6.0",
+      "tag": "@sif/clients_v1.6.0",
+      "date": "Mon, 01 May 2023 00:31:09 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "expose extra fields for pipeline"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.5.2",
+      "tag": "@sif/clients_v1.5.2",
+      "date": "Wed, 26 Apr 2023 03:24:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "CalculatorS3TransformResponse shoudl not contains data field"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.5.1",
       "tag": "@sif/clients_v1.5.1",
       "date": "Wed, 05 Apr 2023 19:11:53 GMT",

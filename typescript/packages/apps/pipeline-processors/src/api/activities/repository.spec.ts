@@ -20,6 +20,7 @@ import { ActivitiesRepository } from './repository.js';
 import type { BaseRepositoryClient } from '../../data/base.repository.js';
 import type { PipelineMetadata, QueryRequest } from './models.js';
 
+
 vi.mock('ulid', () => {
 	let counter = 1;
 	return {
@@ -34,12 +35,15 @@ vi.mock('dayjs', async () => {
 	// @ts-ignore
 	actualDayJs.default.extend(utc);
 	const dayjs = function(date) {
+		if (date) { // @ts-ignore
+			return actualDayJs.default(date);
+		}
 		return {
 			unix: () => unixTimestampCreatedDate,
 			// @ts-ignore
 			toDate: () => actualDayJs.default(date).toDate(),
 			// @ts-ignore
-			utc: (date) => actualDayJs.default().utc(date)
+			utc: () => actualDayJs.default().utc()
 		};
 	};
 	dayjs.utc = (date) => {
@@ -53,16 +57,25 @@ vi.mock('dayjs', async () => {
 	};
 });
 
-import dayjs from 'dayjs';
 
+import dayjs from 'dayjs';
 dayjs.extend(utc);
+
+
+const pipelineUpdatedAt = dayjs('1/1/2022').toDate();
 
 const mockPipelineMetadata: PipelineMetadata = {
 	outputTypes: ['string', 'number', 'boolean'],
-	outputKeys: ['stringOutput', 'numericOutput', 'booleanOutput'],
+	outputKeysAndTypes: { 'stringOutput': 'string', 'numericOutput': 'number', 'booleanOutput': 'boolean' },
 	transformKeyMap: {
 		stringOutput: 'key1'
 	},
+	aggregate: {
+		fields: [{ key: 'numericOutput', type: 'number', aggregate: 'sum' }],
+		timestampField: 'month'
+	},
+	updatedAt: pipelineUpdatedAt
+
 };
 describe('ActivitiesRepository', () => {
 	let activitiesRepository: ActivitiesRepository;
@@ -78,7 +91,7 @@ describe('ActivitiesRepository', () => {
 		logger.level = 'info';
 		mockRepositoryClient = mock<BaseRepositoryClient>();
 		mockPostgresClient = mock<Client>();
-		activitiesRepository = new ActivitiesRepository(logger, mockRepositoryClient, 'Activity', 'ActivityStringValue', 'ActivityNumberValue', 'ActivityBooleanValue', 'ActivityDateTimeValue');
+		activitiesRepository = new ActivitiesRepository(logger, mockRepositoryClient);
 		mockRepositoryClient.getConnection.mockResolvedValue(mockPostgresClient);
 		mockPostgresClient.query.mockReset();
 	});
@@ -88,7 +101,7 @@ describe('ActivitiesRepository', () => {
 		const qr: QueryRequest = {
 			pipelineId: 'pipe1',
 			groupId: '/a',
-			date: dayjs('2023-01-26T18:00:00.775Z').toDate(),
+			date: dayjs('2023-01-26').utc().toDate(),
 		};
 
 		// @ts-ignore
@@ -106,50 +119,28 @@ describe('ActivitiesRepository', () => {
 				},
 			],
 		});
-		const expectedQuery = `SELECT * from (
-SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
-max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
-max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
-FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityStringValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityStringValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."date" = timestamp '2023-01-26 18:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
-FROM "ActivityNumberValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityNumberValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."date" = timestamp '2023-01-26 18:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityBooleanValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityBooleanValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."date" = timestamp '2023-01-26 18:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-) as x ON a1."activityId" = x."activityId"
-WHERE a1."type" = 'raw'
-GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
-
-) as y
-WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
-LIMIT 100 OFFSET 0`;
+		const expectedQuery = '\n' +
+			'SELECT\ta."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
+			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
+			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
+			'\n' +
+			'FROM "Activity" a\n' +
+			'\t\n' +
+			'\t\tLEFT JOIN "ActivityStringLatestValue" ls USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityNumberLatestValue" ln USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityBooleanLatestValue" lb USING ("activityId")\n' +
+			'\n' +
+			`WHERE "type" = 'raw'\n` +
+			`\t AND a."groupId" = '/a' AND a."pipelineId" = 'pipe1' AND a."date" = timestamp without time zone '${dayjs(qr.date).utc().format('YYYY-MM-DD HH:mm:ss')}' \n` +
+			'GROUP BY a."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId"),\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId"),\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt")\n' +
+			'LIMIT 100 OFFSET 0\n';
 
 		const result = await activitiesRepository.get(qr, mockPipelineMetadata);
 
@@ -166,7 +157,6 @@ LIMIT 100 OFFSET 0`;
 				},
 			]
 		});
-
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 	});
 
@@ -236,47 +226,28 @@ LIMIT 100 OFFSET 0`;
 				},
 			],
 		});
-		const expectedQuery = `SELECT * from (
-SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
-max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
-max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
-FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityStringValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityStringValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
-FROM "ActivityNumberValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityNumberValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityBooleanValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityBooleanValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-) as x ON a1."activityId" = x."activityId"
-WHERE a1."type" = 'raw'
-GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
-
-) as y
-WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
-LIMIT 100 OFFSET 0`;
+		const expectedQuery = '\n' +
+			'SELECT\ta."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
+			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
+			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
+			'\n' +
+			'FROM "Activity" a\n' +
+			'\t\n' +
+			'\t\tLEFT JOIN "ActivityStringLatestValue" ls USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityNumberLatestValue" ln USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityBooleanLatestValue" lb USING ("activityId")\n' +
+			'\n' +
+			`WHERE "type" = 'raw'\n` +
+			`\t AND a."groupId" = '/a' AND a."pipelineId" = 'pipe1' \n` +
+			'GROUP BY a."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId"),\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId"),\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt")\n' +
+			'LIMIT 100 OFFSET 0\n';
 
 		const result = await activitiesRepository.get(qr, mockPipelineMetadata);
 
@@ -338,6 +309,8 @@ LIMIT 100 OFFSET 0`;
 				},
 			]
 		});
+
+
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 	});
 
@@ -372,47 +345,28 @@ LIMIT 100 OFFSET 0`;
 			],
 		});
 
-		const expectedQuery = `SELECT * from (
-SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
-max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
-max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
-FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityStringValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityStringValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
-FROM "ActivityNumberValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityNumberValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityBooleanValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityBooleanValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-) as x ON a1."activityId" = x."activityId"
-WHERE a1."type" = 'raw'
-GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
-
-) as y
-WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
-LIMIT 2 OFFSET 0`;
+		const expectedQuery = '\n' +
+			'SELECT\ta."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
+			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
+			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
+			'\n' +
+			'FROM "Activity" a\n' +
+			'\t\n' +
+			'\t\tLEFT JOIN "ActivityStringLatestValue" ls USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityNumberLatestValue" ln USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityBooleanLatestValue" lb USING ("activityId")\n' +
+			'\n' +
+			`WHERE "type" = 'raw'\n` +
+			`\t AND a."groupId" = '/a' AND a."pipelineId" = 'pipe1' \n` +
+			'GROUP BY a."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId"),\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId"),\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt")\n' +
+			'LIMIT 2 OFFSET 0\n';
 
 		const result = await activitiesRepository.get(qr, mockPipelineMetadata);
 		expect(result).toEqual({
@@ -438,6 +392,7 @@ LIMIT 2 OFFSET 0`;
 			],
 			nextToken: 2,
 		});
+
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 	});
 
@@ -482,56 +437,30 @@ LIMIT 2 OFFSET 0`;
 				},
 			],
 		});
-		const expectedQuery = `SELECT * from (
-SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
-max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
-max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
-FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityStringValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityStringValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-12 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
-FROM "ActivityNumberValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityNumberValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-12 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityBooleanValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityBooleanValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-12 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-) as x ON a1."activityId" = x."activityId"
-WHERE a1."type" = 'raw'
-GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
-
-) as y
-WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
-LIMIT 100 OFFSET 0`;
+		const expectedQuery = '\n' +
+			'SELECT\ta."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
+			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
+			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
+			'\n' +
+			'FROM "Activity" a\n' +
+			'\t\n' +
+			'\t\tLEFT JOIN "ActivityStringLatestValue" ls USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityNumberLatestValue" ln USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityBooleanLatestValue" lb USING ("activityId")\n' +
+			'\n' +
+			`WHERE "type" = 'raw'\n` +
+			`\t AND a."groupId" = '/a' AND a."pipelineId" = 'pipe1' AND a."date" >= timestamp without time zone  '2023-01-10 07:00:00' AND a."date" <= timestamp without time zone  '2023-01-12 07:00:00' \n` +
+			'GROUP BY a."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId"),\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId"),\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt")\n' +
+			'LIMIT 100 OFFSET 0\n';
 
 		const result = await activitiesRepository.get(qr, mockPipelineMetadata);
-
 		expect(result).toEqual({
 			data: [
 				{
@@ -593,57 +522,28 @@ LIMIT 100 OFFSET 0`;
 			],
 		});
 
-		const expectedQuery = `SELECT * from (
-SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
-max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
-max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
-FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityStringValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityStringValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."key1" = '2-1-third'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-12 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
-FROM "ActivityNumberValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityNumberValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."key1" = '2-1-third'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-12 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityBooleanValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityBooleanValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND a."pipelineId" = 'pipe1'
-AND a."key1" = '2-1-third'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-12 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-) as x ON a1."activityId" = x."activityId"
-WHERE a1."type" = 'raw'
-GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
-HAVING max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) = '2-1-third'
-AND max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) = '400'
-) as y
-WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
-LIMIT 100 OFFSET 0`;
+		const expectedQuery = '\n' +
+			'SELECT\ta."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
+			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
+			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
+			'\n' +
+			'FROM "Activity" a\n' +
+			'\t\n' +
+			'\t\tLEFT JOIN "ActivityStringLatestValue" ls USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityNumberLatestValue" ln USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityBooleanLatestValue" lb USING ("activityId")\n' +
+			'\n' +
+			`WHERE "type" = 'raw'\n` +
+			`\t AND a."groupId" = '/a' AND a."pipelineId" = 'pipe1' AND a."key1" = '2-1-third' AND a."date" >= timestamp without time zone  '2023-01-10 07:00:00' AND a."date" <= timestamp without time zone  '2023-01-12 07:00:00' \n` +
+			'GROUP BY a."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId"),\n' +
+			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId"),\n' +
+			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt")\n' +
+			'LIMIT 100 OFFSET 0\n';
 
 		const result = await activitiesRepository.get(qr, mockPipelineMetadata);
 
@@ -689,57 +589,28 @@ LIMIT 100 OFFSET 0`;
 				},
 			]
 		});
-		const expectedQuery = `SELECT * from (
-SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
-max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
-max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
-FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityStringValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityStringValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-11 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
-FROM "ActivityNumberValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityNumberValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-11 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityBooleanValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityBooleanValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'raw'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" >= timestamp '2023-01-10 07:00:00'
-AND a."date" <= timestamp '2023-01-11 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-) as x ON a1."activityId" = x."activityId"
-WHERE a1."type" = 'raw'
-GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
-HAVING max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) = '2-1-first'
-AND max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) = '400'
-) as y
-WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
-LIMIT 100 OFFSET 0`;
+		const expectedQuery = '\n' +
+			'SELECT\ta."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(s."executionId",n."executionId",b."executionId") "executionId",\n' +
+			'\tcoalesce(s."auditId",n."auditId",b."auditId") "auditId",\n' +
+			'\tcoalesce(s."createdAt",n."createdAt",b."createdAt") "createdAt",\n' +
+			`\tmax(CASE WHEN s."name"='stringOutput' THEN s."val" ELSE NULL END) "stringOutput",\n` +
+			`max(CASE WHEN n."name"='numericOutput' THEN n."val" ELSE NULL END) "numericOutput",\n` +
+			`max(CASE WHEN b."name"='booleanOutput' THEN b."val" ELSE NULL END) "booleanOutput"\n` +
+			'\n' +
+			'FROM "Activity" a\n' +
+			'\t\n' +
+			'\t\tLEFT JOIN "ActivityStringValue" s USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityNumberValue" n USING ("activityId")\n' +
+			'\t\tLEFT JOIN "ActivityBooleanValue" b USING ("activityId")\n' +
+			'\n' +
+			`WHERE "type" = 'raw'\n` +
+			`\t AND a."groupId" = '/a' AND a."key1" = '2-1-first' AND a."date" >= timestamp without time zone  '2023-01-10 07:00:00' AND a."date" <= timestamp without time zone  '2023-01-11 07:00:00' AND s."executionId" = 'pipe1-exec1' AND n."executionId" = 'pipe1-exec1' AND b."executionId" = 'pipe1-exec1' \n` +
+			'GROUP BY a."activityId", a."date", a."pipelineId",\n' +
+			'\tcoalesce(s."executionId",n."executionId",b."executionId"),\n' +
+			'\tcoalesce(s."auditId",n."auditId",b."auditId"),\n' +
+			'\tcoalesce(s."createdAt",n."createdAt",b."createdAt")\n' +
+			'LIMIT 100 OFFSET 0\n';
 
 		const result = await activitiesRepository.get(qr, mockPipelineMetadata);
 
@@ -785,42 +656,40 @@ LIMIT 100 OFFSET 0`;
 				},
 			]
 		});
-		const expectedQuery = `SELECT * from (
-SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
-max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
-max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
-FROM "Activity" a1
-JOIN (SELECT t."activityId", t."name", t."auditId", t."createdAt", cast(t."val" as varchar), t."executionId"
-FROM "Activity" a
-JOIN "ActivityStringValue" t ON (a."activityId"=t."activityId")
-WHERE a."groupId" = '/a'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" = timestamp '2023-01-10 07:00:00'
-UNION
-SELECT t."activityId", t."name", t."auditId", t."createdAt", cast(t."val"::REAL as varchar), t."executionId"
-FROM "Activity" a
-JOIN "ActivityNumberValue" t ON (a."activityId"=t."activityId")
-WHERE a."groupId" = '/a'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" = timestamp '2023-01-10 07:00:00'
-UNION
-SELECT t."activityId", t."name", t."auditId", t."createdAt", cast(t."val" as varchar), t."executionId"
-FROM "Activity" a
-JOIN "ActivityBooleanValue" t ON (a."activityId"=t."activityId")
-WHERE a."groupId" = '/a'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" = timestamp '2023-01-10 07:00:00'
-) as x ON a1."activityId" = x."activityId"
-WHERE a1."type" = 'raw'
-GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
-HAVING (max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) = '2-1-first' OR max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) IS NULL)
-AND (max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) = '400' OR max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) IS NULL)
-) as y
-
-LIMIT 100 OFFSET 0`;
+		const expectedQuery = 'WITH filtered_activity AS (\n' +
+			'\tSELECT\t"activityId", "date", "pipelineId"\n' +
+			'\tFROM "Activity" a\n' +
+			`\tWHERE "type" = 'raw'\n` +
+			`\t   AND a."groupId" = '/a' AND a."key1" = '2-1-first' AND a."date" = timestamp without time zone '2023-01-10 07:00:00'\n` +
+			')\n' +
+			'SELECT DISTINCT ON (fa."activityId", col0."createdAt")\n' +
+			'\t   fa."activityId",\n' +
+			'       fa."date",\n' +
+			'       fa."pipelineId",\n' +
+			'       col0."executionId",\n' +
+			'       col0."auditId",\n' +
+			'       col0."createdAt",\n' +
+			'       col0."stringOutput",\r\n' +
+			'col0."stringOutput__error",\r\n' +
+			'col0."stringOutput__errorMessage",\r\n' +
+			'col1."numericOutput",\r\n' +
+			'col1."numericOutput__error",\r\n' +
+			'col1."numericOutput__errorMessage",\r\n' +
+			'col2."booleanOutput",\r\n' +
+			'col2."booleanOutput__error",\r\n' +
+			'col2."booleanOutput__errorMessage"\n' +
+			'FROM "filtered_activity" fa\n' +
+			'\tJOIN (\t(SELECT\t"activityId", "executionId", "auditId",  "createdAt", "val" as "stringOutput", "error" as "stringOutput__error", "errorMessage" as "stringOutput__errorMessage"\n' +
+			`\t\t\tFROM "ActivityStringValue" WHERE "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
+			'\t\t  ) col0 USING ("activityId" )\r\n' +
+			'JOIN (\t(SELECT\t"activityId",   "createdAt", "val" as "numericOutput", "error" as "numericOutput__error", "errorMessage" as "numericOutput__errorMessage"\n' +
+			`\t\t\tFROM "ActivityNumberValue" WHERE "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
+			'\t\t  ) col1 USING ("activityId" , "createdAt")\r\n' +
+			'JOIN (\t(SELECT\t"activityId",   "createdAt", "val" as "booleanOutput", "error" as "booleanOutput__error", "errorMessage" as "booleanOutput__errorMessage"\n' +
+			`\t\t\tFROM "ActivityBooleanValue" WHERE "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
+			'\t\t  ) col2 USING ("activityId" , "createdAt")\n' +
+			'ORDER BY col0."createdAt"\n' +
+			'LIMIT 100 OFFSET 0';
 
 		const result = await activitiesRepository.get(qr, mockPipelineMetadata);
 
@@ -860,54 +729,28 @@ LIMIT 100 OFFSET 0`;
 				rows: []
 			});
 
-			const expectedQuery = `SELECT * from (
-SELECT a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt", max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) "stringOutput",
-max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) "numericOutput",
-max(CASE WHEN name='booleanOutput' THEN val ELSE NULL END) "booleanOutput"
-FROM "Activity" a1
-JOIN (SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityStringValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityStringValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'aggregated'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" = timestamp '2023-01-10 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val"::REAL as varchar), a."executionId"
-FROM "ActivityNumberValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityNumberValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'aggregated'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" = timestamp '2023-01-10 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-UNION
-SELECT b."activityId", b."name", a."auditId", b."createdAt", cast(a."val" as varchar), a."executionId"
-FROM "ActivityBooleanValue" a
-JOIN (SELECT t."activityId", t."name", max(t."createdAt") as "createdAt"
-FROM "Activity" a
-JOIN "ActivityBooleanValue" t ON a."activityId" = t."activityId"
-WHERE a."groupId" = '/a' AND a."type" = 'aggregated'
-AND t."executionId" = 'pipe1-exec1'
-AND a."key1" = '2-1-first'
-AND a."date" = timestamp '2023-01-10 07:00:00'
-GROUP BY t."activityId", t."name"
-) b ON (a."activityId" = b."activityId" AND a."name" = b."name" AND a."createdAt" = b."createdAt")
-) as x ON a1."activityId" = x."activityId"
-WHERE a1."type" = 'aggregated'
-GROUP BY a1."activityId", a1."date", a1."pipelineId", x."executionId", x."auditId", x."createdAt"
-HAVING max(CASE WHEN name='stringOutput' THEN val ELSE NULL END) = '2-1-first'
-AND max(CASE WHEN name='numericOutput' THEN val ELSE NULL END) = '400'
-) as y
-WHERE "stringOutput" IS NOT NULL OR "numericOutput" IS NOT NULL OR "booleanOutput" IS NOT NULL
-LIMIT 100 OFFSET 0`;
+			const expectedQuery = '\n' +
+				'SELECT\ta."activityId", a."date", a."pipelineId",\n' +
+				'\tcoalesce(s."executionId",n."executionId",b."executionId") "executionId",\n' +
+				'\tcoalesce(s."auditId",n."auditId",b."auditId") "auditId",\n' +
+				'\tcoalesce(s."createdAt",n."createdAt",b."createdAt") "createdAt",\n' +
+				`\tmax(CASE WHEN s."name"='stringOutput' THEN s."val" ELSE NULL END) "stringOutput",\n` +
+				`max(CASE WHEN n."name"='numericOutput' THEN n."val" ELSE NULL END) "numericOutput",\n` +
+				`max(CASE WHEN b."name"='booleanOutput' THEN b."val" ELSE NULL END) "booleanOutput"\n` +
+				'\n' +
+				'FROM "Activity" a\n' +
+				'\t\n' +
+				'\t\tLEFT JOIN "ActivityStringValue" s USING ("activityId")\n' +
+				'\t\tLEFT JOIN "ActivityNumberValue" n USING ("activityId")\n' +
+				'\t\tLEFT JOIN "ActivityBooleanValue" b USING ("activityId")\n' +
+				'\n' +
+				`WHERE "type" = 'aggregated'\n` +
+				`\t AND a."groupId" = '/a' AND a."key1" = '2-1-first' AND a."date" = timestamp without time zone '${dayjs(qr.date).utc().format('YYYY-MM-DD HH:mm:ss')}' AND n."executionId" = 'pipe1-exec1'  AND  coalesce(s."createdAt",n."createdAt",b."createdAt") >= timestamp without time zone  '${dayjs(pipelineUpdatedAt).utc().format('YYYY-MM-DD HH:mm:ss')}'\n` +
+				'GROUP BY a."activityId", a."date", a."pipelineId",\n' +
+				'\tcoalesce(s."executionId",n."executionId",b."executionId"),\n' +
+				'\tcoalesce(s."auditId",n."auditId",b."auditId"),\n' +
+				'\tcoalesce(s."createdAt",n."createdAt",b."createdAt")\n' +
+				'LIMIT 100 OFFSET 0\n';
 
 			await activitiesRepository.get(qr, mockPipelineMetadata);
 			expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
@@ -934,7 +777,9 @@ LIMIT 100 OFFSET 0`;
 					'month': '1-2-2022',
 					'numericOutput': '200',
 					'stringOutput': 'Row2',
-				}];
+				}
+				];
+
 			await activitiesRepository.createAggregatedActivities(activities, 'pipeline1', 'execution1', '/tests',
 				{ 'numericOutput': 'number', 'stringOutput': 'string' }, {
 					...mockPipelineMetadata,
@@ -948,75 +793,54 @@ LIMIT 100 OFFSET 0`;
 
 				});
 
-			const firstActivityInsertStatement = `with "id-1" as (
-INSERT INTO "Activity"
-("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")
-VALUES
-(
-'/tests',
-'pipeline1',
-to_timestamp(1640966400),
-'aggregated',
-'Row1',
-'___NULL___',
-'___NULL___',
-'___NULL___',
-'___NULL___'
-)
-ON CONFLICT  ("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")
-DO UPDATE SET "groupId" = EXCLUDED."groupId" Returning "activityId"
-),"id-2" as (
-INSERT INTO "ActivityNumberValue"
-("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")
-VALUES (
-( SELECT "activityId" from "id-1"),
-'numericOutput', to_timestamp('1640966400'), 'execution1', 100, false, null)
-)
-INSERT INTO "ActivityStringValue"
-("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")
-VALUES (
-( SELECT "activityId" from "id-1"),
-'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row1', false, null)
-`;
+			const firstActivityInsertStatement = 'with "id-1" as (\n' +
+				'INSERT INTO "Activity" ("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")\n' +
+				'VALUES (\n' +
+				'\t\'/tests\',\n' +
+				'\t\'pipeline1\',\n' +
+				`\tto_timestamp(${dayjs(activities[0].month).unix()}),\n` +
+				'\t\'aggregated\',\n' +
+				'\t\'Row1\',\n' +
+				'\t\'___NULL___\',\n' +
+				'\t\'___NULL___\',\n' +
+				'\t\'___NULL___\',\n' +
+				'\t\'___NULL___\'\n' +
+				')\n' +
+				'ON CONFLICT  ("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")\n' +
+				'DO UPDATE SET "groupId" = EXCLUDED."groupId" Returning "activityId"\n' +
+				'),"id-2" as (\n' +
+				'INSERT INTO "ActivityNumberValue" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")\n' +
+				`VALUES( (SELECT "activityId" from "id-1"), 'numericOutput', to_timestamp('1640966400'), 'execution1', 100, false, null)\n` +
+				')\n' +
+				'INSERT INTO "ActivityStringValue" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")\n' +
+				`VALUES( (SELECT "activityId" from "id-1"), 'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row1', false, null)\n`;
 
-			const secondActivityInsertStatement = `with "id-3" as (
-INSERT INTO "Activity"
-("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")
-VALUES
-(
-'/tests',
-'pipeline1',
-to_timestamp(1640966400),
-'aggregated',
-'Row2',
-'___NULL___',
-'___NULL___',
-'___NULL___',
-'___NULL___'
-)
-ON CONFLICT  ("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")
-DO UPDATE SET "groupId" = EXCLUDED."groupId" Returning "activityId"
-),"id-4" as (
-INSERT INTO "ActivityNumberValue"
-("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")
-VALUES (
-( SELECT "activityId" from "id-3"),
-'numericOutput', to_timestamp('1640966400'), 'execution1', 200, false, null)
-)
-INSERT INTO "ActivityStringValue"
-("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")
-VALUES (
-( SELECT "activityId" from "id-3"),
-'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row2', false, null)
-`;
+			const secondActivityInsertStatement = 'with "id-3" as (\n' +
+				'INSERT INTO "Activity" ("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")\n' +
+				'VALUES (\n' +
+				'\t\'/tests\',\n' +
+				'\t\'pipeline1\',\n' +
+				`\tto_timestamp(${dayjs(activities[1].month).unix()}),\n` +
+				'\t\'aggregated\',\n' +
+				'\t\'Row2\',\n' +
+				'\t\'___NULL___\',\n' +
+				'\t\'___NULL___\',\n' +
+				'\t\'___NULL___\',\n' +
+				'\t\'___NULL___\'\n' +
+				')\n' +
+				'ON CONFLICT  ("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")\n' +
+				'DO UPDATE SET "groupId" = EXCLUDED."groupId" Returning "activityId"\n' +
+				'),"id-4" as (\n' +
+				'INSERT INTO "ActivityNumberValue" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")\n' +
+				`VALUES( (SELECT "activityId" from "id-3"), 'numericOutput', to_timestamp('1640966400'), 'execution1', 200, false, null)\n` +
+				')\n' +
+				'INSERT INTO "ActivityStringValue" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")\n' +
+				`VALUES( (SELECT "activityId" from "id-3"), 'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row2', false, null)\n`;
 
 			expect(mockPostgresClient.query).toBeCalledWith('BEGIN');
 			expect(mockPostgresClient.query).toBeCalledWith(firstActivityInsertStatement);
 			expect(mockPostgresClient.query).toBeCalledWith(secondActivityInsertStatement);
 			expect(mockPostgresClient.query).toBeCalledWith('COMMIT');
 		});
-
 	});
-
-
 });

@@ -1,6 +1,41 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Thu, 20 Apr 2023 21:57:49 GMT and should not be manually modified.
+This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+
+## 7.8.0
+Mon, 01 May 2023 00:31:09 GMT
+
+### Minor changes
+
+- add sort command on build.sh
+
+## 7.7.2
+Fri, 28 Apr 2023 15:35:58 GMT
+
+### Patches
+
+- cdk version
+
+## 7.7.1
+Wed, 26 Apr 2023 20:54:57 GMT
+
+### Patches
+
+- updated pipeline-processor apigw name
+
+## 7.7.0
+Wed, 26 Apr 2023 18:03:55 GMT
+
+### Minor changes
+
+- add sql migration script to create trigger that insert latest value into new table
+
+## 7.6.4
+Wed, 26 Apr 2023 03:24:22 GMT
+
+### Patches
+
+- optimize step function
 
 ## 7.6.3
 Thu, 20 Apr 2023 21:57:49 GMT

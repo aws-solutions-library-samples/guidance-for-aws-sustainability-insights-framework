@@ -160,7 +160,7 @@ const inlineExecutionOptions = Type.Object({
 			description: 'An object with key values representing the inputs and its expected values.',
 		}),
 		{
-			maxItems: parseInt(process.env['INLINE_PROCESSING_ROWS_LIMIT'])
+			maxItems: Number.isInteger(parseInt(process.env['INLINE_PROCESSING_ROWS_LIMIT'])) ? parseInt(process.env['INLINE_PROCESSING_ROWS_LIMIT']) : 10
 		}),
 });
 

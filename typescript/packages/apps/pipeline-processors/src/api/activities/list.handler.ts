@@ -51,7 +51,7 @@ Permissions:
 				fromToken: fromTokenPaginationQS,
 				showHistory: showHistoryQS,
 				uniqueKeyAttributes: uniqueKeyAttributesQS,
-				showAggregate:  showAggregateQS
+				showAggregate: showAggregateQS
 			}),
 			response: {
 				200: {
@@ -120,7 +120,7 @@ const validateDates = (date: string, dateTo: string, dateFrom: string) => {
 	}
 };
 
-const expandAttributes = (attrString:string) => {
+const expandAttributes = (attrString: string) => {
 	const expandedAttributes: Record<string, string> = {};
 	if ((attrString?.length ?? 0) > 0) {
 		attrString.split(',').forEach((a) => {
@@ -130,5 +130,5 @@ const expandAttributes = (attrString:string) => {
 			expandedAttributes[k] = v;
 		});
 	}
-	return expandedAttributes
-}
+	return expandedAttributes;
+};

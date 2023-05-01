@@ -26,12 +26,8 @@ dayjs.extend(utc);
 export class AggregationTaskAuroraRepository {
 	private readonly log: BaseLogger;
 	private readonly baseRepositoryClient: BaseRepositoryClient;
-	private readonly activityTableName: string;
-	private readonly activitiesNumberValueTableName: string;
 
-	constructor(log: BaseLogger, repositoryClient: BaseRepositoryClient, activityTableName: string, activitiesNumberValueTableName: string) {
-		this.activitiesNumberValueTableName = activitiesNumberValueTableName;
-		this.activityTableName = activityTableName;
+	constructor(log: BaseLogger, repositoryClient: BaseRepositoryClient) {
 		this.log = log;
 		this.baseRepositoryClient = repositoryClient;
 	}
@@ -56,29 +52,27 @@ export class AggregationTaskAuroraRepository {
 			validateNotEmpty(p.output, 'pipeline output');
 		}
 
-		const aggregatePipelineOutputQuery = `
-SELECT date(a.date) as date, sum (env.val) as value
-FROM "${this.activityTableName}" a
-JOIN "${this.activitiesNumberValueTableName}" env
-ON (a."activityId" = env."activityId")
-JOIN ( SELECT env."activityId", env.name, max(env."createdAt") as "createdAt"
-FROM "${this.activityTableName}" a JOIN "${this.activitiesNumberValueTableName}" env
-ON a."activityId" = env."activityId"
-WHERE a."groupId" = '${groupId}'
-AND ( ${pipelines.map((p) => ` a."pipelineId" = '${p.pipelineId}' AND env."name" = '${p.output}' `).join('OR')})
-GROUP BY env."activityId", env."name")
-env_latest ON (env."activityId"=env_latest."activityId" AND env."name"=env_latest."name" AND env."createdAt"=env_latest."createdAt")
-WHERE a."type" = 'raw' and date(a.date) >= timestamp '${dayjs.utc(timeRange.from).format('YYYY-MM-DD')}' and date(a.date) <= timestamp '${dayjs.utc(timeRange.to).format('YYYY-MM-DD')}'
+
+		const query = `
+SELECT 	date(a."date") as date, sum (ln."val") as value
+FROM	 "Activity" a JOIN "ActivityNumberLatestValue" ln USING ("activityId")
+WHERE 	a."type" = 'raw'
+ AND	a."groupId" = '${groupId}'
+ AND 	(
+		${pipelines.map((p) => ` a."pipelineId" = '${p.pipelineId}' AND ln."name" = '${p.output}' `).join('OR')}
+	)
+ AND 	date(a.date) >= timestamp '${dayjs.utc(timeRange.from).format('YYYY-MM-DD')}'
+ AND 	date(a.date) <= timestamp '${dayjs.utc(timeRange.to).format('YYYY-MM-DD')}'
 GROUP BY date(a.date)`;
 
-		this.log.info(`AggregationTaskAuroraRepository> aggregatePipelineOutput> query: ${aggregatePipelineOutputQuery}`)
+		this.log.info(`AggregationTaskAuroraRepository> aggregatePipelineOutput> query: ${query}`);
 
 		let aggregates: AggregationResult[] = [];
 		const dbConnection = await this.baseRepositoryClient.getConnection();
 
 		let queryResponse;
 		try {
-			queryResponse = await dbConnection.query(aggregatePipelineOutputQuery);
+			queryResponse = await dbConnection.query(query);
 		} catch (e) {
 			this.log.error(e);
 			throw e;
@@ -105,16 +99,15 @@ GROUP BY date(a.date)`;
 		validateNotEmpty(executionId, 'executionId');
 
 		// min and max are based on the latest pipeline execution based on the max(createdAt) condition
+
 		const query = `
-SELECT date(min(a.date)) as from , date(max(a.date)) as to
-FROM "${this.activityTableName}" a
-JOIN (
-	SELECT "activityId"
-	FROM "${this.activitiesNumberValueTableName}" env
-	WHERE env."executionId" = '${executionId}'
-	GROUP BY "activityId" )
-env ON (a."activityId"=env."activityId")
-WHERE a."type" = 'raw'`;
+SELECT min("date") as "from" , date_trunc('day', date(max(a.date))) as "to"
+FROM "Activity" a
+WHERE  a."type" = 'raw'
+ AND (	"activityId" IN (	SELECT distinct "activityId" FROM "ActivityStringValue" WHERE "executionId" = '${executionId}')
+	OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityNumberValue" WHERE "executionId" = '${executionId}')
+	OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityDateTimeValue" WHERE "executionId" = '${executionId}')
+	OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityBooleanValue" WHERE "executionId" = '${executionId}'))`;
 
 		this.log.trace(`AggregationTaskAuroraRepository> getAffectedTimeRange> query:${query}`);
 

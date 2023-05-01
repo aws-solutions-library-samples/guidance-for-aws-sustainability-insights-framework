@@ -2,6 +2,47 @@
   "name": "@sif/pipelines",
   "entries": [
     {
+      "version": "4.6.7",
+      "tag": "@sif/pipelines_v4.6.7",
+      "date": "Mon, 01 May 2023 00:31:09 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.6.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.6.6",
+      "tag": "@sif/pipelines_v4.6.6",
+      "date": "Fri, 28 Apr 2023 15:35:58 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "cdk version"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.6.5",
+      "tag": "@sif/pipelines_v4.6.5",
+      "date": "Wed, 26 Apr 2023 03:24:22 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "fix outdated documentation on aggregate method"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.5.2`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.6.4",
       "tag": "@sif/pipelines_v4.6.4",
       "date": "Fri, 14 Apr 2023 16:13:35 GMT",

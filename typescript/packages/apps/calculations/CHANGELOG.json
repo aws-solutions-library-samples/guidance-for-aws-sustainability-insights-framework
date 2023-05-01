@@ -2,6 +2,30 @@
   "name": "@sif/calculations",
   "entries": [
     {
+      "version": "4.5.5",
+      "tag": "@sif/calculations_v4.5.5",
+      "date": "Mon, 01 May 2023 00:31:09 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.6.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.5.4",
+      "tag": "@sif/calculations_v4.5.4",
+      "date": "Wed, 26 Apr 2023 03:24:22 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.5.2`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.5.3",
       "tag": "@sif/calculations_v4.5.3",
       "date": "Fri, 14 Apr 2023 16:13:35 GMT",

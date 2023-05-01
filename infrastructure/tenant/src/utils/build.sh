@@ -68,4 +68,4 @@ if [ -n "$3" ]; then
 fi
 export CALCULATION_ENGINE_FUNCTION_NAME=$(aws ssm get-parameter --name /sif/$TENANT_ID/$ENVIRONMENT/calculator/functionName | jq -r '.Parameter.Value')
 
-printenv
+printenv | sort

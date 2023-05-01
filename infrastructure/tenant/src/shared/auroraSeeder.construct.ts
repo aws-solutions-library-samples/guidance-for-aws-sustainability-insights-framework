@@ -96,6 +96,13 @@ export class AuroraSeeder extends Construct {
 			environment: {},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml')
 		});
+		
+		NagSuppressions.addResourceSuppressions(customResourceLambda, [
+			{
+				id: 'AwsSolutions-L1',
+				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+			},
+		]);
 
 		const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
 			onEventHandler: customResourceLambda

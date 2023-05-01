@@ -12,6 +12,8 @@ describe('csvService', () => {
 	let csvService: CsvService;
 	let mockedConnectorEvents: ConnectorEvents
 	const pipeline: Pipeline= {
+		updatedAt: new Date(),
+		createdAt: new Date(),
 		connectorConfig: {
 			input: [{
 				name: 'sif-csv-pipeline-input-connector',

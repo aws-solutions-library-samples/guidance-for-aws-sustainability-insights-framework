@@ -13,7 +13,7 @@
 
 import type { Readable } from 'stream';
 import type { Pipeline } from '@sif/clients';
-import type { AggregateType, PipelineMetadata } from '../api/activities/models';
+import type { Aggregate, AggregateType, PipelineMetadata } from '../api/activities/models.js';
 
 export async function streamToString(stream: Readable): Promise<string> {
 	return await new Promise((resolve, reject) => {
@@ -46,15 +46,18 @@ export function getPipelineMetadata(pipeline: Pipeline): PipelineMetadata {
 	// let's get all the outputs for all transforms
 	const outputTypes = [];
 	let transformKeyMap = {};
-	const outputKeys = [];
+
+	const outputKeysAndTypes: Record<string, string> = Object.assign({}, pipeline._aggregatedOutputKeyAndTypeMap);
 
 	// iterate over the keys in the _aggregatedOutputKeyAndTypeMap and populate the outputTypes and outputKeys arrays
 	Object.keys(pipeline._aggregatedOutputKeyAndTypeMap).forEach((key) => {
-		outputKeys.push(key);
 		if (!outputTypes.includes(pipeline._aggregatedOutputKeyAndTypeMap[key])) outputTypes.push(pipeline._aggregatedOutputKeyAndTypeMap[key]);
 	});
 
-	let aggregate;
+	let aggregate: {
+		fields: Aggregate[],
+		timestampField: string
+	};
 
 	//iterate over the pipeline transform outputs to populate the transformKeyMap
 	pipeline.transformer.transforms.forEach((t) => {
@@ -64,7 +67,8 @@ export function getPipelineMetadata(pipeline: Pipeline): PipelineMetadata {
 			if (o.aggregate) {
 				if (aggregate === undefined) {
 					aggregate = {
-						fields: []
+						fields: [],
+						timestampField: undefined
 					};
 				}
 				// collate all the keys that has aggregate field defined
@@ -79,9 +83,10 @@ export function getPipelineMetadata(pipeline: Pipeline): PipelineMetadata {
 
 	const metadata: PipelineMetadata = {
 		outputTypes,
-		outputKeys,
+		outputKeysAndTypes,
 		transformKeyMap,
-		aggregate
+		aggregate,
+		updatedAt: pipeline.updatedAt ?? pipeline.createdAt
 	};
 
 	return metadata;

@@ -17,6 +17,8 @@ import type { Pipeline } from '@sif/clients';
 
 describe('HelperUtil', () => {
 	const pipeline: Pipeline = {
+		createdAt: new Date(),
+		updatedAt: new Date(),
 		'id' : '123',
 		'createdBy': 'e2e_tests_admin@amazon.com',
 		'transformer': {
@@ -127,7 +129,13 @@ describe('HelperUtil', () => {
 	it('should get the appropriate pipeline metadata for building query', () => {
 		const pipelineMetadata = util.getPipelineMetadata(pipeline);
 		console.log(pipelineMetadata);
-		expect(pipelineMetadata.outputKeys).toEqual(['zipcode', 'co2e', 'month', 'kwh', 'aggregatedDate']);
+		expect(pipelineMetadata.outputKeysAndTypes).toEqual({
+			'zipcode': 'string',
+			'co2e': 'number',
+			'month': 'string',
+			'kwh': 'number',
+			'aggregatedDate': 'timestamp'
+		});
 		expect(pipelineMetadata.outputTypes).toEqual(['string', 'number', 'timestamp']);
 		expect(pipelineMetadata.aggregate).toEqual({
 			timestampField: 'aggregatedDate',

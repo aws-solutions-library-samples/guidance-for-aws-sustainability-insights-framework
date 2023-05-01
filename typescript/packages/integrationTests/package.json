@@ -1,7 +1,7 @@
 {
 	"name": "@sif/integration-tests",
 	"description": "SIF: Integration Tests.",
-	"version": "3.10.1",
+	"version": "3.11.0",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"scripts": {
 		"clean": "npx shx rm -rf dist *.log",

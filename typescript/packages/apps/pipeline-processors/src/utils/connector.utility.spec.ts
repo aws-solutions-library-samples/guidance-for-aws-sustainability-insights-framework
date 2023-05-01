@@ -49,6 +49,8 @@ describe('ConnectorUtility', () => {
 			createdBy: 'someone@somewhere.com'
 		};
 		const pipeline: Pipeline = {
+			createdAt: new Date(),
+			updatedAt: new Date(),
 			connectorConfig: {
 				input: [{
 					name: 'sif-csv-pipeline-input-connector',
@@ -125,6 +127,8 @@ describe('ConnectorUtility', () => {
 			createdBy: 'someone@somewhere.com'
 		};
 		const pipeline: Pipeline = {
+			createdAt: new Date(),
+			updatedAt: new Date(),
 			connectorConfig: {
 				input: [{
 					name: 'sif-csv-pipeline-input-connector'
@@ -188,6 +192,8 @@ describe('ConnectorUtility', () => {
 			createdBy: 'someone@somewhere.com'
 		};
 		const pipeline: Pipeline = {
+			createdAt: new Date(),
+			updatedAt: new Date(),
 			connectorConfig: {
 				input: [{
 					name: 'sif-csv-pipeline-input-connector',
@@ -249,6 +255,8 @@ describe('ConnectorUtility', () => {
 			createdBy: 'someone@somewhere.com'
 		};
 		const pipeline: Pipeline = {
+			createdAt: new Date(),
+			updatedAt: new Date(),
 			connectorConfig: {
 				input: [{
 					name: 'sif-csv-pipeline-input-connector',

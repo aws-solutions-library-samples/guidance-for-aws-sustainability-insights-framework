@@ -18,6 +18,7 @@
 		"@aws-cdk/core:validateSnapshotRemovalPolicy": true,
 		"@aws-cdk/aws-codepipeline:crossAccountKeyAliasStackSafeResourceName": true,
 		"@aws-cdk/aws-s3:createDefaultLoggingPolicy": true,
+		"@aws-cdk/aws-s3:serverAccessLogsUseBucketPolicy": true,
 		"@aws-cdk/aws-sns-subscriptions:restrictSqsDescryption": true,
 		"@aws-cdk/core:target-partitions": ["aws", "aws-cn"]
 	}

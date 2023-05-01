@@ -2,6 +2,42 @@
   "name": "@sif/deployment-helper",
   "entries": [
     {
+      "version": "0.3.1",
+      "tag": "@sif/deployment-helper_v0.3.1",
+      "date": "Mon, 01 May 2023 00:31:09 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.6.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.3.0",
+      "tag": "@sif/deployment-helper_v0.3.0",
+      "date": "Wed, 26 Apr 2023 18:03:55 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "should set tenant username as environment variable so migration scripts can use the value"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.2.3",
+      "tag": "@sif/deployment-helper_v0.2.3",
+      "date": "Wed, 26 Apr 2023 03:24:22 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.5.2`"
+          }
+        ]
+      }
+    },
+    {
       "version": "0.2.2",
       "tag": "@sif/deployment-helper_v0.2.2",
       "date": "Wed, 05 Apr 2023 19:11:53 GMT",

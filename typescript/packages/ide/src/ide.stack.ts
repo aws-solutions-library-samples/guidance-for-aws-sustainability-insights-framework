@@ -26,6 +26,7 @@ import { Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import * as cdk from 'aws-cdk-lib';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import { OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { NagSuppressions } from 'cdk-nag';
 
 export interface IdeStackProperties {
 	environment: string;
@@ -104,6 +105,13 @@ export class IDEStack extends Stack {
 			},
 			depsLockFilePath: path.join(__dirname, '../package.json'),
 		});
+
+		NagSuppressions.addResourceSuppressions(customResourceLambda, [
+			{
+				id: 'AwsSolutions-L1',
+				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+			},
+		]);
 
 		// 👇 create a policy statement
 		const ssmPolicy = new PolicyStatement({

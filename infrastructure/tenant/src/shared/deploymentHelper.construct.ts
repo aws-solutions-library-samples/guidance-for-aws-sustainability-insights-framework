@@ -105,6 +105,13 @@ export class DeploymentHelper extends Construct {
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml')
 		});
 
+		NagSuppressions.addResourceSuppressions(deploymentHelperLambda, [
+			{
+				id: 'AwsSolutions-L1',
+				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+			},
+		]);
+
 		const accountId = cdk.Stack.of(this).account;
 		const region = cdk.Stack.of(this).region;
 

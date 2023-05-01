@@ -30,7 +30,7 @@ describe('AggregationTaskAuroraRepository', () => {
 		);
 		mockRepositoryClient = mock<BaseRepositoryClient>();
 		mockPostgresClient = mock<Client>();
-		aggregationTaskRepository = new AggregationTaskAuroraRepository(logger, mockRepositoryClient, 'activity', 'executionNumberValue');
+		aggregationTaskRepository = new AggregationTaskAuroraRepository(logger, mockRepositoryClient);
 		mockRepositoryClient.getConnection.mockResolvedValue(mockPostgresClient);
 		mockPostgresClient.query.mockReset();
 	});
@@ -39,16 +39,15 @@ describe('AggregationTaskAuroraRepository', () => {
 		// @ts-ignore
 		mockPostgresClient.query.mockResolvedValueOnce({ rows: [{ from: '2023-01-03T16:00:00.000Z', to: '2023-01-05T16:00:00.000Z' }] });
 		const result = await aggregationTaskRepository.getAffectedTimeRange('pipe2', 'exec1');
-		const expectedQuery = `
-SELECT date(min(a.date)) as from , date(max(a.date)) as to
-FROM "activity" a
-JOIN (
-	SELECT "activityId"
-	FROM "executionNumberValue" env
-	WHERE env."executionId" = 'exec1'
-	GROUP BY "activityId" )
-env ON (a."activityId"=env."activityId")
-WHERE a."type" = 'raw'`;
+		const expectedQuery = '\n' +
+			`SELECT min("date") as "from" , date_trunc('day', date(max(a.date))) as "to"\n` +
+			'FROM "Activity" a\n' +
+			`WHERE  a."type" = 'raw'\n` +
+			` AND (\t"activityId" IN (\tSELECT distinct "activityId" FROM "ActivityStringValue" WHERE "executionId" = 'exec1')\n` +
+			`\tOR   "activityId" IN (\tSELECT distinct "activityId" FROM "ActivityNumberValue" WHERE "executionId" = 'exec1')\n` +
+			`\tOR   "activityId" IN (\tSELECT distinct "activityId" FROM "ActivityDateTimeValue" WHERE "executionId" = 'exec1')\n` +
+			`\tOR   "activityId" IN (\tSELECT distinct "activityId" FROM "ActivityBooleanValue" WHERE "executionId" = 'exec1'))`
+
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 		expect(result.from).toEqual('2023-01-03T16:00:00.000Z');
 		expect(result.to).toEqual('2023-01-05T16:00:00.000Z');
@@ -75,20 +74,17 @@ WHERE a."type" = 'raw'`;
 			to: new Date( '2023-01-04T16:00:00.000Z')
 		});
 
-		const expectedQuery = `
-SELECT date(a.date) as date, sum (env.val) as value
-FROM "activity" a
-JOIN "executionNumberValue" env
-ON (a."activityId" = env."activityId")
-JOIN ( SELECT env."activityId", env.name, max(env."createdAt") as "createdAt"
-FROM "activity" a JOIN "executionNumberValue" env
-ON a."activityId" = env."activityId"
-WHERE a."groupId" = '/a'
-AND (  a."pipelineId" = 'pipe1' AND env."name" = 'name3' OR a."pipelineId" = 'pipe2' AND env."name" = 'name3' )
-GROUP BY env."activityId", env."name")
-env_latest ON (env."activityId"=env_latest."activityId" AND env."name"=env_latest."name" AND env."createdAt"=env_latest."createdAt")
-WHERE a."type" = 'raw' and date(a.date) >= timestamp '2023-01-03' and date(a.date) <= timestamp '2023-01-04'
-GROUP BY date(a.date)`;
+		const expectedQuery ='\n' +
+			'SELECT \tdate(a."date") as date, sum (ln."val") as value\n' +
+			'FROM\t "Activity" a JOIN "ActivityNumberLatestValue" ln USING ("activityId")\n' +
+			`WHERE \ta."type" = 'raw'\n` +
+			` AND\ta."groupId" = '/a'\n` +
+			' AND \t(\n' +
+			`\t\t a."pipelineId" = 'pipe1' AND ln."name" = 'name3' OR a."pipelineId" = 'pipe2' AND ln."name" = 'name3' \n` +
+			'\t)\n' +
+			" AND \tdate(a.date) >= timestamp '2023-01-03'\n" +
+			" AND \tdate(a.date) <= timestamp '2023-01-04'\n" +
+			'GROUP BY date(a.date)'
 
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
 		expect(result.length).toBe(3);

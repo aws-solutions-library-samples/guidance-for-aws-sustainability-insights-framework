@@ -2,6 +2,40 @@
   "name": "@sif/pipeline-processors",
   "entries": [
     {
+      "version": "4.8.0",
+      "tag": "@sif/pipeline-processors_v4.8.0",
+      "date": "Mon, 01 May 2023 00:31:09 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "refactor pipeline-processors to use latest value tables"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.6.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.7.2",
+      "tag": "@sif/pipeline-processors_v4.7.2",
+      "date": "Wed, 26 Apr 2023 03:24:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "optimize step function"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.5.2`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.7.1",
       "tag": "@sif/pipeline-processors_v4.7.1",
       "date": "Fri, 14 Apr 2023 16:13:35 GMT",

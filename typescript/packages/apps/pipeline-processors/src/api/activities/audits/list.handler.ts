@@ -59,7 +59,7 @@ export default function listActivityAuditsRoute(fastify: FastifyTypebox, _option
 			const svc = fastify.diContainer.resolve('activityAuditService');
 			const { id } = request.params;
 			const { versionAsAt } = request.query;
-			const saved = await svc.listAudits(request.authz, id, versionAsAt ? dayjs(versionAsAt).toDate() : undefined);
+			const saved = await svc.listAudits(request.authz, id, versionAsAt ? dayjs.utc(versionAsAt).toDate() : undefined);
 			return reply.status(200).send(saved); // nosemgrep
 		},
 	});

@@ -15,7 +15,7 @@ import type { BaseLogger } from 'pino';
 import { validateHasSome, validateNotEmpty } from '@sif/validators';
 import { atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
 import { UnauthorizedError } from '@sif/resource-api-base';
-import type { PipelineClient, LambdaRequestContext } from '@sif/clients';
+import type { Pipeline, PipelineClient, LambdaRequestContext } from '@sif/clients';
 import type { PipelineProcessorsService } from '../executions/service.js';
 import type { PipelineExecution } from '../executions/schemas.js';
 import type { QueryRequest, QueryResponse } from './models.js';
@@ -42,7 +42,7 @@ export class ActivityService {
 	}
 
 	public async getActivities(sc: SecurityContext, req: QueryRequest): Promise<QueryResponse> {
-		this.log.info(`ActivityService> query> req: ${JSON.stringify(req)}`);
+		this.log.debug(`ActivityService> query> req: ${JSON.stringify(req)}`);
 
 		const isAuthorized = this.authChecker.isAuthorized([sc.groupId], sc.groupRoles, atLeastReader, 'any');
 		if (!isAuthorized) {
@@ -68,12 +68,13 @@ export class ActivityService {
 		};
 
 		// get the pipeline, so we can figure out what are its outputs
-		let pipeline;
+		let pipeline: Pipeline;
 		if (req.executionId) {
 			// if the filter is for executions, we have to retrieve the pipeline from the execution itself, then get the outputs for a pipeline
 			// the version for pipeline is retrieved for from the execution itself
 			const execution = await this.getPipelineExecution(req.executionId, sc);
 			pipeline = await this.pipelineClient.get(execution.pipelineId, execution.pipelineVersion, requestContext);
+			req.pipelineId = pipeline.id;
 
 		} else if (req.pipelineId) {
 			// if only the pipelineId filter is specified, then we will retrieve the metadata for the latest pipeline without providing the version
@@ -81,9 +82,10 @@ export class ActivityService {
 		}
 
 		const pipelineMetadata = getPipelineMetadata(pipeline);
+		this.log.debug(`ActivityService> query> pipelineMetadata: ${JSON.stringify(pipelineMetadata)}`);
 
 		// we need to do a check if the showHistory Parameter is set to true, we then need to verify if the transformKeyMap has any keys.
-		if (req.showHistory && Object.keys(pipelineMetadata.transformKeyMap).length > 0) {
+		if (req.showHistory && !req.showAggregate && Object.keys(pipelineMetadata.transformKeyMap).length > 0) {
 			// if it does, then we need to validate that user has specified the uniqueKeyAttributes
 			validateNotEmpty(req.uniqueKeyAttributes, 'uniqueKeyAttributes');
 

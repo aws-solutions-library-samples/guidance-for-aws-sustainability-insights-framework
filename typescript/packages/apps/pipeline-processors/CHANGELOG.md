@@ -1,6 +1,20 @@
 # Change Log - @sif/pipeline-processors
 
-This log was last generated on Fri, 14 Apr 2023 16:13:35 GMT and should not be manually modified.
+This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+
+## 4.8.0
+Mon, 01 May 2023 00:31:09 GMT
+
+### Minor changes
+
+- refactor pipeline-processors to use latest value tables
+
+## 4.7.2
+Wed, 26 Apr 2023 03:24:22 GMT
+
+### Patches
+
+- optimize step function
 
 ## 4.7.1
 Fri, 14 Apr 2023 16:13:35 GMT

@@ -154,12 +154,6 @@ const registerContainer = (app?: FastifyInstance) => {
 	const rdsTenantDatabase = process.env['TENANT_DATABASE_NAME'];
 	const nodeEnv = process.env['NODE_ENV'];
 	const caCert = process.env['CA_CERT'];
-	// TODO: We need to add other table details
-	const activitiesTableName = process.env['ACTIVITIES_TABLE_NAME'];
-	const activitiesNumberValueTableName = process.env['ACTIVITIES_NUMBER_VALUE_TABLE_NAME'];
-	const activitiesStringValueTableName = process.env['ACTIVITIES_STRING_VALUE_TABLE_NAME'];
-	const activitiesBooleanTableName = process.env['ACTIVITIES_BOOLEAN_VALUE_TABLE_NAME'];
-	const activitiesDateTimeTableName = process.env['ACTIVITIES_DATETIME_VALUE_TABLE_NAME'];
 	const csvInputConnectorName = process.env['CSV_INPUT_CONNECTOR_NAME'];
 
 	diContainer.register({
@@ -248,7 +242,7 @@ const registerContainer = (app?: FastifyInstance) => {
 		metricClient: asFunction((container: Cradle) => new MetricClient(app.log, container.invoker, pipelineFunctionName), {
 			...commonInjectionOptions,
 		}),
-		aggregationTaskAuroraRepository: asFunction((container: Cradle) => new AggregationTaskAuroraRepository(app.log, container.baseRepositoryClient, activitiesTableName, activitiesNumberValueTableName), {
+		aggregationTaskAuroraRepository: asFunction((container: Cradle) => new AggregationTaskAuroraRepository(app.log, container.baseRepositoryClient), {
 			...commonInjectionOptions,
 		}),
 		aggregationTaskService: asFunction((container: Cradle) => new MetricAggregationTaskService(app.log, container.metricClient, container.aggregationTaskAuroraRepository, container.metricsRepo, container.utils), {
@@ -259,7 +253,7 @@ const registerContainer = (app?: FastifyInstance) => {
 		}),
 		activitiesRepository: asFunction(
 			(container: Cradle) =>
-				new ActivitiesRepository(app.log, container.baseRepositoryClient, activitiesTableName, activitiesStringValueTableName, activitiesNumberValueTableName, activitiesBooleanTableName, activitiesDateTimeTableName),
+				new ActivitiesRepository(app.log, container.baseRepositoryClient),
 			{
 				...commonInjectionOptions,
 			}

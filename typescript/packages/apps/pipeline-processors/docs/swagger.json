@@ -21,6 +21,7 @@
             "type": "object",
             "properties": {
               "inputs": {
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "description": "An object with key values representing the inputs and its expected values.",
@@ -233,11 +234,7 @@
                   }
                 }
               }
-            },
-            "required": [
-              "errors",
-              "outputs"
-            ]
+            }
           }
         },
         "required": [
@@ -1586,7 +1583,7 @@
                       "metrics": [
                         {
                           "date": "2021-12-31T16:00:00.000Z",
-                          "metricId": "01GX5R7PM3A0AYAN0T4KHE327G",
+                          "metricId": "01GZ3M39CZXVQGHV46H8A9Z9SV",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 1,
@@ -1598,7 +1595,7 @@
                         },
                         {
                           "date": "2022-01-31T16:00:00.000Z",
-                          "metricId": "01GX5R7PM3A0AYAN0T4KHE327G",
+                          "metricId": "01GZ3M39CZXVQGHV46H8A9Z9SV",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 2,
@@ -1610,7 +1607,7 @@
                         },
                         {
                           "date": "2022-02-28T16:00:00.000Z",
-                          "metricId": "01GX5R7PM3A0AYAN0T4KHE327G",
+                          "metricId": "01GZ3M39CZXVQGHV46H8A9Z9SV",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 3,

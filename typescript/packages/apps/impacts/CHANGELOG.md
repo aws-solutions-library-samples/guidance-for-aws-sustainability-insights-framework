@@ -1,6 +1,13 @@
 # Change Log - @sif/impacts
 
-This log was last generated on Fri, 14 Apr 2023 16:13:35 GMT and should not be manually modified.
+This log was last generated on Fri, 28 Apr 2023 15:35:58 GMT and should not be manually modified.
+
+## 4.2.10
+Fri, 28 Apr 2023 15:35:58 GMT
+
+### Patches
+
+- cdk version
 
 ## 4.2.9
 Fri, 14 Apr 2023 16:13:35 GMT

@@ -1,6 +1,6 @@
 {
 	"name": "@sif/infrastructure-platform",
-	"version": "2.0.4",
+	"version": "2.2.0",
 	"description": "SIF: Common Platform Infrastructure.",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",
@@ -11,7 +11,7 @@
 		"cdk": "cdk"
 	},
 	"dependencies": {
-		"aws-cdk-lib": "2.50.0",
+		"aws-cdk-lib": "2.76.0",
 		"constructs": "10.1.71",
 		"@aws-sdk/client-iam": "3.229.0",
 		"source-map-support": "0.5.21",
@@ -27,7 +27,7 @@
 		"@types/prettier": "2.6.0",
 		"@typescript-eslint/eslint-plugin": "5.32.0",
 		"@typescript-eslint/parser": "5.32.0",
-		"aws-cdk": "2.50.0",
+		"aws-cdk": "2.76.0",
 		"esbuild": "0.15.1",
 		"eslint": "8.24.0",
 		"pnpm": "7.17.1",

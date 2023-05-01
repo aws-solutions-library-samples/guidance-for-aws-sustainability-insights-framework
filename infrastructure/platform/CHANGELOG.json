@@ -2,6 +2,30 @@
   "name": "@sif/infrastructure-platform",
   "entries": [
     {
+      "version": "2.2.0",
+      "tag": "@sif/infrastructure-platform_v2.2.0",
+      "date": "Mon, 01 May 2023 00:31:09 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "expose the RDS cluster endpoint"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.1.0",
+      "tag": "@sif/infrastructure-platform_v2.1.0",
+      "date": "Fri, 28 Apr 2023 15:35:58 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "convert acl to bucket policy"
+          }
+        ]
+      }
+    },
+    {
       "version": "2.0.4",
       "tag": "@sif/infrastructure-platform_v2.0.4",
       "date": "Sat, 18 Feb 2023 02:43:54 GMT",

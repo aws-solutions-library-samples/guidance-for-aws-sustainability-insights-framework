@@ -1,6 +1,20 @@
 # Change Log - @sif/infrastructure-platform
 
-This log was last generated on Sat, 18 Feb 2023 02:43:54 GMT and should not be manually modified.
+This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+
+## 2.2.0
+Mon, 01 May 2023 00:31:09 GMT
+
+### Minor changes
+
+- expose the RDS cluster endpoint
+
+## 2.1.0
+Fri, 28 Apr 2023 15:35:58 GMT
+
+### Minor changes
+
+- convert acl to bucket policy
 
 ## 2.0.4
 Sat, 18 Feb 2023 02:43:54 GMT

@@ -2,6 +2,18 @@
   "name": "@sif/impacts",
   "entries": [
     {
+      "version": "4.2.10",
+      "tag": "@sif/impacts_v4.2.10",
+      "date": "Fri, 28 Apr 2023 15:35:58 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "cdk version"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.2.9",
       "tag": "@sif/impacts_v4.2.9",
       "date": "Fri, 14 Apr 2023 16:13:35 GMT",

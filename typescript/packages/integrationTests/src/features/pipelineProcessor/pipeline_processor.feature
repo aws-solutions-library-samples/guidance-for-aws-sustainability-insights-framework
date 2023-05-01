@@ -88,6 +88,8 @@ Feature:
 		And response body path $.inlineExecutionOutputs.outputs[5][month] should be 2022-01-01T00:00:00.000Z
 		And response body path $.inlineExecutionOutputs.outputs[5]['a'] should be F
 		And response body path $.inlineExecutionOutputs.outputs[5][b*c'] should be 360
+	   	# Sleep for 2 seconds
+		Then I pause for 2000ms
 
 	Scenario: Execute Inline Pipeline Execution With Invalid Data
 		Given I'm using the pipelineProcessor api
@@ -137,7 +139,7 @@ Feature:
 		And response body path $.activities should be of type array with length 2
 		And response body path $.pagination.lastEvaluatedToken should be 2
 		When I GET /activities?date=1/4/22&executionId=`success_execution_id`&count=10
-		And response body path $.activities should be of type array with length 5
+		And response body path $.activities should be of type array with length 6
 		And response body should not contain $.pagination
 
 	Scenario: Retrieve Audit 1 for Activity 1
@@ -332,6 +334,19 @@ Feature:
 		And response body path $[2].outputs[3]['evaluated'][':b'] should be 10
 		And response body path $[2].outputs[3]['evaluated'][':c'] should be 1
 
+	Scenario: Retrieve raw and aggregated history of activities
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorTest
+		When I GET /activities?date=1/1/22&pipelineId=`pipeline_processor_pipeline_id`&showAggregate=true&showHistory=true&uniqueKeyAttributes=month:A
+		And response body path $.activities should be of type array with length 5
+		# Aggregated history for the first pipeline execution
+		And response body path $.activities[?(@.executionId=='`success_execution_id`')]['b*c'] should be 870
+		And response body path $.activities[?(@.executionId=='`success_execution_id`')]['b+c'] should be null
+		# Aggregated history for the pipeline execution where we deleted couple rows
+		And response body path $.activities[?(@.executionId=='`delete_execution_id`')]['b*c'] should be 860
+		And response body path $.activities[?(@.executionId=='`delete_execution_id`')]['b+c'] should be null
+
 	Scenario: Patching Pipeline to modify one of its field
 		Given I'm using the pipelines api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
@@ -363,7 +378,7 @@ Feature:
 		And the latest execution status should be success
 		And I store the id of the latest execution in variable updated_success_execution_id in global scope
 
-	Scenario: Retrieve and Validate Successful Output
+	Scenario:Retrieve raw and aggregated history of activities of modified pipeline configuration
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
@@ -376,14 +391,9 @@ Feature:
 		When I GET /activities?date=1/1/22&pipelineId=`pipeline_processor_pipeline_id`&showAggregate=true
 		And response body path $.activities[?(@.date=='2022-01-01T00:00:00.000Z')]['b+c'] should be 231
 		And response body path $.activities should be of type array with length 1
+		# Show history should only return all history since hte pipeline is modified for pipeline aggregation
 		When I GET /activities?date=1/1/22&pipelineId=`pipeline_processor_pipeline_id`&showAggregate=true&showHistory=true&uniqueKeyAttributes=month:A
-		And response body path $.activities should be of type array with length 6
-		# Aggregated history for the first pipeline execution
-		And response body path $.activities[?(@.executionId=='`success_execution_id`')]['b*c'] should be 870
-		And response body path $.activities[?(@.executionId=='`success_execution_id`')]['b+c'] should be null
-		# Aggregated history for the pipeline execution where we deleted couple rows
-		And response body path $.activities[?(@.executionId=='`delete_execution_id`')]['b*c'] should be 860
-		And response body path $.activities[?(@.executionId=='`delete_execution_id`')]['b+c'] should be null
+		And response body path $.activities should be of type array with length 1
 		# Aggregated history for the pipeline execution where we modify the pipeline formula from multiplication to addition
 		And response body path $.activities[?(@.executionId=='`updated_success_execution_id`')]['b+c'] should be 231
 		And response body path $.activities[?(@.executionId=='`updated_success_execution_id`')]['b*c'] should be null

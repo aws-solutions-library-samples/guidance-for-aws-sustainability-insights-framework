@@ -1,6 +1,20 @@
 # Change Log - @sif/clients
 
-This log was last generated on Wed, 05 Apr 2023 19:11:53 GMT and should not be manually modified.
+This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+
+## 1.6.0
+Mon, 01 May 2023 00:31:09 GMT
+
+### Minor changes
+
+- expose extra fields for pipeline
+
+## 1.5.2
+Wed, 26 Apr 2023 03:24:22 GMT
+
+### Patches
+
+- CalculatorS3TransformResponse shoudl not contains data field
 
 ## 1.5.1
 Wed, 05 Apr 2023 19:11:53 GMT

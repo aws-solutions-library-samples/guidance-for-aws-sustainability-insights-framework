@@ -86,7 +86,6 @@ export const isCalculatorInlineTransformResponse = (obj: unknown): obj is Calcul
 
 export interface CalculatorS3TransformResponse extends CalculatorBaseTransformResponse {
 	errorLocation: S3Location;
-	data: string[];
 }
 
 export const isCalculatorS3TransformResponse = (obj: unknown): obj is CalculatorS3TransformResponse => {

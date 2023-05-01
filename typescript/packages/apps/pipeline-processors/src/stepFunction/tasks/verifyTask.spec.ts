@@ -103,19 +103,19 @@ describe('Verify Task', () => {
 
 		const result = await underTest.process(sampleEvent);
 
-		expect(result.tasks.length).toBe(5);
+		expect(result.chunks.length).toBe(5);
 		// Check the first chunk
-		expect(result.tasks[0].chunk.startByte).toBe(0);
-		expect(result.tasks[0].chunk.endByte).toBe(1000000);
+		expect(result.chunks[0].range[0]).toBe(0);
+		expect(result.chunks[0].range[1]).toBe(1000000);
 		// Check that context is being inserted correctly
-		expect(result.tasks[0].context).toEqual({
+		expect(result.context).toEqual({
 			pipelineId: sampleEvent.pipelineId,
 			pipelineExecutionId: sampleEvent.pipelineExecutionId,
 			groupContextId: mockPipelineExecution.groupContextId,
 			transformer: mockPipeline.transformer,
 		});
 		// Check the last chunk
-		expect(result.tasks[expectedChunkNum - 1].chunk.startByte).toBe(4000004);
-		expect(result.tasks[expectedChunkNum - 1].chunk.endByte).toBe(ONE_MB * expectedChunkNum);
+		expect(result.chunks[expectedChunkNum - 1].range[0]).toBe(4000004);
+		expect(result.chunks[expectedChunkNum - 1].range[1]).toBe(ONE_MB * expectedChunkNum);
 	});
 });

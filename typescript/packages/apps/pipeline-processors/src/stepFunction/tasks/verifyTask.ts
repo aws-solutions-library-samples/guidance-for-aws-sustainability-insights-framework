@@ -13,7 +13,7 @@
 
 import type { BaseLogger } from 'pino';
 import type { PipelineProcessorsService } from '../../api/executions/service';
-import type { CalculationTaskEvent, VerificationTaskEvent, VerificationTaskOutput, S3Location } from './model';
+import type { VerificationTaskEvent, VerificationTaskOutput, S3Location, CalculationChunk } from './model.js';
 import type { PipelineClient } from '@sif/clients';
 import { HeadObjectCommand, HeadObjectCommandInput, S3Client } from '@aws-sdk/client-s3';
 import type { Pipeline } from '@sif/clients';
@@ -39,7 +39,7 @@ export class VerifyTask {
 		this.getLambdaRequestContext = getLambdaRequestContext;
 	}
 
-	private async createCalculationTaskBatches(inputFileLocation: S3Location, chunkSize: number): Promise<CalculationTaskEvent[]> {
+	private async createCalculationChunks(inputFileLocation: S3Location, chunkSize: number): Promise<CalculationChunk[]> {
 		const params: HeadObjectCommandInput = {
 			Bucket: inputFileLocation.bucket,
 			Key: inputFileLocation.key,
@@ -48,28 +48,24 @@ export class VerifyTask {
 		const response = await this.s3Client.send(new HeadObjectCommand(params));
 		let objectSize = response.ContentLength;
 
-		const tasks: CalculationTaskEvent[] = [];
+		const chunks: CalculationChunk[] = [];
 
 		let startCounter = 0;
-		let sequence = 0;
 		while (objectSize > 0) {
-			let chunk;
+			let range;
 			if (objectSize <= chunkSize) {
-				chunk = { startByte: startCounter, endByte: response.ContentLength };
+				range = [ startCounter, response.ContentLength ];
 			} else {
 				const endCounter = startCounter + chunkSize;
-				chunk = { startByte: startCounter, endByte: endCounter };
+				range = [ startCounter, endCounter ];
 				startCounter = endCounter + 1;
 			}
-			tasks.push({
-				sequence,
-				source: inputFileLocation,
-				chunk,
+			chunks.push({
+				range
 			});
-			sequence++;
 			objectSize -= chunkSize;
 		}
-		return tasks;
+		return chunks;
 	}
 
 	public async process(event: VerificationTaskEvent): Promise<VerificationTaskOutput> {
@@ -96,22 +92,19 @@ export class VerifyTask {
 
 		const chunkSize = (pipelineConfiguration.processorOptions?.chunkSize ?? this.chunkSize) * 1000000;
 
-		const tasks = await this.createCalculationTaskBatches(source, chunkSize);
+		const chunks = await this.createCalculationChunks(source, chunkSize);
 
 		const output = {
-			tasks: tasks.map((t) => {
-				return {
-					...t,
-					context: {
-						pipelineId,
-						pipelineExecutionId,
-						groupContextId,
-						actionType: actionType as ActionType,
-						transformer: pipelineConfiguration.transformer,
-						pipelineCreatedBy: pipelineConfiguration.createdBy,
-					},
-				};
-			}),
+			source,
+			chunks,
+			context: {
+				pipelineId,
+				pipelineExecutionId,
+				groupContextId,
+				actionType: actionType as ActionType,
+				transformer: pipelineConfiguration.transformer,
+				pipelineCreatedBy: pipelineConfiguration.createdBy,
+			}
 		};
 
 		this.log.info(`VerifyTask > process > exit`);

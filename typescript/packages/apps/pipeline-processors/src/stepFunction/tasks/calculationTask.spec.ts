@@ -15,7 +15,7 @@ import { CalculationTask } from './calculationTask';
 import pino from 'pino';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
-import type { CalculationContext } from './model.js';
+import type { CalculationChunk, CalculationContext } from './model.js';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
 import type { CalculatorClient } from '@sif/clients';
 import type { SecurityContext } from '@sif/authz';
@@ -59,8 +59,8 @@ const sampleTransforms = [
 describe('Calculation Task', () => {
 	let underTest: CalculationTask, mockedCalculatorClient: MockProxy<CalculatorClient>, mockedPipelineProcessorsService: MockProxy<PipelineProcessorsService>;
 
-	let sampleChunkFirst = { startByte: 0, endByte: 100 };
-	let sampleChunkSecond = { startByte: 101, endByte: 200 };
+	let sampleChunkFirst: CalculationChunk = { sequence: 0, range: [0, 100] };
+	let sampleChunkSecond: CalculationChunk = { sequence: 1, range: [101, 200] };
 
 	let sampleSource = {
 		key: 'pipelines/1/executions/1/input.csv',
@@ -93,6 +93,7 @@ describe('Calculation Task', () => {
 
 	it('happy path first chunk', async () => {
 		const context: CalculationContext = {
+			actionType: 'create',
 			transformer: {
 				transforms: sampleTransforms,
 				parameters: sampleParameters,
@@ -100,9 +101,10 @@ describe('Calculation Task', () => {
 			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
 			pipelineExecutionId: 'unit-test-pipeline-execution',
+			pipelineCreatedBy: 'admin'
 		} as CalculationContext;
 
-		const result = await underTest.process({ context, chunk: sampleChunkFirst, source: sampleSource, sequence: 0 });
+		const result = await underTest.process({ context, chunk: sampleChunkFirst, source: sampleSource });
 
 		expect(mockedCalculatorClient.process).toHaveBeenCalledWith({
 			groupContextId: '/unit/test/group',
@@ -113,10 +115,12 @@ describe('Calculation Task', () => {
 			sourceDataLocation: {
 				bucket: sampleSource.bucket,
 				key: sampleSource.key,
-				startByte: sampleChunkFirst.startByte,
-				endByte: sampleChunkFirst.endByte
+				startByte: sampleChunkFirst.range[0],
+				endByte: sampleChunkFirst.range[1]
 			},
 			chunkNo: 0,
+			actionType: 'create',
+			username: 'admin',
 		});
 
 		expect(result.pipelineId).toEqual('unit-test-pipeline');
@@ -131,6 +135,7 @@ describe('Calculation Task', () => {
 
 	it('happy path second chunk', async () => {
 		const context: CalculationContext = {
+			actionType: 'create',
 			transformer: {
 				transforms: sampleTransforms,
 				parameters: sampleParameters,
@@ -138,11 +143,14 @@ describe('Calculation Task', () => {
 			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
 			pipelineExecutionId: 'unit-test-pipeline-execution',
+			pipelineCreatedBy: 'admin'
 		} as CalculationContext;
 
-		const result = await underTest.process({ context, chunk: sampleChunkSecond, source: sampleSource, sequence: 1 });
+		const result = await underTest.process({ context, chunk: sampleChunkSecond, source: sampleSource });
 
 		expect(mockedCalculatorClient.process).toHaveBeenCalledWith({
+			actionType: 'create',
+			username: 'admin',
 			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
 			executionId: 'unit-test-pipeline-execution',
@@ -151,8 +159,8 @@ describe('Calculation Task', () => {
 			sourceDataLocation: {
 				bucket: sampleSource.bucket,
 				key: sampleSource.key,
-				startByte: sampleChunkSecond.startByte,
-				endByte: sampleChunkSecond.endByte,
+				startByte: sampleChunkSecond.range[0],
+				endByte: sampleChunkSecond.range[1],
 			},
 			chunkNo: 1,
 		});

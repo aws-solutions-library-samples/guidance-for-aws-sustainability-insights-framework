@@ -252,6 +252,14 @@ export class ResourceApiBase extends Construct {
 				*/
 				depsLockFilePath: path.join(__dirname, props.queue.pnpmLockFileLocation), // nosemgrep
 			});
+
+			NagSuppressions.addResourceSuppressions(sqsLambda, [
+				{
+					id: 'AwsSolutions-L1',
+					reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+				},
+			]);
+	
 			sqsLambda.node.addDependency(workerQueue);
 
 			const eventSource = new SqsEventSource(workerQueue);

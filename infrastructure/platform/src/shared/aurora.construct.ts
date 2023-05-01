@@ -38,6 +38,7 @@ export interface AuroraDatabaseConstructProperties {
 	clusterDeletionProtection: boolean;
 }
 
+export const rdsClusterWriterEndpoint = (environment: string) => `/sif/shared/${environment}/aurora/rdsClusterWriterEndpoint`;
 export const rdsProxyWriterEndpointParameter = (environment: string) => `/sif/shared/${environment}/aurora/rdsWriterEndpoint`;
 export const rdsProxyReaderEndpointParameter = (environment: string) => `/sif/shared/${environment}/aurora/rdsReaderEndpoint`;
 export const rdsSecretNameParameter = (environment: string) => `/sif/shared/${environment}/aurora/rdsSecretName`;
@@ -83,6 +84,13 @@ export class AuroraDatabase extends Construct {
 			environment: {},
 			depsLockFilePath
 		});
+
+		NagSuppressions.addResourceSuppressions(customResourceLambda, [
+			{
+				id: 'AwsSolutions-L1',
+				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+			},
+		]);
 
 		const iamPolicy = new Policy(this, 'iam-policy', {
 			statements: [new PolicyStatement({
@@ -257,6 +265,11 @@ export class AuroraDatabase extends Construct {
 				}
 			], true);
 		}
+
+		new ssm.StringParameter(this, 'rdsClusterWriterEndpoint', {
+			parameterName: rdsClusterWriterEndpoint(props.environment),
+			stringValue: databaseCluster.clusterEndpoint.hostname
+		});
 
 		// this is temporary workaround cause cdk does not have support for
 		// serverlessV2ScalingConfiguration yet

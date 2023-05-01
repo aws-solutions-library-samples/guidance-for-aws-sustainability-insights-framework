@@ -32,11 +32,6 @@ export type CalculationContext = {
 	pipelineCreatedBy: string;
 };
 
-export type CalculationChunk = {
-	startByte: number;
-	endByte: number;
-};
-
 export type S3Location = {
 	key: string;
 	bucket: string;
@@ -50,15 +45,21 @@ export type S3SourceLocation = {
 	endByte: number;
 };
 
+export type CalculationChunk = {
+	sequence?: number;
+	range: [number, number];
+}
+
 export type CalculationTaskEvent = {
-	sequence: number;
+	chunk: CalculationChunk
 	source: S3Location;
-	chunk: CalculationChunk;
 	context?: CalculationContext;
 };
 
 export type VerificationTaskOutput = {
-	tasks: CalculationTaskEvent[];
+	chunks: CalculationChunk[]
+	source: S3Location;
+	context?: CalculationContext;
 };
 
 export type ResultProcessorTaskEvent = {

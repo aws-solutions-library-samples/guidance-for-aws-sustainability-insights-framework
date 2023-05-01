@@ -70,10 +70,12 @@ export class DatabaseSeederRepository {
 	};
 
 
-	public async upgradeDatabaseVersion(tenantDatabaseName: string, migrationFolder: string): Promise<void> {
+	public async upgradeDatabaseVersion(tenantDatabaseName: string, migrationFolder: string, tenantUsername: string): Promise<void> {
 		this.logger.info(`databaseSeeder.customResource > upgradeDatabaseVersion > in : tenantDatabaseName: ${tenantDatabaseName}, migrationFolder: ${migrationFolder}`);
 		const sqlClient = await this.getSqlClient(tenantDatabaseName);
 		try {
+			// the tenant username will be make available for migration scripts that need it
+			process.env['TENANT_USERNAME'] = tenantUsername;
 			const migrationResults = await this.migrate({
 				dbClient: sqlClient,
 				migrationsTable: 'ActivityMigration',

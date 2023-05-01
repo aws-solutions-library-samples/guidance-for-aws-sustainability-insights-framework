@@ -1,6 +1,6 @@
 {
 	"name": "@sif/deployment-helper",
-	"version": "0.2.2",
+	"version": "0.3.1",
 	"description": "Custom resources library to automate resource creation",
 	"author": "William Sia <willsia@amazon.com>",
 	"exports": {

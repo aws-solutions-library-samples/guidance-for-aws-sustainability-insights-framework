@@ -64,7 +64,6 @@ export class Network extends Construct {
 
 		const accessLogBucket = new s3.Bucket(this, 's3AccessLog', {
 			bucketName: accessLogBucketName,
-			accessControl: s3.BucketAccessControl.LOG_DELIVERY_WRITE,
 			encryption: s3.BucketEncryption.S3_MANAGED,
 			intelligentTieringConfigurations: [
 				{
@@ -90,7 +89,6 @@ export class Network extends Construct {
 		// Create log bucket.
 		const s3LogBucket = new s3.Bucket(this, 's3LogBucket', {
 			bucketName,
-			accessControl: s3.BucketAccessControl.LOG_DELIVERY_WRITE,
 			encryption: s3.BucketEncryption.S3_MANAGED,
 			serverAccessLogsBucket: accessLogBucket,
 			serverAccessLogsPrefix: `vpc-logs/`,

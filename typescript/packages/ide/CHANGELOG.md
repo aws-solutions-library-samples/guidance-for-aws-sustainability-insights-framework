@@ -1,6 +1,20 @@
 # Change Log - @sif/ide
 
-This log was last generated on Wed, 12 Apr 2023 09:55:33 GMT and should not be manually modified.
+This log was last generated on Fri, 28 Apr 2023 15:35:58 GMT and should not be manually modified.
+
+## 1.1.2
+Fri, 28 Apr 2023 15:35:58 GMT
+
+### Patches
+
+- cdk version
+
+## 1.1.1
+Wed, 26 Apr 2023 03:24:22 GMT
+
+### Patches
+
+- fix dependabot warning for yaml npm package
 
 ## 1.1.0
 Wed, 12 Apr 2023 09:55:33 GMT
