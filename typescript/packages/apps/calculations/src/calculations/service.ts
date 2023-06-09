@@ -69,7 +69,7 @@ export class CalculationService {
 		}
 
 		// Validation - ensure name is unique for the group
-		if (await this.groupService.isAlternateIdInUse(calculation.name, securityContext.groupId)) {
+		if (await this.groupService.isAlternateIdInUse(calculation.name, securityContext.groupId, PkType.Calculation)) {
 			throw new AlternateIdInUseError(calculation.name);
 		}
 
@@ -304,7 +304,7 @@ export class CalculationService {
 		if (options.name) {
 			this.log.info(`CalculationsService> list> searching by name : ${options.name}`);
 			options.name = options.name.toLowerCase();
-			calculationIds = await this.resourceService.listIdsByAlternateId(securityContext.groupId, options.name, {
+			calculationIds = await this.resourceService.listIdsByAlternateId(securityContext.groupId, options.name, PkType.Calculation, {
 				includeChildGroups: options?.includeChildGroups,
 				includeParentGroups: options?.includeParentGroups
 			});

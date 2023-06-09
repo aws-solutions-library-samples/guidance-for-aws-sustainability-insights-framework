@@ -61,7 +61,7 @@ export class VerifyTask {
 				startCounter = endCounter + 1;
 			}
 			chunks.push({
-				range
+				range: range
 			});
 			objectSize -= chunkSize;
 		}
@@ -71,11 +71,11 @@ export class VerifyTask {
 	public async process(event: VerificationTaskEvent): Promise<VerificationTaskOutput> {
 		this.log.info(`VerifyTask > process > event : ${JSON.stringify(event)}`);
 
-		const { pipelineId, pipelineExecutionId, source } = event;
+		const { pipelineId, executionId: executionId, source } = event;
 
-		const securityContext = await this.getSecurityContext(pipelineExecutionId);
+		const securityContext = await this.getSecurityContext(executionId);
 
-		const { groupContextId, pipelineVersion, actionType } = await this.pipelineProcessorsService.get(securityContext, pipelineId, pipelineExecutionId);
+		const { groupContextId, pipelineVersion, actionType } = await this.pipelineProcessorsService.get(securityContext, pipelineId, executionId);
 
 		let pipelineConfiguration: Pipeline;
 
@@ -83,7 +83,7 @@ export class VerifyTask {
 			pipelineConfiguration = await this.pipelineClient.get(pipelineId, pipelineVersion, this.getLambdaRequestContext(securityContext));
 		} catch (error) {
 			const errorMessage = `Pipeline configuration '${pipelineId}' not found.`;
-			await this.pipelineProcessorsService.update(securityContext, pipelineId, pipelineExecutionId, {
+			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, {
 				status: 'failed',
 				statusMessage: errorMessage,
 			});
@@ -99,7 +99,7 @@ export class VerifyTask {
 			chunks,
 			context: {
 				pipelineId,
-				pipelineExecutionId,
+				executionId,
 				groupContextId,
 				actionType: actionType as ActionType,
 				transformer: pipelineConfiguration.transformer,
@@ -107,7 +107,7 @@ export class VerifyTask {
 			}
 		};
 
-		this.log.info(`VerifyTask > process > exit`);
+		this.log.info(`VerifyTask > process > exit:`);
 		return output;
 	}
 

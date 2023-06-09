@@ -89,7 +89,7 @@ export class Cognito extends Construct {
 			entry: path.join(__dirname, './triggers/preTokenGeneration.trigger.ts'),
 			runtime: Runtime.NODEJS_16_X,
 			tracing: Tracing.ACTIVE,
-			memorySize: 256,
+			memorySize: 512,
 			logRetention: RetentionDays.ONE_WEEK,
 			timeout: Duration.seconds(15),
 			bundling: commonBundlingOptions,

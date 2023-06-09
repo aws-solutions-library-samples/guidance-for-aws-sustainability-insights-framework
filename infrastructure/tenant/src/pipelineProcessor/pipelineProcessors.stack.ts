@@ -18,7 +18,15 @@ import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { userPoolIdParameter } from '../shared/cognito.construct.js';
 import { eventBusNameParameter } from '../shared/eventbus.construct.js';
 import { bucketNameParameter } from '../shared/s3.construct.js';
-import { rdsProxyWriterEndpointParameter, rdsProxySecurityGroupParameter, vpcIdParameter, rdsProxyArnParameter } from '../shared/sharedTenant.stack.js';
+import {
+	rdsProxyWriterEndpointParameter,
+	rdsProxySecurityGroupParameter,
+	vpcIdParameter,
+	rdsProxyArnParameter,
+	acquireLockSqsQueueArnParameter,
+	releaseLockSqsQueueArnParameter,
+	environmentEventBusNameParameter
+} from '../shared/sharedTenant.stack.js';
 import {
 	activityBooleanValueTableParameter,
 	activityDateTimeValueTableParameter,
@@ -29,8 +37,16 @@ import {
 	tenantDatabaseUsernameParameter
 } from '../shared/auroraSeeder.construct.js';
 import { NagSuppressions } from 'cdk-nag';
-import { accessManagementApiFunctionNameParameter, calculatorFunctionNameParameter, pipelineProcessorApiFunctionNameParameter, pipelinesApiFunctionNameParameter } from '../shared/ssm.construct.js';
+import {
+	accessManagementApiFunctionNameParameter,
+	auditLogDepositorDatabaseNameParameter,
+	auditLogDepositorTableNameParameter,
+	calculatorFunctionNameParameter,
+	pipelineProcessorApiFunctionNameParameter,
+	pipelinesApiFunctionNameParameter
+} from '../shared/ssm.construct.js';
 import { kmsKeyArnParameter } from '../shared/kms.construct.js';
+import { calculatorActivityInsertQueueArnParameter } from '../calculator/calculator.construct.js';
 
 export type PipelineProcessorsStackProperties = StackProps & {
 	tenantId: string;
@@ -38,6 +54,7 @@ export type PipelineProcessorsStackProperties = StackProps & {
 	caCert: string;
 	downloadAuditFileParallelLimit: number;
 	csvConnectorName: string;
+	metricStorage: string;
 };
 
 export class PipelineProcessorsApiStack extends Stack {
@@ -139,14 +156,46 @@ export class PipelineProcessorsApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
+		const auditLogsTableName = StringParameter.fromStringParameterAttributes(this, 'AuditLogsTableName', {
+			parameterName: auditLogDepositorTableNameParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const auditLogsDatabaseName = StringParameter.fromStringParameterAttributes(this, 'AuditLogsDatabaseName', {
+			parameterName: auditLogDepositorDatabaseNameParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const acquireLockSqsQueueArn = StringParameter.fromStringParameterAttributes(this, 'AcquireLockSqsQueueArn', {
+			parameterName: acquireLockSqsQueueArnParameter(props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const releaseLockSqsQueueArn = StringParameter.fromStringParameterAttributes(this, 'ReleaseLockSqsQueueArn', {
+			parameterName: releaseLockSqsQueueArnParameter(props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const environmentEventBusName = StringParameter.fromStringParameterAttributes(this, 'EnvironmentEventBusName', {
+			parameterName: environmentEventBusNameParameter(props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const activityInsertQueueArn = StringParameter.fromStringParameterAttributes(this, 'activityInsertQueueArn', {
+			parameterName: calculatorActivityInsertQueueArnParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
 
 		new PipelineProcessors(this, 'PipelineProcessors', {
 			...props,
+			acquireLockSqsQueueArn,
+			releaseLockSqsQueueArn,
 			accessManagementApiFunctionName,
 			pipelineApiFunctionName,
 			pipelineProcessorApiFunctionName,
 			cognitoUserPoolId,
 			eventBusName,
+			environmentEventBusName,
 			bucketName,
 			rdsProxyEndpoint,
 			rdsProxySecurityGroupId,
@@ -163,8 +212,11 @@ export class PipelineProcessorsApiStack extends Stack {
 			kmsKeyArn,
 			calculatorFunctionName,
 			downloadAuditFileParallelLimit: props.downloadAuditFileParallelLimit,
-			csvConnectorName: props.csvConnectorName
-
+			csvConnectorName: props.csvConnectorName,
+			metricStorage: props.metricStorage,
+			auditLogsTableName,
+			auditLogsDatabaseName,
+			activityInsertQueueArn
 		});
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [

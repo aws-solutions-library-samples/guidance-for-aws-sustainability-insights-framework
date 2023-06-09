@@ -18,7 +18,7 @@ import axios from 'axios';
 
 setDefaultTimeout(120 * 1000);
 
-apickli.Apickli.prototype.sendWithAxios = async function (method: any, resource: any) {
+apickli.Apickli.prototype.sendWithAxios = async function(method: any, resource: any) {
 	const self = this;
 	const options = this.httpRequestOptions || {};
 	resource = this.replaceVariables(resource);
@@ -27,8 +27,10 @@ apickli.Apickli.prototype.sendWithAxios = async function (method: any, resource:
 	options.headers = this.headers;
 	options.qs = this.queryParameters;
 
+	options.body = this.requestBody;
+
 	if (this.requestBody.length > 0) {
-		options.body = this.requestBody;
+		options.data = JSON.parse(this.requestBody);
 	} else if (Object.keys(this.formParameters).length > 0) {
 		options.form = this.formParameters;
 	}
@@ -56,7 +58,7 @@ apickli.Apickli.prototype.sendWithAxios = async function (method: any, resource:
 	}
 };
 
-Before({ tags: '@setup_common' }, async function () {
+Before({ tags: '@setup_common' }, async function() {
 	/**
 	 * 	TODO: Ideally we should create the required users using the access management module, then use them here
 	 * 	Currently it will use the admin user which is created at the time of deployment. That user should be confirmed before
@@ -70,7 +72,7 @@ Before({ tags: '@setup_common' }, async function () {
 		accessManagement: await createApi(nodeEnv, process.env.ACCESS_MANAGEMENT_BASE_URL as string, {}),
 		impacts: await createApi(nodeEnv, process.env.impacts_BASE_URL as string, {}),
 		calculations: await createApi(nodeEnv, process.env.CALCULATIONS_BASE_URL as string, {}),
-		// pipelineProcessor: await createApi(nodeEnv, process.env.PIPELINE_PROCESSOR_BASE_URL as string, {}) ,
+		pipelineProcessor: await createApi(nodeEnv, process.env.PIPELINE_PROCESSOR_BASE_URL as string, {}),
 		pipelines: await createApi(nodeEnv, process.env.PIPELINES_BASE_URL as string, {}),
 		referenceDatasets: await createApi(nodeEnv, process.env.REFERENCE_DATASETS_BASE_URL as string, {}),
 	};

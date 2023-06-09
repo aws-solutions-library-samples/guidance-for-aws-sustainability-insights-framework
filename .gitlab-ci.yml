@@ -41,7 +41,7 @@ variables:
   - yum install -y git tar openssl zip unzip jq
   - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip -qq awscliv2.zip
   - ./aws/install && rm -rf ./aws && rm awscliv2.zip
-  - curl -s -qL -o /usr/bin/jq https://stedolan.github.io/jq/download/linux64/jq
+  - curl -s -qL -o /usr/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64
   - chmod +x /usr/bin/jq
   - npm install -g @microsoft/rush esbuild@0.14 aws-cdk
   - cdk --version
@@ -54,9 +54,9 @@ variables:
   - npm --version
   - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip -qq awscliv2.zip
   - ./aws/install && rm -rf ./aws && rm awscliv2.zip
-  - curl -s -qL -o /usr/bin/jq https://stedolan.github.io/jq/download/linux64/jq
+  - curl -s -qL -o /usr/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64
   - chmod +x /usr/bin/jq
-  - npm install -g @microsoft/rush esbuild@0.14 aws-cdk
+  - npm install -g @microsoft/rush esbuild@0.14 aws-cdk@2.77.0
   - cdk --version
   - java --version
   - curl "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.8.6/apache-maven-3.8.6-bin.tar.gz" -o "maven.tar.gz" && tar -xf maven.tar.gz -C /opt
@@ -87,15 +87,36 @@ stages:
 default:
   image:
     name: public.ecr.aws/lambda/nodejs:16
-    entrypoint: ['']
+    entrypoint: [ '' ]
   before_script:
     - *common-install-deployment-dependencies
+
+build-run-docker-image:
+  rules:
+    - *main-run-condition
+  stage: deployStage
+  variables:
+    AWS_DEFAULT_REGION: us-west-2
+    CI_REGISTRY_IMAGE: ${ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/schema-migrator
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [ "" ]
+  before_script:
+    - echo "overriding the default before_script stage"
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"credsStore\":\"ecr-login\"}" > /kaniko/.docker/config.json
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}/typescript/packages/apps/schema-migrator"
+      --dockerfile "${CI_PROJECT_DIR}/typescript/packages/apps/schema-migrator/Dockerfile"
+      --destination "${CI_REGISTRY_IMAGE}:latest"
 
 test:
   rules:
     - *main-run-condition
   stage: test
-  needs: []
+  needs: [ ]
   script:
     - *common-git-steps
     - bash -c cicd/increment_version.bash
@@ -104,8 +125,8 @@ test:
 
 deployCoreStage:
   image:
-    name: public.ecr.aws/lambda/java:11
-    entrypoint: ['']
+    name: public.ecr.aws/lambda/java:17
+    entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
   rules:
@@ -113,15 +134,17 @@ deployCoreStage:
   stage: deployStage
   variables:
     <<: *staging-variables
-  needs: ['test']
+  needs: [ 'test' ]
   script:
     - *common-build-steps
     - pushd infrastructure/platform
-    - cdk deploy -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
+    - cdk deploy -c repositoryName=schema-migrator -c repositoryArn=arn:aws:ecr:${AWS_DEFAULT_REGION}:${ACCOUNT_ID}:repository/schema-migrator -c imageTag=latest -c rdsConcurrencyLimit=10 -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
     - popd
     - pushd infrastructure/tenant
-    - cdk deploy -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared  --all --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE
-    - cdk deploy -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
+    - cdk synth -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE --all
+    - cdk deploy --app cdk.out -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
+    - cdk synth -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --r $AWS_CREDS_TARGET_ROLE  --concurrency=5  --all
+    - cdk deploy --app cdk.out -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
     - popd
 
 integrationTest:
@@ -130,7 +153,7 @@ integrationTest:
   stage: integrationTest
   variables:
     <<: *staging-variables
-  needs: ['deployCoreStage']
+  needs: [ 'deployCoreStage' ]
   script:
     - *common-build-steps
     - pushd infrastructure/tenant
@@ -145,8 +168,8 @@ integrationTest:
 
 deployCoreProd:
   image:
-    name: public.ecr.aws/lambda/java:11
-    entrypoint: ['']
+    name: public.ecr.aws/lambda/java:17
+    entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
   rules:
@@ -154,14 +177,15 @@ deployCoreProd:
   stage: deployProd
   variables:
     <<: *prod-variables
-  needs: ['integrationTest']
+  needs: [ 'integrationTest' ]
   script:
     - *common-build-steps
     - pushd infrastructure/platform
-    - cdk deploy -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
+    - cdk deploy -c repositoryName=schema-migrator -c repositoryArn=arn:aws:ecr:${AWS_DEFAULT_REGION}:${ACCOUNT_ID}:repository/schema-migrator -c imageTag=latest -c rdsConcurrencyLimit=10 -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
     - popd
     - pushd infrastructure/tenant
-    - cdk deploy -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --all --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE
+    - cdk synth -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --require-approval never  --r $AWS_CREDS_TARGET_ROLE  --concurrency=5  --all
+    - cdk deploy --app cdk.out -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --all --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE
     - popd
     - *common-git-steps
     - bash -c cicd/tag_repository.bash
@@ -178,7 +202,7 @@ branchTest:
 
 branchTestCalculator:
   image:
-    name: public.ecr.aws/lambda/java:11
+    name: public.ecr.aws/lambda/java:17
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
@@ -191,7 +215,7 @@ branchTestCalculator:
 
 branchTestIndexer:
   image:
-    name: public.ecr.aws/lambda/java:11
+    name: public.ecr.aws/lambda/java:17
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies

@@ -2,6 +2,64 @@
   "name": "@sif/access-management",
   "entries": [
     {
+      "version": "4.0.21",
+      "tag": "@sif/access-management_v4.0.21",
+      "date": "Thu, 25 May 2023 14:48:59 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Fix Patch User, Tags"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.0.20",
+      "tag": "@sif/access-management_v4.0.20",
+      "date": "Mon, 22 May 2023 22:02:58 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "minor fixes"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.7.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.0.19",
+      "tag": "@sif/access-management_v4.0.19",
+      "date": "Mon, 22 May 2023 18:52:26 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "minor fixes"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.6.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.0.18",
+      "tag": "@sif/access-management_v4.0.18",
+      "date": "Wed, 03 May 2023 16:57:27 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fixed issue with list group by tags"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.0.17",
       "tag": "@sif/access-management_v4.0.17",
       "date": "Thu, 20 Apr 2023 21:57:48 GMT",

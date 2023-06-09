@@ -18,12 +18,14 @@ export interface Metric {
 	state: 'enabled' | 'frozen' | 'disabled';
 	outputMetrics?: string[];
 	inputMetrics?: string[];
-	inputPipelines?: {
-		pipelineId: string;
-		output: string;
-	}[];
+	inputPipelines?: InputPipeline[];
 	groups: string[];
 	version: number;
+}
+
+export interface InputPipeline {
+	pipelineId: string;
+	output: string;
 }
 
 export interface MetricList {

@@ -20,10 +20,10 @@ import type { RDSClient } from '@aws-sdk/client-rds';
 import { DescribeDBProxiesCommand, ModifyDBProxyCommand } from '@aws-sdk/client-rds';
 import { DeleteRolePolicyCommand, IAMClient, PutRolePolicyCommand } from '@aws-sdk/client-iam';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
-
 // @ts-ignore
 import ow from 'ow';
 import type { ExtractCustomResourceArtifacts } from '../plugins/awilix.js';
+import type { DatabaseSeederContainer } from './databaseSeeder.container.js';
 
 export class DatabaseSeederCustomResource implements CustomResource {
 	private readonly logger: Logger;
@@ -36,10 +36,12 @@ export class DatabaseSeederCustomResource implements CustomResource {
 	private readonly tenantId: string;
 	private readonly environment: string;
 	private readonly tenantPolicyName: string;
+	private readonly databaseSeederContainer: DatabaseSeederContainer;
 
 	constructor(logger: Logger, databaseSeederRepository: DatabaseSeederRepository,
 				rdsClient: RDSClient, iamClient: IAMClient,
-				secretsManagerClient: SecretsManagerClient, proxyName: string, tenantId: string, environment: string, extractCustomResourceArtifacts: ExtractCustomResourceArtifacts) {
+				secretsManagerClient: SecretsManagerClient, proxyName: string, tenantId: string,
+				environment: string, extractCustomResourceArtifacts: ExtractCustomResourceArtifacts, databaseSeederContainer: DatabaseSeederContainer) {
 		this.extractCustomResourceArtifacts = extractCustomResourceArtifacts;
 		this.logger = logger;
 		this.secretsManagerClient = secretsManagerClient;
@@ -50,6 +52,7 @@ export class DatabaseSeederCustomResource implements CustomResource {
 		this.tenantId = tenantId;
 		this.environment = environment;
 		this.tenantPolicyName = `get-${this.tenantId}-${this.environment}-secret`;
+		this.databaseSeederContainer = databaseSeederContainer;
 	}
 
 	private async getUserNamePasswordFromSecretManager(secretArn: string): Promise<[string, string]> {
@@ -146,14 +149,15 @@ export class DatabaseSeederCustomResource implements CustomResource {
 		this.logger.info(`databaseSeeder.customResource > create > in > event: ${JSON.stringify(customResourceEvent)}`);
 
 		ow(customResourceEvent.ResourceProperties, ow.object.nonEmpty);
-		const { assetBucket, assetPath, tenantSecretArn, tenantDatabaseName } = customResourceEvent.ResourceProperties;
+		const { assetBucket, assetPath, tenantSecretArn, tenantDatabaseName, callbackUrl } = customResourceEvent.ResourceProperties;
 
 		ow(assetBucket, ow.string.nonEmpty);
 		ow(assetPath, ow.string.nonEmpty);
 		ow(tenantSecretArn, ow.string.nonEmpty);
 		ow(tenantDatabaseName, ow.string.nonEmpty);
+		ow(callbackUrl, ow.string.nonEmpty);
 
-		const [seedFolderPath, migrationsFolderPath] = await this.extractAssets(assetBucket, assetPath);
+		const [seedFolderPath, _migrationsFolderPath] = await this.extractAssets(assetBucket, assetPath);
 
 		try {
 			const [username, password] = await this.getUserNamePasswordFromSecretManager(tenantSecretArn);
@@ -175,7 +179,7 @@ export class DatabaseSeederCustomResource implements CustomResource {
 				await this.attachSecretToRdsProxy(tenantSecretArn);
 			}
 			// performing database migration if any
-			await this.databaseSeederRepository.upgradeDatabaseVersion(tenantDatabaseName, migrationsFolderPath, username);
+			await this.databaseSeederContainer.runTask(callbackUrl, username, tenantDatabaseName, assetBucket, assetPath);
 		} catch (Exception) {
 			this.logger.error(`databaseSeeder.customResource > create > error : ${Exception}`);
 		}
@@ -188,22 +192,17 @@ export class DatabaseSeederCustomResource implements CustomResource {
 
 		ow(customResourceEvent.ResourceProperties, ow.object.nonEmpty);
 
-		const { assetBucket, assetPath, tenantDatabaseName, tenantSecretArn } = customResourceEvent.ResourceProperties;
+		const { assetBucket, assetPath, tenantDatabaseName, tenantSecretArn, callbackUrl } = customResourceEvent.ResourceProperties;
 
 		ow(assetBucket, ow.string.nonEmpty);
 		ow(assetPath, ow.string.nonEmpty);
 		ow(tenantDatabaseName, ow.string.nonEmpty);
 		ow(tenantSecretArn, ow.string.nonEmpty);
+		ow(callbackUrl, ow.string.nonEmpty);
 
 		const [username, _password] = await this.getUserNamePasswordFromSecretManager(tenantSecretArn);
 
-		const [_, migrationsFolderPath] = await this.extractAssets(assetBucket, assetPath);
-
-		try {
-			await this.databaseSeederRepository.upgradeDatabaseVersion(tenantDatabaseName, migrationsFolderPath, username);
-		} catch (Exception) {
-			this.logger.error(`databaseSeeder.customResource > update > error : ${Exception}`);
-		}
+		await this.databaseSeederContainer.runTask(callbackUrl, username, tenantDatabaseName, assetBucket, assetPath);
 
 		return Promise.resolve(undefined);
 	}

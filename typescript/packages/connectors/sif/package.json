@@ -1,7 +1,7 @@
 {
 	"name": "@sif/activity-pipeline-input-connector",
 	"description": "SIF: connector for retrieving data from SIF.",
-	"version": "1.0.5",
+	"version": "1.0.7",
 	"author": "Pouya Bahavar <bahavar@amazon.com>",
 	"type": "module",
 	"scripts": {

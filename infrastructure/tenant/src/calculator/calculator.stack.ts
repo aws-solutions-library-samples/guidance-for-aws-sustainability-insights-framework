@@ -13,31 +13,24 @@
 
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { NagSuppressions } from 'cdk-nag';
 import type { Construct } from 'constructs';
-import { CalculatorModule } from './calculator.construct.js';
-import { rdsProxyArnParameter, rdsProxySecurityGroupParameter, rdsProxyWriterEndpointParameter, vpcIdParameter } from '../shared/sharedTenant.stack.js';
-import { bucketNameParameter } from '../shared/s3.construct.js';
 import {
-	activityBooleanValueTableParameter,
-	activityDateTimeValueTableParameter,
-	activityNumberValueTableParameter,
-	activityStringValueTableParameter,
-	activityTableParameter,
 	tenantDatabaseNameParameter,
-	tenantDatabaseUsernameParameter,
-	tenantSecretArnParameter,
+	tenantSecretArnParameter
 } from '../shared/auroraSeeder.construct.js';
+import { customResourceProviderTokenParameter } from '../shared/deploymentHelper.construct.js';
+import { kmsKeyArnParameter } from '../shared/kms.construct.js';
+import { bucketNameParameter } from '../shared/s3.construct.js';
 import {
 	accessManagementApiFunctionNameParameter,
 	calculationsApiFunctionNameParameter,
-	pipelinesApiFunctionNameParameter,
-	referenceDatasetsApiFunctionNameParameter,
 	calculatorFunctionNameParameter,
-	impactsApiFunctionNameParameter
+	impactsApiFunctionNameParameter,
+	pipelinesApiFunctionNameParameter,
+	referenceDatasetsApiFunctionNameParameter
 } from '../shared/ssm.construct.js';
-import { NagSuppressions } from 'cdk-nag';
-import { kmsKeyArnParameter } from '../shared/kms.construct.js';
-import { customResourceProviderTokenParameter } from '../shared/deploymentHelper.construct.js';
+import { CalculatorModule } from './calculator.construct.js';
 
 
 export type CalculatorStackProperties = StackProps & {
@@ -66,10 +59,6 @@ export class CalculatorApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
-		const rdsProxyEndpoint = StringParameter.fromStringParameterAttributes(this, 'rdsProxyEndpoint', {
-			parameterName: rdsProxyWriterEndpointParameter(props.environment),
-			simpleName: false,
-		}).stringValue;
 
 		const bucketName = StringParameter.fromStringParameterAttributes(this, 'bucketName', {
 			parameterName: bucketNameParameter(props.tenantId, props.environment),
@@ -96,21 +85,6 @@ export class CalculatorApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
-		const vpcId = StringParameter.fromStringParameterAttributes(this, 'vpcId', {
-			parameterName: vpcIdParameter(props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const rdsProxySecurityGroupId = StringParameter.fromStringParameterAttributes(this, 'rdsProxySecurityGroupId', {
-			parameterName: rdsProxySecurityGroupParameter(props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const tenantDatabaseUsername = StringParameter.fromStringParameterAttributes(this, 'tenantDatabaseUsername', {
-			parameterName: tenantDatabaseUsernameParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
 		const tenantDatabaseName = StringParameter.fromStringParameterAttributes(this, 'tenantDatabaseName', {
 			parameterName: tenantDatabaseNameParameter(props.tenantId, props.environment),
 			simpleName: false,
@@ -118,36 +92,6 @@ export class CalculatorApiStack extends Stack {
 
 		const tenantSecretArn = StringParameter.fromStringParameterAttributes(this, 'tenantSecretArn', {
 			parameterName: tenantSecretArnParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const rdsProxyArn = StringParameter.fromStringParameterAttributes(this, 'rdsProxyArn', {
-			parameterName: rdsProxyArnParameter(props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityTableName = StringParameter.fromStringParameterAttributes(this, 'activityTableName', {
-			parameterName: activityTableParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityNumberValueTableName = StringParameter.fromStringParameterAttributes(this, 'activityNumberValueTableName', {
-			parameterName: activityNumberValueTableParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityBooleanValueTableName = StringParameter.fromStringParameterAttributes(this, 'activityBooleanValueTableName', {
-			parameterName: activityBooleanValueTableParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityStringValueTableName = StringParameter.fromStringParameterAttributes(this, 'activityStringValueTableName', {
-			parameterName: activityStringValueTableParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityDateTimeValueTableName = StringParameter.fromStringParameterAttributes(this, 'activityDateTimeValueTableName', {
-			parameterName: activityDateTimeValueTableParameter(props.tenantId, props.environment),
 			simpleName: false,
 		}).stringValue;
 
@@ -165,23 +109,13 @@ export class CalculatorApiStack extends Stack {
 		new CalculatorModule(this, 'Calculator', {
 			tenantId: props.tenantId,
 			environment: props.environment,
-			caCert: props.caCert,
+			// caCert: props.caCert,
 			minScaling: props.minScaling,
 			maxScaling: props.maxScaling,
 			customResourceProviderToken,
 			accessManagementApiFunctionName,
 			bucketName,
-			rdsProxyEndpoint,
-			rdsProxySecurityGroupId,
-			tenantDatabaseUsername,
-			vpcId,
 			tenantDatabaseName,
-			rdsProxyArn,
-			activityTableName,
-			activityNumberValueTableName,
-			activityBooleanValueTableName,
-			activityDateTimeValueTableName,
-			activityStringValueTableName,
 			pipelinesApiFunctionName,
 			impactsApiFunctionName: impactsApiFunctionName,
 			referenceDatasetsApiFunctionName,

@@ -2,6 +2,40 @@
   "name": "@sif/impacts",
   "entries": [
     {
+      "version": "4.4.0",
+      "tag": "@sif/impacts_v4.4.0",
+      "date": "Mon, 22 May 2023 22:02:58 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "should pass in key prefix when calling list alias"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.7.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.3.0",
+      "tag": "@sif/impacts_v4.3.0",
+      "date": "Mon, 22 May 2023 18:52:26 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "should pass in key prefix when calling list alias"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.6.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.2.10",
       "tag": "@sif/impacts_v4.2.10",
       "date": "Fri, 28 Apr 2023 15:35:58 GMT",

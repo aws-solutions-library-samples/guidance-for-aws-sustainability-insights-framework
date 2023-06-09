@@ -13,31 +13,39 @@
 
 import type { Handler } from 'aws-lambda/handler';
 import type { Transformer, ActionType } from '@sif/clients';
+import type { Output } from '../../api/activities/models';
+import type { AffectedTimeRange } from '../../api/metrics/models';
 
-export type VerificationTaskEvent = {
+export interface VerificationTaskEvent {
 	source: {
 		bucket: string;
 		key: string;
 	};
 	pipelineId: string;
-	pipelineExecutionId: string;
+	executionId: string;
 };
 
-export type CalculationContext = {
+export interface VerificationTaskOutput {
+	chunks: CalculationChunk[];
+	source: S3Location;
+	context?: CalculationContext;
+};
+
+export interface CalculationContext {
 	pipelineId: string;
-	pipelineExecutionId: string;
+	executionId: string;
 	actionType: ActionType;
 	groupContextId: string;
 	transformer: Transformer;
 	pipelineCreatedBy: string;
 };
 
-export type S3Location = {
+export interface S3Location {
 	key: string;
 	bucket: string;
 };
 
-export type S3SourceLocation = {
+export interface S3SourceLocation {
 	key: string;
 	bucket: string;
 	containsHeader: boolean;
@@ -45,48 +53,88 @@ export type S3SourceLocation = {
 	endByte: number;
 };
 
-export type CalculationChunk = {
+export interface CalculationChunk {
+	/**
+	 * sequence
+	 */
 	sequence?: number;
+	/**
+	 * range
+	 */
 	range: [number, number];
 }
 
-export type CalculationTaskEvent = {
-	chunk: CalculationChunk
+export interface CalculationTaskEvent {
+	chunk: CalculationChunk;
 	source: S3Location;
 	context?: CalculationContext;
 };
 
-export type VerificationTaskOutput = {
-	chunks: CalculationChunk[]
-	source: S3Location;
-	context?: CalculationContext;
-};
-
-export type ResultProcessorTaskEvent = {
-	pipelineId: string;
-	pipelineExecutionId: string;
+export interface CalculationTaskResult {
+	pipelineId?: string;
+	executionId?: string;
+	errorLocation?: S3Location;
+	requiresAggregation?: boolean;
+	metricQueue?: MetricQueue;
 	sequence: number;
-	output: {
-		errorLocation: S3Location;
-	};
 };
 
-export type AggregationTaskEvent = {
-	pipelineId: string;
-	pipelineExecutionId: string;
-	groupContextId: string;
-	transformer: Transformer;
-};
+
+export type MetricQueue = { order: number, metric: string }[]
+
+export type Status = 'FAILED' | 'SUCCEEDED' | 'IN_PROGRESS';
+
+export interface ProcessedTaskEventWithStartTime {
+ startTime: string;
+ input: ProcessedTaskEvent[];
+}
+
+export interface ProcessedTaskEvent {
+	groupContextId?: string;
+	pipelineId?: string;
+	executionId?: string;
+	outputs?: Output[];
+	requiresAggregation?: boolean;
+	status?: Status;
+	metricQueue: MetricQueue;
+	sequence: number;
+	errorLocation?: S3Location;
+	timeRange?: AffectedTimeRange;
+}
 
 export interface AggregationResult {
 	date: Date;
 	groupValue: number;
 }
 
+export interface InsertActivityResult {
+	pipelineId: string;
+	executionId: string;
+	sqlExecutionResult: 'success' | 'failed',
+	errorMessage?: string;
+	activityKey?: string;
+	activityValuesKey?: string;
+}
+
+export interface InsertActivityBulkEvent {
+	pipelineId: string;
+	executionId: string;
+	groupId:string;
+	sequence: number;
+	activityValuesKey: string;
+};
+
 export type VerificationTaskHandler = Handler<VerificationTaskEvent, VerificationTaskOutput>;
 
-export type CalculationTaskHandler = Handler<CalculationTaskEvent, ResultProcessorTaskEvent>;
+export type CalculationTaskHandler = Handler<CalculationTaskEvent, CalculationTaskResult>;
 
-export type ResultProcessorTaskHandler = Handler<ResultProcessorTaskEvent[], void>;
+export type SqlResultProcessorTaskHandler = Handler<ProcessedTaskEventWithStartTime, ProcessedTaskEvent[]>;
 
-export type MetricAggregationTaskHandler = Handler<AggregationTaskEvent[], void>;
+export type ResultProcessorTaskHandler = Handler<ProcessedTaskEvent[], void>;
+
+export type MetricAggregationTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent[]>;
+
+export type PipelineAggregationTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent>;
+
+export type InsertActivityBulkTaskHandler = Handler<InsertActivityBulkEvent[], InsertActivityBulkEvent>;
+export type InsertActivityBulkCompletionTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent>;

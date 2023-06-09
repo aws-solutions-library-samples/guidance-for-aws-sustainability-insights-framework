@@ -28,7 +28,7 @@ const parameters = [{
 	description: 'some endpoint which my connector will need to utilize',
 	required: true,
 	defaultValue: 'https://....'
-}]
+}];
 
 export const connectorCreateParamsExample: ConnectorCreateParams = {
 	description,

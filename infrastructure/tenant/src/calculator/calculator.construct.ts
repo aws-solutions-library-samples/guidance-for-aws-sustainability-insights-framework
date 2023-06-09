@@ -11,24 +11,23 @@
  *  and limitations under the License.
  */
 
-import { Duration, Fn, RemovalPolicy, Size, Stack, CustomResource } from 'aws-cdk-lib';
+import { CustomResource, Duration, RemovalPolicy, Size, Stack, CfnWaitCondition, CfnWaitConditionHandle } from 'aws-cdk-lib';
 import { ScalableTarget, ServiceNamespace } from 'aws-cdk-lib/aws-applicationautoscaling';
 import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
 import { AttributeType, BillingMode, Table, TableEncryption } from 'aws-cdk-lib/aws-dynamodb';
-import { Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
-import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Alias, Code, Function, Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
-import { execSync, ExecSyncOptions } from 'child_process';
+import { Queue } from 'aws-cdk-lib/aws-sqs';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { NagSuppressions } from 'cdk-nag';
+import { ExecSyncOptions, execSync } from 'child_process';
 import { Construct } from 'constructs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { StringParameter } from 'aws-cdk-lib/aws-ssm';
-import { vpcIdParameter } from '../shared/sharedTenant.stack.js';
-import { NagSuppressions } from 'cdk-nag';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,33 +35,28 @@ const __dirname = path.dirname(__filename);
 export interface CalculatorConstructProperties {
 	accessManagementApiFunctionName: string;
 	impactsApiFunctionName: string;
-	activityBooleanValueTableName: string;
-	activityDateTimeValueTableName: string;
-	activityNumberValueTableName: string;
-	activityStringValueTableName: string;
-	activityTableName: string;
 	bucketName: string;
-	caCert: string;
 	calculationsApiFunctionName: string;
 	calculatorFunctionName: string;
 	environment: string;
 	maxScaling: number;
 	minScaling: number;
 	pipelinesApiFunctionName: string;
-	rdsProxyArn: string;
-	rdsProxyEndpoint: string;
-	rdsProxySecurityGroupId: string;
 	referenceDatasetsApiFunctionName: string;
 	tenantDatabaseName: string;
-	tenantDatabaseUsername: string;
 	tenantSecretArn: string;
 	tenantId: string;
-	vpcId: string;
 	kmsKeyArn: string;
 	customResourceProviderToken: string;
 }
 
 export const calculatorFunctionArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/functionArn`;
+export const calculatorAuditSqsQueueUrlParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/auditSqsQueueUrl`;
+export const calculatorAuditSqsQueueNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/auditSqsQueueName`;
+export const calculatorAuditSqsQueueArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/auditSqsQueueArn`;
+export const calculatorActivityInsertQueueArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/activityInsertQueueArn`;
+export const calculatorActivityInsertQueueUrlParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/activityInsertQueueUrl`;
+export const calculatorActivityInsertQueueNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/activityInsertQueueName`;
 
 export class CalculatorModule extends Construct {
 	constructor(scope: Construct, id: string, props: CalculatorConstructProperties) {
@@ -72,44 +66,177 @@ export class CalculatorModule extends Construct {
 
 		const execOptions: ExecSyncOptions = { stdio: ['ignore', process.stderr, 'inherit'] };
 
-		const vpcId = StringParameter.valueFromLookup(this, vpcIdParameter(props.environment));
-		const vpc = Vpc.fromLookup(this, 'vpc', { vpcId });
-
 		const bucket = Bucket.fromBucketName(this, 'Bucket', props.bucketName);
-		const rdsSecurityGroup = SecurityGroup.fromSecurityGroupId(this, 'RdsProxySecurityGroup', props.rdsProxySecurityGroupId);
 		const calculationsLambda = NodejsFunction.fromFunctionName(this, 'CalculationsLambda', props.calculationsApiFunctionName);
 		const pipelineLambda = NodejsFunction.fromFunctionName(this, 'PipelineLambda', props.pipelinesApiFunctionName);
 		const impactsLambda = NodejsFunction.fromFunctionName(this, 'ImpactsLambda', props.impactsApiFunctionName);
 		const accessManagementLambda = NodejsFunction.fromFunctionName(this, 'AccessManagementLambda', props.accessManagementApiFunctionName);
 		const referenceDatasetsLambda = NodejsFunction.fromFunctionName(this, 'ReferenceDatasetsLambda', props.referenceDatasetsApiFunctionName);
 
-		let calculatorLambdaToRDSProxy = new SecurityGroup(this, 'Calculator Lambda to RDS Proxy Connection', {
-			vpc: vpc,
-		});
-
-		rdsSecurityGroup.addIngressRule(calculatorLambdaToRDSProxy, Port.tcp(5432), 'Allow calculator lambda to connect');
-
 		const accountId = Stack.of(this).account;
 		const region = Stack.of(this).region;
-		const rdsProxyPolicy = new PolicyStatement({
-			actions: ['rds-db:connect'],
-			resources: [`arn:aws:rds-db:${region}:${accountId}:dbuser:${Fn.select(6, Fn.split(':', props.rdsProxyArn))}/${props.tenantDatabaseUsername}`],
-		});
 
 		const sqlAsset = new Asset(this, 'SqlAsset', {
 			path: path.join(__dirname, 'assets'),
 		});
 
-		new CustomResource(this, 'CustomResourceDatabaseSeeder', {
+		/**
+		 * CloudFormation WaitCondition resource to wait until database migration has been performed successfully
+		 */
+		const dataHash = Date.now().toString();
+		const cfnWaitConditionHandle = new CfnWaitConditionHandle(this, 'CfnWaitConditionHandle'.concat(dataHash));
+
+		const databaseSeederCustomResource = new CustomResource(this, 'CustomResourceDatabaseSeeder', {
 			serviceToken: props.customResourceProviderToken,
 			resourceType: 'Custom::DatabaseSeeder',
 			properties: {
 				uniqueToken: Date.now(),
+				callbackUrl: cfnWaitConditionHandle.ref,
 				assetBucket: sqlAsset.s3BucketName,
 				assetPath: sqlAsset.s3ObjectKey,
 				tenantSecretArn: props.tenantSecretArn,
 				tenantDatabaseName: props.tenantDatabaseName
 			}
+		});
+
+		// Note: AWS::CloudFormation::WaitCondition resource type does not support updates.
+		new CfnWaitCondition(this, 'WC'.concat(dataHash), {
+			count: 1,
+			timeout: '1800',
+			handle: cfnWaitConditionHandle.ref
+		}).node.addDependency(databaseSeederCustomResource);
+
+		/**
+		 * Define the Audit SQS queue (and its dlq)
+		 */
+		const auditDlqQueue = new Queue(this, 'AuditDlqQueue', {
+			queueName: `${namePrefix}-calculator-audits-dlq`,
+		});
+
+		auditDlqQueue.addToResourcePolicy(new PolicyStatement({
+			sid: 'enforce-ssl',
+			effect: Effect.DENY,
+			principals: [new AnyPrincipal()],
+			actions: ['sqs:*'],
+			resources: [auditDlqQueue.queueArn],
+			conditions: {
+				'Bool': {
+					'aws:SecureTransport': 'false'
+				}
+			}
+		}));
+
+		NagSuppressions.addResourceSuppressions(auditDlqQueue,
+			[
+				{
+					id: 'AwsSolutions-SQS3',
+					reason: 'This is the DLQ queue.'
+				}],
+			true);
+
+
+		const auditQueue = new Queue(this, 'AuditQueue', {
+			queueName: `${namePrefix}-calculator-audits`,
+			deadLetterQueue: {
+				maxReceiveCount: 3,
+				queue: auditDlqQueue,
+			},
+			visibilityTimeout: Duration.seconds(130),
+		});
+
+		auditQueue.addToResourcePolicy(new PolicyStatement({
+			sid: 'enforce-ssl',
+			effect: Effect.DENY,
+			principals: [new AnyPrincipal()],
+			actions: ['sqs:*'],
+			resources: [auditQueue.queueArn],
+			conditions: {
+				'Bool': {
+					'aws:SecureTransport': 'false'
+				}
+			}
+		}));
+
+		new StringParameter(this, `AuditSqsQueueArnParameter`, {
+			parameterName: calculatorAuditSqsQueueArnParameter(props.tenantId, props.environment),
+			stringValue: auditQueue.queueArn,
+		});
+		new StringParameter(this, `AuditSqsQueueNameParameter`, {
+			parameterName: calculatorAuditSqsQueueNameParameter(props.tenantId, props.environment),
+			stringValue: auditQueue.queueName,
+		});
+		new StringParameter(this, `AuditSqsQueueUrlParameter`, {
+			parameterName: calculatorAuditSqsQueueUrlParameter(props.tenantId, props.environment),
+			stringValue: auditQueue.queueUrl,
+		});
+
+
+		/*
+			* Activity Insert Queue
+		*/
+
+		const activityInsertDlq = new Queue(this, 'ActivityInsertDeadLetterQueue',{
+			queueName: `${namePrefix}-calculator-activityInsert-dlq.fifo`,
+			fifo: true
+		});
+
+		activityInsertDlq.addToResourcePolicy(new PolicyStatement({
+			sid: 'enforce-ssl',
+			effect: Effect.DENY,
+			principals: [new AnyPrincipal()],
+			actions: ['sqs:*'],
+			resources: [activityInsertDlq.queueArn],
+			conditions: {
+				'Bool': {
+					'aws:SecureTransport': 'false'
+				}
+			}
+		}));
+
+		NagSuppressions.addResourceSuppressions(activityInsertDlq,
+			[
+				{
+					id: 'AwsSolutions-SQS3',
+					reason: 'This is the DLQ queue.'
+				}],
+			true);
+
+		const activityInsertQueue = new Queue(this,
+			'activityInsertQueue',
+			{
+				queueName: `${namePrefix}-calculator-activityInsert.fifo`,
+				fifo: true,
+				visibilityTimeout: Duration.minutes(5),
+				deadLetterQueue: {
+					queue: activityInsertDlq,
+					maxReceiveCount : 10
+				}
+			});
+
+			activityInsertQueue.addToResourcePolicy(new PolicyStatement({
+				sid: 'enforce-ssl',
+			effect: Effect.DENY,
+			principals: [new AnyPrincipal()],
+			actions: ['sqs:*'],
+			resources: [activityInsertQueue.queueArn],
+			conditions: {
+				'Bool': {
+					'aws:SecureTransport': 'false'
+				}
+			}
+		}));
+
+		new StringParameter(this, `ActivityInsertQueueArn`, {
+			parameterName: calculatorActivityInsertQueueArnParameter(props.tenantId, props.environment),
+			stringValue: activityInsertQueue.queueArn,
+		});
+		new StringParameter(this, `ActivityInsertQueueNameParameter`, {
+			parameterName: calculatorActivityInsertQueueNameParameter(props.tenantId, props.environment),
+			stringValue: activityInsertQueue.queueName,
+		});
+		new StringParameter(this, `ActivityInsertQueueUrlParameter`, {
+			parameterName: calculatorActivityInsertQueueUrlParameter(props.tenantId, props.environment),
+			stringValue: activityInsertQueue.queueUrl,
 		});
 
 		const resourceMappingTable = new Table(this, 'CalculatorTable', {
@@ -133,9 +260,9 @@ export class CalculatorModule extends Construct {
 		const calculatorLambda = new Function(this, 'CalculatorHandler', {
 			functionName: props.calculatorFunctionName,
 			description: `Calculator Function: Tenant ${props.tenantId} `,
-			runtime: Runtime.JAVA_11,
+			runtime: Runtime.JAVA_17,
 			handler: 'com.aws.sif.HandlerStream',
-			memorySize: 2048,
+			memorySize: 1769,	// 1 vcpu
 			timeout: Duration.minutes(10),
 			logRetention: RetentionDays.ONE_WEEK,
 			ephemeralStorageSize: Size.gibibytes(5),
@@ -144,30 +271,18 @@ export class CalculatorModule extends Construct {
 				'TENANT_ID': props.tenantId,
 				'ENVIRONMENT': props.environment,
 				'BUCKET_NAME': props.bucketName,
-				'CA_CERT': props.caCert,
 				'CALCULATIONS_FUNCTION_NAME': props.calculationsApiFunctionName,
 				'REFERENCEDATASETS_FUNCTION_NAME': props.referenceDatasetsApiFunctionName,
 				'IMPACTS_FUNCTION_NAME': props.impactsApiFunctionName,
 				'USERS_FUNCTION_NAME': props.accessManagementApiFunctionName,
 				'RESOURCE_MAPPING_TABLE_NAME': resourceMappingTable.tableName,
-				'PROCESSED_ACTIVITIES_DATABASE_RDS_NAME': props.tenantDatabaseName,
-				'PROCESSED_ACTIVITIES_DATABASE_USER': props.tenantDatabaseUsername,
-				'PROCESSED_ACTIVITIES_DATABASE_WRITER_ENDPOINT': props.rdsProxyEndpoint,
-				'PROCESSED_ACTIVITIES_TABLE_ACTIVITY': props.activityTableName,
-				'PROCESSED_ACTIVITIES_TABLE_ACTIVITY_STRING_VALUE': props.activityStringValueTableName,
-				'PROCESSED_ACTIVITIES_TABLE_ACTIVITY_NUMBER_VALUE': props.activityNumberValueTableName,
-				'PROCESSED_ACTIVITIES_TABLE_ACTIVITY_BOOLEAN_VALUE': props.activityBooleanValueTableName,
-				'PROCESSED_ACTIVITIES_TABLE_ACTIVITY_DATETIME_VALUE': props.activityDateTimeValueTableName
-			},
-			securityGroups: [calculatorLambdaToRDSProxy],
-			vpc,
-			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT,
+				'ACTIVITY_QUEUE_URL':activityInsertQueue.queueUrl,
+				'AUDIT_QUEUE_URL': auditQueue.queueUrl
 			},
 			code: Code.fromAsset(calculatorPath, {
 				bundling: {
 					workingDirectory: calculatorPath,
-					image: Runtime.JAVA_11.bundlingImage,
+					image: Runtime.JAVA_17.bundlingImage,
 					local: {
 						tryBundle(outputDir: string): boolean {
 							try {
@@ -193,6 +308,8 @@ export class CalculatorModule extends Construct {
 				},
 			}),
 		});
+		calculatorLambda.node.addDependency(auditQueue);
+		calculatorLambda.node.addDependency(activityInsertQueue);
 
 		new StringParameter(this, 'calculatorFunctionArnParameter', {
 			parameterName: calculatorFunctionArnParameter(props.tenantId, props.environment),
@@ -206,6 +323,8 @@ export class CalculatorModule extends Construct {
 		calculationsLambda.grantInvoke(calculatorLambda);
 		referenceDatasetsLambda.grantInvoke(calculatorLambda);
 		impactsLambda.grantInvoke(calculatorLambda);
+		auditQueue.grantSendMessages(calculatorLambda);
+		activityInsertQueue.grantSendMessages(calculatorLambda);
 
 		calculatorLambda.addToRolePolicy(new PolicyStatement({
 			sid: 'vpc',
@@ -213,28 +332,9 @@ export class CalculatorModule extends Construct {
 			actions: [
 				'logs:CreateLogGroup',
 				'logs:CreateLogStream',
-				'logs:PutLogEvents',
-				'ec2:CreateNetworkInterface',
-				'ec2:DescribeNetworkInterfaces',
-				'ec2:DeleteNetworkInterface',
-				'ec2:AssignPrivateIpAddresses',
-				'ec2:UnassignPrivateIpAddresses'
+				'logs:PutLogEvents'
 			],
-			resources: ['*'],
-			conditions: {
-				'StringEquals': {
-					'ec2:vpc': `arn:aws:ec2:${region}:${accountId}:vpc/${vpc.vpcId}`
-				}
-			}
-		}));
-
-		calculatorLambda.addToRolePolicy(new PolicyStatement({
-			sid: 'rds',
-			effect: Effect.ALLOW,
-			actions: [
-				'rds-db:connect'
-			],
-			resources: [`arn:aws:rds-db:${region}:${accountId}:dbuser:${Fn.select(6, Fn.split(':', props.rdsProxyArn))}/${props.tenantDatabaseUsername}`],
+			resources: ['*']
 		}));
 
 		const alias = new Alias(this, 'CalculatorHandlerAlias', {
@@ -242,8 +342,6 @@ export class CalculatorModule extends Construct {
 			provisionedConcurrentExecutions: props.minScaling,
 			version: calculatorLambda.currentVersion
 		});
-
-		calculatorLambda.addToRolePolicy(rdsProxyPolicy);
 
 		alias.node.addDependency(calculatorLambda);
 

@@ -31,7 +31,7 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { atLeastAdmin, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
 
-import { InvalidStateError, NotFoundError, TagService, UnauthorizedError, ResourceService, Tags, type MergeUtils } from '@sif/resource-api-base';
+import { InvalidStateError, NotFoundError, TagRepository, TagService, UnauthorizedError, ResourceService, Tags, type MergeUtils } from '@sif/resource-api-base';
 
 import type { UserRepository } from './repository.js';
 import type { GroupModuleService } from '../groups/service.js';
@@ -47,6 +47,7 @@ export class UserService {
 	private readonly groupService: GroupModuleService;
 	private readonly repository: UserRepository;
 	private readonly eventPublisher: EventPublisher;
+	private readonly tagRepository: TagRepository;
 	private readonly tagService: TagService;
 	private readonly resourceService: ResourceService;
 	private readonly mergeUtils: MergeUtils;
@@ -59,6 +60,7 @@ export class UserService {
 		groupService: GroupModuleService,
 		repository: UserRepository,
 		eventPublisher: EventPublisher,
+		tagRepository: TagRepository,
 		tagService: TagService,
 		resourceService: ResourceService,
 		mergeUtils: MergeUtils
@@ -70,6 +72,7 @@ export class UserService {
 		this.groupService = groupService;
 		this.repository = repository;
 		this.eventPublisher = eventPublisher;
+		this.tagRepository = tagRepository;
 		this.tagService = tagService;
 		this.resourceService = resourceService;
 		this.mergeUtils = mergeUtils;
@@ -132,8 +135,8 @@ export class UserService {
 			}
 		}
 
-		// if state or tags has changed, sync cognito. and save
-		if (updated.state || updated.tags) {
+		// if state has changed, sync cognito
+		if (updated.state) {
 			if (updated.state === 'active') {
 				const params: AdminEnableUserCommandInput = {
 					UserPoolId: this.userPoolId,
@@ -149,12 +152,14 @@ export class UserService {
 				this.log.debug(`UserService> update> AdminDisableUserCommand params:${JSON.stringify(params)}`);
 				await this.cognito.send(new AdminDisableUserCommand(params));
 			}
-
-			// determine which tags are to add/delete
-			const tagDiff = this.tagService.diff(existing.tags, updated.tags);
-
-			await this.repository.update(merged, tagDiff.toAdd, tagDiff.toDelete);
 		}
+
+		// determine which tags are to add/delete
+		const tagDiff = this.tagService.diff(existing.tags, updated.tags);
+
+		await this.repository.update(merged, tagDiff.toAdd, tagDiff.toDelete);
+
+		await this.tagRepository.updateGroupSummaries(securityContext.groupId, PkType.User, tagDiff.toAdd, tagDiff.toDelete);
 
 		this.log.debug(`UserService> update> exit> updated:${JSON.stringify(merged)}`);
 		return merged;
@@ -346,7 +351,9 @@ export class UserService {
 
 			existing.createdBy = securityContext.email;
 			existing.createdAt = new Date(Date.now()).toISOString();
+			existing.tags = updated.tags;
 			await this.repository.create(existing);
+			await this.tagRepository.updateGroupSummaries(securityContext.groupId, PkType.User, existing.tags, {});
 			await this.eventPublisher.publishTenantEvent({
 				resourceType: 'user',
 				eventType: 'created',
@@ -370,6 +377,7 @@ export class UserService {
 			const tagDiff = this.tagService.diff(existing.tags, merged.tags);
 
 			await this.repository.update(merged, tagDiff.toAdd, tagDiff.toDelete);
+			await this.tagRepository.updateGroupSummaries(securityContext.groupId, PkType.User, tagDiff.toAdd, tagDiff.toDelete);
 
 			await this.eventPublisher.publishTenantEvent({
 				resourceType: 'user',

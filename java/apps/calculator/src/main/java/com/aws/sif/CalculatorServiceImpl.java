@@ -16,19 +16,19 @@ package com.aws.sif;
 import com.aws.sif.audits.AuditMessage;
 import com.aws.sif.audits.Auditor;
 import com.aws.sif.execution.*;
+import com.aws.sif.execution.output.ActivityOutputWriter;
 import com.aws.sif.execution.output.OutputType;
-import com.aws.sif.execution.output.RdsWriter;
 import com.aws.sif.resources.users.UserNotFoundException;
 import com.aws.sif.resources.users.UsersClient;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.typesafe.config.Config;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.URLEncoder;
@@ -47,25 +47,24 @@ public class CalculatorServiceImpl implements CalculatorService {
 	private final S3Utils s3;
 	private final Auditor auditor;
 	private final Config config;
-	private final RdsWriter rdsWriter;
+	private final ActivityOutputWriter activityOutputWriter;
 	private final UsersClient usersClient;
-	private  Map<String, DynamicTypeValue> valueMap = new HashMap<>();
 	private final Gson gson;
+	private Map<String, DynamicTypeValue> valueMap = new HashMap<>();
 
 	@Inject
-	public CalculatorServiceImpl(Calculator calculator, S3Utils s3, Auditor auditor, Config config, RdsWriter rdsWriter, UsersClient usersClient, Gson gson) {
+	public CalculatorServiceImpl(Calculator calculator, S3Utils s3, Auditor auditor, Config config, ActivityOutputWriter activityOutputWriter, UsersClient usersClient, Gson gson) {
 		this.calculator = calculator;
 		this.s3 = s3;
 		this.auditor = auditor;
 		this.config = config;
 		this.usersClient = usersClient;
 		this.gson = gson;
-
-		this.rdsWriter = rdsWriter;
+		this.activityOutputWriter = activityOutputWriter;
 	}
 
 	@Override
-	public TransformResponse process(TransformRequest req) throws InterruptedException {
+	public TransformResponse process(TransformRequest req) throws InterruptedException, IOException {
 		log.debug("process> in> req:{}", req);
 
 		TransformResponse response;
@@ -99,7 +98,7 @@ public class CalculatorServiceImpl implements CalculatorService {
 		} finally {
 			Thread.sleep(1000);
 			auditor.flushSync();
-			rdsWriter.flushSync();
+			activityOutputWriter.submit();
 		}
 
 		log.debug("process> exit:");
@@ -159,7 +158,7 @@ public class CalculatorServiceImpl implements CalculatorService {
 			var value = transformed.get(header);
 			if (value instanceof ErrorValue) {
 				jsonLine.append(ERROR_EVALUATING);
-			} else if (value instanceof  NullValue) {
+			} else if (value instanceof NullValue) {
 				jsonLine.append("null");
 			} else if (value instanceof StringTypeValue || value instanceof DateTimeTypeValue) {
 				jsonLine.append("\"").append(value.asString()).append("\"");
@@ -168,13 +167,13 @@ public class CalculatorServiceImpl implements CalculatorService {
 			}
 			jsonLine.append(",");
 		}
-		jsonLine.deleteCharAt(jsonLine.length()-1);	// remove last ","
+		jsonLine.deleteCharAt(jsonLine.length() - 1);    // remove last ","
 		jsonLine.append("}");
 		log.debug("transformedToJson> exit:{}", jsonLine);
 		return jsonLine.toString();
 	}
 
-	private TransformResponse transformInput(TransformRequest req, Authorizer authorizer, List<String> errors, List<String> headers) {
+	private TransformResponse transformInput(TransformRequest req, Authorizer authorizer, List<String> errors, List<String> headers) throws IOException {
 		log.debug("transformInput> in> request:{}, errors:{}, headers:{}", req, errors, headers);
 
 		TransformResponse response;
@@ -197,16 +196,20 @@ public class CalculatorServiceImpl implements CalculatorService {
 
 			var outputMap = getOutputMap(req);
 
-			// initialize the RDS writer with the current context
-			rdsWriter.init(req.getGroupContextId(), req.getPipelineId(), req.getExecutionId(), outputMap);
+			// this is optional, but activityOutputWriter.init requires it so make the default to 0
+			var chunkNo = req.getChunkNo() == null ? 0 : req.getChunkNo();
 
-			Type MapStringStringType = new TypeToken<Map<String, String>>() {}.getType();
+			// initialize the RDS writer with the current context
+			activityOutputWriter.init(req.getGroupContextId(), req.getPipelineId(), req.getExecutionId(), chunkNo, outputMap);
+
+			Type MapStringStringType = new TypeToken<Map<String, String>>() {
+			}.getType();
 
 			Stream<String> linesFromString = sourceData.lines();
 			linesFromString.forEach(l -> {
-                log.trace("l: {}", l);
+				log.trace("l: {}", l);
 				Map<String, String> jsonLine = gson.fromJson(l, MapStringStringType);
-                log.trace("jsonLine: {}", jsonLine);
+				log.trace("jsonLine: {}", jsonLine);
 
 				try {
 					var inputRow = marshallInputRow(req.getParameters(), req.getUniqueKey(), jsonLine);
@@ -233,9 +236,9 @@ public class CalculatorServiceImpl implements CalculatorService {
 							.findFirst().orElseThrow();
 
 
-						var values = this.getValueMap(req,outputRow);
+						var values = this.getValueMap(req, outputRow);
 
-						rdsWriter.addRecord((NumberTypeValue) time.getValue(), uniqueIdColumns, values, (StringTypeValue)auditId.getValue());
+						activityOutputWriter.addRecord((NumberTypeValue) time.getValue(), uniqueIdColumns, values, (StringTypeValue) auditId.getValue(),(Boolean)isDeletion(req));
 					}
 
 				} catch (Exception e) {
@@ -277,7 +280,7 @@ public class CalculatorServiceImpl implements CalculatorService {
 	}
 
 	@NotNull
-	private Map<String, DynamicTypeValue> getValueMap(TransformRequest req,Map<String, DynamicTypeValue> outputRow) {
+	private Map<String, DynamicTypeValue> getValueMap(TransformRequest req, Map<String, DynamicTypeValue> outputRow) {
 		// loop through the values and generate a value column mapping
 		this.valueMap.clear();
 		// if action type is deletion insert null values
@@ -288,7 +291,7 @@ public class CalculatorServiceImpl implements CalculatorService {
 
 		} else {
 			this.valueMap = outputRow.entrySet().stream().filter(x -> (OutputType.uniqueId.equals(x.getValue().getOutputType())
-					|| OutputType.value.equals(x.getValue().getOutputType()))).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+				|| OutputType.value.equals(x.getValue().getOutputType()))).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 		}
 		return this.valueMap;
 	}
@@ -298,13 +301,17 @@ public class CalculatorServiceImpl implements CalculatorService {
 
 		Map<String, DynamicTypeValue> transformed = new HashMap<>();
 
-		String auditId =  UUID.randomUUID().toString();
-
 		// common audit attributes regardless of the output column being evaluated
+		String auditId = UUID.randomUUID().toString();
+		var inputs = source.entrySet().stream()
+			.map(e -> AuditMessage.Input.builder().name(e.getKey()).value(e.getValue().asString()).build())
+			.collect(Collectors.toList())
+			.toArray(new AuditMessage.Input[source.size()]);
 		var auditMessageBuilder = AuditMessage.builder()
 			.pipelineId(req.getPipelineId())
 			.executionId(req.getExecutionId())
-			.auditId(auditId);
+			.auditId(auditId)
+			.inputs(inputs);
 
 		// loop each output of each transform to generate the output column
 		var outputs = new ArrayList<AuditMessage.Output>();
@@ -321,28 +328,28 @@ public class CalculatorServiceImpl implements CalculatorService {
 
 			DynamicTypeValue result;
 			try {
-					// evaluate the calculation
-					var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest
-							.builder().pipelineId(req.getPipelineId())
-							.executionId(req.getExecutionId())
-							.groupContextId(req.getGroupContextId()).expression(t.getFormula())
-							.parameters(source).context(transformed).authorizer(authorizer).build();
+				// evaluate the calculation
+				var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest
+					.builder().pipelineId(req.getPipelineId())
+					.executionId(req.getExecutionId())
+					.groupContextId(req.getGroupContextId()).expression(t.getFormula())
+					.parameters(source).context(transformed).authorizer(authorizer).build();
 
-					var calculation = calculator.evaluateExpression(evaluateExpressionRequest);
-					result = calculation.getResult();
+				var calculation = calculator.evaluateExpression(evaluateExpressionRequest);
+				result = calculation.getResult();
 
-					// audit attributes specific to what was evaluated to arrive at the calculation
-					AuditMessage.Resources outputResources = null;
-					if (calculation.getActivities() != null || calculation.getCalculations() != null
-							|| calculation.getReferenceDatasets() != null) {
-						outputResources = AuditMessage.Resources.builder()
-								.activities(calculation.getActivities())
-								.calculations(calculation.getCalculations())
-								.referenceDatasets(calculation.getReferenceDatasets()).build();
-					}
-					auditOutputBuilder.evaluated(calculation.getEvaluated())
-							.result(calculation.getResult().asString())
-							.resources(outputResources);
+				// audit attributes specific to what was evaluated to arrive at the calculation
+				AuditMessage.Resources outputResources = null;
+				if (calculation.getActivities() != null || calculation.getCalculations() != null
+					|| calculation.getReferenceDatasets() != null) {
+					outputResources = AuditMessage.Resources.builder()
+						.activities(calculation.getActivities())
+						.calculations(calculation.getCalculations())
+						.referenceDatasets(calculation.getReferenceDatasets()).build();
+				}
+				auditOutputBuilder.evaluated(calculation.getEvaluated())
+					.result(calculation.getResult().asString())
+					.resources(outputResources);
 
 			} catch (Exception ex) {
 				var errorMessage = recordError(errorMessages, "transformRow",
@@ -356,10 +363,10 @@ public class CalculatorServiceImpl implements CalculatorService {
 			if (index.get() == 0) {
 				result.setOutputType(OutputType.time);
 			} else if (o.getIncludeAsUnique() == null || !o.getIncludeAsUnique()) {
-					result.setOutputType(OutputType.value);
+				result.setOutputType(OutputType.value);
 			} else {
 				// throw an error if unique key value in null
-				if (result.asString()== null || result.asString().isEmpty()) {
+				if (result.asString() == null || result.asString().isEmpty()) {
 					var message = String.format("Row '%s' column '%s' encountered error uniqueKey value cannot be null", source.get(ROW_IDENTIFIER).asString(), o.getKey());
 					log.error("transformRow> " + message);
 					throw new RuntimeException(message);
@@ -397,8 +404,8 @@ public class CalculatorServiceImpl implements CalculatorService {
 	}
 
 	private boolean isDeletion(TransformRequest req) {
-		log.debug("isDeletion> in> req:{}",req);
-		var isDeletion= CalculatorActionType.delete.equals(req.getActionType());
+		log.debug("isDeletion> in> req:{}", req);
+		var isDeletion = CalculatorActionType.delete.equals(req.getActionType());
 		// If activityType is set to delete then consider it a deletion
 		log.debug("isDeletion> exit:{}", isDeletion);
 		return isDeletion;
@@ -504,7 +511,7 @@ public class CalculatorServiceImpl implements CalculatorService {
 		return errorMessages;
 	}
 
-	private Map<String, DynamicTypeValue> marshallInputRow(List<TransformParameter> parameters, List<String> uniqueKeys, Map<String,String> inputJsonData) {
+	private Map<String, DynamicTypeValue> marshallInputRow(List<TransformParameter> parameters, List<String> uniqueKeys, Map<String, String> inputJsonData) {
 		log.debug("marshallInput> in> parameters:{}, uniqueKeys:{}, inputData:{}", parameters, uniqueKeys, inputJsonData);
 
 		var data = new HashMap<String, DynamicTypeValue>();

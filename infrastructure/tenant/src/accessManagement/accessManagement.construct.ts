@@ -75,7 +75,7 @@ export class AccessManagementModule extends Construct {
 			entry: path.join(__dirname, '../../../../typescript/packages/apps/access-management/src/lambda_apiGateway.ts'),
 			runtime: Runtime.NODEJS_16_X,
 			tracing: Tracing.ACTIVE,
-			memorySize: 256,
+			memorySize: 512,
 			logRetention: RetentionDays.ONE_WEEK,
 			environment: {
 				EVENT_BUS_NAME: props.eventBusName,

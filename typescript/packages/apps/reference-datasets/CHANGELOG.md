@@ -1,6 +1,20 @@
 # Change Log - @sif/reference-datasets
 
-This log was last generated on Fri, 14 Apr 2023 16:13:35 GMT and should not be manually modified.
+This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+
+## 4.5.0
+Mon, 22 May 2023 22:02:58 GMT
+
+### Minor changes
+
+- should pass in key prefix when calling list alias
+
+## 4.4.0
+Mon, 22 May 2023 18:52:26 GMT
+
+### Minor changes
+
+- should pass in key prefix when calling list alias
 
 ## 4.3.8
 Fri, 14 Apr 2023 16:13:35 GMT

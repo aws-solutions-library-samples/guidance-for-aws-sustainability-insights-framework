@@ -1,6 +1,20 @@
 # Change Log - @sif/calculations
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+
+## 4.7.0
+Mon, 22 May 2023 22:02:58 GMT
+
+### Minor changes
+
+- should pass in keyprefix when calling list alias
+
+## 4.6.0
+Mon, 22 May 2023 18:52:26 GMT
+
+### Minor changes
+
+- should pass in keyprefix when calling list alias
 
 ## 4.5.5
 Mon, 01 May 2023 00:31:09 GMT

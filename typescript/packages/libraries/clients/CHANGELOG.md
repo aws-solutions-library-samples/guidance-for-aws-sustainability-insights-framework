@@ -1,6 +1,20 @@
 # Change Log - @sif/clients
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+
+## 1.6.2
+Mon, 22 May 2023 22:02:58 GMT
+
+### Patches
+
+- move inputPipelines into its own type
+
+## 1.6.1
+Mon, 22 May 2023 18:52:26 GMT
+
+### Patches
+
+- move inputPipelines into its own type
 
 ## 1.6.0
 Mon, 01 May 2023 00:31:09 GMT

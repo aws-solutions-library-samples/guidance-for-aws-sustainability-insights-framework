@@ -78,7 +78,7 @@ export class ActivityService {
 		this.validator.validateName(activity.name);
 
 		// Validation - ensure name is unique for the group
-		if (await this.groupService.isAlternateIdInUse(activity.name, securityContext.groupId)) {
+		if (await this.groupService.isAlternateIdInUse(activity.name, securityContext.groupId, PkType.Activity)) {
 			throw new AlternateIdInUseError(activity.name);
 		}
 
@@ -192,7 +192,7 @@ export class ActivityService {
 		if (options.name) {
 			this.log.info(`ActivitiesService> list> searching by name : ${options.name}`);
 			options.name = options.name.toLowerCase();
-			activityIds = await this.resourceService.listIdsByAlternateId(securityContext.groupId, options.name, {
+			activityIds = await this.resourceService.listIdsByAlternateId(securityContext.groupId, options.name, PkType.Activity, {
 				includeParentGroups: options?.includeParentGroups,
 				includeChildGroups: options?.includeChildGroups,
 			});

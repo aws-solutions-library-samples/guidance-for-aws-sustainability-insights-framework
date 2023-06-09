@@ -14,7 +14,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Duration, RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
+import { BlockPublicAccess, Bucket, BucketEncryption, HttpMethods } from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 
 export interface S3ConstructProperties {
@@ -54,6 +54,14 @@ export class S3 extends Construct {
 				}
 			],
 		});
+
+		s3.addCorsRule({
+			allowedHeaders: ['*'],
+			allowedMethods: [HttpMethods.PUT, HttpMethods.GET, HttpMethods.HEAD],
+			allowedOrigins: ['*'],
+			exposedHeaders: ['ETag'],
+			maxAge: 3000,
+		})
 
 		new ssm.StringParameter(this, 'bucketNameParameter', {
 			parameterName: bucketNameParameter(props.tenantId, props.environment),

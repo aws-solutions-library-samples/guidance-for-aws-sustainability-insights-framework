@@ -2,6 +2,58 @@
   "name": "@sif/pipelines",
   "entries": [
     {
+      "version": "4.6.10",
+      "tag": "@sif/pipelines_v4.6.10",
+      "date": "Mon, 22 May 2023 22:02:58 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix issue where we undefined and not array"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.7.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.6.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.6.9",
+      "tag": "@sif/pipelines_v4.6.9",
+      "date": "Mon, 22 May 2023 18:52:26 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix issue where we undefined and not array"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.6.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.6.1`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.6.8",
+      "tag": "@sif/pipelines_v4.6.8",
+      "date": "Tue, 16 May 2023 13:42:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix metrics to be unique by hierarchy"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.6.7",
       "tag": "@sif/pipelines_v4.6.7",
       "date": "Mon, 01 May 2023 00:31:09 GMT",

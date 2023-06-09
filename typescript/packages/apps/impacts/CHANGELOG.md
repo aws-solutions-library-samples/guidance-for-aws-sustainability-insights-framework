@@ -1,6 +1,20 @@
 # Change Log - @sif/impacts
 
-This log was last generated on Fri, 28 Apr 2023 15:35:58 GMT and should not be manually modified.
+This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+
+## 4.4.0
+Mon, 22 May 2023 22:02:58 GMT
+
+### Minor changes
+
+- should pass in key prefix when calling list alias
+
+## 4.3.0
+Mon, 22 May 2023 18:52:26 GMT
+
+### Minor changes
+
+- should pass in key prefix when calling list alias
 
 ## 4.2.10
 Fri, 28 Apr 2023 15:35:58 GMT

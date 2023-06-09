@@ -24,6 +24,7 @@ import pkg from 'aws-xray-sdk';
 
 const { captureAWSv3Client } = pkg;
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { ECSClient } from '@aws-sdk/client-ecs';
 import pretty from 'pino-pretty';
 import { DatabaseSeederCustomResource } from '../customResources/databaseSeeder.customResource';
 import { CustomResourceManager } from '../customResources/customResource.manager';
@@ -40,6 +41,7 @@ import { ConnectorSeederCustomResource } from '../customResources/connectorSeede
 import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
 import fs from 'fs';
 import StreamZip from 'node-stream-zip';
+import { DatabaseSeederContainer } from '../customResources/databaseSeeder.container';
 // @ts-ignore
 const migrate = nodePgMigrate.default;
 const container = createContainer({
@@ -79,6 +81,14 @@ class RDSClientFactory {
 	}
 }
 
+class ECSClientFactory {
+	public static create(region: string | undefined): ECSClient {
+		const ecsClient = captureAWSv3Client(new ECSClient({ region }));
+		return ecsClient;
+	}
+}
+
+
 class SecretsManagerClientFactory {
 	public static create(region: string | undefined): SecretsManagerClient {
 		const secretsManagerClient = captureAWSv3Client(new SecretsManagerClient({ region }));
@@ -102,6 +112,11 @@ const tenantId = process.env['TENANT_ID'];
 const rdsProxyName = process.env['RDS_PROXY_NAME'];
 const environment = process.env['NODE_ENV'];
 const pipelineFunctionName = process.env['PIPELINES_FUNCTION_NAME'];
+const ecsTaskDefinitionArn = process.env['ECS_TASK_DEFINITION_ARN'];
+const ecsClusterArn = process.env['ECS_CLUSTER_ARN'];
+const ecsTaskRoleArn = process.env['ECS_TASK_ROLE_ARN'];
+const containerSecurityGroup = process.env['CONTAINER_SECURITY_GROUP'];
+const containerSubnets = process.env['CONTAINER_SUBNETS'].split(',');
 
 
 export type ExtractCustomResourceArtifacts = (assetBucket: string, assetKey: string) => Promise<string>
@@ -113,7 +128,7 @@ const extractCustomResourceArtifacts: ExtractCustomResourceArtifacts = async (as
 	const s3Client = S3ClientFactory.create(awsRegion);
 	const response = await s3Client.send(new GetObjectCommand({ Bucket: assetBucket, Key: assetKey }));
 	const fileContent = await sdkStreamMixin(response.Body).transformToByteArray();
-	const tmpZipFilePath = os.tmpdir()+ path.sep +'assets.zip';
+	const tmpZipFilePath = os.tmpdir() + path.sep + 'assets.zip';
 
 	fs.writeFileSync(tmpZipFilePath, fileContent);
 
@@ -169,6 +184,9 @@ container.register({
 	iamClient: asFunction(() => IAMClientFactory.create(awsRegion), {
 		...commonInjectionOptions,
 	}),
+	ecsClient: asFunction(() => ECSClientFactory.create(awsRegion), {
+		...commonInjectionOptions,
+	}),
 	lambdaClient: asFunction(() => LambdaClientFactory.create(awsRegion), {
 		...commonInjectionOptions
 	}),
@@ -181,12 +199,15 @@ container.register({
 	databaseSeederRepository: asFunction(() => new DatabaseSeederRepository(logger, getPostgresqlClient, migrate), {
 		...commonInjectionOptions,
 	}),
+	databaseSeederContainer: asFunction((container) => new DatabaseSeederContainer(logger, container.ecsClient, ecsClusterArn, ecsTaskRoleArn, ecsTaskDefinitionArn, containerSubnets, containerSecurityGroup, host, platformUsername), {
+		...commonInjectionOptions,
+	}),
 	connectorClient: asFunction((container) => new ConnectorClient(logger, container.invoker, pipelineFunctionName), {
 		...commonInjectionOptions,
 	}),
 	databaseSeederCustomResource: asFunction((container) => new DatabaseSeederCustomResource(
-		logger, container.databaseSeederRepository, container.rdsClient, container.iamClient, container.secretsManagerClient,
-		rdsProxyName, tenantId, environment, extractCustomResourceArtifacts), {
+		logger, container.databaseSeederRepository, container.rdsClient, container.iamClient,
+		container.secretsManagerClient, rdsProxyName, tenantId, environment, extractCustomResourceArtifacts, container.databaseSeederContainer), {
 		...commonInjectionOptions,
 	}),
 	connectorSeederCustomResource: asFunction((container) => new ConnectorSeederCustomResource(

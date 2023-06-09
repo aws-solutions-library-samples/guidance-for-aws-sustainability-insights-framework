@@ -11,15 +11,15 @@
  *  and limitations under the License.
  */
 
-import { CalculationTask } from './calculationTask';
-import pino from 'pino';
-import { describe, expect, it, beforeEach } from 'vitest';
-import { mock, MockProxy } from 'vitest-mock-extended';
-import type { CalculationChunk, CalculationContext } from './model.js';
-import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { CalculatorClient } from '@sif/clients';
 import type { SecurityContext } from '@sif/authz';
+import type { CalculatorClient } from '@sif/clients';
+import pino from 'pino';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { MockProxy, mock } from 'vitest-mock-extended';
+import type { PipelineProcessorsService } from '../../api/executions/service.js';
 import type { GetSecurityContext } from '../../plugins/module.awilix.js';
+import { CalculationTask } from './calculationTask';
+import type { CalculationChunk, CalculationContext } from './model.js';
 
 const sampleParameters = [
 	{
@@ -100,8 +100,8 @@ describe('Calculation Task', () => {
 			},
 			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
-			pipelineExecutionId: 'unit-test-pipeline-execution',
-			pipelineCreatedBy: 'admin'
+			executionId: 'unit-test-pipeline-execution',
+			pipelineCreatedBy: 'admin',
 		} as CalculationContext;
 
 		const result = await underTest.process({ context, chunk: sampleChunkFirst, source: sampleSource });
@@ -116,7 +116,7 @@ describe('Calculation Task', () => {
 				bucket: sampleSource.bucket,
 				key: sampleSource.key,
 				startByte: sampleChunkFirst.range[0],
-				endByte: sampleChunkFirst.range[1]
+				endByte: sampleChunkFirst.range[1],
 			},
 			chunkNo: 0,
 			actionType: 'create',
@@ -124,13 +124,9 @@ describe('Calculation Task', () => {
 		});
 
 		expect(result.pipelineId).toEqual('unit-test-pipeline');
-		expect(result.pipelineExecutionId).toEqual('unit-test-pipeline-execution');
+		expect(result.executionId).toEqual('unit-test-pipeline-execution');
 		expect(result.sequence).toEqual(0);
-		expect(result.output).toEqual({
-			auditLogLocation: { bucket: 'unit-test-bucket', key: 'audit-test-key' },
-			data: [],
-			errorLocation: { bucket: 'unit-test-bucket', key: 'error-test-key' }
-		});
+		expect(result.errorLocation).toEqual({ bucket: 'unit-test-bucket', key: 'error-test-key' });
 	});
 
 	it('happy path second chunk', async () => {
@@ -142,8 +138,8 @@ describe('Calculation Task', () => {
 			},
 			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
-			pipelineExecutionId: 'unit-test-pipeline-execution',
-			pipelineCreatedBy: 'admin'
+			executionId: 'unit-test-pipeline-execution',
+			pipelineCreatedBy: 'admin',
 		} as CalculationContext;
 
 		const result = await underTest.process({ context, chunk: sampleChunkSecond, source: sampleSource });
@@ -164,14 +160,6 @@ describe('Calculation Task', () => {
 			},
 			chunkNo: 1,
 		});
-
-		expect(result.pipelineId).toEqual('unit-test-pipeline');
-		expect(result.pipelineExecutionId).toEqual('unit-test-pipeline-execution');
 		expect(result.sequence).toEqual(1);
-		expect(result.output).toEqual({
-			auditLogLocation: { bucket: 'unit-test-bucket', key: 'audit-test-key' },
-			errorLocation: { bucket: 'unit-test-bucket', key: 'error-test-key' },
-			data: []
-		});
 	});
 });

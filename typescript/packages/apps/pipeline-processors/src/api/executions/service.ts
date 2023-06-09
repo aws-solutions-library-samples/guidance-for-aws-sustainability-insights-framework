@@ -22,11 +22,14 @@ import type { InlineExecutionOutputs, PipelineExecution, PipelineExecutionList, 
 import type { PipelineProcessorsRepository } from './repository.js';
 import type { ConnectorUtility } from '../../utils/connectorUtility';
 import type { GetLambdaRequestContext, GetSignedUrl } from '../../plugins/module.awilix';
-import type { CalculatorClient, CalculatorInlineTransformResponse, CalculatorRequest, Pipeline, PipelineClient, Transform, Transformer } from '@sif/clients';
+import type { CalculatorClient, CalculatorInlineTransformResponse, CalculatorRequest, Pipeline, PipelineClient, Transform, Transformer, MetricClient, Metric as MetricResource } from '@sif/clients';
 import { validateNotEmpty } from '@sif/validators';
 import dayjs from 'dayjs';
-import type { AggregationTaskEvent } from '../../stepFunction/tasks/model.js';
 import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
+import type { ProcessedTaskEvent } from '../../stepFunction/tasks/model.js';
+import type { MetricQueue } from '../../stepFunction/tasks/model.js';
+import type { LambdaRequestContext } from '@sif/clients';
+import type { PipelineExecutionUtils } from './utils.js';
 
 const FIVE_MINUTES = 5 * 60;
 
@@ -45,6 +48,8 @@ export class PipelineProcessorsService {
 	private readonly calculatorClient: CalculatorClient;
 	private readonly sfnClient: SFNClient;
 	private readonly inlineStateMachineArn: string;
+	private readonly metricClient: MetricClient;
+	private readonly utils: PipelineExecutionUtils;
 
 	public constructor(
 		log: FastifyBaseLogger,
@@ -60,7 +65,9 @@ export class PipelineProcessorsService {
 		getLambdaRequestContext: GetLambdaRequestContext,
 		calculatorClient: CalculatorClient,
 		sfnClient: SFNClient,
-		inlineStateMachineArn: string
+		inlineStateMachineArn: string,
+		metricClient: MetricClient,
+		utils: PipelineExecutionUtils,
 	) {
 		this.pipelineClient = pipelineClient;
 		this.log = log;
@@ -76,15 +83,8 @@ export class PipelineProcessorsService {
 		this.calculatorClient = calculatorClient;
 		this.sfnClient = sfnClient;
 		this.inlineStateMachineArn = inlineStateMachineArn;
-	}
-
-	private validatePipelineExecutionAccess(resourceGroups: string[], groupContextId, executionId: string) {
-		this.log.trace(`PipelineProcessorsService>  validatePipelineExecutionAccess> resourceGroups:${resourceGroups}, groupContextId: ${groupContextId}, executionId: ${executionId}`);
-		const isAllowed = this.authChecker.matchGroup(resourceGroups, groupContextId);
-		if (!isAllowed) {
-			throw new UnauthorizedError(`The caller does not have access to the group(s) that pipeline execution '${executionId}' is part of.`);
-		}
-		this.log.trace(`PipelineProcessorsService>  validatePipelineExecutionAccess> exit> isAllowed:${isAllowed}`);
+		this.metricClient = metricClient;
+		this.utils = utils;
 	}
 
 	private async runJobMode(sc: SecurityContext, pipeline: Pipeline, newExecution: PipelineExecution, params: { expiration: number }): Promise<PipelineExecution> {
@@ -115,14 +115,84 @@ export class PipelineProcessorsService {
 		return newExecution;
 	}
 
-	private async triggerAggregationStateMachine(groupContextId: string, pipelineId: string, pipelineExecutionId: string, transformer: Transformer) {
-		this.log.trace(`PipelineProcessorService> triggerAggregationStateMachine> groupContextId: ${groupContextId}, pipelineId: ${pipelineId}, pipelineExecutionId: ${pipelineExecutionId}, transformer: ${transformer}`);
+	private buildLambdaRequestContext(groupId: string): LambdaRequestContext {
+		return {
+			authorizer: {
+				claims: {
+					email: '',
+					'cognito:groups': `${groupId}|||reader`,
+					groupContextId: groupId,
+				},
+			},
+		};
+	}
 
-		const aggregationTaskEvent: AggregationTaskEvent[] = [{
-			pipelineId,
-			transformer,
+	public async getMetricsToProcessSorted(metricNames: string[], groupContextId: string): Promise<MetricQueue> {
+		this.log.trace(`PipelineProcessorService> getMetricsToProcessSorted> metricNames: ${metricNames}, groupContextId: ${groupContextId}`);
+		let order = 1;
+		const metrics: MetricResource[] = [];
+
+		const requestContext = this.buildLambdaRequestContext(groupContextId);
+
+		for (const name of metricNames) {
+			metrics.push(await this.metricClient.getByName(name, undefined, requestContext));
+		}
+
+		const metricQueue: MetricQueue = [];
+		metricQueue.push(...metrics.map((k) => {
+			return {
+				order: order++,
+				metric: k.name
+			};
+		}));
+
+		let parentMetricNames = Object.values(metrics).flatMap((k) => k.outputMetrics);
+		while ((parentMetricNames?.length ?? 0) > 0) {
+			const parentMetrics: MetricResource[] = [];
+			for (const name of parentMetricNames) {
+				if (name === null || name === undefined) {
+					continue;
+				}
+				parentMetrics.push(await this.metricClient.getByName(name, undefined, requestContext));
+			}
+
+			for (const parentMetric of parentMetrics) {
+				if (metricQueue.find(o => o.metric === parentMetric.name) !== undefined) {
+					throw new Error(`Metric ${parentMetric.name} already referenced but discovered in Metric dependency path.`);
+				}
+				metricQueue.push({
+					order: order++,
+					metric: parentMetric.name
+				});
+			}
+
+			// let see if the parent metrics have any parents of their own
+			parentMetricNames = Object.values(parentMetrics)
+				?.filter((k) => k !== null)
+				?.flatMap((k) => k.outputMetrics);
+		}
+		this.log.trace(`PipelineProcessorService> getMetricsToProcessSorted> exit>  metricQueue: ${metricQueue}`);
+		return metricQueue;
+	}
+
+	private async triggerInlineStateMachine(groupContextId: string, pipelineId: string, executionId: string, transformer: Transformer) {
+		this.log.trace(`PipelineProcessorService> triggerInlineStateMachine> groupContextId: ${groupContextId}, pipelineId: ${pipelineId}, executionId: ${executionId}, transformer: ${transformer}`);
+
+		const metrics = Array.from(new Set(transformer.transforms.flatMap((t) => t.outputs.flatMap((o) => o.metrics ?? []))));
+		const metricQueue = await this.getMetricsToProcessSorted(metrics, groupContextId);
+
+		const outputs = transformer.transforms.flatMap((t) =>
+			t.outputs.filter(o => !o.includeAsUnique && t.index > 0)        // needs values only (no keys, and no timestamp)
+				.map((o) => ({ name: o.key, type: o.type })));
+		const requiresAggregation = transformer.transforms.some(o => o.outputs.some(o => o.aggregate));
+		const aggregationTaskEvent: ProcessedTaskEvent[] = [{
+			metricQueue,
 			groupContextId,
-			pipelineExecutionId,
+			pipelineId,
+			executionId,
+			requiresAggregation,
+			outputs,
+			sequence: 0,
 		}];
 
 		const executionCommandResponse = await this.sfnClient.send(
@@ -132,7 +202,7 @@ export class PipelineProcessorsService {
 			})
 		);
 
-		this.log.trace(`PipelineProcessorService> triggerAggregationStateMachine> exit> executionCommandResponse: ${executionCommandResponse}`);
+		this.log.trace(`PipelineProcessorService> triggerInlineStateMachine> exit> executionCommandResponse: ${executionCommandResponse}`);
 	}
 
 	private assembleCalculatorInlineResponse(response: CalculatorInlineTransformResponse, transforms: Transform[]): InlineExecutionOutputs {
@@ -204,7 +274,7 @@ export class PipelineProcessorsService {
 			// set the execution outputs from the calculator response
 			newExecution.inlineExecutionOutputs = this.assembleCalculatorInlineResponse(calculatorResponse, transformer.transforms);
 			// Trigger pipeline/metric aggregation state machine
-			await this.triggerAggregationStateMachine(groupContextId, pipelineId, executionId, transformer);
+			await this.triggerInlineStateMachine(groupContextId, pipelineId, executionId, transformer);
 		} catch (Exception) {
 			this.log.error(`PipelineProcessorService> runInlineMode> error> Exception: ${Exception}`);
 			newExecution.status = 'failed';
@@ -277,7 +347,7 @@ export class PipelineProcessorsService {
 		}
 
 		const pipelineExecution = await this.pipelineProcessorsRepository.get(pipelineId, id);
-		await this.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
+		this.utils.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
 
 		this.log.info(`PipelineProcessorsService> get> exit> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
 		return pipelineExecution;
@@ -292,7 +362,7 @@ export class PipelineProcessorsService {
 		}
 
 		const pipelineExecution = await this.pipelineProcessorsRepository.getById(executionId);
-		await this.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
+		this.utils.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
 
 		this.log.info(`PipelineProcessorsService> getById> exit> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
 		return pipelineExecution;
@@ -307,7 +377,7 @@ export class PipelineProcessorsService {
 
 		// check to see if pipeline execution exists (will throw NotFoundError if not)
 		const pipelineExecution = await this.pipelineProcessorsRepository.get(pipelineId, executionId);
-		await this.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
+		this.utils.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
 
 		const params: GetObjectCommand = new GetObjectCommand({
 			Bucket: this.bucketName,
@@ -378,7 +448,7 @@ export class PipelineProcessorsService {
 
 		const execution = await this.get(sc, pipelineId, id);
 
-		await this.validatePipelineExecutionAccess([execution.groupContextId], sc.groupId, id);
+		this.utils.validatePipelineExecutionAccess([execution.groupContextId], sc.groupId, id);
 
 		await this.pipelineProcessorsRepository.put({
 			...execution,

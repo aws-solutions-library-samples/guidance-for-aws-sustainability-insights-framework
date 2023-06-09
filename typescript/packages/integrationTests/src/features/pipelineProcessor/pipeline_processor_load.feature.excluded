@@ -1,0 +1,300 @@
+@setup_endToEnd
+Feature: Pipeline Processors API - Load Testing
+
+	Scenario: Setup groups
+		Given group /pipelineProcessorLoadTest exists
+		And group /pipelineProcessorLoadTest/a exists
+		And group /pipelineProcessorLoadTest/a/d exists
+		And group /pipelineProcessorLoadTest/b exists
+		And group /pipelineProcessorLoadTest/b/e exists
+		And group /pipelineProcessorLoadTest/c exists
+		And group /pipelineProcessorLoadTest/c/f exists
+
+		Given group / has user metrics_aggregation_admin@amazon.com with role admin and password p@ssword1
+		And group /pipelineProcessorLoadTest has user metrics_aggregation_admin@amazon.com granted access with role admin
+		And group /pipelineProcessorLoadTest/a has user metrics_aggregation_admin@amazon.com granted access with role admin
+		And group /pipelineProcessorLoadTest/a/d has user metrics_aggregation_admin@amazon.com granted access with role admin
+		And group /pipelineProcessorLoadTest/b has user metrics_aggregation_admin@amazon.com granted access with role admin
+		And group /pipelineProcessorLoadTest/b/e has user metrics_aggregation_admin@amazon.com granted access with role admin
+		And group /pipelineProcessorLoadTest/c has user metrics_aggregation_admin@amazon.com granted access with role admin
+		And group /pipelineProcessorLoadTest/c/f has user metrics_aggregation_admin@amazon.com granted access with role admin
+
+	Scenario: Create Metrics on group /pipelineProcessorLoadTest
+		Given I'm using the pipelines api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /
+		And I set body to {"name":"loadTest:ghg:co2e","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_co2e_id in global scope
+		# Top Scope
+		And I set body to {"name":"loadTest:ghg:scope1","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"},"outputMetrics":["loadTest:ghg:co2e"]}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope1_id in global scope
+		And I set body to {"name":"loadTest:ghg:scope2","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"},"outputMetrics":[]}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope2_id in global scope
+		And I set body to {"name":"loadTest:ghg:scope3","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"},"outputMetrics":[]}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope3_id in global scope
+		# Scope 1
+		Given I set body to {"name":"loadTest:ghg:scope1:mobile","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope1_mobile_id in global scope
+		Given I set body to {"name":"loadTest:ghg:scope1:static","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope2"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope1_static_id in global scope
+		Given I set body to {"name":"loadTest:ghg:scope1:random","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope3"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope1_random_id in global scope
+		# Scope 2
+		Given I set body to {"name":"loadTest:ghg:scope2:mobile","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope2_mobile_id in global scope
+		Given I set body to {"name":"loadTest:ghg:scope2:static","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope2"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope2_static_id in global scope
+		Given I set body to {"name":"loadTest:ghg:scope2:random","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope3"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope2_random_id in global scope
+		# Scope 3
+		Given I set body to {"name":"loadTest:ghg:scope3:mobile","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope3_mobile_id in global scope
+		Given I set body to {"name":"loadTest:ghg:scope3:static","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope2"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope3_static_id in global scope
+		Given I set body to {"name":"loadTest:ghg:scope3:random","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["loadTest:ghg:scope3"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_scope3_random_id in global scope
+
+ 	# Pipeline in /a/d
+	Scenario: Create simple pipeline pipeline1 that output to metric ghg:scope1:mobile
+		Given I'm using the pipelines api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/a/d
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_a_d_mobile_static","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:mobile"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:static"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_a_d_1 in global scope
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_a_d_mobile_random","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:mobile"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:random"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_a_d_2 in global scope
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_a_d_static_random","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:random"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:static"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_a_d_3 in global scope
+
+
+	# Pipeline in /b/e
+	Scenario: Create simple pipeline pipeline1 that output to metric ghg:scope1:mobile
+		Given I'm using the pipelines api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/b/e
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_b_e_mobile_static","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:mobile"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:static"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_b_e_1 in global scope
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_b_e_mobile_random","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:mobile"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:random"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_b_e_2 in global scope
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_b_e_static_random","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:random"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:static"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_b_e_3 in global scope
+
+   	# Pipeline in /c/f
+	Scenario: Create simple pipeline pipeline1 that output to metric ghg:scope1:mobile
+		Given I'm using the pipelines api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/c/f
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_c_f_mobile_static","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:mobile"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:static"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_c_f_1 in global scope
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_c_f_mobile_random","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:mobile"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:random"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_c_f_2 in global scope
+		And I set body to {"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"E2E"},"name":"pipeline_c_f_static_random","description":"E2E test pipeline","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:date,'yyyy/MM/dd HH:mm:ss',timezone='UTC')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":zipcode","outputs":[{"description":"Zipcode where electricity consumption occurred","index":0,"key":"zipcode","label":"Zip","type":"string"}]},{"index":2,"formula":":kwh*1","outputs":[{"description":"input * 1","index":0,"key":"kwh_mobile","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:random"]}]},{"index":3,"formula":":kwh*10","outputs":[{"description":"input * 10","index":0,"key":"kwh_static","label":"kWh","type":"number","metrics":["loadTest:ghg:scope1:static"]}]}],"parameters":[{"index":0,"key":"date","type":"string"},{"index":1,"key":"zipcode","label":"Zipcode","description":"Zipcode of electricity consumption","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity generation in the month","type":"number"}]}}
+		When I POST to /pipelines
+		And I store the value of body path $.id as pipeline_c_f_3 in global scope
+
+	Scenario: Upload Input File for Pipeline Processing for /pipelineProcessorLoadTest/a/d
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/a/d
+		And I set body to { "expiration" : 300}
+		When I POST to /pipelines/`pipeline_a_d_1`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_a_d_1_url in global scope
+		And I store the value of body path $.id as pipeline_a_d_1_execution in global scope
+		When I POST to /pipelines/`pipeline_a_d_2`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_a_d_2_url in global scope
+		And I store the value of body path $.id as pipeline_a_d_2_execution in global scope
+		When I POST to /pipelines/`pipeline_a_d_3`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_a_d_3_url in global scope
+		And I store the value of body path $.id as pipeline_a_d_3_execution in global scope
+
+	Scenario: Upload Input File for Pipeline Processing for /pipelineProcessorLoadTest/b/e
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/b/e
+		And I set body to { "expiration" : 300}
+		When I POST to /pipelines/`pipeline_b_e_1`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_b_e_1_url in global scope
+		And I store the value of body path $.id as pipeline_b_e_1_execution in global scope
+		When I POST to /pipelines/`pipeline_b_e_2`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_b_e_2_url in global scope
+		And I store the value of body path $.id as pipeline_b_e_2_execution in global scope
+		When I POST to /pipelines/`pipeline_b_e_3`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_b_e_3_url in global scope
+		And I store the value of body path $.id as pipeline_b_e_3_execution in global scope
+
+
+	Scenario: Upload Input File for Pipeline Processing for /pipelineProcessorLoadTest/c/f
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/c/f
+		And I set body to { "expiration" : 300}
+		When I POST to /pipelines/`pipeline_c_f_1`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_c_f_1_url in global scope
+		And I store the value of body path $.id as pipeline_c_f_1_execution in global scope
+		When I POST to /pipelines/`pipeline_c_f_2`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_c_f_2_url in global scope
+		And I store the value of body path $.id as pipeline_c_f_2_execution in global scope
+		When I POST to /pipelines/`pipeline_c_f_3`/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as pipeline_c_f_3_url in global scope
+		And I store the value of body path $.id as pipeline_c_f_3_execution in global scope
+
+	Scenario: Upload file concurrently
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		When I upload pipeline execution concurrently using this urls
+			| url                  | file                                     |
+			| `pipeline_a_d_1_url` | /Users/deanhart/git/sif-mock-data/simple_load_test_0_350000.csv |
+			| `pipeline_a_d_2_url` | /Users/deanhart/git/sif-mock-data/simple_load_test_1_350000.csv |
+			| `pipeline_a_d_3_url` | /Users/deanhart/git/sif-mock-data/simple_load_test_2_350000.csv |
+			# | `pipeline_b_e_1_url` | /Users/deanhart/Downloads/file4_large.csv |
+			# | `pipeline_b_e_2_url` | /Users/deanhart/Downloads/file5_large.csv |
+			# | `pipeline_b_e_3_url` | /Users/deanhart/Downloads/file6_large.csv |
+			# | `pipeline_c_f_1_url` | /Users/deanhart/Downloads/file7_large.csv |
+			# | `pipeline_c_f_2_url` | /Users/deanhart/Downloads/file8_large.csv |
+			# | `pipeline_c_f_3_url` | /Users/deanhart/Downloads/file9_large.csv |
+		Then I wait until pipeline executions are complete with 900s timeout
+			| groupId                        | pipelineId       | executionId                |
+			| /pipelineProcessorLoadTest/a/d | `pipeline_a_d_1` | `pipeline_a_d_1_execution` |
+			| /pipelineProcessorLoadTest/a/d | `pipeline_a_d_2` | `pipeline_a_d_2_execution` |
+			| /pipelineProcessorLoadTest/a/d | `pipeline_a_d_3` | `pipeline_a_d_3_execution` |
+			# | /pipelineProcessorLoadTest/b/e | `pipeline_b_e_1` | `pipeline_b_e_1_execution` |
+			# | /pipelineProcessorLoadTest/b/e | `pipeline_b_e_2` | `pipeline_b_e_2_execution` |
+			# | /pipelineProcessorLoadTest/b/e | `pipeline_b_e_3` | `pipeline_b_e_3_execution` |
+			# | /pipelineProcessorLoadTest/c/f | `pipeline_c_f_1` | `pipeline_c_f_1_execution` |
+			# | /pipelineProcessorLoadTest/c/f | `pipeline_c_f_2` | `pipeline_c_f_2_execution` |
+			# | /pipelineProcessorLoadTest/c/f | `pipeline_c_f_3` | `pipeline_c_f_3_execution` |
+
+	Scenario: Teardown - Pipeline in /pipelineProcessorLoadTest/a/d
+		When I'm using the pipelines api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/a/d
+		When I remove header Content-Type
+		When I DELETE /pipelines/`pipeline_a_d_1`
+		Then response code should be 204
+		When I DELETE /pipelines/`pipeline_a_d_2`
+		Then response code should be 204
+		When I DELETE /pipelines/`pipeline_a_d_3`
+		Then response code should be 204
+
+	Scenario: Teardown - Pipeline in /pipelineProcessorLoadTest/b/e
+		When I'm using the pipelines api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/b/e
+		When I remove header Content-Type
+		When I DELETE /pipelines/`pipeline_b_e_1`
+		Then response code should be 204
+		When I DELETE /pipelines/`pipeline_b_e_2`
+		Then response code should be 204
+		When I DELETE /pipelines/`pipeline_b_e_3`
+		Then response code should be 204
+
+
+	Scenario: Teardown - Pipeline in /pipelineProcessorLoadTest/c/f
+		When I'm using the pipelines api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorLoadTest/c/f
+		When I remove header Content-Type
+		When I DELETE /pipelines/`pipeline_c_f_1`
+		Then response code should be 204
+		When I DELETE /pipelines/`pipeline_c_f_2`
+		Then response code should be 204
+		When I DELETE /pipelines/`pipeline_c_f_3`
+		Then response code should be 204
+
+	Scenario: Teardown - Metrics
+		When I'm using the pipelines api
+		And I authenticate using email metrics_aggregation_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /
+		When I remove header Content-Type
+		# Scope 1
+		When I DELETE /metrics/`metric_scope1_static_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_scope1_random_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_scope1_mobile_id`
+		Then response code should be 204
+		# Scope 2
+		When I DELETE /metrics/`metric_scope2_static_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_scope2_random_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_scope2_mobile_id`
+		Then response code should be 204
+		# Scope 3
+		When I DELETE /metrics/`metric_scope3_static_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_scope3_random_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_scope3_mobile_id`
+		Then response code should be 204
+		# Top metric
+		When I DELETE /metrics/`metric_scope1_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_scope3_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_scope2_id`
+		Then response code should be 204
+		When I DELETE /metrics/`metric_co2e_id`
+		Then response code should be 204
+
+	Scenario: Teardown: Revoke users
+		Given group / has user metrics_aggregation_admin@amazon.com revoked
+		And group /pipelineProcessorLoadTest has user metrics_aggregation_admin@amazon.com revoked
+		And group /pipelineProcessorLoadTest/a has user metrics_aggregation_admin@amazon.com revoked
+		And group /pipelineProcessorLoadTest/b has user metrics_aggregation_admin@amazon.com revoked
+		And group /pipelineProcessorLoadTest/c has user metrics_aggregation_admin@amazon.com revoked
+		And group /pipelineProcessorLoadTest/a/d has user metrics_aggregation_admin@amazon.com revoked
+		And group /pipelineProcessorLoadTest/b/e has user metrics_aggregation_admin@amazon.com revoked
+		And group /pipelineProcessorLoadTest/c/f has user metrics_aggregation_admin@amazon.com revoked
+
+	Scenario: Teardown: Delete groups
+		And group /pipelineProcessorLoadTest/a/d has been removed
+		And group /pipelineProcessorLoadTest/b/e has been removed
+		And group /pipelineProcessorLoadTest/c/f has been removed
+		And group /pipelineProcessorLoadTest/a has been removed
+		And group /pipelineProcessorLoadTest/b has been removed
+		And group /pipelineProcessorLoadTest/c has been removed
+		And group /pipelineProcessorLoadTest has been removed

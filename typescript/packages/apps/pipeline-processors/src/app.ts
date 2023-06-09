@@ -30,6 +30,7 @@ import listActivitiesRoute from './api/activities/list.handler.js';
 import { metricResource, metricsList } from './api/metrics/schemas.js';
 import listMetricsRoute from './api/metrics/list.handler.js';
 import createExecution from './api/executions/createExecution.js';
+import getPipelineAuditExecutionExportRoute from './api/executions/getAuditExecutionExport.handler.js';
 import cors from '@fastify/cors';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
@@ -101,6 +102,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	app.addSchema(metricResource);
 	app.addSchema(metricsList);
 	await app.register(listMetricsRoute);
+	await app.register(getPipelineAuditExecutionExportRoute)
 
 
 	return app as unknown as FastifyInstance;

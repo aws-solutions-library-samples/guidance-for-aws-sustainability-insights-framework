@@ -12,12 +12,11 @@
  */
 
 import type { BaseLogger } from 'pino';
-
 import type { CalculatorClient, CalculatorRequest, CalculatorS3TransformResponse } from '@sif/clients';
-import { validateNotEmpty, validateDefined } from '@sif/validators';
+import { validateDefined, validateNotEmpty } from '@sif/validators';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { CalculationChunk, CalculationTaskEvent, CalculationContext, ResultProcessorTaskEvent, S3Location, AggregationTaskEvent } from './model.js';
 import type { GetSecurityContext } from '../../plugins/module.awilix.js';
+import type { CalculationChunk, CalculationContext, CalculationTaskEvent, CalculationTaskResult, S3Location } from './model.js';
 
 export class CalculationTask {
 	private readonly log: BaseLogger;
@@ -46,7 +45,7 @@ export class CalculationTask {
 		validateDefined(context, 'context');
 		validateNotEmpty(context.groupContextId, 'securityContextId');
 		validateNotEmpty(context.pipelineId, 'pipelineId');
-		validateNotEmpty(context.pipelineExecutionId, 'pipelineExecutionId');
+		validateNotEmpty(context.executionId, 'executionId');
 		validateDefined(context.transformer?.parameters, 'transformer.parameters');
 		validateDefined(context.transformer?.transforms, 'transformer.transforms');
 		validateDefined(context.pipelineCreatedBy, 'pipelineCreatedBy');
@@ -54,7 +53,7 @@ export class CalculationTask {
 		const response: CalculatorRequest = {
 			groupContextId: context.groupContextId,
 			pipelineId: context.pipelineId,
-			executionId: context.pipelineExecutionId,
+			executionId: context.executionId,
 			parameters: context.transformer.parameters,
 			transforms: context.transformer.transforms,
 			actionType: context.actionType,
@@ -72,11 +71,31 @@ export class CalculationTask {
 		return response;
 	}
 
-	public async process(event: CalculationTaskEvent): Promise<ResultProcessorTaskEvent & AggregationTaskEvent> {
+	public async process(event: CalculationTaskEvent): Promise<CalculationTaskResult> {
 		this.log.info(`CalculationTask > process > in > event: ${JSON.stringify(event)}`);
 
 		const { context, source, chunk } = event;
-		const { pipelineId, pipelineExecutionId, groupContextId, transformer } = context;
+		const { pipelineId, executionId: executionId, groupContextId, transformer } = context;
+
+		const result: CalculationTaskResult = { sequence: chunk.sequence };
+		if (result.sequence === 0) {
+
+			const metrics = Array.from(new Set(transformer.transforms.flatMap((t) => t.outputs.flatMap((o) => o.metrics ?? []))));
+			const metricQueue = await this.pipelineProcessorsService.getMetricsToProcessSorted(metrics, groupContextId);
+
+			const outputs = transformer.transforms.flatMap((t) =>
+				t.outputs.filter(o => !o.includeAsUnique && t.index > 0)        // needs values only (no keys, and no timestamp)
+					.map((o) => ({ name: o.key, type: o.type })));
+			const requiresAggregation = transformer.transforms.some((o) => o.outputs.some((o) => o.aggregate));
+			Object.assign(result, {
+				metricQueue,
+				groupContextId,
+				pipelineId,
+				executionId,
+				outputs,
+				requiresAggregation,
+			});
+		}
 
 		try {
 			// Extract the required parameters for Calculation Module
@@ -85,24 +104,20 @@ export class CalculationTask {
 			// Perform calculation
 			const r: CalculatorS3TransformResponse = (await this.calculatorClient.process(calculatorRequest)) as CalculatorS3TransformResponse;
 
-			let response: ResultProcessorTaskEvent & AggregationTaskEvent = {
-				pipelineId,
-				pipelineExecutionId,
-				sequence: chunk.sequence,
-				output: { ...r },
-				groupContextId,
-				transformer,
-			};
-			this.log.info(`CalculationTask > process > exit: ${JSON.stringify(response)}`);
-			return response;
+			if (result.sequence === 0) {
+				Object.assign(result, { errorLocation: r.errorLocation });
+			}
 		} catch (error) {
 			this.log.error(`CalculationTask > process > error : ${JSON.stringify(error)}`);
-			const securityContext = await this.getSecurityContext(pipelineExecutionId, 'contributor', groupContextId);
-			await this.pipelineProcessorsService.update(securityContext, pipelineId, pipelineExecutionId, {
+			const securityContext = await this.getSecurityContext(executionId, 'contributor', groupContextId);
+			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, {
 				status: 'failed',
 				statusMessage: error.message,
 			});
 			throw error;
 		}
+
+		this.log.info(`CalculationTask > process > exit: ${JSON.stringify(result)}`);
+		return result;
 	}
 }

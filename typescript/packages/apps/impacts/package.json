@@ -1,7 +1,7 @@
 {
 	"name": "@sif/impacts",
 	"description": "SIF: Impacts management.",
-	"version": "4.2.10",
+	"version": "4.4.0",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",
 	"scripts": {

@@ -1,6 +1,76 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Fri, 09 Jun 2023 20:40:06 GMT and should not be manually modified.
+
+## 7.14.0
+Fri, 09 Jun 2023 20:40:06 GMT
+
+### Minor changes
+
+- updated table schemas and migration script
+
+### Patches
+
+- added aws s3 postgres extension
+
+## 7.13.0
+Thu, 08 Jun 2023 12:58:17 GMT
+
+### Minor changes
+
+- updated table schemas and migration script
+
+## 7.12.0
+Thu, 08 Jun 2023 01:01:56 GMT
+
+### Minor changes
+
+- add CfnWaitCondition to calculator construct
+
+## 7.11.0
+Mon, 29 May 2023 05:49:44 GMT
+
+### Minor changes
+
+- integrate semaphore locking to pipeline processors
+
+## 7.10.1
+Thu, 25 May 2023 14:48:59 GMT
+
+_Version update only_
+
+## 7.10.0
+Mon, 22 May 2023 22:02:58 GMT
+
+### Minor changes
+
+- increase memory size and also add migration script to create metric related table(s)
+
+## 7.9.0
+Mon, 22 May 2023 18:52:26 GMT
+
+### Minor changes
+
+- increase memory size and also add migration script to create metric related table(s)
+
+## 7.8.3
+Fri, 05 May 2023 04:38:08 GMT
+
+### Patches
+
+- added GET to s3 shared bucket cors configuration
+
+## 7.8.2
+Wed, 03 May 2023 23:00:08 GMT
+
+### Patches
+
+- updated s3 cors config
+
+## 7.8.1
+Wed, 03 May 2023 16:57:27 GMT
+
+_Version update only_
 
 ## 7.8.0
 Mon, 01 May 2023 00:31:09 GMT

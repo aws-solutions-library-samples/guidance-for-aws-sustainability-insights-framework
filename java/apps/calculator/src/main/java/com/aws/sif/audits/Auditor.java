@@ -14,72 +14,64 @@
 package com.aws.sif.audits;
 
 import com.aws.sif.audits.exceptions.AuditDeliveryStreamException;
-import com.aws.sif.audits.exceptions.RecordCouldNotBeSentException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.Validate;
 
 @Slf4j
 public class Auditor {
-    private final S3Writer writer;
+	private final SQSWriter writer;
 
-    /** Remembers the last Async thrown exception */
-    private transient volatile Throwable lastThrownException;
+	/**
+	 * Remembers the last Async thrown exception
+	 */
+	private transient volatile Throwable lastThrownException;
 
-    /** Specify whether stop and fail in case of an error */
-    private boolean failOnError;
+	/**
+	 * Specify whether stop and fail in case of an error
+	 */
+	private boolean failOnError;
 
-    public Auditor(S3Writer writer) {
-        this.writer = writer;
-    }
+	public Auditor(SQSWriter writer) {
+		this.writer = writer;
+	}
 
-    public void log(AuditMessage message) throws Exception {
-        log.debug("log> in> message:{}", message);
+	public void log(AuditMessage message) throws Exception {
+		log.debug("log> in> message:{}", message);
 
-        Validate.notNull(message);
-        Validate.validState((writer != null && !writer.isDestroyed()), "S3 writer has been destroyed");
+		Validate.notNull(message);
+		Validate.validState((writer != null && !writer.isDestroyed()), "S3 writer has been destroyed");
 
-        propagateAsyncExceptions();
+		propagateAsyncExceptions();
 
-        writer
-                .addAuditMessage(message)
-                .handleAsync((record, throwable) -> {
-                    if (throwable != null) {
-                        final String msg = "An error has occurred trying to write a record.";
-                        if (failOnError) {
-                            lastThrownException = throwable;
-                        } else {
-                            log.warn("log> " + msg, throwable);
-                        }
-                    }
+		writer.addAuditMessage(message).handleAsync((record, throwable) -> {
+			if (throwable != null) {
+				final String msg = "An error has occurred trying to write a record.";
+				if (failOnError) {
+					lastThrownException = throwable;
+				} else {
+					log.warn("log> " + msg, throwable);
+				}
+			}
 
-                    if (record != null && !record.isSuccessful()) {
-                        final String msg = "Record could not be successfully sent.";
-                        if (failOnError && lastThrownException == null) {
-                            lastThrownException = new RecordCouldNotBeSentException(msg, record.getException());
-                        } else {
-                            log.warn("log> " + msg, record.getException());
-                        }
-                    }
+			return null;
+		});
+	}
 
-                    return null;
-                });
-    }
+	public void flushSync() {
+		this.writer.flushSync();
+	}
 
-    public void flushSync() {
-        this.writer.flushSync();
-    }
+	private void propagateAsyncExceptions() throws Exception {
+		if (lastThrownException == null) {
+			return;
+		}
 
-    private void propagateAsyncExceptions() throws Exception {
-        if (lastThrownException == null) {
-            return;
-        }
-
-        final String msg = "An exception has been thrown while trying to process a record";
-        if (failOnError) {
-            throw new AuditDeliveryStreamException(msg, lastThrownException);
-        } else {
-            log.warn("propagateAsyncExceptions> " + msg, lastThrownException);
-            lastThrownException = null;
-        }
-    }
+		final String msg = "An exception has been thrown while trying to process a record";
+		if (failOnError) {
+			throw new AuditDeliveryStreamException(msg, lastThrownException);
+		} else {
+			log.warn("propagateAsyncExceptions> " + msg, lastThrownException);
+			lastThrownException = null;
+		}
+	}
 }

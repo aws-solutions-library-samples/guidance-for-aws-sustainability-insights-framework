@@ -1,6 +1,6 @@
 {
 	"name": "@sif/deployment-helper",
-	"version": "0.3.1",
+	"version": "0.4.0",
 	"description": "Custom resources library to automate resource creation",
 	"author": "William Sia <willsia@amazon.com>",
 	"exports": {
@@ -23,6 +23,7 @@
 		"pino-pretty": "9.1.0",
 		"awilix": "7.0.3",
 		"@aws-sdk/client-s3": "3.229.0",
+		"@aws-sdk/client-ecs": "3.229.0",
 		"@aws-sdk/rds-signer": "3.229.0",
 		"@aws-sdk/client-rds": "3.229.0",
 		"@aws-sdk/client-iam": "3.229.0",

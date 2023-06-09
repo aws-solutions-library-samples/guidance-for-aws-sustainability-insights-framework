@@ -186,6 +186,12 @@
               {
                 "type": "string",
                 "enum": [
+                  "calculating_metrics"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
                   "success"
                 ]
               },
@@ -1582,8 +1588,8 @@
                     "value": {
                       "metrics": [
                         {
-                          "date": "2021-12-31T16:00:00.000Z",
-                          "metricId": "01GZ3M39CZXVQGHV46H8A9Z9SV",
+                          "date": "2022-01-01T07:00:00.000Z",
+                          "metricId": "01H0K4G02Q889K1BWNRHEP2KQ4",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 1,
@@ -1594,8 +1600,8 @@
                           "version": "latest"
                         },
                         {
-                          "date": "2022-01-31T16:00:00.000Z",
-                          "metricId": "01GZ3M39CZXVQGHV46H8A9Z9SV",
+                          "date": "2022-02-01T07:00:00.000Z",
+                          "metricId": "01H0K4G02Q889K1BWNRHEP2KQ4",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 2,
@@ -1606,8 +1612,8 @@
                           "version": "latest"
                         },
                         {
-                          "date": "2022-02-28T16:00:00.000Z",
-                          "metricId": "01GZ3M39CZXVQGHV46H8A9Z9SV",
+                          "date": "2022-03-01T07:00:00.000Z",
+                          "metricId": "01H0K4G02Q889K1BWNRHEP2KQ4",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 3,
@@ -1620,6 +1626,147 @@
                       ]
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pipelines/{pipelineId}/executions/{executionId}/generateAuditExportUrl": {
+      "post": {
+        "tags": [
+          "Audits"
+        ],
+        "description": "Generate a url for audit aggregated report associated with a specific pipeline execution.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "pipelineId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "executionId",
+            "required": true,
+            "description": "Identifier of a execution of the pipeline."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/signedUrl_response"
+                },
+                "examples": {
+                  "Pipeline execution export available for download": {
+                    "value": {
+                      "url": "s3-signed-url..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
                 }
               }
             }

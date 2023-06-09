@@ -11,19 +11,19 @@
  *  and limitations under the License.
  */
 
-import { buildLightApp } from '../../app.light';
-import type { AggregationTaskEvent } from '../tasks/model.js';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
-import type { MetricAggregationTaskHandler } from '../tasks/model.js';
+import { buildLightApp } from '../../app.light';
+import type { PipelineAggregationTaskHandler, ProcessedTaskEvent } from '../tasks/model.js';
 import type { PipelineAggregationTaskService } from '../tasks/pipelineAggregationTask.service.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
-export const handler: MetricAggregationTaskHandler = async (event: AggregationTaskEvent[], _context, _callback) => {
+export const handler: PipelineAggregationTaskHandler = async (event, _context, _callback): Promise<ProcessedTaskEvent> => {
 	app.log.debug(`PipelineAggregationHandler> handler> event: ${JSON.stringify(event)}`);
 	const task = di.resolve<PipelineAggregationTaskService>('pipelineAggregationTaskService');
 	await task.process(event?.[0]);
 	app.log.debug(`PipelineAggregationHandler> handler> exit:`);
+	return event?.[0];
 };

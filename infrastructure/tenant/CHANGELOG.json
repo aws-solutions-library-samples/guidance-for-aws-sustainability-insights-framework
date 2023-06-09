@@ -2,6 +2,147 @@
   "name": "@sif/infrastructure-tenant",
   "entries": [
     {
+      "version": "7.14.0",
+      "tag": "@sif/infrastructure-tenant_v7.14.0",
+      "date": "Fri, 09 Jun 2023 20:40:06 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "updated table schemas and migration script"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "added aws s3 postgres extension"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.13.0",
+      "tag": "@sif/infrastructure-tenant_v7.13.0",
+      "date": "Thu, 08 Jun 2023 12:58:17 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "updated table schemas and migration script"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.12.0",
+      "tag": "@sif/infrastructure-tenant_v7.12.0",
+      "date": "Thu, 08 Jun 2023 01:01:56 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add CfnWaitCondition to calculator construct"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.11.0",
+      "tag": "@sif/infrastructure-tenant_v7.11.0",
+      "date": "Mon, 29 May 2023 05:49:44 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "integrate semaphore locking to pipeline processors"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.10.1",
+      "tag": "@sif/infrastructure-tenant_v7.10.1",
+      "date": "Thu, 25 May 2023 14:48:59 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/access-management\" to `4.0.21`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.10.0",
+      "tag": "@sif/infrastructure-tenant_v7.10.0",
+      "date": "Mon, 22 May 2023 22:02:58 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "increase memory size and also add migration script to create metric related table(s)"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/access-management\" to `4.0.20`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.7.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.9.0",
+      "tag": "@sif/infrastructure-tenant_v7.9.0",
+      "date": "Mon, 22 May 2023 18:52:26 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "increase memory size and also add migration script to create metric related table(s)"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/access-management\" to `4.0.19`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.6.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.8.3",
+      "tag": "@sif/infrastructure-tenant_v7.8.3",
+      "date": "Fri, 05 May 2023 04:38:08 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "added GET to s3 shared bucket cors configuration"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.8.2",
+      "tag": "@sif/infrastructure-tenant_v7.8.2",
+      "date": "Wed, 03 May 2023 23:00:08 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "updated s3 cors config"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.8.1",
+      "tag": "@sif/infrastructure-tenant_v7.8.1",
+      "date": "Wed, 03 May 2023 16:57:27 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/access-management\" to `4.0.18`"
+          }
+        ]
+      }
+    },
+    {
       "version": "7.8.0",
       "tag": "@sif/infrastructure-tenant_v7.8.0",
       "date": "Mon, 01 May 2023 00:31:09 GMT",

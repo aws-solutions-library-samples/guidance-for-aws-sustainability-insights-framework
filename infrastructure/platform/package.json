@@ -1,6 +1,6 @@
 {
 	"name": "@sif/infrastructure-platform",
-	"version": "2.2.0",
+	"version": "2.4.1",
 	"description": "SIF: Common Platform Infrastructure.",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",
@@ -17,7 +17,9 @@
 		"source-map-support": "0.5.21",
 		"pino": "8.6.1",
 		"pino-pretty": "9.1.0",
-		"cdk-nag": "2.21.80"
+		"cdk-nag": "2.21.80",
+		"@cloudcomponents/cdk-dynamodb-seeder": "2.1.0",
+		"@sif/dynamodb-utils": "workspace:*"
 	},
 	"devDependencies": {
 		"@esbuild-plugins/node-globals-polyfill": "0.1.1",
@@ -27,7 +29,7 @@
 		"@types/prettier": "2.6.0",
 		"@typescript-eslint/eslint-plugin": "5.32.0",
 		"@typescript-eslint/parser": "5.32.0",
-		"aws-cdk": "2.76.0",
+		"aws-cdk": "2.78.0",
 		"esbuild": "0.15.1",
 		"eslint": "8.24.0",
 		"pnpm": "7.17.1",

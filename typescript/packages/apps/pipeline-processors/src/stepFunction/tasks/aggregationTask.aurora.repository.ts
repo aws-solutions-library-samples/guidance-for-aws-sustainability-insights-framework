@@ -99,15 +99,20 @@ GROUP BY date(a.date)`;
 		validateNotEmpty(executionId, 'executionId');
 
 		// min and max are based on the latest pipeline execution based on the max(createdAt) condition
-
+		// we need to set the "to" to end of day to cover all activities for aggregation
 		const query = `
-SELECT min("date") as "from" , date_trunc('day', date(max(a.date))) as "to"
+SELECT date_trunc('day', date(min(a.date)))::timestamp with time zone as "from",
+       (date_trunc('day', max(a.date)) + interval '1 day' - interval '1 second')::timestamp with time zone as "to"
 FROM "Activity" a
-WHERE  a."type" = 'raw'
- AND (	"activityId" IN (	SELECT distinct "activityId" FROM "ActivityStringValue" WHERE "executionId" = '${executionId}')
-	OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityNumberValue" WHERE "executionId" = '${executionId}')
-	OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityDateTimeValue" WHERE "executionId" = '${executionId}')
-	OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityBooleanValue" WHERE "executionId" = '${executionId}'))`;
+         LEFT JOIN "ActivityNumberValue" n
+                   on a."activityId" = n."activityId" and n."executionId" = '${executionId}'
+         LEFT JOIN "ActivityBooleanValue" b
+                   on a."activityId" = b."activityId" and b."executionId" = '${executionId}'
+         LEFT JOIN "ActivityStringValue" s
+                   on a."activityId" = s."activityId" and s."executionId" = '${executionId}'
+         LEFT JOIN "ActivityDateTimeValue" d
+                   on a."activityId" = d."activityId" and d."executionId" = '${executionId}'
+WHERE a."type" = 'raw';`;
 
 		this.log.trace(`AggregationTaskAuroraRepository> getAffectedTimeRange> query:${query}`);
 
@@ -130,7 +135,7 @@ WHERE  a."type" = 'raw'
 			throw new Error(`No existing data found for pipeline '${pipelineId}', execution '${executionId}.`);
 		}
 
-		const response: AffectedTimeRange = { from: result.rows[0].from, to: result.rows[0].to };
+		const response: AffectedTimeRange = { from: dayjs.utc(result.rows[0].from).toDate(), to: dayjs.utc(result.rows[0].to).toDate() };
 
 		this.log.info(`AggregationTaskAuroraRepository> getAffectedTimeRange> exit: ${JSON.stringify(response)}`);
 		return response;

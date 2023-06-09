@@ -1,6 +1,34 @@
 # Change Log - @sif/access-management
 
-This log was last generated on Thu, 20 Apr 2023 21:57:48 GMT and should not be manually modified.
+This log was last generated on Thu, 25 May 2023 14:48:59 GMT and should not be manually modified.
+
+## 4.0.21
+Thu, 25 May 2023 14:48:59 GMT
+
+### Patches
+
+- Fix Patch User, Tags
+
+## 4.0.20
+Mon, 22 May 2023 22:02:58 GMT
+
+### Patches
+
+- minor fixes
+
+## 4.0.19
+Mon, 22 May 2023 18:52:26 GMT
+
+### Patches
+
+- minor fixes
+
+## 4.0.18
+Wed, 03 May 2023 16:57:27 GMT
+
+### Patches
+
+- fixed issue with list group by tags
 
 ## 4.0.17
 Thu, 20 Apr 2023 21:57:48 GMT

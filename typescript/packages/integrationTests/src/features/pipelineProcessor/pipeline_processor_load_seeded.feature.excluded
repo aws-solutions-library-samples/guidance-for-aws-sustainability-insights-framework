@@ -1,0 +1,37 @@
+@setup_endToEnd
+Feature: Pipeline Processors API - Load Testing (using seeded data, therefore ids are hardcoded!)
+
+	Scenario: Get upload urls for new pipeline executions
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email deanhart@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /us/city1
+		And I set body to { "expiration" : 300}
+		When I POST to /pipelines/01h01e27svjnreaxr2p69hb1fw/executions
+		And response body should contain inputUploadUrl
+		And I store the value of body path $.inputUploadUrl as upload_url_1 in global scope
+		And I store the value of body path $.id as execution_id_1 in global scope
+		 When I POST to /pipelines/01h01e27svjnreaxr2p69hb1fw/executions
+		 And response body should contain inputUploadUrl
+		 And I store the value of body path $.inputUploadUrl as upload_url_2 in global scope
+		 And I store the value of body path $.id as execution_id_2 in global scope
+		 When I POST to /pipelines/01h01e27svjnreaxr2p69hb1fw/executions
+		 And response body should contain inputUploadUrl
+		 And I store the value of body path $.inputUploadUrl as upload_url_3 in global scope
+		 And I store the value of body path $.id as execution_id_3 in global scope
+
+	Scenario: Upload file concurrently
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email deanhart@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /us/city1
+		When I upload pipeline execution concurrently using this urls
+			| url            | file                                                                  |
+			| `upload_url_1` | /Users/deanhart/git/sif-mock-data/large_load_test_0_200.csv |
+			# | `upload_url_1` | /Users/deanhart/git/sif-mock-data/large_load_test_0_350000.csv |
+			# | `upload_url_2` | /Users/deanhart/git/sif-mock-data/large_load_test_1_350000.csv |
+			# | `upload_url_3` | /Users/deanhart/git/sif-mock-data/large_load_test_2_350000.csv |
+#		Then I wait until pipeline executions are complete with 1200s timeout
+#			| groupId   | pipelineId       			| executionId                |
+#			| /us/city1 | 01h01e27svjnreaxr2p69hb1fw | `execution_id_1` |
+#			| /us/city1 | 01h01e27svjnreaxr2p69hb1fw | `execution_id_2` |
+#			| /us/city1 | 01h01e27svjnreaxr2p69hb1fw | `execution_id_3` |
+

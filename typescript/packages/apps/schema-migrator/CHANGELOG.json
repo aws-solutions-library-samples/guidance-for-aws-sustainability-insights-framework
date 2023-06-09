@@ -1,0 +1,17 @@
+{
+  "name": "@sif/schema-migrator",
+  "entries": [
+    {
+      "version": "0.2.0",
+      "tag": "@sif/schema-migrator_v0.2.0",
+      "date": "Thu, 08 Jun 2023 01:01:56 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "node application to run node-pg-migrate"
+          }
+        ]
+      }
+    }
+  ]
+}

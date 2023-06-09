@@ -12,22 +12,22 @@
  *  and limitations under the License.
  */
 
-
 import * as cdk from 'aws-cdk-lib';
+import { Aspects } from 'aws-cdk-lib';
+import axios from 'axios';
+import { AwsSolutionsChecks } from 'cdk-nag';
 import { AccessManagementStack } from './accessManagement/accessManagement.stack.js';
-import { ImpactsApiStack } from './impacts/impacts.stack.js';
+import { AuditLogDepositorStack } from './auditLogDepositor/auditLogDepositor.stack.js';
 import { CalculationApiStack } from './calculations/calculations.stack.js';
+import { CalculatorApiStack } from './calculator/calculator.stack.js';
+import { CsvConnectorStack } from './connectors/csv.stack.js';
+import { SifConnectorStack } from './connectors/sif.stack.js';
+import { ImpactsApiStack } from './impacts/impacts.stack.js';
 import { PipelineProcessorsApiStack } from './pipelineProcessor/pipelineProcessors.stack.js';
 import { PipelineApiStack } from './pipelines/pipelines.stack.js';
 import { ReferenceDatasetsApiStack } from './referenceDatasets/referenceDatasets.stack.js';
 import { SharedTenantInfrastructureStack } from './shared/sharedTenant.stack.js';
 import { getOrThrow } from './shared/stack.utils.js';
-import axios from 'axios';
-import { Aspects } from 'aws-cdk-lib';
-import { AwsSolutionsChecks } from 'cdk-nag';
-import { CalculatorApiStack } from './calculator/calculator.stack.js';
-import { SifConnectorStack } from './connectors/sif.stack.js';
-import { CsvConnectorStack } from './connectors/csv.stack.js';
 
 const tenantApp = new cdk.App();
 
@@ -46,20 +46,24 @@ const enableDeleteResource = tenantApp.node.tryGetContext('enableDeleteResource'
 // optional requirement to remove bucket and objects when it got deleted
 const deleteBucket = (tenantApp.node.tryGetContext('deleteBucket') ?? 'false') === 'true';
 
+// optional requirements to specify sql or nosql storage type to store the metric (defaulted to sql)
+const metricStorage = tenantApp.node.tryGetContext('metricStorage') as string;
+
 //optional requirements for cross tenant resource sharing
 const permittedOutgoingTenantPaths = tenantApp.node.tryGetContext('outgoingTenantPaths') as string;
 const externallySharedGroupIds = tenantApp.node.tryGetContext('externallySharedGroupIds') as string;
 
 //optional requirements for audit file features in pipeline processors module
-const downloadAuditFileParallelLimit = tenantApp.node.tryGetContext('downloadAuditFileParallelLimit') as number ?? 5;
+const downloadAuditFileParallelLimit = (tenantApp.node.tryGetContext('downloadAuditFileParallelLimit') as number) ?? 5;
 
 //optional requirements for calculation engine lambda scaling
-const minScaling = tenantApp.node.tryGetContext('minScaling') as number ?? 1;
-const maxScaling = tenantApp.node.tryGetContext('maxScaling') as number ?? 10;
+const minScaling = (tenantApp.node.tryGetContext('minScaling') as number) ?? 1;
+const maxScaling = (tenantApp.node.tryGetContext('maxScaling') as number) ?? 10;
 
 //Validate parameters
 let tenantPathRegex = /([a-z1-9_-]*):\/([a-z1-9_-]*)/g;
 let sharedGroupRegex = /\/([a-z1-9_-]*)/g;
+
 
 if (permittedOutgoingTenantPaths) {
 	if (!permittedOutgoingTenantPaths.match(tenantPathRegex)) {
@@ -95,7 +99,7 @@ const getCaCertResponse = await axios.get('https://www.amazontrust.com/repositor
  */
 const env: cdk.Environment = {
 	account: process.env['CDK_DEPLOY_ACCOUNT'] || process.env['CDK_DEFAULT_ACCOUNT'],
-	region: process.env['CDK_DEPLOY_REGION'] || process.env['CDK_DEFAULT_REGION']
+	region: process.env['CDK_DEPLOY_REGION'] || process.env['CDK_DEFAULT_REGION'],
 };
 
 const sharedInfrastructureStack = new SharedTenantInfrastructureStack(tenantApp, 'SharedTenant', {
@@ -109,11 +113,11 @@ const sharedInfrastructureStack = new SharedTenantInfrastructureStack(tenantApp,
 	userPoolEmail:
 		cognitoFromEmail !== undefined
 			? {
-				fromEmail: cognitoFromEmail,
-				fromName: cognitoFromName,
-				replyTo: cognitoReplyToEmail,
-				sesVerifiedDomain: cognitoVerifiedDomain,
-			}
+					fromEmail: cognitoFromEmail,
+					fromName: cognitoFromName,
+					replyTo: cognitoReplyToEmail,
+					sesVerifiedDomain: cognitoVerifiedDomain,
+			  }
 			: undefined,
 	caCert: getCaCertResponse.data,
 });
@@ -136,9 +140,18 @@ const calculatorStack = new CalculatorApiStack(tenantApp, 'Calculator', {
 	environment,
 	caCert: getCaCertResponse.data,
 	minScaling,
-	maxScaling
+	maxScaling,
 });
 calculatorStack.node.addDependency(sharedInfrastructureStack);
+
+const auditLogDepositorStack = new AuditLogDepositorStack(tenantApp, 'AuditLogDepositor', {
+	stackName: tenantStackName('auditLogDepositor'),
+	description: tenantStackDescription('AuditLogDepositor'),
+	env,
+	tenantId,
+	environment,
+});
+auditLogDepositorStack.node.addDependency(calculatorStack);
 
 const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'PipelineProcessors', {
 	stackName: tenantStackName('pipelineProcessors'),
@@ -149,6 +162,7 @@ const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'Pipel
 	csvConnectorName,
 	caCert: getCaCertResponse.data,
 	downloadAuditFileParallelLimit,
+	metricStorage,
 });
 pipelineProcessorsStack.node.addDependency(sharedInfrastructureStack);
 pipelineProcessorsStack.node.addDependency(calculatorStack);
@@ -183,7 +197,7 @@ const pipelineApiStack = new PipelineApiStack(tenantApp, 'Pipelines', {
 	env,
 	tenantId,
 	environment,
-	enableDeleteResource
+	enableDeleteResource,
 });
 pipelineApiStack.node.addDependency(sharedInfrastructureStack);
 
@@ -207,10 +221,9 @@ const sifConnectorStack = new SifConnectorStack(tenantApp, 'sifConnector', {
 	env,
 	tenantId,
 	environment,
-	connectorName: sifConnectorName
+	connectorName: sifConnectorName,
 });
 sifConnectorStack.node.addDependency(pipelineApiStack);
-
 
 const csvConnectorStack = new CsvConnectorStack(tenantApp, 'csvConnector', {
 	stackName: tenantStackName('csvConnector'),
@@ -218,6 +231,6 @@ const csvConnectorStack = new CsvConnectorStack(tenantApp, 'csvConnector', {
 	env,
 	tenantId,
 	environment,
-	connectorName: csvConnectorName
+	connectorName: csvConnectorName,
 });
 csvConnectorStack.node.addDependency(pipelineApiStack);

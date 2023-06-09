@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/deployment-helper",
+      "comment": "",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/deployment-helper"
+}

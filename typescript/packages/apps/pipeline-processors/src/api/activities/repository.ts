@@ -15,11 +15,12 @@ import type { BaseLogger } from 'pino';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import type { BaseRepositoryClient } from '../../data/base.repository.js';
-import type { ActivityReference, Aggregate, PipelineMetadata, QueryRequest, QueryResponse } from './models.js';
+import type { ActivityReference, Aggregate, Output, PipelineMetadata, QueryRequest, QueryResponse } from './models.js';
 import type { AffectedTimeRange } from '../metrics/models.js';
-import type { Client } from 'pg';
+import type { Client, Pool } from 'pg';
 import { validateNotEmpty } from '@sif/validators';
 import { ulid } from 'ulid';
+import type { InsertActivityBulkEvent, ProcessedTaskEvent } from '../../stepFunction/tasks/model.js';
 
 const ROW_TYPE_AGGREGATED = 'aggregated';
 const ROW_TYPE_RAW = 'raw';
@@ -90,25 +91,39 @@ export class ActivitiesRepository {
 		};
 	}
 
+	public async getConnection(): Promise<Client> {
+		return await this.baseRepositoryClient.getConnection();
+	}
+
+	public async getConnectionPool(numOfConnection: number): Promise<Pool> {
+		return await this.baseRepositoryClient.getConnectionPool(numOfConnection);
+	}
+
 	public async getAffectedTimeRange(pipelineId: string, executionId: string): Promise<AffectedTimeRange> {
 		this.log.debug(`ActivitiesRepository> getAffectedTimeRange> in: pipelineId:${pipelineId}, executionId:${executionId}`);
 
 		validateNotEmpty(pipelineId, 'pipelineId');
 		validateNotEmpty(executionId, 'executionId');
 
-		// min and max are based on the latest pipeline execution based on the max(date) field of the activity.
-		// need to check for activities across all the value tables
+		// min and max are based on the latest pipeline execution based on the max(createdAt) condition
+		// we need to set the "to" to end of day to cover all activities for aggregation
 		const query = `
-SELECT min("date") as "from" , date_trunc('day', max("date")) + interval '1 day' as "to"
+SELECT date_trunc('day', date(min(a.date)))::timestamp with time zone as "from",
+       (date_trunc('day', max(a.date)) + interval '1 day' - interval '1 second')::timestamp with time zone as "to"
 FROM "Activity" a
-WHERE "activityId" IN (	SELECT distinct "activityId" FROM "ActivityStringValue" WHERE "executionId" = '${executionId}')
-OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityNumberValue" WHERE "executionId" = '${executionId}')
-OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityDateTimeValue" WHERE "executionId" = '${executionId}')
-OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityBooleanValue" WHERE "executionId" = '${executionId}')`;
+         LEFT JOIN "ActivityNumberValue" n
+                   on a."activityId" = n."activityId" and n."executionId" = '${executionId}'
+         LEFT JOIN "ActivityBooleanValue" b
+                   on a."activityId" = b."activityId" and b."executionId" = '${executionId}'
+         LEFT JOIN "ActivityStringValue" s
+                   on a."activityId" = s."activityId" and s."executionId" = '${executionId}'
+         LEFT JOIN "ActivityDateTimeValue" d
+                   on a."activityId" = d."activityId" and d."executionId" = '${executionId}'
+WHERE a."type" = 'raw';`;
 
 		this.log.trace(`ActivitiesRepository> getAffectedTimeRange> query:${query}`);
 
-		const dbConnection: Client = await this.baseRepositoryClient.getConnection();
+		const dbConnection = await this.getConnection();
 
 		let result;
 		try {
@@ -126,8 +141,7 @@ OR   "activityId" IN (	SELECT distinct "activityId" FROM "ActivityBooleanValue" 
 			throw new Error(`No existing data found for pipeline '${pipelineId}', execution '${executionId}.`);
 		}
 
-		// this should only return 1 row
-		const response: AffectedTimeRange = { from: result.rows[0].from, to: result.rows[0].to };
+		const response: AffectedTimeRange = { from: dayjs.utc(result.rows[0].from).toDate(), to: dayjs.utc(result.rows[0].to).toDate() };
 
 		this.log.debug(`ActivitiesRepository> getAffectedTimeRange> exit: ${JSON.stringify(response)}`);
 		return response;
@@ -264,6 +278,65 @@ ${limitFilter}`;
 		return queryResult;
 	}
 
+	public async getTotalValueRows(executionId: string, type: string): Promise<number> {
+		this.log.debug(`ActivitiesRepository> getTotalValueRows> in: executionId:${executionId}, type: ${type}`);
+
+		const query = `SELECT COUNT ("activityId")
+			from "${this.typeToValueTableMap[type].name}"
+			where "executionId" = '${executionId}'`;
+
+		const queryResponse = await this.executeQuery(query);
+		const count = parseInt(queryResponse?.[0]['count']);
+
+		this.log.debug(`ActivitiesRepository> getTotalValueRows> exit> count: ${count}`);
+		return count;
+	}
+
+	public async insertExecutionValuesToLatestTablesPerOutput(executionId: string, outputs:Output[], sharedConnection?: Client): Promise<void> {
+		this.log.debug(`ActivitiesRepository> insertExecutionValuesToLatestTablesPerOutput> in: executionId: ${executionId}, outputs:${JSON.stringify(outputs)}`);
+
+		for(const output of outputs) {
+			this.log.debug(`ActivitiesRepository> insertExecutionValuesToLatestTables> processing:${JSON.stringify(output.name)} (${output.type}))}`);
+			const valueTable = this.typeToValueTableMap[output.type].name;
+			const latestTable = this.typeToLatestValueTableMap[output.type].name;
+			const statements = [];
+
+			// 1st perform the updates to be performed for a specific column of a specific execution
+			statements.push(`
+UPDATE "${latestTable}" as lv
+SET		"createdAt"=uv."createdAt", "executionId"=uv."executionId", val=uv.val, "auditId"=uv."auditId"
+FROM 	(
+			SELECT DISTINCT ON (iv."activityId", iv.name) iv."activityId", name, iv."createdAt", iv."executionId", iv."auditId", iv. val
+			from "${valueTable}" iv join "${latestTable}"  ilv using ("activityId", name )
+			where iv."executionId" = '${executionId}' and iv.name = '${output.name}'
+			ORDER BY  iv."activityId", iv.name, iv."createdAt" desc
+		) uv
+WHERE	uv."activityId" = lv."activityId"
+and		uv.name = lv.name;`);
+
+			// 2nd create the updates to be performed for a specific column of a specific execution
+			statements.push(`
+INSERT INTO "${latestTable}" ("activityId",  name, "createdAt", "executionId", "auditId", val)
+SELECT DISTINCT ON (v."activityId", v.name) v."activityId", name, v."createdAt", v."executionId", v."auditId", v. val
+from "${valueTable}" v left outer join "${latestTable}"  lv using ("activityId", name )
+where v."executionId" = '${executionId}' and v.name = '${output.name}'
+AND 	lv IS NULL
+ORDER BY  v."activityId", v.name, v."createdAt" desc`);
+
+			// execute per output column so they are smaller inserts/updates
+			await this.executeQuery(statements.join('\n'), sharedConnection);
+			this.log.debug(`ActivitiesRepository> insertExecutionValuesToLatestTablesPerOutput> finished processing:${JSON.stringify(output.name)} (${output.type}))}`);
+		}
+
+		this.log.debug(`ActivitiesRepository> insertExecutionValuesToLatestTablesPerOutput> exit:`);
+	}
+
+	public async createRawActivities(statement: string, sharedConnection?: Client): Promise<void> {
+		this.log.debug(`ActivitiesRepository> createActivities> in: statement: ${statement}`);
+		await this.executeQuery(statement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> createActivities> exit:`);
+	}
+
 	public async createAggregatedActivities(activities: Record<string, string>[], pipelineId: string, executionId: string, groupId: string, fieldToTypeMap: { [key: string]: string }, pipelineMetadata: PipelineMetadata): Promise<void> {
 		this.log.debug(`ActivitiesRepository> createAggregatedActivities> in: pipelineId:${JSON.stringify(pipelineId)}, pipelineMetadata: ${JSON.stringify(pipelineMetadata)}, executionId: ${executionId}`);
 		const queries = this.buildInsertAggregatedActivityQuery(activities, pipelineId, executionId, groupId, fieldToTypeMap, pipelineMetadata);
@@ -295,19 +368,26 @@ ${limitFilter}`;
 		this.log.debug(`ActivitiesRepository> executeQueriesInsideTransaction> out: `);
 	}
 
-	private async executeQuery(query: string): Promise<Record<string, string>[]> {
-		this.log.debug(`ActivitiesRepository> executeQuery> in: `);
+	private async executeQuery(query: string, sharedConnection?: Client): Promise<Record<string, string>[]> {
+		this.log.debug(`ActivitiesRepository> executeQuery> in: query:${query}`);
 
-		const dbConnection = await this.baseRepositoryClient.getConnection();
+		let connection;
+		if (sharedConnection) {
+			connection = sharedConnection;
+		} else {
+			connection = await this.baseRepositoryClient.getConnection();
+		}
 
 		let result;
 		try {
-			result = await dbConnection.query(query);
+			result = await connection.query(query);
 		} catch (e) {
 			this.log.error(e);
 			throw e;
 		} finally {
-			await dbConnection.end();
+			if (!sharedConnection) {
+				await connection.end();
+			}
 		}
 
 		if ((result?.rows?.length ?? 0) === 0) {
@@ -416,6 +496,7 @@ DO UPDATE SET "groupId" = EXCLUDED."groupId" Returning "activityId"
 			// generate insert statement to the appropriate table for each of the activity field (except the timestamp)
 			if (key !== timestampField && activity.hasOwnProperty(key)) {
 				const tableName = this.typeToValueTableMap[fieldToTypeMap[key]].name;
+				const latestTableName = this.typeToLatestValueTableMap[fieldToTypeMap[key]].name;
 				let val;
 				// convert the value to the right format
 				switch (fieldToTypeMap[key]) {
@@ -434,11 +515,21 @@ DO UPDATE SET "groupId" = EXCLUDED."groupId" Returning "activityId"
 					}
 				}
 
+				// insert to value table
 				const insertActivityValue = `
 INSERT INTO "${tableName}" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")
-VALUES( (SELECT "activityId" from "${insertActivityReference}"), '${key}', to_timestamp('${createdAt}'), '${executionId}', ${val}, false, null)
-`;
+VALUES( (SELECT "activityId" from "${insertActivityReference}"), '${key}', to_timestamp('${createdAt}'), '${executionId}', ${val}, false, null)`;
 				insertFieldStatements.push(insertActivityValue);
+
+				// insert to latest value table
+				const insertActivityLatestValue = `
+INSERT INTO "${latestTableName}" ("activityId", "name", "createdAt","executionId", "val")
+VALUES( (SELECT "activityId" from "${insertActivityReference}"), '${key}', to_timestamp('${createdAt}'), '${executionId}', ${val})
+ON CONFLICT ("activityId","name") DO UPDATE SET "createdAt" = excluded."createdAt",
+                                                "executionId" = excluded."executionId",
+                                                "val"         = excluded."val",
+                                                "auditId"     = excluded."auditId"`;
+				insertFieldStatements.push(insertActivityLatestValue);
 			}
 		}
 
@@ -552,7 +643,7 @@ VALUES( (SELECT "activityId" from "${insertActivityReference}"), '${key}', to_ti
 		const query = `
 SELECT ${selectExpressions} FROM (
 	SELECT	a."activityId",
-		${this.buildColumnSelects(pipelineMetadata.outputKeysAndTypes, true)}
+		${this.buildColumnSelects(pipelineMetadata.outputKeysAndTypes, pipelineMetadata.transformKeyMap, true)}
 	FROM "Activity" a
 		${this.buildLeftJoinTables(pipelineMetadata.outputTypes, true)}
 	WHERE "type" = 'raw'
@@ -598,7 +689,7 @@ SELECT	a."activityId", a."date", a."pipelineId",
 	${this.buildCoalesce(pipelineMetadata.outputTypes, 'executionId', useLatestValue)} "executionId",
 	${this.buildCoalesce(pipelineMetadata.outputTypes, 'auditId', useLatestValue)} "auditId",
 	${this.buildCoalesce(pipelineMetadata.outputTypes, 'createdAt', useLatestValue)} "createdAt",
-	${this.buildColumnSelects(pipelineMetadata.outputKeysAndTypes, useLatestValue)}
+	${this.buildColumnSelects(pipelineMetadata.outputKeysAndTypes, pipelineMetadata.transformKeyMap, useLatestValue)}
 
 FROM "Activity" a
 	${this.buildLeftJoinTables(pipelineMetadata.outputTypes, useLatestValue)}
@@ -684,7 +775,7 @@ FROM "filtered_activity" fa
 ORDER BY col0."createdAt"
 LIMIT ${req.maxRows} OFFSET ${req.nextToken??0}`;
 
-		this.log.info(query);
+		this.log.debug(query);
 		return query;
 	}
 
@@ -707,7 +798,7 @@ LIMIT ${req.maxRows} OFFSET ${req.nextToken??0}`;
 		return fragment;
 	}
 
-	private buildColumnSelects(outputKeysAndTypes: Record<string, string>, latestValues: boolean): string {
+	private buildColumnSelects(outputKeysAndTypes: Record<string, string>, transFormKeyMap: Record<string, string>, latestValues: boolean): string {
 		this.log.debug(`ActivitiesRepository> buildColumnSelects> in: outputKeysAndTypes:${JSON.stringify(outputKeysAndTypes)}, latestValues:${latestValues}`);
 
 		let columnSelects = [];
@@ -716,11 +807,170 @@ LIMIT ${req.maxRows} OFFSET ${req.nextToken??0}`;
 			const outputType = outputKeysAndTypes[outputKey];
 			const tableAlias = (latestValues) ? this.typeToLatestValueTableMap[outputType].alias : this.typeToValueTableMap[outputType].alias;
 			const tablePrefix = `${tableAlias}.`;
-			columnSelects.push(`max(CASE WHEN ${tablePrefix}"name"='${outputKey}' THEN ${tablePrefix}"val" ELSE NULL END) "${outputKey}"`);
+			if(transFormKeyMap[outputKey]) {
+				columnSelects.push(`a.${transFormKeyMap[outputKey]} "${outputKey}"`);
+			} else {
+				columnSelects.push(`max(CASE WHEN ${tablePrefix}"name"='${outputKey}' THEN ${tablePrefix}"val" ELSE NULL END) "${outputKey}"`);
+			}
 		}
 
 		// join the column select statements with a comma
 		return columnSelects.join(',\n');
+	}
+
+	public async createTempTables(event:InsertActivityBulkEvent, sharedConnection?: Client) {
+		this.log.debug(`ActivitiesRepository> createTempTables> in: event:${JSON.stringify(event)}`);
+		let createStatement = '';
+
+		//Create temporary de normalized activity value table
+		createStatement += `CREATE UNLOGGED TABLE IF NOT EXISTS "ActivityValue_${event.executionId}_${event.sequence}" (
+			"activityId" varchar(128),
+			"groupId" varchar(128),
+			"pipelineId" varchar(32),
+			"executionId" varchar(32),
+			"dateString" varchar(26) NOT NULL,
+			"isDeletion" boolean DEFAULT false,
+			key1 varchar(128),
+			key2 varchar(128),
+			key3 varchar(128),
+			key4 varchar(128),
+			key5 varchar(128),
+			"name" varchar(128),
+			"createdAtString" varchar(32),
+			val varchar(256),
+			error boolean,
+			"errorMessage" varchar(512),
+			"auditId" uuid,
+			"dataType" varchar(26));
+			\n`;
+
+		this.log.trace(`ActivitiesRepository> createTempTables> query: ${createStatement}`);
+		await this.executeQuery(createStatement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> createTempTables> exit`);
+	}
+
+
+	public async cleanupTempTables(events:ProcessedTaskEvent[], sharedConnection?: Client, dropFlag?: boolean) {
+		this.log.debug(`ActivitiesRepository> cleanupTempTables> in: ActivityEvents:${JSON.stringify(events)}`);
+		let cleanupStatement = '';
+		const executionId = events[0].executionId;
+
+			for (const event of events){
+				const tablePostfix = `${executionId}_${event.sequence}`;
+				//TODO: This truncate statement might cause session pinning need further load testing to confirm
+			cleanupStatement+= `
+			do $$
+			BEGIN
+			IF (SELECT EXISTS (
+				SELECT FROM
+					information_schema.tables
+				WHERE
+					table_schema LIKE 'public' AND
+					table_type LIKE 'BASE TABLE' AND
+					table_name = 'ActivityValue_${tablePostfix}'
+				)) THEN
+				TRUNCATE "ActivityValue_${tablePostfix}";
+			END IF;
+			END;
+			$$;\n`;
+
+				if (dropFlag) {
+					cleanupStatement += (`DROP TABLE "ActivityValue_${tablePostfix}"; \n `);
+				}
+			}
+
+		this.log.trace(`ActivitiesRepository> cleanupTempTables> query: ${cleanupStatement}`);
+		await this.executeQuery(cleanupStatement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> cleanupTempTables> exit`);
+	}
+
+
+	public async getCountTempTables(executionId: string, sharedConnection?: Client) {
+		this.log.debug(`ActivitiesRepository> getCountTempTables> in: executionId:${executionId}`);
+
+		const queryStatement = `SELECT COUNT(*) FROM information_schema.tables WHERE table_name like 'ActivityValue_${executionId}%'`;
+		const queryResponse = await this.executeQuery(queryStatement, sharedConnection);
+
+		this.log.trace(`ActivitiesRepository> getCountTempTables> exit : ${JSON.stringify(queryResponse)}`);
+		const count: number = Number(queryResponse?.[0]?.['count']) ?? 0;
+
+		this.log.debug(`ActivitiesRepository> getCountTempTables> exit count: ${count}`);
+		return count;
+	}
+
+	public async moveActivities(event:InsertActivityBulkEvent, sharedConnection?: Client){
+		this.log.debug(`ActivitiesRepository> moveActivities> in: executionId:${event.executionId}, sequence:${event.sequence}`);
+
+		const queryStatement = `INSERT INTO "Activity"("groupId", "pipelineId", "date", "key1", "key2","key3","key4","key5")
+			SELECT t."groupId", t."pipelineId", to_timestamp("dateString"::numeric), t."key1", t."key2",t."key3",t."key4",t."key5"
+			FROM "ActivityValue_${event.executionId}_${event.sequence}" t
+			LEFT JOIN "Activity" a
+			ON a."groupId"=t."groupId" AND a."pipelineId"=t."pipelineId" AND a."date"=to_timestamp("dateString"::numeric) AND a."type"='raw'
+			AND a."key1"= t."key1" AND a."key2"=t."key2" AND a."key3"=t."key3" AND a."key4"=t."key4" AND a."key5"=t."key5"
+			where a."activityId" IS NULL
+			GROUP BY t."groupId", t."pipelineId", to_timestamp("dateString"::numeric), t."key1", t."key2",t."key3",t."key4",t."key5"`
+
+		this.log.trace(`ActivitiesRepository> moveActivities> queryStatement:${queryStatement}`);
+		await this.executeQuery(queryStatement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> moveActivities> exit`);
+
+	}
+
+
+	public async moveActivityValues(event:InsertActivityBulkEvent, sharedConnection?: Client){
+		this.log.debug(`ActivitiesRepository> moveActivityValues> in: executionId:${event.executionId}, sequence:${event.sequence}`);
+		let queries= [];
+		const types = ['Boolean','DateTime','Number','String'];
+
+		const insertStatement = `INSERT INTO "Activity#TypeValue" ("activityId","name", "createdAt", "executionId", "val", "error", "errorMessage", "auditId")
+			SELECT a."activityId","name", to_timestamp("createdAtString"::numeric), '${event.executionId}', #Value, "error","errorMessage","auditId"
+			FROM "ActivityValue_${event.executionId}_${event.sequence}" av
+			JOIN "Activity" a on a."groupId"= av."groupId" AND a."pipelineId"= av."pipelineId" AND a."date"= to_timestamp(av."dateString"::numeric) AND a."key1"= av."key1" AND a."key2"= av."key2" AND a."key3"= av."key3" AND a."key4"= av."key4" AND a."key5"= av."key5" AND a."type"= 'raw'
+			WHERE av."dataType" = '#Type';
+`
+		for (const type of types){
+			switch(type) {
+				case "Boolean":
+					queries.push(insertStatement.replaceAll('#Type',type).replaceAll('#Value',`"val"::BOOLEAN`)) ;
+					break;
+				case "Number":
+					queries.push( insertStatement.replaceAll('#Type',type).replaceAll('#Value',`"val"::numeric`));
+					break;
+				case "DateTime":
+					queries.push(insertStatement.replaceAll('#Type',type).replaceAll('#Value',`to_timestamp("val"::numeric)`));
+					break;
+				default:
+					queries.push(insertStatement.replaceAll('#Type',type).replaceAll('#Value',`"val"`));
+					break;
+
+			}
+		}
+
+		const queryStatement = queries.join('\n');
+		this.log.trace(`ActivitiesRepository> moveActivityValues> queryStatement:${queryStatement}`);
+		await this.executeQuery(queryStatement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> moveActivityValues> exit`);
+
+	}
+	public async loadDataFromS3(event:InsertActivityBulkEvent,bucket:string, sharedConnection?: Client){
+		this.log.debug(`ActivitiesRepository> loadDataFromS3> in: executionId:${event.executionId}, sequence:${event.sequence}`);
+
+		 const insertDeNormalizedActivityValueStatement = `SELECT aws_s3.table_import_from_s3(
+			'"ActivityValue_${event.executionId}_${event.sequence}"',
+			'"activityId","groupId","pipelineId","executionId","dateString","key1","key2","key3","key4","key5","isDeletion","name","createdAtString","val","error","errorMessage","auditId","dataType"',
+			'(format csv, header 1)',
+			'${bucket}',
+			'${event.activityValuesKey}',
+			'${process.env['AWS_REGION']}',
+			'${process.env['AWS_ACCESS_KEY_ID']}',
+			'${process.env['AWS_SECRET_ACCESS_KEY']}',
+			'${process.env['AWS_SESSION_TOKEN']}'
+		);
+		 `
+		 this.log.trace(`ActivitiesRepository> loadDataFromS3> insertDeNormalizedActivityValueStatement: ${insertDeNormalizedActivityValueStatement}`);
+		 await this.executeQuery(insertDeNormalizedActivityValueStatement, sharedConnection);
+
+		 this.log.debug(`ActivitiesRepository> loadDataFromS3> completed insertDeNormalizedActivityValueStatement`);
 	}
 
 }

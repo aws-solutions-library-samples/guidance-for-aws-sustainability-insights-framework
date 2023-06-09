@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/infrastructure-platform",
+      "comment": "",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/infrastructure-platform"
+}

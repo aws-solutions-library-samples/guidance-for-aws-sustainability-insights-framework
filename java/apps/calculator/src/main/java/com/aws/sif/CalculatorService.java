@@ -13,6 +13,8 @@
 
 package com.aws.sif;
 
+import java.io.IOException;
+
 public interface CalculatorService {
-    TransformResponse process(TransformRequest request) throws InterruptedException;
+    TransformResponse process(TransformRequest request) throws InterruptedException, IOException;
 }

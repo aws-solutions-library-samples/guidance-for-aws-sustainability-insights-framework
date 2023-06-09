@@ -22,8 +22,8 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <antlr4.version>4.11.1</antlr4.version>
@@ -183,8 +183,7 @@
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
-            <artifactId>rds</artifactId>
-            <version>2.17.230</version>
+            <artifactId>sqs</artifactId>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -316,7 +315,7 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
-            <version>9.4.2</version>
+            <version>9.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
@@ -326,7 +325,7 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
-            <version>9.4.2</version>
+            <version>9.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.zeroturnaround</groupId>

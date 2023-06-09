@@ -12,24 +12,28 @@
  */
 
 import { buildLightApp } from '../../app.light';
-import type { AggregationTaskEvent } from '../tasks/model.js';
 
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
+import type { MetricAggregationTaskServiceV2 } from '../tasks/metricAggregationTaskV2.service.js';
 import type { MetricAggregationTaskHandler } from '../tasks/model.js';
-import type { MetricAggregationTaskService } from '../tasks/metricAggregationTask.service.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
-export const handler: MetricAggregationTaskHandler = async (event: AggregationTaskEvent[], _context, _callback) => {
+export const handler: MetricAggregationTaskHandler = async (event, _context, _callback) => {
 	app.log.debug(`MetricAggregationTaskHandler> handler> event: ${JSON.stringify(event)}`);
-	const task = di.resolve<MetricAggregationTaskService>('aggregationTaskService');
 
 	// the handler takes in an array of AggregationTaskEvent as it occurs after a map of calculation tasks, but
 	// the parameters that this task needs are the same for all calculation tasks, hence why we just grab the
 	// 1st AggregationTaskEvent to process. What's important here is the AggregationTask does not start until
 	// all calculation tasks have completed.
-	await task.process(event?.[0]);
+
+	let eventToProcess = event[0];
+
+	const taskV2 = di.resolve<MetricAggregationTaskServiceV2>('aggregationTaskServiceV2');
+	eventToProcess = await taskV2.process(event[0]);
+
 	app.log.debug(`MetricAggregationTaskHandler> handler> exit:`);
+	return [eventToProcess];
 };

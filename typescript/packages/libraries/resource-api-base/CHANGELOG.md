@@ -1,6 +1,20 @@
 # Change Log - @sif/resource-api-base
 
-This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+
+## 3.7.0
+Mon, 22 May 2023 22:02:58 GMT
+
+### Minor changes
+
+- list and get alias allow new parameter to search for different resource type in the same DynamoDB table
+
+## 3.6.0
+Mon, 22 May 2023 18:52:26 GMT
+
+### Minor changes
+
+- list and get alias allow new parameter to search for different resource type in the same DynamoDB table
 
 ## 3.5.4
 Fri, 31 Mar 2023 06:04:14 GMT

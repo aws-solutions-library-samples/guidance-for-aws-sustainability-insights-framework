@@ -25,6 +25,13 @@ export class AuditFilePendingError extends Error {
 	}
 }
 
+export class TimeoutError extends Error {
+	public constructor(message: string) {
+		super(message);
+		this.name = 'TimeoutError';
+	}
+}
+
 export async function errorHandler(error, _request, reply) {
 	// Log error
 	this.log.error(`***** error: ${JSON.stringify(error)}`);
@@ -44,7 +51,7 @@ export async function errorHandler(error, _request, reply) {
 			case 'CalculatorDryRunError':
 				return reply.badRequest(error.message);
 			case 'AuditFilePendingError':
-				return reply.conflict(error.message);
+				return reply.noCone;
 			case 'TransformerDefinitionError':
 				return reply.badRequest(error.message);
 			case 'UnauthorizedError':

@@ -13,12 +13,12 @@
 package com.aws.sif.execution;
 
 import com.aws.sif.Authorizer;
-import com.aws.sif.resources.impacts.ImpactsClient;
-import com.aws.sif.resources.impacts.Activity;
-import com.aws.sif.resources.impacts.ActivityNotFoundException;
 import com.aws.sif.resources.calculations.Calculation;
 import com.aws.sif.resources.calculations.CalculationNotFoundException;
 import com.aws.sif.resources.calculations.CalculationsClient;
+import com.aws.sif.resources.impacts.Activity;
+import com.aws.sif.resources.impacts.ActivityNotFoundException;
+import com.aws.sif.resources.impacts.ImpactsClient;
 import com.aws.sif.resources.referenceDatasets.DatasetsClient;
 import com.aws.sif.resources.referenceDatasets.ReferenceDatasetNotFoundException;
 import io.github.qudtlib.Qudt;
@@ -55,7 +55,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
 
     // auditing
-    private Map<String,String> auditEvaluated;
+	private Map<String,String> auditEvaluated;
     private List<Map<String,String>> auditActivities;
     private List<Map<String,String>> auditCalculations;
     private List<Map<String,String>> auditReferenceDatasets;
@@ -104,8 +104,66 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
         return response;
     }
 
+	/**
+	 * WIP - not in use yet
+	 */
+//	private void addEvaluated(RuleContext parent, int currentId, String currentText, DynamicTypeValue currentResult) {
+//
+//		// get or create the node
+//		EvaluatedNode current = evaluatedNodes.get(currentId);
+//		if (current==null) {
+//			current = new EvaluatedNode();
+//		}
+//		// set the current values
+//		current.setId(currentId);
+//		current.setText(currentText);
+//		current.setResult(currentResult);
+//
+//		// convert the parentIds to an array we can iterate on
+//		var parentIdsText = parent.toString();
+//		log.trace("\t\t parentIdsText:{}", parentIdsText);
+//		List<Integer> parentIds = Arrays.stream(parentIdsText.substring(1, parentIdsText.length()-1)
+//			.split(" "))
+//			.filter(s-> Strings.hasLength(s))
+//			.map(s-> Integer.parseInt(s)).collect(Collectors.toList());
+//		log.trace("\t\t parentIds:{}", parentIds);
+//
+//		// ensure the parent hierarchy exist
+//		if (parentIds.size()>0) {
+//			for(int x=parentIds.size()-1; x>=0; x--) {
+//				var parentId = parentIds.get(x);
+//				log.trace("\t\t looking for parentId:{}", parentId);
+//				var p = this.evaluatedNodes.get(parentId);
+//				if (p==null) {
+//					log.trace("\t\t not found, so adding");
+//					var pNode = new EvaluatedNode();
+//					pNode.setId(parentId);
+//					pNode.setText("?");
+//					p = this.evaluatedNodes.put(parentId, pNode);
+//					if (x<parentIds.size()-1) {
+//						var grandParentId = parentIds.get(x+1);
+//						log.trace("\t\t adding as child to grand parent {}", grandParentId);
+//						var gp = this.evaluatedNodes.get(grandParentId);
+//						gp.addChild(p);
+//					}
+//				} else {
+//					log.trace("\t\t found");
+//				}
+//			}
+//		}
+//
+//		// associate the current with its parent (or set as root if no parent)
+//		if (parentIds.size()>0) {
+//			var parentNode = this.evaluatedNodes.get(parentIds.get(0));
+//			parentNode.addChild(current);
+//		} else {
+//			evaluatedNodes.setRoot(current);
+//		}
+//		evaluatedNodes.put(currentId, current);
+//	}
+
     @Override public NumberTypeValue visitPowerExpr(CalculationsParser.PowerExprContext ctx) {
-        log.trace("visitPowerExpr> in> {}", ctx.getText());
+        log.trace("visitPowerExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var left = super.visit(ctx.left);
         var leftAsNumber = asNumber(left, String.format("Left side of '%s' power operation must be a number.", ctx.getText()));
@@ -115,11 +173,12 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
         var r = Math.pow(leftAsNumber.getValue().doubleValue(), rightAsNumber.getValue().doubleValue());
         var result = new NumberTypeValue(r);
+
         log.trace("visitPowerExpr> exit> {}", result);
         return result;
     }
     @Override public NumberTypeValue visitMulDivExpr(CalculationsParser.MulDivExprContext ctx) {
-        log.trace("visitMulDivExpr> in> {}", ctx.getText());
+        log.trace("visitMulDivExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var left = super.visit(ctx.left);
         var leftAsNumber = asNumber(left, String.format("Left side of '%s' multiple/divide operation must be a number.", ctx.getText()));
@@ -135,12 +194,13 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
             r = leftAsNumber.getValue().divide(rightAsNumber.getValue(), NUMBER_SCALE, RoundingMode.HALF_UP).stripTrailingZeros();
         }
         var result = new NumberTypeValue(r);
+
         log.trace("visitMulDivExpr> exit> {}", result);
         return result;
     }
 
     @Override public NumberTypeValue visitAddSubExpr(CalculationsParser.AddSubExprContext ctx) {
-        log.trace("visitAddSubExpr> in> {}", ctx.getText());
+        log.trace("visitAddSubExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var left = super.visit(ctx.left);
         var leftAsNumber = asNumber(left, String.format("Left side of '%s' add/subtract operation must be a number.", ctx.getText()));
@@ -155,12 +215,13 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
             r = leftAsNumber.getValue().subtract(rightAsNumber.getValue());
         }
         var result = new NumberTypeValue(r);
-        log.trace("visitAddSubExpr> exit> {}", result);
+
+		log.trace("visitAddSubExpr> exit> {}", result);
         return result;
     }
 
     @Override public BooleanTypeValue visitBoolean(CalculationsParser.BooleanContext ctx) {
-        log.trace("visitBoolean> in> {}", ctx.getText());
+        log.trace("visitBoolean> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var r = Boolean.parseBoolean(ctx.getText());
 
@@ -170,7 +231,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public BooleanTypeValue visitPredicateExpr(CalculationsParser.PredicateExprContext ctx) {
-        log.trace("visitPredicateExpr> in> {}", ctx.getText());
+        log.trace("visitPredicateExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var left = super.visit(ctx.left);
 
@@ -212,7 +273,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
         return result;
     }
     @Override public NumberTypeValue visitSignedExpr(CalculationsParser.SignedExprContext ctx) {
-        log.trace("visitSignedExpr> in> {}", ctx.getText());
+        log.trace("visitSignedExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var result = super.visit((ctx.expr()));
         var resultAsNumber = asNumber(result, "Signed expressions must be numeric.");
@@ -224,7 +285,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public NumberTypeValue visitScientificAtom(CalculationsParser.ScientificAtomContext ctx) {
-        log.trace("visitScientificAtom> in> {}", ctx.getText());
+        log.trace("visitScientificAtom> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var number = new BigDecimal(ctx.SCIENTIFIC_NUMBER().getText());
 
@@ -235,7 +296,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public NumberTypeValue visitNumberAtom(CalculationsParser.NumberAtomContext ctx) {
-        log.trace("visitNumberAtom> in> {}", ctx.getText());
+        log.trace("visitNumberAtom> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var number = new BigDecimal(ctx.NUMBER().getText());
 
@@ -245,7 +306,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public DynamicTypeValue visitBracesAtom(CalculationsParser.BracesAtomContext ctx) {
-        log.trace("visitBracesAtom> in> {}", ctx.getText());
+        log.trace("visitBracesAtom> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var result = super.visit(ctx.expr());
         log.trace("visitBracesAtom> exit> {}", result);
@@ -253,7 +314,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public DynamicTypeValue visitTokenAtom(CalculationsParser.TokenAtomContext ctx) {
-        log.trace("visitTokenAtom> in> {}", ctx.getText());
+        log.trace("visitTokenAtom> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var name = ctx.TOKEN().getText().substring(1);
 		DynamicTypeValue result;
@@ -278,7 +339,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public StringTypeValue visitQuotedStringAtom(CalculationsParser.QuotedStringAtomContext ctx) {
-        log.trace("visitQuotedStringAtom> in> {}", ctx.getText());
+        log.trace("visitQuotedStringAtom> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText(), ctx.getRuleIndex());
 
         var quoted = ctx.QUOTED_STRING().getText();
         String unquoted;
@@ -297,7 +358,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
 	@Override public DynamicTypeValue visitSetVariableExpr(CalculationsParser.SetVariableExprContext ctx) {
-		log.trace("visitSetVariableExpr> in> {}", ctx.getText());
+		log.trace("visitSetVariableExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
 		// the provided token cannot be used if it is already representing a parameter
 		var name = ctx.name.getText().substring(1);
@@ -310,7 +371,6 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
 		// assign the result to the variable
 		variables.put(name, result);
-
 		auditEvaluated.put(ctx.getText(), result.asString());
 
 		log.trace("visitSetVariableExpr> exit> {}", result);
@@ -318,21 +378,21 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 	}
 
 	@Override public DynamicTypeValue visitOptionalLocaleParam(CalculationsParser.OptionalLocaleParamContext ctx) {
-		log.trace("visitOptionalLocaleParam> in> {}", ctx.getText());
+		log.trace("visitOptionalLocaleParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.locale, ctx.expr());
 		log.trace("visitOptionalLocaleParam> exit> {}", result);
 		return result;
 	}
 
 	@Override public DynamicTypeValue visitOptionalQualityKindParam(CalculationsParser.OptionalQualityKindParamContext ctx) {
-		log.trace("visitOptionalQualityKindParam> in> {}", ctx.getText());
+		log.trace("visitOptionalQualityKindParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.quantityKind, ctx.expr());
 		log.trace("visitOptionalQualityKindParam> exit> {}", result);
 		return result;
 	}
 
 	@Override public DynamicTypeValue visitOptionalTimezoneParam(CalculationsParser.OptionalTimezoneParamContext ctx) {
-		log.trace("visitOptionalTimezoneParam> in> {}", ctx.getText());
+		log.trace("visitOptionalTimezoneParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.timezone, ctx.expr());
 		log.trace("visitOptionalTimezoneParam> exit> {}", result);
 		return result;
@@ -340,14 +400,14 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
     @Override
     public DynamicTypeValue visitOptionalRoundDownToParam(CalculationsParser.OptionalRoundDownToParamContext ctx) {
-        log.trace("visitOptionalRoundDownToParam> in> {}", ctx.getText());
+        log.trace("visitOptionalRoundDownToParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
         var result = getOptionalParamValue(OptionalParamKey.roundDownTo, ctx.expr());
         log.trace("visitOptionalRoundDownToParam> exit> {}", result);
         return result;
     }
 
     @Override public DynamicTypeValue visitIfFunctionExpr(CalculationsParser.IfFunctionExprContext ctx) {
-        log.trace("visitIfFunctionExpr> in> {}", ctx.getText());
+        log.trace("visitIfFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var predicate = super.visit(ctx.predicate);
         var predicateAsBool = asBoolean(predicate, String.format("Predicate '%s' must evaluate to a boolean.", ctx.getText()));
@@ -358,7 +418,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public DynamicTypeValue visitCoalesceFunctionExpr(CalculationsParser.CoalesceFunctionExprContext ctx) {
-        log.trace("visitCoalesceFunctionExpr> in> {}", ctx.getText());
+        log.trace("visitCoalesceFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         DynamicTypeValue result = null;
         for(var expr : ctx.exprList().expr()) {
@@ -378,7 +438,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public StringTypeValue visitConcatFunctionExpr(CalculationsParser.ConcatFunctionExprContext ctx) {
-        log.trace("visitConcatFunctionExpr> in> {}", ctx.getText());
+        log.trace("visitConcatFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var evaluated = new StringBuilder();
         for(var expr : ctx.exprList().expr()) {
@@ -396,7 +456,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public DynamicTypeValue visitOptionalGroupParam(CalculationsParser.OptionalGroupParamContext ctx) {
-        log.trace("visitOptionalGroupParamContext> in> {}", ctx.getText());
+        log.trace("visitOptionalGroupParamContext> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.group, ctx.expr());
         log.trace("visitOptionalGroupParamContext> exit> {}", result);
         return result;
@@ -409,14 +469,14 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 	}
 
     @Override public DynamicTypeValue visitOptionalTenantParam(CalculationsParser.OptionalTenantParamContext ctx) {
-        log.trace("visitOptionalTenantParam> in> {}", ctx.getText());
+        log.trace("visitOptionalTenantParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.tenant, ctx.expr());
         log.trace("visitOptionalTenantParam> exit> {}", result);
         return result;
     }
 
 	@Override public DynamicTypeValue visitOptionalIgnoreCaseParam(CalculationsParser.OptionalIgnoreCaseParamContext ctx) {
-		log.trace("visitOptionalIgnoreCaseParam> in> {}", ctx.getText());
+		log.trace("visitOptionalIgnoreCaseParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.ignoreCase, ctx.expr());
 		log.trace("visitOptionalIgnoreCaseParam> exit> {}", result);
 		return result;
@@ -424,7 +484,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
     @Override
     public DynamicTypeValue visitOptionalVersionAsAtParam(CalculationsParser.OptionalVersionAsAtParamContext ctx) {
-        log.trace("visitOptionalVersionAsAtParam> in> {}", ctx.getText());
+        log.trace("visitOptionalVersionAsAtParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
         var result = getOptionalParamValue(OptionalParamKey.versionAsAt, ctx.expr());
         log.trace("visitOptionalVersionAsAtParam> exit> {}", result);
         return result;
@@ -432,21 +492,21 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
 
     @Override public DynamicTypeValue visitOptionalVersionParam(CalculationsParser.OptionalVersionParamContext ctx) {
-        log.trace("visitOptionalVersionParam> in> {}", ctx.getText());
+        log.trace("visitOptionalVersionParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.version, ctx.expr());
         log.trace("visitOptionalVersionParam> exit> {}", result);
         return result;
     }
 
 	@Override public DynamicTypeValue visitOptionalDefaultParam(CalculationsParser.OptionalDefaultParamContext ctx) {
-		log.trace("visitOptionalDefaultParam> in> {}", ctx.getText());
+		log.trace("visitOptionalDefaultParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.defaultValue, ctx.expr());
 		log.trace("visitOptionalDefaultParam> exit> {}", result);
 		return result;
 	}
 
     @Override public NumberTypeValue visitImpactFunctionExpr(CalculationsParser.ImpactFunctionExprContext ctx) {
-        log.trace("visitImpactFunctionExpr> in> {}", ctx.getText());
+        log.trace("visitImpactFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         // extract the mandatory parameters
         var activityName = super.visit(ctx.activity).asString();
@@ -508,7 +568,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
 	private Map<OptionalParamKey, DynamicTypeValue> getOptionalParams(List<? extends ParserRuleContext> paramExpressions) {
-		log.trace("getOptionalParams> in> {}", paramExpressions.toString());
+		log.trace("getOptionalParams> in> {}, parent: {}", paramExpressions.toString());
 		var map = new HashMap<OptionalParamKey, DynamicTypeValue>();
 		for(var expr : paramExpressions) {
 			var optionalParam = super.visit(expr);
@@ -526,7 +586,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 	}
 
     @Override public DynamicTypeValue visitLookupFunctionExpr(CalculationsParser.LookupFunctionExprContext ctx) {
-        log.trace("visitLookupFunctionExpr> in> {}", ctx.getText());
+        log.trace("visitLookupFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         // extract the mandatory parameters
         var value = super.visit(ctx.value).asString();
@@ -594,7 +654,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 	}
 
     @Override public DynamicTypeValue visitCustomFunctionExpr(CalculationsParser.CustomFunctionExprContext ctx) {
-        log.trace("visitCustomFunctionExpr> in> {}", ctx.getText());
+        log.trace("visitCustomFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         // extract the tokens we need
         var function = ctx.function.getText().substring(1);
@@ -677,7 +737,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public DynamicTypeValue visitRefFunctionExpr(CalculationsParser.RefFunctionExprContext ctx) {
-        log.trace("visitRefFunctionExpr> in> {}", ctx.getText());
+        log.trace("visitRefFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var columnName = super.visit(ctx.columnName).asString();
 
@@ -695,7 +755,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public DynamicTypeValue visitNull(CalculationsParser.NullContext ctx) {
-        log.trace("visitNull> in> {}", ctx.getText());
+        log.trace("visitNull> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
         log.trace("visitNull> exit> null") ;
         return null;
     }
@@ -727,7 +787,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
     @Override public NumberTypeValue visitAsTimestampFunctionExpr(CalculationsParser.AsTimestampFunctionExprContext ctx) {
-        log.trace("visitAsTimestampFunctionExpr> in> {}", ctx.getText());
+        log.trace("visitAsTimestampFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
         var value = super.visit(ctx.value).asString();
         var pattern = super.visit(ctx.pattern).asString();
@@ -798,7 +858,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     }
 
 	@Override public NumberTypeValue visitConvertFunctionExpr(CalculationsParser.ConvertFunctionExprContext ctx) {
-		log.trace("visitConvertFunctionExpr> in> {}", ctx.getText());
+		log.trace("visitConvertFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
 		var value = asNumber(super.visit(ctx.value), String.format("Provided value '%s' must be a number.", ctx.value));
 		var from = super.visit(ctx.fromUnit).asString();
@@ -855,7 +915,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 	}
 
 	@Override public DynamicTypeValue visitSwitchFunctionExpr(CalculationsParser.SwitchFunctionExprContext ctx) {
-		log.trace("visitSwitchFunctionExpr> in> {}", ctx.getText());
+		log.trace("visitSwitchFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
 		var expression = super.visit(ctx.value);
 		verifyNotNullOrError(expression, "Invalid expression to evaluate.");
@@ -902,7 +962,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 	}
 
 	@Override public StringTypeValue visitUppercaseFunctionExpr(CalculationsParser.UppercaseFunctionExprContext ctx) {
-		log.trace("visitUppercaseFunctionExpr> in> {}", ctx.getText());
+		log.trace("visitUppercaseFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
 		var value = asString(super.visit(ctx.value), "Evaluated value is not a string.");
 		var result = new StringTypeValue(value.asString().toUpperCase());
@@ -914,7 +974,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 	}
 
 	@Override public StringTypeValue visitLowercaseFunctionExpr(CalculationsParser.LowercaseFunctionExprContext ctx) {
-		log.trace("visitLowercaseFunctionExpr> in> {}", ctx.getText());
+		log.trace("visitLowercaseFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
 		var value = asString(super.visit(ctx.value), "Evaluated value is not a string.");
 		var result = new StringTypeValue(value.asString().toLowerCase());

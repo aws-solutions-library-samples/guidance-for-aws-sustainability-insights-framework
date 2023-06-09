@@ -14,15 +14,14 @@
 package com.aws.sif;
 
 
+import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
-import com.aws.sif.di.IndexerComponent;
 import com.aws.sif.di.DaggerIndexerComponent;
-import com.google.common.base.Charsets;
+import com.aws.sif.di.IndexerComponent;
 import com.google.common.io.CharStreams;
 import com.google.gson.GsonBuilder;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import com.amazonaws.services.lambda.runtime.Context;
 
 import javax.inject.Inject;
 import java.io.IOException;

@@ -17,16 +17,21 @@ The above architecture shows the components of the pipeline processor. An API al
 pipeline is carried out as multiple tasks within a StepFunction. An EventBridge event starts pipeline processing when an input file is uploaded. Pipeline calculations are executed through calls to the Calculation Engine module. The
 activities processed by the Calculation Module have metrics (KPI's) pre-calculated per each organizational group.
 
-The processor stepfunction defintion is shown below:
+The processor stepfunction definition is shown below:
 
 ![stepfunction](docs/images/StepFunctionDefinition.drawio.svg)
 
-The step function includes 4 tasks:
+The step function includes 8 tasks:
 
 * `VerificationTask` - retrieval and validation of the input file versus the pipeline definition
-* `CalculationTask` - delegating calculation tasks to multiple instances of the Calculator module running in parallel
+* `CalculationTask` - delegating calculation tasks to multiple instances of the Calculator module running in parallel and publish the sql commands to be executed to sqs queue, this will a trigger a lambda that will perform an insert into **Activity*Values** tables
+* `Wait for SQL Insert Result` & `Process SQL Insert Result` tasks - poll until all sql inserts generated from the `CalculationTask` have been executed
+* `JobInsertLatestValuesTask` - insert the latest activity value into the **Activity*LatestValues** tables
+* `JobMetricAggregationTask` - calculates configured metrics (KPI's) configured as part of the pipeline definition, then rolls them up to the organizational group boundaries
+* `JobPipelineAggregationTask` - aggregates the pipeline execution results using calculation method and columns grouping defined as part of the pipeline definition
 * `ResultProcessingTask` - uploads error file to S3
-* `AggregationTask` - calculates configured metrics (KPI's) configured as part of the pipeline definition, then rolls them up to the organizational group boundaries
+
+The tasks before and after these main tasks (AcquireLock* and ReleaseLock*) will send sqs to acquire a semaphore lock and wait for a callback before it can proceed.
 
 ## Processing Flow
 

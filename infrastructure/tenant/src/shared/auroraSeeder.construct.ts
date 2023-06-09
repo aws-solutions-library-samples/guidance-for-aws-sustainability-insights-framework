@@ -81,7 +81,7 @@ export class AuroraSeeder extends Construct {
 			entry: path.join(__dirname, './customResources/databaseSeeder.customResource.ts'),
 			runtime: Runtime.NODEJS_16_X,
 			tracing: Tracing.ACTIVE,
-			memorySize: 256,
+			memorySize: 512,
 			logRetention: RetentionDays.ONE_WEEK,
 			timeout: Duration.minutes(5),
 			bundling: {
@@ -97,6 +97,13 @@ export class AuroraSeeder extends Construct {
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml')
 		});
 		
+		NagSuppressions.addResourceSuppressions(customResourceLambda, [
+			{
+				id: 'AwsSolutions-L1',
+				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+			},
+		]);
+
 		NagSuppressions.addResourceSuppressions(customResourceLambda, [
 			{
 				id: 'AwsSolutions-L1',

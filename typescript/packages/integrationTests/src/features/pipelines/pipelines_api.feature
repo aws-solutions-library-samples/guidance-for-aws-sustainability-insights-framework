@@ -4,6 +4,7 @@ Feature:
 
 	Scenario: Setup users
 		Given group /pipelinesApiTests exists
+		Given group /pipelinesApiTests/a exists
 		And group /pipelinesApiTests has user pipelinesApiTests_admin@amazon.com with role admin and password p@ssword1
 		And group /pipelinesApiTests has user pipelinesApiTests_contributor@amazon.com with role contributor and password p@ssword1
 		And group /pipelinesApiTests has user pipelinesApiTests_reader@amazon.com with role reader and password p@ssword1
@@ -44,20 +45,59 @@ Feature:
 
 	Scenario: Admin can create new metric
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"ghg:scope1","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
+		And I set body to {"name":"int:ghg:scope1","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
 		When I POST to /metrics
 		Then response code should be 201
 		And response body should contain id
 		And I store the value of body path $.id as metric_scope1_id in global scope
-		And I set body to {"name":"ghg:scope1:mobile","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		And I set body to {"name":"int:ghg:scope1:mobile","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["int:ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
 		When I POST to /metrics
 		Then response code should be 201
 		And response body should contain id
 		And I store the value of body path $.id as metric_scope1_mobile_id in global scope
 
+	Scenario: Admin cannot create metric with the same name at any level of the same hierarchy
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"name":"int:hierarchical","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
+		When I POST to /metrics
+		Then response code should be 201
+		And I store the value of body path $.id as metric_hierarchical_id in global scope
+		# creating the metric at the same level
+		And I set body to {"name":"int:hierarchical","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
+		When I POST to /metrics
+		Then response code should be 409
+		# creating a metric 1 level deeper in the hierarchy
+		And I set x-groupcontextid header to /pipelinesApiTests/a
+		And I set body to {"name":"int:hierarchical","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
+		When I POST to /metrics
+		Then response code should be 409
+		When I DELETE /metrics/`metric_hierarchical_id`
+		Then response code should be 204
+
+
+	Scenario: Admin cannot create metric other than the sum type
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"name":"int:ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"min","tags":{"standard":"ghg","scope":"1"}}
+		When I POST to /metrics
+		Then response code should be 501
+		And response body path $.message should be Only sum aggregation type is supported for now.
+		And I set body to {"name":"int:ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"max","tags":{"standard":"ghg","scope":"1"}}
+		When I POST to /metrics
+		Then response code should be 501
+		Then response code should be 501
+		And response body path $.message should be Only sum aggregation type is supported for now.
+		And I set body to {"name":"int:ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"count","tags":{"standard":"ghg","scope":"1"}}
+		When I POST to /metrics
+		Then response code should be 501
+		And response body path $.message should be Only sum aggregation type is supported for now.
+		And I set body to {"name":"int:ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"mean","tags":{"standard":"ghg","scope":"1"}}
+		When I POST to /metrics
+		Then response code should be 501
+		And response body path $.message should be Only sum aggregation type is supported for now.
+
 	Scenario: Should throw error when activeAt is not set to the right date time format
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "invalidDate", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "invalidDate", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["int:ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 400
 		And response body path $.message should be body/activeAt must match format "date-time"
@@ -110,7 +150,7 @@ Feature:
 
 	Scenario: Admin can create new pipeline that output to ghg:scope1:mobile metric
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "2023-02-21T14:48:00.000Z", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "2023-02-21T14:48:00.000Z", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["int:ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -126,7 +166,7 @@ Feature:
 		And response body path $.transformer.transforms[1].outputs should be of type array with length 1
 		And response body path $.transformer.transforms[1].outputs[0].index should be 0
 		And response body path $.transformer.transforms[1].outputs[0].key should be sum
-		And response body path $.transformer.transforms[1].outputs[0].metrics[0] should be ghg:scope1:mobile
+		And response body path $.transformer.transforms[1].outputs[0].metrics[0] should be int:ghg:scope1:mobile
 		And response body path $.transformer.transforms[1].outputs[0].label should be sum
 		And response body path $.transformer.transforms[1].outputs[0].description should be sum of value one and two
 		And response body path $.transformer.transforms[1].outputs[0].type should be number
@@ -155,29 +195,10 @@ Feature:
 
 	Scenario: Admin cannot create new pipeline with metric that had been setup with other metric as an input
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline_metric_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number","metrics":["ghg:scope1"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline_metric_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number","metrics":["int:ghg:scope1"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 400
-		And response body path $.message should be These output metrics \[ghg\:scope1\] has metric as an input
-
-	Scenario: Admin cannot create metric other than the sum type
-		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"name":"ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"min","tags":{"standard":"ghg","scope":"1"}}
-		When I POST to /metrics
-		Then response code should be 501
-		And response body path $.message should be Only sum aggregation type is supported for now.
-		And I set body to {"name":"ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"max","tags":{"standard":"ghg","scope":"1"}}
-		When I POST to /metrics
-		Then response code should be 501
-		And response body path $.message should be Only sum aggregation type is supported for now.
-		And I set body to {"name":"ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"count","tags":{"standard":"ghg","scope":"1"}}
-		When I POST to /metrics
-		Then response code should be 501
-		And response body path $.message should be Only sum aggregation type is supported for now.
-		And I set body to {"name":"ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"mean","tags":{"standard":"ghg","scope":"1"}}
-		When I POST to /metrics
-		Then response code should be 501
-		And response body path $.message should be Only sum aggregation type is supported for now.
+		And response body path $.message should be These output metrics \[int\:ghg\:scope1\] has metric as an input
 
 	Scenario: Contributor can create new pipeline
 		Given I authenticate using email pipelinesApiTests_contributor@amazon.com and password p@ssword1
@@ -614,5 +635,6 @@ Feature:
 		Given group /pipelinesApiTests has user pipelinesApiTests_admin@amazon.com revoked
 		And group /pipelinesApiTests has user pipelinesApiTests_contributor@amazon.com revoked
 		And group /pipelinesApiTests has user pipelinesApiTests_reader@amazon.com revoked
+		And group /pipelinesApiTests/a has been removed
 		And group /pipelinesApiTests has been removed
 

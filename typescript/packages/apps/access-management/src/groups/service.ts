@@ -267,6 +267,9 @@ export class GroupModuleService {
 			tagDiff.toDelete
 		);
 
+		// update tag group summaries
+		await this.tagRepository.updateGroupSummaries(groupId, PkType.Group, tagDiff.toAdd, tagDiff.toDelete);
+
 		// publish event
 		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'group',

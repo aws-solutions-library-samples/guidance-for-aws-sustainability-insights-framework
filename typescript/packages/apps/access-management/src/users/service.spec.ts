@@ -14,7 +14,7 @@
 import { mock } from 'vitest-mock-extended';
 import pino from 'pino';
 import type { EventPublisher } from '@sif/events';
-import type { MergeUtils, ResourceService, TagService } from '@sif/resource-api-base';
+import type { MergeUtils, ResourceService, TagService, TagRepository } from '@sif/resource-api-base';
 import type { GroupPermissions } from '@sif/authz';
 import type { CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider';
 import { UserService } from './service.js';
@@ -27,6 +27,7 @@ describe('UserService', () => {
 	let mockGroupModuleService = mock<GroupModuleService>();
 	let mockUserRepository = mock<UserRepository>();
 	let mockEventPublisher = mock<EventPublisher>();
+	let mockTagRepository = mock<TagRepository>();
 	let mockTagService = mock<TagService>();
 	let mockResourceService = mock<ResourceService>();
 	let mockMergeUtils = mock<MergeUtils>();
@@ -50,6 +51,7 @@ describe('UserService', () => {
 			mockGroupModuleService,
 			mockUserRepository,
 			mockEventPublisher,
+			mockTagRepository,
 			mockTagService,
 			mockResourceService,
 			mockMergeUtils

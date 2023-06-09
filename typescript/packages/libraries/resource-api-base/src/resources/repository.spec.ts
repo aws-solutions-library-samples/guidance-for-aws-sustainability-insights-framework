@@ -20,6 +20,7 @@ import type { ListIdsPaginationOptions, ListByTagPaginationOptions, ListIdsPagin
 import { Utils } from '../common/utils.js';
 import { createDelimitedAttribute } from '@sif/dynamodb-utils';
 import { CommonPkType } from '../common/pkTypes';
+import { createDelimitedAttributePrefix } from '@sif/dynamodb-utils';
 
 const tableName = 'myTableName';
 
@@ -72,8 +73,8 @@ describe('ResourceRepository', () => {
 			}),
 			LastEvaluatedKey: pagination
 				? {
-						pk: createDelimitedAttribute('r', ids[ids.length - 1].id),
-				  }
+					pk: createDelimitedAttribute('r', ids[ids.length - 1].id),
+				}
 				: undefined,
 			Count: ids.length,
 		} as unknown as QueryCommandOutput;
@@ -868,9 +869,9 @@ describe('ResourceRepository', () => {
 			const expectedMockInput: QueryCommandInput = {
 				TableName: tableName,
 				IndexName: 'siKey2-pk-index',
-				KeyConditionExpression: '#hash=:hash',
-				ExpressionAttributeNames: { '#hash': 'siKey2' },
-				ExpressionAttributeValues: { ':hash': 'aid:testresource:g:%2fa%2fb%2fc' },
+				KeyConditionExpression: `#hash=:hash AND begins_with(#sort,:sort)`,
+				ExpressionAttributeNames: { '#hash': 'siKey2', '#sort': 'pk' },
+				ExpressionAttributeValues: { ':hash': 'aid:testresource:g:%2fa%2fb%2fc', ':sort': createDelimitedAttributePrefix('r'), },
 				ProjectionExpression: 'pk,sk',
 			};
 
@@ -909,7 +910,8 @@ describe('ResourceRepository', () => {
 					],
 				});
 
-			const actual = await underTest.listIdsByAlternateId(aliasName, ['/', '/a', '/a/b', '/a/b/c']);
+
+			const actual = await underTest.listIdsByAlternateId(aliasName, ['/', '/a', '/a/b', '/a/b/c'], 'r');
 			expect(mockedDocumentClient.calls().length).toBe(4);
 			const expected: string[] = ['01', '04'];
 			expect(actual).toStrictEqual(expected);

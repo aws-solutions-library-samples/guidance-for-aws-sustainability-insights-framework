@@ -1,6 +1,23 @@
 # Change Log - @sif/deployment-helper
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Thu, 08 Jun 2023 01:01:56 GMT and should not be manually modified.
+
+## 0.4.0
+Thu, 08 Jun 2023 01:01:56 GMT
+
+### Minor changes
+
+- deployment-helper now run ecstask to perform database migration
+
+## 0.3.3
+Mon, 22 May 2023 22:02:58 GMT
+
+_Version update only_
+
+## 0.3.2
+Mon, 22 May 2023 18:52:26 GMT
+
+_Version update only_
 
 ## 0.3.1
 Mon, 01 May 2023 00:31:09 GMT

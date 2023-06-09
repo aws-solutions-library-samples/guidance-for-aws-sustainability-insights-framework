@@ -1,6 +1,27 @@
 # Change Log - @sif/infrastructure-platform
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Thu, 08 Jun 2023 12:58:17 GMT and should not be manually modified.
+
+## 2.4.1
+Thu, 08 Jun 2023 12:58:17 GMT
+
+### Patches
+
+- set environment specific name for the update schema task definition
+
+## 2.4.0
+Thu, 08 Jun 2023 01:01:56 GMT
+
+### Minor changes
+
+- new ecs cluster construct to spin up database migration task
+
+## 2.3.0
+Mon, 29 May 2023 05:49:43 GMT
+
+### Minor changes
+
+- new construct for semaphore functionalitry
 
 ## 2.2.0
 Mon, 01 May 2023 00:31:09 GMT

@@ -88,7 +88,7 @@ await getTenantValues(TENANT_ID, 'shared', {
 });
 
 await getSharedEnvironmentValues('aurora', {
-	RDS_PROXY_ENDPOINT: 'rdsClusterWriterEndpoint'
+	RDS_PROXY_ENDPOINT: 'rdsWriterEndpoint'
 });
 
 await getTenantValues(TENANT_ID, 'accessManagement', {
@@ -109,6 +109,7 @@ await getTenantValues(TENANT_ID, 'pipeline-processor', {
 	PIPELINE_JOB_STATE_MACHINE_ARN: 'jobStateMachineArn',
 	PIPELINE_INLINE_STATE_MACHINE_ARN: 'inlineStateMachineArn',
 	METRICS_TABLE_NAME: 'metricsTableName',
+	TASK_QUEUE_URL: 'taskQueueUrl'
 });
 
 fs.writeFileSync('.env', outputFile);

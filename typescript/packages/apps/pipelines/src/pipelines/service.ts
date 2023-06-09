@@ -302,7 +302,7 @@ export class PipelineService {
 		if (options.name) {
 			this.log.info(`PipelinesService > list > searching by name : ${options.name}`);
 			options.name = options.name.toLowerCase();
-			pipelineIds = await this.resourceService.listIdsByAlternateId(sc.groupId, options.name, {
+			pipelineIds = await this.resourceService.listIdsByAlternateId(sc.groupId, options.name, PkType.Pipeline, {
 				includeChildGroups: options?.includeChildGroups,
 				includeParentGroups: options?.includeParentGroups
 			});
@@ -455,7 +455,7 @@ export class PipelineService {
 	private async validateAlias(sc: SecurityContext, alias: string): Promise<void> {
 		this.log.debug(`PipelineService> validateAlias> groupId:${sc.groupId}, alias:${alias}`);
 		// Validation - ensure name is unique for the group
-		if (await this.groupService.isAlternateIdInUse(alias, sc.groupId)) {
+		if (await this.groupService.isAlternateIdInUse(alias, sc.groupId, PkType.Pipeline)) {
 			throw new AlternateIdInUseError(alias);
 		}
 	}
@@ -617,7 +617,7 @@ export class PipelineService {
 	 */
 	private createAggregatedOutputsKeyList(pipeline: Pipeline): void {
 		this.log.debug(`PipelinesService> createAggregatedOutputsKeyList> in> pipeline:${JSON.stringify(pipeline)}`);
-		if (!pipeline._aggregatedOutputKeyAndTypeMap) pipeline._aggregatedOutputKeyAndTypeMap = {};
+		if (!pipeline?._aggregatedOutputKeyAndTypeMap) pipeline._aggregatedOutputKeyAndTypeMap = {};
 
 		pipeline.transformer.transforms.slice(1).forEach((transform) => {
 			transform.outputs.forEach((output) => {
@@ -639,7 +639,7 @@ export class PipelineService {
 		pipeline.transformer.transforms.forEach((transform) => {
 			transform.outputs.forEach((output) => {
 				delete output._keyMapping;
-			});
+			})
 		});
 		delete pipeline._aggregatedOutputKeyAndTypeMap;
 

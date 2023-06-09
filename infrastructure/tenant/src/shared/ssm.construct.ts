@@ -27,7 +27,9 @@ export const calculationsApiFunctionNameParameter = (tenantId: string, environme
 export const accessManagementApiFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/accessManagement/apiFunctionName`;
 export const calculatorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/functionName`;
 export const pipelineProcessorApiFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiFunctionNameV2`;
-
+export const auditLogDepositorApiFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/auditLogDepositor/apiFunctionName`;
+export const auditLogDepositorDatabaseNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/auditLogDepositor/databaseName`;
+export const auditLogDepositorTableNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/auditLogDepositor/tableName`;
 
 // Connector parameters
 export const sifConnectorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/connectors/sif/functionName`;
@@ -88,6 +90,20 @@ export class SSM extends Construct {
 			stringValue: `${connectorPrefix}-csv`,
 		});
 
+		new ssm.StringParameter(this, 'auditLogDepositorApiFunctionNameParameter', {
+			parameterName: auditLogDepositorApiFunctionNameParameter(props.tenantId, props.environment),
+			stringValue: `${namePrefix}-auditLogDepositorApi`,
+		});
+
+		new ssm.StringParameter(this, 'auditLogDepositorDatabaseNameParameter', {
+			parameterName: auditLogDepositorDatabaseNameParameter(props.tenantId, props.environment),
+			stringValue: `${namePrefix}-audit-log-depositor`,
+		});
+
+		new ssm.StringParameter(this, 'auditLogDepositorTableNameParameter', {
+			parameterName: auditLogDepositorTableNameParameter(props.tenantId, props.environment),
+			stringValue: `audit-logs`,
+		});
 
 	}
 }

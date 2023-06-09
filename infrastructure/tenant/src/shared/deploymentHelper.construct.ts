@@ -22,7 +22,7 @@ import { fileURLToPath } from 'url';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import * as cdk from 'aws-cdk-lib';
 import { Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
-import { Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import type { DatabaseSecret } from 'aws-cdk-lib/aws-rds';
 import { NagSuppressions } from 'cdk-nag';
 
@@ -43,6 +43,9 @@ export interface DeploymentHelperConstructProperties {
 	tenantSecret: DatabaseSecret;
 	tenantDatabaseUsername: string;
 	pipelineApiFunctionNameParameter: ssm.StringParameter;
+	ecsClusterArn: string;
+	ecsTaskDefinitionArn: string;
+	ecsTaskExecutionRoleArn: string;
 }
 
 export const customResourceProviderTokenParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/shared/customResourceProviderToken`;
@@ -68,6 +71,27 @@ export class DeploymentHelper extends Construct {
 
 		const pipelineLambda = NodejsFunction.fromFunctionName(this, 'PipelineLambda', props.pipelineApiFunctionNameParameter.stringValue);
 
+		const accountId = cdk.Stack.of(this).account;
+		const region = cdk.Stack.of(this).region;
+
+		const taskExecutionRole = Role.fromRoleArn(this, 'TaskExecutionRole', props.ecsTaskExecutionRoleArn);
+
+		const taskRole = new Role(this, 'TaskDefinitionRole', {
+			assumedBy: new ServicePrincipal('ecs-tasks.amazonaws.com')
+		});
+
+		taskRole.attachInlinePolicy(
+			new Policy(this, 'ecs-access-to-cdk-assets', {
+				statements: [
+					new PolicyStatement({
+						actions: ['s3:*'],
+						resources: [`arn:aws:s3:::cdk-*-assets-${accountId}-${region}/*`]
+					})]
+			})
+		);
+
+		props.tenantSecret.grantRead(taskRole);
+
 		// need to do this because of postgresql limitation
 		const deploymentHelperLambda = new NodejsFunction(this, 'DeploymentHelperLambda', {
 			functionName: `${namePrefix}-deploymentHelper`,
@@ -75,9 +99,9 @@ export class DeploymentHelper extends Construct {
 			entry: path.join(__dirname, '../../../../typescript/packages/libraries/deployment-helper/src/handler.ts'),
 			runtime: Runtime.NODEJS_16_X,
 			tracing: Tracing.ACTIVE,
-			memorySize: 256,
+			memorySize: 512,
 			logRetention: RetentionDays.ONE_WEEK,
-			timeout: Duration.minutes(5),
+			timeout: Duration.minutes(15),
 			environment: {
 				NODE_ENV: props.environment,
 				TENANT_ID: props.tenantId,
@@ -85,7 +109,12 @@ export class DeploymentHelper extends Construct {
 				ENVIRONMENT: props.environment,
 				RDS_PROXY_ENDPOINT: props.rdsProxyEndpoint,
 				RDS_PROXY_NAME: props.rdsProxyName,
-				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionNameParameter.stringValue
+				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionNameParameter.stringValue,
+				ECS_CLUSTER_ARN: props.ecsClusterArn,
+				ECS_TASK_DEFINITION_ARN: props.ecsTaskDefinitionArn,
+				ECS_TASK_ROLE_ARN: taskRole.roleArn,
+				CONTAINER_SECURITY_GROUP: lambdaToRDSProxyGroup.securityGroupId,
+				CONTAINER_SUBNETS: `${Fn.select(0, props.privateSubnetIds)},${Fn.select(1, props.privateSubnetIds)}`
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
@@ -112,15 +141,32 @@ export class DeploymentHelper extends Construct {
 			},
 		]);
 
-		const accountId = cdk.Stack.of(this).account;
-		const region = cdk.Stack.of(this).region;
+		taskRole.grantPassRole(deploymentHelperLambda.role);
+		taskExecutionRole.grantPassRole(deploymentHelperLambda.role);
 
 		deploymentHelperLambda.role?.attachInlinePolicy(
-			new Policy(this, 'access-to-cdk-assets', {
+			new Policy(this, 'lambda-access-to-cdk-assets', {
 				statements: [
 					new PolicyStatement({
 						actions: ['s3:*'],
 						resources: [`arn:aws:s3:::cdk-*-assets-${accountId}-${region}/*`]
+					})]
+			})
+		);
+
+		deploymentHelperLambda.role?.attachInlinePolicy(
+			new Policy(this, 'run-ecs-task', {
+				statements: [
+					new PolicyStatement({
+						actions: [
+							'ecs:DescribeContainerInstances',
+							'ecs:DescribeTasks',
+							'ecs:ListTasks',
+							'ecs:UpdateContainerAgent',
+							'ecs:StartTask',
+							'ecs:StopTask',
+							'ecs:RunTask'],
+						resources: [props.ecsTaskDefinitionArn]
 					})]
 			})
 		);
@@ -186,8 +232,14 @@ export class DeploymentHelper extends Construct {
 			]
 		});
 
+		taskRole.attachInlinePolicy(
+			new Policy(this, 'taskrole-rds-proxy-policy', {
+				statements: [rdsProxyPolicy]
+			})
+		);
+
 		deploymentHelperLambda.role?.attachInlinePolicy(
-			new Policy(this, 'rds-proxy-policy', {
+			new Policy(this, 'lambda-rds-proxy-policy', {
 				statements: [rdsProxyPolicy]
 			})
 		);

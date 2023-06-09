@@ -4,9 +4,26 @@
 
 ### AWS Client VPN certificates
 
-If you want to deploy the platform shared components with AWS Client VPN, then follow the step outlined in [here](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-authentication.html#mutual), to generate the necessary certificates and upload it to [ACM](https://aws.amazon.com/certificate-manager/).
+If you want to deploy the platform shared components with AWS Client VPN, then follow the step outlined in [here](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/client-authentication.html#mutual), to generate the necessary
+certificates and upload it to [ACM](https://aws.amazon.com/certificate-manager/).
 
 Once the deployment is finished, you can connect to the AWS Client VPN, by using AWS provided client or OpenVPN client as specified [here](https://docs.aws.amazon.com/vpn/latest/clientvpn-user/client-vpn-user-what-is.html).
+
+### RDS Concurrency Limit
+
+When you deploy SIF for a particular environment, the Aurora serverless cluster is being shared by multiple tenants within the same environment. Because of this, the activity of one tenant can have negative impact of another tenant's use of
+the system.
+
+SIF uses concurrency control to throttle the number of activities that can be performed at any one time against the database. The [pipeline processors](../../typescript/packages/apps/pipeline-processors/README.md) state machine performs a
+list of operations that has a potential to consume the database resources. Before each of this operation, a **StepFunction** task needs to acquire a lock (shared by the multiple tenants within an environment) before it can proceed. The
+concurrency limit is the number of locks that are available to be leased by processed in multiple tenant.
+
+The value of the `RDS concurrency limit` will depend on your usage pattern. If your pattern of usage is to upload a few big files infrequently, it makes sense to use a small number of locks. If SIF is being used by multiple users in
+multiple location to upload a small number of files frequently, then a large number of locks makes more sense.
+
+The `acquire/release lock` requests (contains the stepfunction `taskToken` that will be used in a callback to resume the execution) is being sent to an SQS, `acquireLock` lambda will read the request from the queue, acquire the lock and resume the StepFunction execution.
+
+Ensure that these queues (`acquireLockQueue` and `releaseLockQueue`) are empty before a SIF deployment to avoid messages being processed incorrectly.
 
 ### Tools
 
@@ -20,7 +37,7 @@ The following tools are required in order to clone the repositories, build, then
 | [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)                             | [all modules] Repository manager.                                                                                                  |
 | [aws cli (v2)](http://docs.aws.amazon.com/cli/latest/userguide/installing.html)                  | [all modules] Used as part of some deployment scripts.                                                                             |
 | [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_install) | [all modules] Infrastructure as code.                                                                                              |
-| [java 11](https://openjdk.org/projects/jdk/11/)                                                  | [java modules] Java runtime.                                                                                                       |
+| [java 17](https://openjdk.org/projects/jdk/17/)                                                  | [java modules] Java runtime.                                                                                                       |
 | [maven](https://maven.apache.org/install.html)                                                   | [java modules] Java build tool.                                                                                                    |
 | [docker](https://docs.docker.com/get-docker/)                                                    | [java modules] Java CDK build process.                                                                                             |
 
@@ -44,6 +61,7 @@ Before starting, the following decisions need to be made. Replace the referenced
 | If using AWS Client VPN, an optional client certificate arn                                                                                        | N          | As above, part of the Client VPN configuration.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | `<clienArn>`                  |
 | Remove Aurora cluster on stack deletion?                                                                                                           | N          | By default, Aurora cluster will not be removed when you deleted the SIF stacks.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | `<clusterDeletionProtection>` |
 | Remove S3 bucket on stack deletion?                                                                                                                | N          | By default, S3 buckets will not be removed when you deleted the SIF stacks.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | `<deleteBucket>`              |
+| If you want to increase/decrease the concurrency limit that throttle operations on the database cluster?                                           | N          | By default, RDS concurrency limit is set to 10.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | `<rdsConcurrencyLimit>`       |
 
 ## Step 1 - Cloning the repository
 
@@ -92,6 +110,9 @@ sif-core/infrastructure/platform>  npm run cdk -- deploy \
 
 	# [OPTIONAL] if using AWS Client VPN then set the following:
  	-c includeVpnClient=true -c certArn=<certArn> -c clientArn=<clientArn> \
+
+ 	# [OPTIONAL] by default, the number of rdsConcurrencyLimit is 5:
+ 	-c rdsConcurrencyLimit=<rdsConcurrencyLimit> \
 
  	# [OPTIONAL] by default, all s3 buckets are retained when stack is deleted, set this to true if you want the bucket to be deleted:
  	-c deleteBucket=true \
@@ -161,6 +182,7 @@ sif-core/typescript/packages/integrationTests>   npm run generate:token -- <tena
 
 ## Finished
 
-SIF is now deployed and available for use. Interaction with SIF is done through the REST APIs exposed by each module. The API endpoints for these APIs can be found as outputs in the terminal during the deployment or as outputs in the CloudFormation console after the deployment completes. Alternatively, a script exists to generate a Postman environment file containing the endpoints. See [the Postman doc](../integration/postman.md) for more on running this script.
+SIF is now deployed and available for use. Interaction with SIF is done through the REST APIs exposed by each module. The API endpoints for these APIs can be found as outputs in the terminal during the deployment or as outputs in the
+CloudFormation console after the deployment completes. Alternatively, a script exists to generate a Postman environment file containing the endpoints. See [the Postman doc](../integration/postman.md) for more on running this script.
 
 Visit the [user guide walkthrough](../walkthrough.md) to learn how to use the framework.

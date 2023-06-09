@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/schema-migrator",
+      "comment": "",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/schema-migrator"
+}

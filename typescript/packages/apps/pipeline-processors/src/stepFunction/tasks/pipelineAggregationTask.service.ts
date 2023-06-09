@@ -11,14 +11,14 @@
  *  and limitations under the License.
  */
 
-import type { BaseLogger } from 'pino';
-import type { ActivitiesRepository } from '../../api/activities/repository.js';
-import type { AggregationTaskEvent } from './model.js';
 import type { LambdaRequestContext, PipelineClient } from '@sif/clients';
+import { validateDefined, validateNotEmpty } from '@sif/validators';
+import type { BaseLogger } from 'pino';
 import type { PipelineMetadata } from '../../api/activities/models.js';
+import type { ActivitiesRepository } from '../../api/activities/repository.js';
 import type { PipelineProcessorsRepository } from '../../api/executions/repository.js';
 import { getPipelineMetadata } from '../../utils/helper.utils.js';
-import { validateDefined, validateNotEmpty } from '@sif/validators';
+import type { ProcessedTaskEvent } from './model.js';
 
 export class PipelineAggregationTaskService {
 	private readonly log: BaseLogger;
@@ -33,20 +33,18 @@ export class PipelineAggregationTaskService {
 		this.pipelineProcessorRepository = pipelineProcessorRepository;
 	}
 
-	public async process(event: AggregationTaskEvent): Promise<void> {
+	public async process(event: ProcessedTaskEvent): Promise<void> {
 		this.log.info(`PipelineAggregationTaskService> process> event: ${JSON.stringify(event)}`);
 
 		validateDefined(event, 'event');
-		validateDefined(event.transformer?.transforms, 'event.transformer.transforms');
 		validateNotEmpty(event.groupContextId, 'event.groupContextId');
 		validateNotEmpty(event.pipelineId, 'event.pipelineId');
-		validateNotEmpty(event.pipelineExecutionId, 'event.pipelineExecutionId');
+		validateNotEmpty(event.executionId, 'event.executionId');
+		validateNotEmpty(event.requiresAggregation, 'event.requiresAggregation');
 
-		const { pipelineId, pipelineExecutionId: executionId, groupContextId, transformer } = event;
+		const { groupContextId, pipelineId, executionId, requiresAggregation } = event;
 
-		const needAggregation = transformer.transforms.find(o => o.outputs.find(o => o.aggregate));
-
-		if (needAggregation) {
+		if (requiresAggregation) {
 			this.log.info(`PipelineAggregationTaskService> process> pipeline ${pipelineId} has aggregation specified`);
 
 			const execution = await this.pipelineProcessorRepository.get(pipelineId, executionId);
@@ -71,22 +69,26 @@ export class PipelineAggregationTaskService {
 		this.log.info(`PipelineAggregationTaskService> process> exit:`);
 	}
 
-	public async* getActivitiesAggregatedBySqlFunctions(pipelineId: string, executionId: string, groupContextId: string, pipelineMetadata: PipelineMetadata) {
+	public async *getActivitiesAggregatedBySqlFunctions(pipelineId: string, executionId: string, groupContextId: string, pipelineMetadata: PipelineMetadata) {
 		this.log.debug(`PipelineAggregationTaskService> getActivitiesAggregatedBySqlFunctions> in> pipeline ${pipelineId}, executionId: ${executionId}, groupContextId: ${groupContextId}, pipelineMetadata: ${pipelineMetadata}`);
 
 		const { from: dateFrom, to: dateTo } = await this.activitiesRepository.getAffectedTimeRange(pipelineId, executionId);
 
-		let moreRowsToProcess = true, fromOffset = 0;
+		let moreRowsToProcess = true,
+			fromOffset = 0;
 
 		while (moreRowsToProcess) {
-			const { data, nextToken } = await this.activitiesRepository.aggregateRaw({
-				dateFrom,
-				dateTo,
-				pipelineId,
-				groupId: groupContextId,
-				nextToken: fromOffset,
-				maxRows: 1000
-			}, pipelineMetadata);
+			const { data, nextToken } = await this.activitiesRepository.aggregateRaw(
+				{
+					dateFrom,
+					dateTo,
+					pipelineId,
+					groupId: groupContextId,
+					nextToken: fromOffset,
+					maxRows: 1000,
+				},
+				pipelineMetadata
+			);
 
 			if (data.length > 0) {
 				// set the offset for the next query

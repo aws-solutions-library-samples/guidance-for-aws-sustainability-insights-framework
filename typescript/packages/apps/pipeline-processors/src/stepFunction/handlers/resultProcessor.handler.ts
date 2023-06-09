@@ -20,9 +20,9 @@ import type { ResultProcessorTask } from '../tasks/resultProcessorTask';
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
-export const handler: ResultProcessorTaskHandler = async (event, _context, _callback) => {
+export const handler: ResultProcessorTaskHandler = async (event, _context, _callback) : Promise<void> => {
 	app.log.info(`resultProcessorLambda > handler > event: ${JSON.stringify(event)}`);
-	const task = di.resolve<ResultProcessorTask>('outputTask');
+	const task = di.resolve<ResultProcessorTask>('resultProcessorTask');
 	await task.process(event);
 	app.log.info(`resultProcessorLambda > handler > exit:`);
 };

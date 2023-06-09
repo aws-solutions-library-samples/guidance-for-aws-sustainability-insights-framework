@@ -24,10 +24,16 @@ const environment = getOrThrow(app, 'environment');
 
 // optional requirements to launch, default the maxCapacity for aurora serverless v2 to 16
 const maxClusterCapacity = (app.node.tryGetContext('maxClusterCapacity') as number) ?? 16;
-const minClusterCapacity = (app.node.tryGetContext('minClusterCapacity') as number) ?? 0.5;
-const includeVpnClient = app.node.tryGetContext('includeVpnClient') === 'true';
+const minClusterCapacity = (app.node.tryGetContext('minClusterCapacity') as number) ?? 1;
+const includeVpnClient = (app.node.tryGetContext('includeVpnClient') ?? 'false') === 'true';
 const clusterDeletionProtection = (app.node.tryGetContext('clusterDeletionProtection') ?? 'true') === 'true';
 const deleteBucket = (app.node.tryGetContext('deleteBucket') ?? 'false') === 'true';
+const rdsConcurrencyLimit = (app.node.tryGetContext('rdsConcurrencyLimit') as number) ?? 10;
+
+// optional requirement to specify your own image registry
+const repositoryName = app.node.tryGetContext('repositoryName');
+const repositoryArn = app.node.tryGetContext('repositoryArn');
+const imageTag = app.node.tryGetContext('imageTag');
 
 let certArn, clientArn;
 
@@ -54,5 +60,9 @@ new SharedPlatformInfrastructureStack(app, 'SharedPlatform', {
 	maxClusterCapacity: maxClusterCapacity,
 	clusterDeletionProtection: clusterDeletionProtection,
 	vpnOptions: includeVpnClient ? { certArn, clientArn } : undefined,
-	deleteBucket
+	deleteBucket,
+	rdsConcurrencyLimit,
+	repositoryName,
+	repositoryArn,
+	imageTag
 });

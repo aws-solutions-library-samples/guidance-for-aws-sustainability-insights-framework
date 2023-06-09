@@ -434,15 +434,14 @@ export class ResourceRepository {
 		return [resourceIds, { id: resourceIds[resourceIds.length - 1] }];
 	}
 
-	public async listIdsByAlternateId(alternateId: string, groups: string[]): Promise<string[]> {
+	public async listIdsByAlternateId(alternateId: string, groups: string[], keyPrefix: string): Promise<string[]> {
 		this.log.debug(
-			`ResourceRepository> listIdsByAlternateId> in> alternateId: ${alternateId}, groups:${groups}
-			)}`
+			`ResourceRepository> listIdsByAlternateId> in> alternateId: ${alternateId}, groups:${groups}, keyPrefix:${keyPrefix}}`
 		);
 
 		const limit = pLimit(this.concurrencyLimit);
 		const getIdFutures = groups.map((g) => {
-			return limit(() => this.getIdByAlternateId(alternateId, g));
+			return limit(() => this.getIdByAlternateId(alternateId, g, keyPrefix));
 		});
 
 		const resourceIds = (await Promise.all(getIdFutures)).filter((r) => r !== undefined);
@@ -450,18 +449,20 @@ export class ResourceRepository {
 		return resourceIds;
 	}
 
-	public async getIdByAlternateId(alternateId: string, groupId: string): Promise<string> {
-		this.log.debug(`ResourceRepository> getIdByAlternateId> in> alternateId: ${alternateId}, groupId:${groupId}`);
+	public async getIdByAlternateId(alternateId: string, groupId: string, keyPrefix: string): Promise<string> {
+		this.log.debug(`ResourceRepository> getIdByAlternateId> in> alternateId: ${alternateId}, groupId:${groupId}, keyPrefix:${keyPrefix}`);
 
 		const params: QueryCommandInput = {
 			TableName: this.tableName,
 			IndexName: this.GSI2,
-			KeyConditionExpression: `#hash=:hash`,
+			KeyConditionExpression: `#hash=:hash AND begins_with(#sort,:sort)`,
 			ExpressionAttributeNames: {
 				'#hash': 'siKey2',
+				'#sort': 'pk',
 			},
 			ExpressionAttributeValues: {
 				':hash': createDelimitedAttribute(CommonPkType.AlternateId, alternateId, CommonPkType.Group, groupId),
+				':sort': createDelimitedAttributePrefix(keyPrefix),
 			},
 			ProjectionExpression: 'pk,sk',
 		};

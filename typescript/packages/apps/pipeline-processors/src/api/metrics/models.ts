@@ -21,6 +21,25 @@ export type AffectedTimeRange = {
 export const TimeUnits = ['day', 'week', 'month', 'quarter', 'year'];
 export type TimeUnit = typeof TimeUnits[number];
 
+export const TimeUnitAbbreviations = ['d', 'w', 'm', 'q', 'y'];
+export type TimeUnitAbbreviation = typeof TimeUnitAbbreviations[number];
+
+export const TIME_UNIT_TO_DATE_PART: Record<TimeUnitAbbreviation, TimeUnit> = {
+	d: 'day',
+	w: 'week',
+	m: 'month',
+	q: 'quarter',
+	y: 'year',
+};
+
+export const DATE_PART_TO_TIME_UNIT: Record<TimeUnit, TimeUnitAbbreviation> = {
+	day: 'd',
+	week: 'w',
+	month: 'm',
+	quarter: 'q',
+	year: 'y',
+};
+
 export type QueryRequest = {
 	groupId: string;
 	name: string;
@@ -44,4 +63,10 @@ export interface TimeUnitMetrics {
 
 export interface GroupMetrics {
 	[groupId: string]: TimeUnitMetrics;
+}
+
+export interface IMetricsRepository {
+	listCollectionMetrics(metric: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string): Promise<Metric[]>;
+
+	listMembersMetrics(metric: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string): Promise<Metric[]>;
 }

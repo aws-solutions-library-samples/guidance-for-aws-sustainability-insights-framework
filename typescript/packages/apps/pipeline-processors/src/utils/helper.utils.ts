@@ -26,20 +26,20 @@ export async function streamToString(stream: Readable): Promise<string> {
 
 export const INPUT_DATA_FILENAME = 'input';
 
-export function getPipelineInputKey(bucketPrefix: string, pipelineId: string, pipelineExecutionId: string, type: 'raw' | 'transformed' | 'archived'): string {
-	return `${bucketPrefix}/${pipelineId}/executions/${pipelineExecutionId}/input/${type}`;
+export function getPipelineInputKey(bucketPrefix: string, pipelineId: string, executionId: string, type: 'raw' | 'transformed' | 'archived'): string {
+	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/input/${type}`;
 }
 
 export const ERROR_DATA_FILENAME = 'errors.txt';
 
-export function getPipelineErrorKey(bucketPrefix: string, pipelineId: string, pipelineExecutionId: string): string {
-	return `${bucketPrefix}/${pipelineId}/executions/${pipelineExecutionId}/${ERROR_DATA_FILENAME}`;
+export function getPipelineErrorKey(bucketPrefix: string, pipelineId: string, executionId: string): string {
+	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/${ERROR_DATA_FILENAME}`;
 }
 
 export const AUDIT_FOLDER = 'audit/';
 
-export function getPipelineAuditKey(bucketPrefix: string, pipelineId: string, pipelineExecutionId: string): string {
-	return `${bucketPrefix}/${pipelineId}/executions/${pipelineExecutionId}/${AUDIT_FOLDER}`;
+export function getPipelineAuditKey(bucketPrefix: string, pipelineId: string, executionId: string): string {
+	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/${AUDIT_FOLDER}`;
 }
 
 export function getPipelineMetadata(pipeline: Pipeline): PipelineMetadata {

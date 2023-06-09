@@ -97,6 +97,7 @@ export default fp<FastifyAwilixOptions>(async (app): Promise<void> => {
 					container.groupModuleService,
 					container.userRepository,
 					container.eventPublisher,
+					container.tagRepository,
 					container.tagService,
 					container.resourceService,
 					container.mergeUtils

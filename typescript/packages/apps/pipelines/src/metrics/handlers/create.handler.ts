@@ -22,7 +22,7 @@ export default function createMetricRoute(fastify: FastifyTypebox, _options: unk
 		method: 'POST',
 		url: '/metrics',
 		schema: {
-			description: `Creates a new Metric.`,
+			description: `Creates a new Metric. The metric name should be unique per hierarchy e.g. if a metric with name "a" is created at "/usa" and creating a metric with the same name "a" at "/usa/*" wont be allowed.  `,
 			tags: ['Metrics'],
 			headers: commonHeaders,
 			operationId: 'createMetric',

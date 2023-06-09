@@ -44,32 +44,32 @@ describe('ResourceService', () => {
 	describe('listIdsByAlternateId', () => {
 		it('should list the current group context only if options are not specified', async () => {
 			mockResourceRepository.listIdsByAlternateId.mockResolvedValueOnce(['01', '02', '04']);
-			const result = await underTest.listIdsByAlternateId('/group1', 'aliasName', { includeParentGroups: false, includeChildGroups: false });
+			const result = await underTest.listIdsByAlternateId('/group1', 'aliasName', 'r', { includeParentGroups: false, includeChildGroups: false });
 			expect(result).toEqual(['01', '02', '04']);
-			expect(mockResourceRepository.listIdsByAlternateId).toHaveBeenCalledWith('aliasName', ['/group1']);
+			expect(mockResourceRepository.listIdsByAlternateId).toHaveBeenCalledWith('aliasName', ['/group1'], 'r');
 		});
 
 		it('should list parent groups if includeParentGroups is set to true', async () => {
 			mockResourceRepository.listIdsByAlternateId.mockResolvedValueOnce(['01', '02', '04']);
-			const result = await underTest.listIdsByAlternateId('/group1/group2/group3', 'aliasName', { includeParentGroups: true, includeChildGroups: false });
+			const result = await underTest.listIdsByAlternateId('/group1/group2/group3', 'aliasName', 'r', { includeParentGroups: true, includeChildGroups: false });
 			expect(result).toEqual(['01', '02', '04']);
-			expect(mockResourceRepository.listIdsByAlternateId).toHaveBeenCalledWith('aliasName', ['/group1/group2/group3', '/', '/group1', '/group1/group2']);
+			expect(mockResourceRepository.listIdsByAlternateId).toHaveBeenCalledWith('aliasName', ['/group1/group2/group3', '/', '/group1', '/group1/group2'], 'r');
 		});
 
 		it('should list child groups if includeChild is set to true', async () => {
 			mockResourceRepository.listIdsByAlternateId.mockResolvedValueOnce(['01', '02', '04']);
 			mockAccessManagementClient.listSubGroupIds.mockResolvedValueOnce(['/group1/group2', '/group1/group2/group3']);
-			const result = await underTest.listIdsByAlternateId('/group1', 'aliasName', { includeParentGroups: false, includeChildGroups: true });
+			const result = await underTest.listIdsByAlternateId('/group1', 'aliasName', 'r', { includeParentGroups: false, includeChildGroups: true });
 			expect(result).toEqual(['01', '02', '04']);
-			expect(mockResourceRepository.listIdsByAlternateId).toHaveBeenCalledWith('aliasName', ['/group1', '/group1/group2', '/group1/group2/group3']);
+			expect(mockResourceRepository.listIdsByAlternateId).toHaveBeenCalledWith('aliasName', ['/group1', '/group1/group2', '/group1/group2/group3'], 'r');
 		});
 
 		it('should explode parent path and all the child paths', async () => {
 			mockResourceRepository.listIdsByAlternateId.mockResolvedValueOnce(['01', '02', '04']); // results from parent does not meet the limit
 			mockAccessManagementClient.listSubGroupIds.mockResolvedValueOnce(['/group1/group2', '/group1/group2/group3']);
-			const result = await underTest.listIdsByAlternateId('/group1', 'aliasName', { includeParentGroups: true, includeChildGroups: true });
+			const result = await underTest.listIdsByAlternateId('/group1', 'aliasName', 'r', { includeParentGroups: true, includeChildGroups: true });
 			expect(result).toEqual(['01', '02', '04']);
-			expect(mockResourceRepository.listIdsByAlternateId).toHaveBeenCalledWith('aliasName', ['/group1', '/', '/group1/group2', '/group1/group2/group3']);
+			expect(mockResourceRepository.listIdsByAlternateId).toHaveBeenCalledWith('aliasName', ['/group1', '/', '/group1/group2', '/group1/group2/group3'], 'r');
 		});
 	});
 

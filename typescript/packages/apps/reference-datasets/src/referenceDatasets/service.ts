@@ -132,7 +132,7 @@ export class ReferenceDatasetService {
 		}
 
 		// Validation - ensure alias is unique for the group
-		if (await this.groupsService.isAlternateIdInUse(referenceDatasetNew.name, securityContext.groupId)) {
+		if (await this.groupsService.isAlternateIdInUse(referenceDatasetNew.name, securityContext.groupId, PkType.ReferenceDataset)) {
 			throw new AlternateIdInUseError(referenceDatasetNew.name);
 		}
 
@@ -562,7 +562,7 @@ export class ReferenceDatasetService {
 		if (options.name) {
 			this.log.debug(`ReferenceDatasetService> listReferenceDatasets> searching by name : ${options.name}`);
 			options.name = options.name.toLowerCase();
-			referenceDatasetIds = await this.resourceService.listIdsByAlternateId(securityContext.groupId, options.name, {
+			referenceDatasetIds = await this.resourceService.listIdsByAlternateId(securityContext.groupId, options.name, PkType.ReferenceDataset, {
 				includeParentGroups: options?.includeParentGroups,
 				includeChildGroups: options?.includeChildGroups,
 			});

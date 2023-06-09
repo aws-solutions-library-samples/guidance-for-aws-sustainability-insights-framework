@@ -40,17 +40,24 @@ describe('AggregationTaskAuroraRepository', () => {
 		mockPostgresClient.query.mockResolvedValueOnce({ rows: [{ from: '2023-01-03T16:00:00.000Z', to: '2023-01-05T16:00:00.000Z' }] });
 		const result = await aggregationTaskRepository.getAffectedTimeRange('pipe2', 'exec1');
 		const expectedQuery = '\n' +
-			`SELECT min("date") as "from" , date_trunc('day', date(max(a.date))) as "to"\n` +
+			`SELECT date_trunc('day', date(min(a.date)))::timestamp with time zone as "from",\n` +
+			`       (date_trunc('day', max(a.date)) + interval '1 day' - interval '1 second')::timestamp with time zone as "to"\n` +
 			'FROM "Activity" a\n' +
-			`WHERE  a."type" = 'raw'\n` +
-			` AND (\t"activityId" IN (\tSELECT distinct "activityId" FROM "ActivityStringValue" WHERE "executionId" = 'exec1')\n` +
-			`\tOR   "activityId" IN (\tSELECT distinct "activityId" FROM "ActivityNumberValue" WHERE "executionId" = 'exec1')\n` +
-			`\tOR   "activityId" IN (\tSELECT distinct "activityId" FROM "ActivityDateTimeValue" WHERE "executionId" = 'exec1')\n` +
-			`\tOR   "activityId" IN (\tSELECT distinct "activityId" FROM "ActivityBooleanValue" WHERE "executionId" = 'exec1'))`
+			'         LEFT JOIN "ActivityNumberValue" n\n' +
+			`                   on a."activityId" = n."activityId" and n."executionId" = 'exec1'\n` +
+			'         LEFT JOIN "ActivityBooleanValue" b\n' +
+			`                   on a."activityId" = b."activityId" and b."executionId" = 'exec1'\n` +
+			'         LEFT JOIN "ActivityStringValue" s\n' +
+			`                   on a."activityId" = s."activityId" and s."executionId" = 'exec1'\n` +
+			'         LEFT JOIN "ActivityDateTimeValue" d\n' +
+			`                   on a."activityId" = d."activityId" and d."executionId" = 'exec1'\n` +
+			`WHERE a."type" = 'raw';`
+
+		console.log(mockPostgresClient.query.mock.calls[0])
 
 		expect(mockPostgresClient.query).toBeCalledWith(expectedQuery);
-		expect(result.from).toEqual('2023-01-03T16:00:00.000Z');
-		expect(result.to).toEqual('2023-01-05T16:00:00.000Z');
+		expect(result.from).toEqual(new Date('2023-01-03T16:00:00.000Z'));
+		expect(result.to).toEqual(new Date('2023-01-05T16:00:00.000Z'));
 	});
 
 	it('aggregatePipelineOutput - should aggregate the output from multiple pipeline', async () => {

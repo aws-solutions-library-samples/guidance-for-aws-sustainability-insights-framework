@@ -1,6 +1,6 @@
 {
 	"name": "@sif/pipelines",
-	"version": "4.6.7",
+	"version": "4.6.10",
 	"description": "Pipelines module",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"type": "module",

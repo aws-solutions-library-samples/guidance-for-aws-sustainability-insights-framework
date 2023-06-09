@@ -18,6 +18,7 @@ import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.aws.sif.di.CalculatorComponent;
 import com.aws.sif.di.DaggerCalculatorComponent;
 import com.google.gson.GsonBuilder;
+import com.typesafe.config.Config;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,10 +41,14 @@ public class HandlerStream implements RequestStreamHandler {
     @Inject @Setter
     public CalculatorService calculatorService;
 
+	@Inject @Setter
+	public Config config;
+
     public HandlerStream() {
         // As AWS Lambda manages the creation of this handler class and not Dagger, this technique registers
         // this object with Dagger which then allows it to inject its dependencies by Dagger.
         component.inject(this);
+		log.debug("config: {}", config.root().render());
     }
 
     @Override

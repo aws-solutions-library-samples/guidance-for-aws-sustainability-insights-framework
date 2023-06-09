@@ -136,7 +136,7 @@ export class ReferenceDatasetsModule extends Construct {
 		const indexerLambda = new Function(this, 'ReferenceDatasetsIndexerHandler', {
 			functionName: `${namePrefix}-referenceDatasets-indexer`,
 			description: `Reference Datasets Indexer Function: Tenant ${props.tenantId}`,
-			runtime: Runtime.JAVA_11,
+			runtime: Runtime.JAVA_17,
 			handler: 'com.aws.sif.HandlerStream',
 			memorySize: 1024,
 			timeout: Duration.minutes(10),
@@ -150,7 +150,7 @@ export class ReferenceDatasetsModule extends Construct {
 			code: Code.fromAsset(indexerLambdaPath, {
 				bundling: {
 					workingDirectory: indexerLambdaPath,
-					image: Runtime.JAVA_11.bundlingImage,
+					image: Runtime.JAVA_17.bundlingImage,
 					local: {
 						tryBundle(outputDir: string): boolean {
 							try {
@@ -208,7 +208,7 @@ export class ReferenceDatasetsModule extends Construct {
 			entry: path.join(__dirname, '../../../../typescript/packages/apps/reference-datasets/src/lambda_apiGateway.ts'),
 			runtime: Runtime.NODEJS_16_X,
 			tracing: Tracing.ACTIVE,
-			memorySize: 256,
+			memorySize: 512,
 			timeout: Duration.seconds(29),
 			logRetention: RetentionDays.ONE_WEEK,
 			environment: {

@@ -68,7 +68,7 @@ describe('Verify Task', () => {
 			bucket: 'testBucket',
 			key: 'testKey',
 		},
-		pipelineExecutionId: '55555',
+		executionId: '55555',
 		pipelineId: '111111',
 	};
 
@@ -110,7 +110,7 @@ describe('Verify Task', () => {
 		// Check that context is being inserted correctly
 		expect(result.context).toEqual({
 			pipelineId: sampleEvent.pipelineId,
-			pipelineExecutionId: sampleEvent.pipelineExecutionId,
+			executionId: sampleEvent.executionId,
 			groupContextId: mockPipelineExecution.groupContextId,
 			transformer: mockPipeline.transformer,
 		});

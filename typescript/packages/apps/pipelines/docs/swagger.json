@@ -5216,7 +5216,7 @@
         "tags": [
           "Metrics"
         ],
-        "description": "Creates a new Metric.",
+        "description": "Creates a new Metric. The metric name should be unique per hierarchy e.g. if a metric with name \"a\" is created at \"/usa\" and creating a metric with the same name \"a\" at \"/usa/*\" wont be allowed.  ",
         "requestBody": {
           "content": {
             "application/json": {

@@ -267,6 +267,7 @@ export class UserRepository {
 			createdBy: i['createdBy'],
 			updatedAt: i['updatedAt'],
 			updatedBy: i['updatedBy'],
+			tags: i['tags'],
 		};
 	}
 }

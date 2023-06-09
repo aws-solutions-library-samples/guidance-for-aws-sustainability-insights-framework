@@ -38,6 +38,7 @@ const updatedAt: TString = Type.String({
 const status = Type.Enum({
 	waiting: 'waiting',
 	in_progress: 'in_progress',
+	calculating_metrics: 'calculating_metrics',
 	success: 'success',
 	failed: 'failed'
 }, { description: 'Status of the pipeline execution.' });
@@ -142,6 +143,26 @@ export const signedUrlUploadInputRequest = Type.Object(
 export const signedUrlResponse = Type.Object(
 	{
 		url: Type.String({ description: 'requested signed url' }),
+	},
+	{
+		$id: 'signedUrl_response',
+	}
+);
+
+export const auditExportResponse = Type.Object(
+	{
+		state: Type.Enum(
+			{
+				success: 'success',
+				inProgress: 'inProgress',
+				error: 'error'
+			},
+			{
+				description: 'Autdit export generation status',
+			},
+
+		),
+		url: Type.Optional(Type.String({ description: 'requested signed url' })),
 	},
 	{
 		$id: 'signedUrl_response',

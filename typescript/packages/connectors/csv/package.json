@@ -1,7 +1,7 @@
 {
 	"name": "@sif/csv-pipeline-input-connector",
 	"description": "SIF: csv input connector for converting pipeline inputs to sif compatible formats",
-	"version": "1.0.5",
+	"version": "1.0.7",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"type": "module",
 	"scripts": {

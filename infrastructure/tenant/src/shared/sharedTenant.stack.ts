@@ -32,6 +32,12 @@ export const rdsProxySecurityGroupParameter = (environment: string) => `/sif/sha
 export const rdsProxyArnParameter = (environment: string) => `/sif/shared/${environment}/aurora/rdsProxyArn`;
 export const rdsProxyNameParameter = (environment: string) => `/sif/shared/${environment}/aurora/rdsProxyName`;
 export const rdsProxyRoleArnParameter = (environment: string) => `/sif/shared/${environment}/aurora/rdsProxyRoleArn`;
+export const acquireLockSqsQueueArnParameter = (environment: string) => `/sif/shared/${environment}/semaphore/acquireLockSqsQueueArn`;
+export const releaseLockSqsQueueArnParameter = (environment: string) => `/sif/shared/${environment}/semaphore/releaseLockSqsQueueArn`;
+export const environmentEventBusNameParameter = (environment: string) => `/sif/shared/${environment}/semaphore/eventBusName`;
+export const ecsTaskExecutionRoleArnParameter = (environment: string) => `/sif/shared/${environment}/ecs/taskExecutionRoleArn`;
+export const ecsClusterArnParameter = (environment: string) => `/sif/shared/${environment}/ecs/clusterArn`;
+export const ecsTaskDefinitionArnParameter = (environment: string) => `/sif/shared/${environment}/ecs/taskDefinitionArn`;
 
 export type SharedTenantStackProperties = StackProps & {
 	tenantId: string;
@@ -122,6 +128,22 @@ export class SharedTenantInfrastructureStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
+		const ecsClusterArn = StringParameter.fromStringParameterAttributes(this, 'ecsClusterArn', {
+			parameterName: ecsClusterArnParameter(props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const ecsTaskDefinitionArn = StringParameter.fromStringParameterAttributes(this, 'ecsTaskDefinitionArn', {
+			parameterName: ecsTaskDefinitionArnParameter(props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const ecsTaskExecutionRoleArn = StringParameter.fromStringParameterAttributes(this, 'ecsTaskExecutionRoleArn', {
+			parameterName: ecsTaskExecutionRoleArnParameter(props.environment),
+			simpleName: false,
+		}).stringValue;
+
+
 		const auroraSeeder = new AuroraSeeder(this, 'AuroraSeeder', {
 			tenantId: props.tenantId,
 			environment: props.environment,
@@ -140,7 +162,10 @@ export class SharedTenantInfrastructureStack extends Stack {
 			privateSubnetIds: Fn.split(',', subnetIdList.valueAsString),
 			tenantSecret: auroraSeeder.tenantSecret,
 			tenantDatabaseUsername: auroraSeeder.tenantDatabaseUsername,
-			pipelineApiFunctionNameParameter: ssmConstruct.pipelineApiFunctionNameParameter
+			pipelineApiFunctionNameParameter: ssmConstruct.pipelineApiFunctionNameParameter,
+			ecsClusterArn,
+			ecsTaskDefinitionArn,
+			ecsTaskExecutionRoleArn
 		});
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [
@@ -172,7 +197,7 @@ export class SharedTenantInfrastructureStack extends Stack {
 			}
 		], true);
 
-		NagSuppressions.addResourceSuppressionsByPath(this, ['/SharedTenant/DeploymentHelper/access-to-cdk-assets/Resource'], [
+		NagSuppressions.addResourceSuppressionsByPath(this, ['/SharedTenant/DeploymentHelper/lambda-access-to-cdk-assets/Resource', '/SharedTenant/DeploymentHelper/ecs-access-to-cdk-assets/Resource'], [
 			{
 				id: 'AwsSolutions-IAM5',
 				reason: 'The lambda need to download assets from the cdk bucket.',

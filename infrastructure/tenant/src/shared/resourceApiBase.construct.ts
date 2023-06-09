@@ -226,7 +226,7 @@ export class ResourceApiBase extends Construct {
 				entry: path.join(__dirname, props.queue.moduleSqsLambdaLocation), // nosemgrep
 				runtime: Runtime.NODEJS_16_X,
 				tracing: Tracing.ACTIVE,
-				memorySize: 256,
+				memorySize: 512,
 				timeout: Duration.minutes(5),
 				logRetention: RetentionDays.ONE_WEEK,
 				environment: {
@@ -259,7 +259,7 @@ export class ResourceApiBase extends Construct {
 					reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
 				},
 			]);
-	
+
 			sqsLambda.node.addDependency(workerQueue);
 
 			const eventSource = new SqsEventSource(workerQueue);

@@ -35,7 +35,8 @@ export const moduleConfigSchema = Type.Object({
 	TENANT_USERNAME: Type.String(),
 	TENANT_DATABASE_NAME: Type.String(),
 	TENANT_ID: Type.String(),
-	INLINE_PROCESSING_ROWS_LIMIT: Type.Number({ default: 100 })
+	INLINE_PROCESSING_ROWS_LIMIT: Type.Number({ default: 100 }),
+	SUPPORTED_PIPELINE_S3_VERSION: Type.String({ default: 2 }),
 });
 export const configSchema = Type.Intersect([moduleConfigSchema, baseConfigSchema]);
 

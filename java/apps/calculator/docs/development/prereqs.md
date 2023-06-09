@@ -2,7 +2,7 @@
 
 | Tool / Technology                                                    | Reason                                                         |
 |----------------------------------------------------------------------|----------------------------------------------------------------|
-| [java 11](https://openjdk.org/projects/jdk/11/)                      | Java version 11                                                |
+| [java 17](https://openjdk.org/projects/jdk/17/)                      | Java version 11                                                |
 | [Maven](https://maven.apache.org/install.html)                       | Build/Bundle tool  to use run execute `mvn clean install` from the `application`folder                                                                                                                     |
 | [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) | Version control                                                |
 

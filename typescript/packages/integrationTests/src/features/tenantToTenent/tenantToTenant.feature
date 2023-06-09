@@ -301,7 +301,7 @@ Feature:
 			| 3/1/22       | 55432   | JUL   | 120.2 |
 			| 4/1/22       | 52172   | AUG   | 98.7  |
 			| 5/1/22       | 75001   | AUG   | 153.8 |
-		Then I pause for 30000ms
+		Then I pause for 60000ms
 		When I GET /pipelines/`t2t_pipeline_id`/executions/`household_electricity_carbon_footprint_pipeline_execution_id`
 		Then response code should be 200
 		And response body path $.status should be success

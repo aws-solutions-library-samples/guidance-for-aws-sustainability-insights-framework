@@ -174,7 +174,7 @@ export class EventProcessor {
 							key: getPipelineInputKey(this.bucketPrefix, event.pipelineId, event.executionId, 'transformed'),
 						},
 						pipelineId: event.pipelineId as string,
-						pipelineExecutionId: event.executionId as string,
+						executionId: event.executionId as string,
 					}),
 				})
 			);

@@ -1,6 +1,6 @@
 {
 	"name": "@sif/access-management",
-	"version": "4.0.17",
+	"version": "4.0.21",
 	"description": "SIF: Access Management",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",

@@ -182,15 +182,16 @@ describe('GroupService', () => {
 	it('isAlternateIdInUse happy path', async () => {
 		const alternateId = 'myAlternateId';
 		const groupId = '/a/b/c';
+		const keyPrefix = 'r';
 
 		// set up mocks
 		mockResourceRepository.getIdByAlternateId.mockResolvedValue('r:123');
 
 		// test
-		const actual = await underTest.isAlternateIdInUse(alternateId, groupId);
+		const actual = await underTest.isAlternateIdInUse(alternateId, groupId, keyPrefix);
 
 		// verify
 		expect(actual).toBeTruthy();
-		expect(mockResourceRepository.getIdByAlternateId).toHaveBeenCalledWith(alternateId, groupId);
+		expect(mockResourceRepository.getIdByAlternateId).toHaveBeenCalledWith(alternateId, groupId, keyPrefix);
 	});
 });

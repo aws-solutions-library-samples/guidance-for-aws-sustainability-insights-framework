@@ -12,22 +12,20 @@
  */
 
 import type { BaseLogger } from 'pino';
-
-import type { MetricsRepository } from './repository.js';
-import type { QueryRequest } from './models.js';
+import type { QueryRequest, IMetricsRepository } from './models.js';
 import { validateHasSome, validateNotEmpty } from '@sif/validators';
 import { atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
 import { NotFoundError, UnauthorizedError } from '@sif/resource-api-base';
 import type { Metric } from './schemas.js';
-import type { MetricClient } from '@sif/clients';
+import type { MetricClient, Metric as MetricResource } from '@sif/clients';
 
 export class MetricsService {
 	private readonly log: BaseLogger;
-	private readonly repo: MetricsRepository;
+	private readonly repo: IMetricsRepository;
 	private readonly authChecker: GroupPermissions;
 	private readonly metricClient: MetricClient;
 
-	public constructor(log: BaseLogger, repo: MetricsRepository, authChecker: GroupPermissions, metricClient: MetricClient) {
+	public constructor(log: BaseLogger, repo: IMetricsRepository, authChecker: GroupPermissions, metricClient: MetricClient) {
 		this.log = log;
 		this.repo = repo;
 		this.authChecker = authChecker;
@@ -46,7 +44,7 @@ export class MetricsService {
 		validateNotEmpty(req.name, 'name');
 		validateHasSome([req.dateFrom, req.dateTo], ['dateFrom', 'dateTo']);
 
-		const metric = await this.metricClient.getByName(req.name, req.version, {
+		const metric:MetricResource = await this.metricClient.getByName(req.name, req.version, {
 			authorizer: {
 				claims: {
 					email: '',
@@ -61,9 +59,9 @@ export class MetricsService {
 
 		let result: Metric[];
 		if (req.members) {
-			result = await this.repo.listMembersMetrics(metric.id, req.groupId, req.timeUnit, { from: req.dateFrom, to: req.dateTo }, req.version);
+			result = await this.repo.listMembersMetrics(metric, req.groupId, req.timeUnit, { from: req.dateFrom, to: req.dateTo }, req.version);
 		} else {
-			result = await this.repo.listCollectionMetrics(metric.id, req.groupId, req.timeUnit, { from: req.dateFrom, to: req.dateTo }, req.version);
+			result = await this.repo.listCollectionMetrics(metric, req.groupId, req.timeUnit, { from: req.dateFrom, to: req.dateTo }, req.version);
 		}
 
 		this.log.info(`MetricsService> query> exit:`);

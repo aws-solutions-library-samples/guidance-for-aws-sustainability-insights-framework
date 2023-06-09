@@ -30,40 +30,40 @@ Feature:
 		Given I'm using the pipelines api
 		And I authenticate using email e2e_tests_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /e2e
-		And I set body to {"name":"ghg:scope1","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
+		And I set body to {"name":"int:ghg:scope1","summary":"GHG Scope 1 direct emissions.","aggregationType":"sum","tags":{"standard":"ghg","scope":"1"}}
 		When I POST to /metrics
 		Then response code should be 201
 		And response body should contain id
 		And I store the value of body path $.id as metric_scope1_id in global scope
-		And response body path $.name should be ghg:scope1
+		And response body path $.name should be int:ghg:scope1
 		And response body path $.summary should be GHG Scope 1 direct emissions.
 		And response body path $.aggregationType should be sum
 		And response body path $.tags.standard should be ghg
 		And response body path $.tags.scope should be 1
-		Given I set body to {"name":"ghg:scope1:mobile","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
+		Given I set body to {"name":"int:ghg:scope1:mobile","summary":"GHG Scope 1 direct emissions from mobile combustion.","aggregationType":"sum","outputMetrics":["int:ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"mobile"}}
 		When I POST to /metrics
 		Then response code should be 201
 		And response body should contain id
 		And I store the value of body path $.id as metric_scope1_mobile_id in global scope
-		And response body path $.name should be ghg:scope1:mobile
+		And response body path $.name should be int:ghg:scope1:mobile
 		And response body path $.summary should be GHG Scope 1 direct emissions from mobile combustion.
 		And response body path $.aggregationType should be sum
 		And response body path $.tags.standard should be ghg
 		And response body path $.tags.scope should be 1
 		And response body path $.tags.category should be mobile
-		And response body path $.outputMetrics[0] should be ghg:scope1
-		Given I set body to {"name":"ghg:scope1:stationary","summary":"GHG Scope 1 direct emissions from stationary combustion.","aggregationType":"sum","outputMetrics":["ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"stationary"}}
+		And response body path $.outputMetrics[0] should be int:ghg:scope1
+		Given I set body to {"name":"int:ghg:scope1:stationary","summary":"GHG Scope 1 direct emissions from stationary combustion.","aggregationType":"sum","outputMetrics":["int:ghg:scope1"],"tags":{"standard":"ghg","scope":"1","category":"stationary"}}
 		When I POST to /metrics
 		Then response code should be 201
 		And response body should contain id
 		And I store the value of body path $.id as metric_scope1_stationary_id in global scope
-		And response body path $.name should be ghg:scope1:stationary
+		And response body path $.name should be int:ghg:scope1:stationary
 		And response body path $.summary should be GHG Scope 1 direct emissions from stationary combustion.
 		And response body path $.aggregationType should be sum
 		And response body path $.tags.standard should be ghg
 		And response body path $.tags.scope should be 1
 		And response body path $.tags.category should be stationary
-		And response body path $.outputMetrics[0] should be ghg:scope1
+		And response body path $.outputMetrics[0] should be int:ghg:scope1
 
 	Scenario: Create Reference Datasets
 		Given I'm using the referenceDatasets api
@@ -173,7 +173,7 @@ Feature:
 			| 3/1/22       | 55432   | JUL   | 120.2 |
 			| 4/1/22       | 52172   | AUG   | 98.7  |
 			| 5/1/22       | 75001   | AUG   | 153.8 |
-		Then I pause for 30000ms
+		Then I pause for 50000ms
 		When I GET /pipelines/`e2e_pipeline_id`/executions/`household_electricity_carbon_footprint_pipeline_execution_id`
 		Then response code should be 200
 		And response body path $.status should be success
@@ -182,6 +182,24 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email e2e_tests_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /e2e
+		# This should return the result from the latest value table because we do not specify execution id
+		When I GET /activities?timeUnit=day&dateFrom=1/1/22&pipelineId=`e2e_pipeline_id`
+		And response body path $.activities[?(@.zipcode=='80238')].month should be JUN
+		And response body path $.activities[?(@.zipcode=='80238')].kwh should be 100.2
+		And response body path $.activities[?(@.zipcode=='80238')].co2e should be 4008
+		And response body path $.activities[?(@.zipcode=='98116')].month should be JUN
+		And response body path $.activities[?(@.zipcode=='98116')].kwh should be 102.1
+		And response body path $.activities[?(@.zipcode=='98116')].co2e should be 204.2
+		And response body path $.activities[?(@.zipcode=='55432')].month should be JUL
+		And response body path $.activities[?(@.zipcode=='55432')].kwh should be 120.2
+		And response body path $.activities[?(@.zipcode=='55432')].co2e should be 1202
+		And response body path $.activities[?(@.zipcode=='52172')].month should be AUG
+		And response body path $.activities[?(@.zipcode=='52172')].kwh should be 98.7
+		And response body path $.activities[?(@.zipcode=='52172')].co2e should be 98.7
+		And response body path $.activities[?(@.zipcode=='75001')].month should be AUG
+		And response body path $.activities[?(@.zipcode=='75001')].kwh should be 153.8
+		And response body path $.activities[?(@.zipcode=='75001')].co2e should be 18456
+		# This should return the result from the value table since user has specified execution id
 		When I GET /activities?timeUnit=day&dateFrom=1/1/22&executionId=`household_electricity_carbon_footprint_pipeline_execution_id`&pipelineId=`e2e_pipeline_id`
 		And response body path $.activities[?(@.zipcode=='80238')].month should be JUN
 		And response body path $.activities[?(@.zipcode=='80238')].kwh should be 100.2

@@ -89,7 +89,7 @@ Feature:
 		And response body path $.inlineExecutionOutputs.outputs[5]['a'] should be F
 		And response body path $.inlineExecutionOutputs.outputs[5][b*c'] should be 360
 	   	# Sleep for 2 seconds
-		Then I pause for 2000ms
+		Then I pause for 20000ms
 
 	Scenario: Execute Inline Pipeline Execution With Invalid Data
 		Given I'm using the pipelineProcessor api
@@ -130,7 +130,7 @@ Feature:
 		And response body path $.activities[?(@.a=='A')]['b*c'] should be 10
 		And response body path $.activities should be of type array with length 2
 		# Sleep for 10 seconds to ensure aggregation task finishes
-		Then I pause for 10000ms
+		Then I pause for 50000ms
 		When I GET /activities?date=1/1/22&executionId=`success_execution_id`&pipelineId=`pipeline_processor_pipeline_id`&showAggregate=true
 		And response body path $.activities[?(@.date=='2022-01-01T00:00:00.000Z')]['b*c'] should be 870
 		And response body path $.activities should be of type array with length 1
@@ -163,6 +163,20 @@ Feature:
 		And response body path $[0].outputs[3]['evaluated'][':b'] should be 10
 		And response body path $[0].outputs[3]['evaluated'][':c'] should be 1
 
+	# [WIP] TODO: fix this test, this test will validate the aggregated audit exported file
+#	Scenario: Retrieve and validate Audit Export
+#		Given I'm using the pipelineProcessor api
+#		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
+#		And I set x-groupcontextid header to /pipelineProcessorTest
+#		When I set body to { "expiration" : 300 }
+#		And I POST to /pipelines/`pipeline_processor_pipeline_id`/executions/`success_execution_id`/generateAuditExportUrl
+#		Then response code should be 202
+#		Then I pause for 50000ms
+#		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions/`success_execution_id`/generateAuditExportUrl
+#		Then response code should be 201
+#		And I store the value of body path $.url as audit_export_download_url in global scope
+#		When I download the output text file from the url stored at global variable audit_export_download_url it will match rows
+
 	Scenario: Upload Input File with all delete actionType for Pipeline Processing
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
@@ -174,7 +188,7 @@ Feature:
 		When I upload an input CSV file to url stored at global variable delete_upload_url with rows
 			| reading date | a | b | c |
 			| 1/4/22       | A |   |   |
-		Then I pause for 20000ms
+		Then I pause for 50000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 200
 		And response body path $.executions should be of type array with length 3
@@ -236,7 +250,7 @@ Feature:
 			| 1/4/22       | E | 50 | Five  |
 			| 1/4/22       | F | 60 | Six   |
 			| 1/4/22       |   |    |       |
-		Then I pause for 20000ms
+		Then I pause for 50000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 200
 		And response body path $.executions should be of type array with length 4
@@ -261,6 +275,8 @@ Feature:
 			| Failed processing row {reading date=1/4/22, a=E, b=50, c=Five}, err: Character F is neither a decimal digit number, decimal point, nor "e" notation exponential mark.  |
 			| Failed processing row {reading date=1/4/22, a=F, b=60, c=Six}, err: Character S is neither a decimal digit number, decimal point, nor "e" notation exponential mark.   |
 
+
+
 	Scenario: Upload Input File with Some Success and Some Errors for Pipeline Processing
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
@@ -277,7 +293,7 @@ Feature:
 			| 1/4/22       | D | 40 | 4     |
 			| 1/4/22       | E | 50 | 5     |
 			| 1/4/22       | F | 60 | Six   |
-		Then I pause for 20000ms
+		Then I pause for 50000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 200
 		And response body path $.executions should be of type array with length 5
@@ -371,7 +387,7 @@ Feature:
 			| 1/8/22       | D | 40 | 4 |
 			| 1/8/22       | E | 50 | 5 |
 			| 1/8/22       | F | 60 | 6 |
-		Then I pause for 20000ms
+		Then I pause for 50000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 200
 		And response body path $.executions should be of type array with length 6

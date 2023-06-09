@@ -1,6 +1,38 @@
 # Change Log - @sif/pipeline-processors
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Fri, 09 Jun 2023 20:40:06 GMT and should not be manually modified.
+
+## 4.12.0
+Fri, 09 Jun 2023 20:40:06 GMT
+
+### Minor changes
+
+- Add bulk insert feature to allow for bulk creation of activities via s3 import
+
+### Patches
+
+- added metrics migration task 
+
+## 4.11.0
+Thu, 08 Jun 2023 12:58:17 GMT
+
+### Minor changes
+
+- Add bulk insert feature to allow for bulk creation of activities via s3 import
+
+## 4.10.0
+Mon, 22 May 2023 22:02:58 GMT
+
+### Minor changes
+
+- add new feature to store metric in aurora
+
+## 4.9.0
+Mon, 22 May 2023 18:52:26 GMT
+
+### Minor changes
+
+- add new feature to store metric in aurora
 
 ## 4.8.0
 Mon, 01 May 2023 00:31:09 GMT

@@ -124,7 +124,7 @@ describe('ActivitiesRepository', () => {
 			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
 			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
 			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
-			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`\ta.key1 "stringOutput",\n` +
 			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
 			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
 			'\n' +
@@ -231,7 +231,7 @@ describe('ActivitiesRepository', () => {
 			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
 			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
 			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
-			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`\ta.key1 "stringOutput",\n` +
 			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
 			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
 			'\n' +
@@ -350,7 +350,7 @@ describe('ActivitiesRepository', () => {
 			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
 			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
 			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
-			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`\ta.key1 "stringOutput",\n` +
 			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
 			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
 			'\n' +
@@ -442,7 +442,7 @@ describe('ActivitiesRepository', () => {
 			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
 			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
 			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
-			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`\ta.key1 "stringOutput",\n` +
 			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
 			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
 			'\n' +
@@ -527,7 +527,7 @@ describe('ActivitiesRepository', () => {
 			'\tcoalesce(ls."executionId",ln."executionId",lb."executionId") "executionId",\n' +
 			'\tcoalesce(ls."auditId",ln."auditId",lb."auditId") "auditId",\n' +
 			'\tcoalesce(ls."createdAt",ln."createdAt",lb."createdAt") "createdAt",\n' +
-			`\tmax(CASE WHEN ls."name"='stringOutput' THEN ls."val" ELSE NULL END) "stringOutput",\n` +
+			`\ta.key1 "stringOutput",\n` +
 			`max(CASE WHEN ln."name"='numericOutput' THEN ln."val" ELSE NULL END) "numericOutput",\n` +
 			`max(CASE WHEN lb."name"='booleanOutput' THEN lb."val" ELSE NULL END) "booleanOutput"\n` +
 			'\n' +
@@ -594,7 +594,7 @@ describe('ActivitiesRepository', () => {
 			'\tcoalesce(s."executionId",n."executionId",b."executionId") "executionId",\n' +
 			'\tcoalesce(s."auditId",n."auditId",b."auditId") "auditId",\n' +
 			'\tcoalesce(s."createdAt",n."createdAt",b."createdAt") "createdAt",\n' +
-			`\tmax(CASE WHEN s."name"='stringOutput' THEN s."val" ELSE NULL END) "stringOutput",\n` +
+			`\ta.key1 "stringOutput",\n` +
 			`max(CASE WHEN n."name"='numericOutput' THEN n."val" ELSE NULL END) "numericOutput",\n` +
 			`max(CASE WHEN b."name"='booleanOutput' THEN b."val" ELSE NULL END) "booleanOutput"\n` +
 			'\n' +
@@ -734,7 +734,7 @@ describe('ActivitiesRepository', () => {
 				'\tcoalesce(s."executionId",n."executionId",b."executionId") "executionId",\n' +
 				'\tcoalesce(s."auditId",n."auditId",b."auditId") "auditId",\n' +
 				'\tcoalesce(s."createdAt",n."createdAt",b."createdAt") "createdAt",\n' +
-				`\tmax(CASE WHEN s."name"='stringOutput' THEN s."val" ELSE NULL END) "stringOutput",\n` +
+				`\ta.key1 "stringOutput",\n` +
 				`max(CASE WHEN n."name"='numericOutput' THEN n."val" ELSE NULL END) "numericOutput",\n` +
 				`max(CASE WHEN b."name"='booleanOutput' THEN b."val" ELSE NULL END) "booleanOutput"\n` +
 				'\n' +
@@ -778,7 +778,7 @@ describe('ActivitiesRepository', () => {
 					'numericOutput': '200',
 					'stringOutput': 'Row2',
 				}
-				];
+			];
 
 			await activitiesRepository.createAggregatedActivities(activities, 'pipeline1', 'execution1', '/tests',
 				{ 'numericOutput': 'number', 'stringOutput': 'string' }, {
@@ -810,12 +810,23 @@ describe('ActivitiesRepository', () => {
 				'DO UPDATE SET "groupId" = EXCLUDED."groupId" Returning "activityId"\n' +
 				'),"id-2" as (\n' +
 				'INSERT INTO "ActivityNumberValue" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")\n' +
-				`VALUES( (SELECT "activityId" from "id-1"), 'numericOutput', to_timestamp('1640966400'), 'execution1', 100, false, null)\n` +
-				')\n' +
+				`VALUES( (SELECT "activityId" from "id-1"), 'numericOutput', to_timestamp('1640966400'), 'execution1', 100, false, null)),"id-3" as (\n` +
+				'INSERT INTO "ActivityNumberLatestValue" ("activityId", "name", "createdAt","executionId", "val")\n' +
+				`VALUES( (SELECT "activityId" from "id-1"), 'numericOutput', to_timestamp('1640966400'), 'execution1', 100)\n` +
+				'ON CONFLICT ("activityId","name") DO UPDATE SET "createdAt" = excluded."createdAt",\n' +
+				'                                                "executionId" = excluded."executionId",\n' +
+				'                                                "val"         = excluded."val",\n' +
+				'                                                "auditId"     = excluded."auditId"),"id-4" as (\n' +
 				'INSERT INTO "ActivityStringValue" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")\n' +
-				`VALUES( (SELECT "activityId" from "id-1"), 'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row1', false, null)\n`;
+				`VALUES( (SELECT "activityId" from "id-1"), 'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row1', false, null))\n` +
+				'INSERT INTO "ActivityStringLatestValue" ("activityId", "name", "createdAt","executionId", "val")\n' +
+				`VALUES( (SELECT "activityId" from "id-1"), 'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row1')\n` +
+				'ON CONFLICT ("activityId","name") DO UPDATE SET "createdAt" = excluded."createdAt",\n' +
+				'                                                "executionId" = excluded."executionId",\n' +
+				'                                                "val"         = excluded."val",\n' +
+				'                                                "auditId"     = excluded."auditId"';
 
-			const secondActivityInsertStatement = 'with "id-3" as (\n' +
+			const secondActivityInsertStatement = 'with "id-5" as (\n' +
 				'INSERT INTO "Activity" ("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")\n' +
 				'VALUES (\n' +
 				'\t\'/tests\',\n' +
@@ -830,12 +841,27 @@ describe('ActivitiesRepository', () => {
 				')\n' +
 				'ON CONFLICT  ("groupId", "pipelineId", "date", "type", "key1", "key2", "key3", "key4", "key5")\n' +
 				'DO UPDATE SET "groupId" = EXCLUDED."groupId" Returning "activityId"\n' +
-				'),"id-4" as (\n' +
+				'),"id-6" as (\n' +
 				'INSERT INTO "ActivityNumberValue" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")\n' +
-				`VALUES( (SELECT "activityId" from "id-3"), 'numericOutput', to_timestamp('1640966400'), 'execution1', 200, false, null)\n` +
-				')\n' +
+				`VALUES( (SELECT "activityId" from "id-5"), 'numericOutput', to_timestamp('1640966400'), 'execution1', 200, false, null)),"id-7" as (\n` +
+				'INSERT INTO "ActivityNumberLatestValue" ("activityId", "name", "createdAt","executionId", "val")\n' +
+				`VALUES( (SELECT "activityId" from "id-5"), 'numericOutput', to_timestamp('1640966400'), 'execution1', 200)\n` +
+				'ON CONFLICT ("activityId","name") DO UPDATE SET "createdAt" = excluded."createdAt",\n' +
+				'                                                "executionId" = excluded."executionId",\n' +
+				'                                                "val"         = excluded."val",\n' +
+				'                                                "auditId"     = excluded."auditId"),"id-8" as (\n' +
 				'INSERT INTO "ActivityStringValue" ("activityId", "name", "createdAt","executionId", "val", "error", "errorMessage")\n' +
-				`VALUES( (SELECT "activityId" from "id-3"), 'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row2', false, null)\n`;
+				`VALUES( (SELECT "activityId" from "id-5"), 'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row2', false, null))\n` +
+				'INSERT INTO "ActivityStringLatestValue" ("activityId", "name", "createdAt","executionId", "val")\n' +
+				`VALUES( (SELECT "activityId" from "id-5"), 'stringOutput', to_timestamp('1640966400'), 'execution1', 'Row2')\n` +
+				'ON CONFLICT ("activityId","name") DO UPDATE SET "createdAt" = excluded."createdAt",\n' +
+				'                                                "executionId" = excluded."executionId",\n' +
+				'                                                "val"         = excluded."val",\n' +
+				'                                                "auditId"     = excluded."auditId"'
+			;
+
+
+			console.log(mockPostgresClient.query.mock.calls);
 
 			expect(mockPostgresClient.query).toBeCalledWith('BEGIN');
 			expect(mockPostgresClient.query).toBeCalledWith(firstActivityInsertStatement);

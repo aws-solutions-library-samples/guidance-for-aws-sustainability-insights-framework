@@ -1,6 +1,41 @@
 # Change Log - @sif/integration-tests
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Mon, 29 May 2023 05:49:44 GMT and should not be manually modified.
+
+## 3.12.0
+Mon, 29 May 2023 05:49:44 GMT
+
+### Minor changes
+
+- increment timeout to cater for lockign
+
+## 3.11.4
+Thu, 25 May 2023 14:48:59 GMT
+
+### Patches
+
+- Add user/groups tags integration tests
+
+## 3.11.3
+Mon, 22 May 2023 22:02:58 GMT
+
+### Patches
+
+- updates
+
+## 3.11.2
+Tue, 16 May 2023 13:42:14 GMT
+
+### Patches
+
+- updated integration tests
+
+## 3.11.1
+Fri, 05 May 2023 04:45:10 GMT
+
+### Patches
+
+- Added data seeding script
 
 ## 3.11.0
 Mon, 01 May 2023 00:31:09 GMT

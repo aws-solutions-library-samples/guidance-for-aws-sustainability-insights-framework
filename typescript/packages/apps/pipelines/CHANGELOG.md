@@ -1,6 +1,27 @@
 # Change Log - @sif/pipelines
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+
+## 4.6.10
+Mon, 22 May 2023 22:02:58 GMT
+
+### Patches
+
+- fix issue where we undefined and not array
+
+## 4.6.9
+Mon, 22 May 2023 18:52:26 GMT
+
+### Patches
+
+- fix issue where we undefined and not array
+
+## 4.6.8
+Tue, 16 May 2023 13:42:14 GMT
+
+### Patches
+
+- fix metrics to be unique by hierarchy
 
 ## 4.6.7
 Mon, 01 May 2023 00:31:09 GMT

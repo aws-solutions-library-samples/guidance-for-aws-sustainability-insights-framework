@@ -50,7 +50,7 @@ export class MetricService {
 		const options: ResourceListByAliasOptions = { includeChildGroups: false, includeParentGroups: false };
 
 		const getOutputMetricFutures = outputMetricNames.map((n) => {
-			return this.resourceService.listIdsByAlternateId(groupId, n, options);
+			return this.resourceService.listIdsByAlternateId(groupId, n, PkType.Metric, options);
 		});
 
 		const getOutputMetricResponses = await Promise.all(getOutputMetricFutures);
@@ -111,6 +111,8 @@ export class MetricService {
 
 		// validate alias usage for this metric
 		await this.validateAlias(securityContext, metric.name);
+
+		await this.validateHierarchicalAlias(securityContext, metric.name);
 
 		if (metric.aggregationType !== 'sum') {
 			throw new NotImplementedError('Only sum aggregation type is supported for now.');
@@ -216,7 +218,7 @@ export class MetricService {
 		if (options.name) {
 			this.log.debug(`MetricService> list> searching by name : ${options.name}`);
 			options.name = options.name.toLowerCase();
-			metricIds = await this.resourceService.listIdsByAlternateId(securityContext.groupId, options.name, {
+			metricIds = await this.resourceService.listIdsByAlternateId(securityContext.groupId, options.name, PkType.Metric, {
 				includeChildGroups: options?.includeChildGroups,
 				includeParentGroups: options?.includeParentGroups,
 			});
@@ -337,7 +339,19 @@ export class MetricService {
 		this.log.debug(`MetricService> validateAlias> groupId:${securityContext.groupId}, alias:${alias}`);
 		// Validation - ensure name is unique for the hierarchy
 		// TODO ensure this is for hierarchy, not just group in context
-		if (await this.groupService.isAlternateIdInUse(alias, securityContext.groupId)) {
+		if (await this.groupService.isAlternateIdInUse(alias, securityContext.groupId, PkType.Metric,)) {
+			throw new AlternateIdInUseError(alias);
+		}
+	}
+
+	private async validateHierarchicalAlias(sc: SecurityContext, alias: string): Promise<void> {
+		this.log.debug(`MetricsService> validateHierarchicalAlias> groupId:${sc.groupId}, alias:${alias}`);
+
+		const response = await this.list(sc, { includeChildGroups: true, includeParentGroups: true, name: alias });
+
+		this.log.debug(`MetricsService> validateHierarchicalAlias> out: it:${JSON.stringify(response)}`);
+
+		if(response[0].length > 0) {
 			throw new AlternateIdInUseError(alias);
 		}
 	}

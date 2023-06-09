@@ -26,22 +26,22 @@ global.localUserClaims = {
 	integrationtests: '/|||admin',
 };
 
-Given(/^I authenticate using email (.*) and password (.*)$/, async function (email: string, password: string) {
+Given(/^I authenticate using email (.*) and password (.*)$/, async function(email: string, password: string) {
 	const token = await getAuthToken(email.toLowerCase(), password);
 	this['apickli'].setRequestHeader('Authorization', `Bearer ${token}`);
 });
 
-Given(/^Using tenant (.*) I authenticate with email (.*) and password (.*)$/, async function (sharedTenantId: string, email: string, password: string) {
+Given(/^Using tenant (.*) I authenticate with email (.*) and password (.*)$/, async function(sharedTenantId: string, email: string, password: string) {
 	const token = await getAuthToken(email.toLowerCase(), password, sharedTenantId);
 	this['apickli'].setRequestHeader('Authorization', `Bearer ${token}`);
 });
 
-Given(/^(.*) should be unauthorized in group (.*)$/, async function (email: string, group: string) {
+Given(/^(.*) should be unauthorized in group (.*)$/, async function(email: string, group: string) {
 	const token = global.jwts[email.toLowerCase()];
 	assert.equal(token, 'NotAuthorizedException');
 });
 
-Given(/^I set form data to$/, async function (table: DataTable) {
+Given(/^I set form data to$/, async function(table: DataTable) {
 	this.apickli.removeRequestHeader('Content-Type');
 	this.apickli.addRequestHeader('Content-Type', 'multipart/form-data');
 	const formData = new FormData();
@@ -64,72 +64,72 @@ Given(/^I set form data to$/, async function (table: DataTable) {
 	this.apickli.httpRequestOptions.formData = formData;
 });
 
-Given(/^I clear authorization token for email (.*)$/, async function (email: string) {
+Given(/^I clear authorization token for email (.*)$/, async function(email: string) {
 	delete global.jwts[email.toLowerCase()];
 	this['apickli'].removeRequestHeader('Authorization');
 });
 
-When(/^Using axios I POST to (.*)$/, async function (resource) {
+When(/^Using axios I POST to (.*)$/, async function(resource) {
 	await this['apickli'].sendWithAxios('post', resource);
 });
 
-When(/^Using axios I PATCH (.*)$/, async function (resource) {
+When(/^Using axios I PATCH (.*)$/, async function(resource) {
 	await this['apickli'].sendWithAxios('patch', resource);
 });
 
-Then(/^I save cognito group (.*) for user (.*)$/, async function (cognitoGroup: string, email: string) {
+Then(/^I save cognito group (.*) for user (.*)$/, async function(cognitoGroup: string, email: string) {
 	global.localUserClaims[email.toLowerCase()] = cognitoGroup;
 });
 
-Given(/^group (.*) has user (.*) with role (.*) and password (.*)$/, async function (groupId: string, email: string, role: string, password: string) {
+Given(/^group (.*) has user (.*) with role (.*) and password (.*)$/, async function(groupId: string, email: string, role: string, password: string) {
 	await createUser(groupId, email, role, password);
 });
 
-Given(/^tenant (.*) group (.*) has user (.*) with role (.*) and password (.*)$/, async function (sharedTenantId: string, groupId: string, email: string, role: string, password: string) {
+Given(/^tenant (.*) group (.*) has user (.*) with role (.*) and password (.*)$/, async function(sharedTenantId: string, groupId: string, email: string, role: string, password: string) {
 	await createUser(groupId, email, role, password, true, sharedTenantId);
 });
 
-Given(/^group (.*) has user (.*) granted access with role (.*)$/, async function (groupId: string, email: string, role: string) {
+Given(/^group (.*) has user (.*) granted access with role (.*)$/, async function(groupId: string, email: string, role: string) {
 	await createUser(groupId, email, role, undefined, false);
 });
 
-Given(/^group (.*) has user (.*) revoked$/, async function (groupId: string, email: string) {
+Given(/^group (.*) has user (.*) revoked$/, async function(groupId: string, email: string) {
 	await deleteUser(groupId, email);
 });
 
-Given(/^group (.*) has user (.*) revoked in tenant (.*)$/, async function (groupId: string, email: string, sharedTenantId: string) {
+Given(/^group (.*) has user (.*) revoked in tenant (.*)$/, async function(groupId: string, email: string, sharedTenantId: string) {
 	await deleteUser(groupId, email, sharedTenantId);
 });
 
-Given(/^group (.*) exists$/, async function (groupId: string) {
+Given(/^group (.*) exists$/, async function(groupId: string) {
 	await createGroup(groupId);
 });
 
-Given(/^group (.*) exists in tenant (.*)$/, async function (groupId: string, sharedTenantId: string) {
+Given(/^group (.*) exists in tenant (.*)$/, async function(groupId: string, sharedTenantId: string) {
 	await createGroup(groupId, sharedTenantId);
 });
 
-Given(/^group (.*) has been removed$/, async function (groupId: string) {
+Given(/^group (.*) has been removed$/, async function(groupId: string) {
 	await deleteGroup(groupId);
 });
 
-Given(/^group (.*) has been removed from tenant (.*)$/, async function (groupId: string, sharedTenantId: string) {
+Given(/^group (.*) has been removed from tenant (.*)$/, async function(groupId: string, sharedTenantId: string) {
 	await deleteGroup(groupId, sharedTenantId);
 });
 
-When(/^I'm using the (.*) api$/, async function (module: string) {
+When(/^I'm using the (.*) api$/, async function(module: string) {
 	this['apickli'] = global.apicklis[module];
 });
 
-When(/^I remove header (.*)$/, async function (header: string) {
+When(/^I remove header (.*)$/, async function(header: string) {
 	this['apickli'].removeRequestHeader(header);
 });
 
-When('I pause for {int}ms', { timeout: -1 }, async function (ms: number) {
+When('I pause for {int}ms', { timeout: -1 }, async function(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 });
 
-When(/^I upload an input CSV file to url stored at global variable (.*) with rows$/, async function (urlVariable: string, table: DataTable) {
+When(/^I upload an input CSV file to url stored at global variable (.*) with rows$/, async function(urlVariable: string, table: DataTable) {
 	const url = this['apickli'].getGlobalVariable(urlVariable);
 
 	let csvString: string = '';
@@ -152,7 +152,7 @@ When(/^I upload an input CSV file to url stored at global variable (.*) with row
 	}
 });
 
-When(/^I download the output CSV file from the url stored at global variable (.*) it will match rows$/, async function (urlVariable: string, table: DataTable) {
+When(/^I download the output CSV file from the url stored at global variable (.*) it will match rows$/, async function(urlVariable: string, table: DataTable) {
 	const url = this['apickli'].getGlobalVariable(urlVariable);
 
 	try {
@@ -175,7 +175,7 @@ When(/^I download the output CSV file from the url stored at global variable (.*
 	}
 });
 
-When(/^I download the output audit file from the url stored at global variable (.*) it will match rows$/, async function (urlVariable: string, table: DataTable) {
+When(/^I download the output audit file from the url stored at global variable (.*) it will match rows$/, async function(urlVariable: string, table: DataTable) {
 	const url = this['apickli'].getGlobalVariable(urlVariable);
 	try {
 		const response = await axios.get(url, {
@@ -189,7 +189,7 @@ When(/^I download the output audit file from the url stored at global variable (
 		const textRows = textString.split(/\r*\n/);
 
 		for (let rn = 0; rn < table.raw().length; ++rn) {
-			const dataRow = this['apickli'].replaceVariables(table.raw()[rn][0])
+			const dataRow = this['apickli'].replaceVariables(table.raw()[rn][0]);
 			assert.equal(JSON.stringify(JSON.parse(textRows[rn])), JSON.stringify(JSON.parse(dataRow)));
 		}
 	} catch (e) {
@@ -198,7 +198,7 @@ When(/^I download the output audit file from the url stored at global variable (
 	}
 });
 
-When(/^I download the output text file from the url stored at global variable (.*) it will match rows$/, async function (urlVariable: string, table: DataTable) {
+When(/^I download the output text file from the url stored at global variable (.*) it will match rows$/, async function(urlVariable: string, table: DataTable) {
 	const url = this['apickli'].getGlobalVariable(urlVariable);
 
 	try {
@@ -424,3 +424,5 @@ async function deleteGroup(groupId: string, sharedTenantId?: string): Promise<vo
 
 	await invoker.invoke(accessManagementFunctionName, deleteEvent);
 }
+
+

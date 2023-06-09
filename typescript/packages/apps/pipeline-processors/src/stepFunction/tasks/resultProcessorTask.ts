@@ -18,8 +18,8 @@ import { getPipelineErrorKey } from '../../utils/helper.utils.js';
 
 import type { BaseLogger } from 'pino';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { ResultProcessorTaskEvent } from './model.js';
 import type { GetSecurityContext } from '../../plugins/module.awilix.js';
+import type { ProcessedTaskEvent } from './model.js';
 
 export class ResultProcessorTask {
 	private readonly log: BaseLogger;
@@ -38,8 +38,8 @@ export class ResultProcessorTask {
 		this.getSecurityContext = getSecurityContext;
 	}
 
-	private async storeCalculationOutput(combinedOutput: string, pipelineId: string, pipelineExecutionId: string, key: string): Promise<void> {
-		this.log.info(`ResultProcessorTask > storeCalculationOutput > in > pipelineId: ${pipelineId}, pipelineExecutionId: ${pipelineExecutionId}, key: ${key}`);
+	private async storeCalculationOutput(combinedOutput: string, pipelineId: string, executionId: string, key: string): Promise<void> {
+		this.log.info(`ResultProcessorTask > storeCalculationOutput > in > pipelineId: ${pipelineId}, executionId: ${executionId}, key: ${key}`);
 
 		const params: PutObjectCommandInput = {
 			Bucket: this.dataBucket,
@@ -59,33 +59,31 @@ export class ResultProcessorTask {
 		return await sdkStreamMixin(response.Body).transformToString();
 	}
 
-	public async process(event: ResultProcessorTaskEvent[]): Promise<void> {
+	public async process(event: ProcessedTaskEvent[]): Promise<void> {
 		this.log.info(`ResultProcessorTask > process > event: ${JSON.stringify(event)}`);
 
-		// Ensure that the calculation result will be saved the same order as the input file
-		const sortedResult = event.sort((a, b) => {
-			return a.sequence - b.sequence;
-		});
+		// first result is where common and overall metadata is stored so as to remove duplicates
+		const firstResult = event[0];
+		const { executionId, pipelineId, status } = firstResult;
 
 		let concatenatedErrors = '';
-		for (const { output } of sortedResult) {
-			if (output.errorLocation) {
-				concatenatedErrors += await this.getContentFromFile(output.errorLocation.bucket, output.errorLocation.key);
+		for (const { errorLocation } of event) {
+			if (errorLocation) {
+				concatenatedErrors += await this.getContentFromFile(errorLocation.bucket, errorLocation.key);
 				concatenatedErrors += '\r\n'; // error message files from Calculation Engine do not have newline
 			}
 		}
 
-		const { pipelineExecutionId, pipelineId } = sortedResult[0];
 
-		const securityContext = await this.getSecurityContext(pipelineExecutionId);
+		const securityContext = await this.getSecurityContext(executionId);
 
-		if (concatenatedErrors.length > 0) {
+		if (concatenatedErrors.length > 0 || status==='FAILED')  {
 			// If errors, store the errors to s3, and mark failed
-			await this.storeCalculationOutput(concatenatedErrors, pipelineId, pipelineExecutionId, getPipelineErrorKey(this.dataPrefix, pipelineId, pipelineExecutionId));
-			await this.pipelineProcessorsService.update(securityContext, pipelineId, pipelineExecutionId, { status: 'failed' });
+			await this.storeCalculationOutput(concatenatedErrors, pipelineId, executionId, getPipelineErrorKey(this.dataPrefix, pipelineId, executionId));
+			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, { status: 'failed' });
 		} else {
 			// Mark the pipeline as succeeded
-			await this.pipelineProcessorsService.update(securityContext, pipelineId, pipelineExecutionId, { status: 'success' });
+			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, { status: 'success' });
 		}
 
 		this.log.info(`ResultProcessorTask > process > exit:`);

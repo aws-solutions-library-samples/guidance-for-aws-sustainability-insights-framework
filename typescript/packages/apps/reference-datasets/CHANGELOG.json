@@ -2,6 +2,40 @@
   "name": "@sif/reference-datasets",
   "entries": [
     {
+      "version": "4.5.0",
+      "tag": "@sif/reference-datasets_v4.5.0",
+      "date": "Mon, 22 May 2023 22:02:58 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "should pass in key prefix when calling list alias"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.7.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.4.0",
+      "tag": "@sif/reference-datasets_v4.4.0",
+      "date": "Mon, 22 May 2023 18:52:26 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "should pass in key prefix when calling list alias"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.6.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.3.8",
       "tag": "@sif/reference-datasets_v4.3.8",
       "date": "Fri, 14 Apr 2023 16:13:35 GMT",

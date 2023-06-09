@@ -1,15 +1,16 @@
 {
 	"name": "@sif/integration-tests",
 	"description": "SIF: Integration Tests.",
-	"version": "3.11.0",
+	"version": "3.12.0",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"scripts": {
 		"clean": "npx shx rm -rf dist *.log",
 		"build": "npx tsc -b && npx shx cp 'src/features/*/*.feature' 'dist/features/'",
 		"generate:token": "rushx build && node dist/features/support/generateToken.js",
 		"generate:postman:environment": "rushx build && node dist/features/support/generatePostmanEnvironment.js",
+		"seed": "rushx build && node dist/features/support/seedData.js",
 		"test": "npm run build && npx cucumber-js",
-		"test:integration": "npm run build && npx cucumber-js dist/features/ "
+		"test:integration": "npm run build && npx cucumber-js dist/features/"
 	},
 	"dependencies": {
 		"@aws-sdk/client-cognito-identity-provider": "3.229.0",
@@ -22,6 +23,7 @@
 		"axios": "1.1.2",
 		"apickli": "3.0.2",
 		"form-data": "4.0.0",
+		"fast-glob": "3.2.12",
 		"jwt-encode": "1.0.1",
 		"pino": "8.6.1",
 		"@aws-amplify/auth": "4.6.8"

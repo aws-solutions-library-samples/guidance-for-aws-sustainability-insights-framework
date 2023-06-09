@@ -63,21 +63,21 @@ export class PipelineProcessorsRepository {
 		return pipelineExecutions;
 	}
 
-	public async get(pipelineId: string, pipelineExecutionId: string): Promise<PipelineExecution> {
-		this.log.info(`PipelineProcessorsRepository> get> pipelineId:${pipelineId}, pipelineExecutionId: ${pipelineExecutionId}`);
+	public async get(pipelineId: string, executionId: string): Promise<PipelineExecution> {
+		this.log.info(`PipelineProcessorsRepository> get> pipelineId:${pipelineId}, executionId: ${executionId}`);
 
 		const params: GetCommandInput = {
 			TableName: this.tableName,
 			Key: {
 				pk: createDelimitedAttribute(PkType.Pipeline, pipelineId),
-				sk: createDelimitedAttribute(PkType.PipelineExecution, pipelineExecutionId),
+				sk: createDelimitedAttribute(PkType.PipelineExecution, executionId),
 			},
 		};
 
 		const result = await this.dc.send(new GetCommand(params));
 
 		if (!result.Item) {
-			throw new NotFoundError(`could not retrieve pipeline execution id : ${pipelineExecutionId}`);
+			throw new NotFoundError(`could not retrieve pipeline execution id : ${executionId}`);
 		}
 
 		this.log.info(`PipelineProcessorsRepository> put> exit`);

@@ -5,6 +5,15 @@ While we endeavor to always make backward compatible changes, there may be times
 will be versioned supporting both new and old versions, as well as the modules minor version bumped. But if the change affect something else such as how configuration is handled, or how applications are deployed, then the major versions of
 the modules will be bumped with migration notes added here.
 
+## Migration from Tag RELEASE-LIVE-20230609225045
+
+#### Migrating Metrics
+There are changes to the underlying metrics datastore which involves migration from dynamodb to RDS. After the deployment upgrade.
+
+The [following document](../typescript/packages/tools/migrator/README.md) has information on how to run the tool itself.
+
+After the tool has been executed it will kick off a process in background which runs the migration. This process takes about 5-10 minutes depending on the size of legacy metrics in dynamo.
+
 ## Migration from Tag RELEASE-LIVE-20230405210709
 
 API Breaking changes.

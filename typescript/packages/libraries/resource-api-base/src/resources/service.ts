@@ -31,17 +31,17 @@ export class ResourceService {
 		this.resourceRepository = resourceRepository;
 	}
 
-	public async listIdsByAlternateId(groupId: string, alternateId: string, options?: ResourceListByAliasOptions): Promise<string[]> {
-		this.log.debug(`ResourceService> listIdsByAlternateId> in> groupId:${groupId}, alternateId:${alternateId}, options: ${JSON.stringify(options)}`);
+	public async listIdsByAlternateId(groupId: string, alternateId: string, keyPrefix: string, options?: ResourceListByAliasOptions): Promise<string[]> {
+		this.log.debug(`ResourceService> listIdsByAlternateId> in> groupId:${groupId}, alternateId:${alternateId}, keyPrefix:${keyPrefix}, options: ${JSON.stringify(options)}`);
 
 		const groupList = [groupId];
 
-		if (options.includeParentGroups) {
+		if (options?.includeParentGroups) {
 			// populate group list from parents
 			groupList.push(...this.utils.explodeGroupId(groupId));
 		}
 
-		if (options.includeChildGroups) {
+		if (options?.includeChildGroups) {
 			// populate group list from child groups (and its descendants)
 			const childGroups = await this.accessManagementClient.listSubGroupIds(groupId, true);
 			groupList.push(...childGroups);
@@ -49,7 +49,7 @@ export class ResourceService {
 
 		const groupSet = new Set(groupList);
 
-		const resourceIds = await this.resourceRepository.listIdsByAlternateId(alternateId, Array.from(groupSet));
+		const resourceIds = await this.resourceRepository.listIdsByAlternateId(alternateId, Array.from(groupSet), keyPrefix);
 		this.log.debug(`ResourceService> listIdsByAlternateId> exit:${resourceIds}`);
 		return resourceIds;
 	}

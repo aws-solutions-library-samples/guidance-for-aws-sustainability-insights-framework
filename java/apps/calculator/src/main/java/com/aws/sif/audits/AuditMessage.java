@@ -13,6 +13,7 @@
 
 package com.aws.sif.audits;
 
+import com.aws.sif.execution.DynamicTypeValue;
 import lombok.Builder;
 import lombok.Data;
 import java.util.List;
@@ -27,8 +28,15 @@ public class AuditMessage {
     String auditId;
     int executionNo;
 
+	Input[] inputs;
     Output[] outputs;
 
+	@Builder
+	@Data
+	public static class Input {
+		String name;
+		String value;
+	}
     @Builder
     @Data
     public static class Output {

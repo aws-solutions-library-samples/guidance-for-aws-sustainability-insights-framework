@@ -23,8 +23,10 @@ import software.amazon.awssdk.services.s3.model.selectobjectcontenteventstream.D
 
 import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
@@ -87,6 +89,57 @@ public class S3Utils {
             throw new RuntimeException(message, e);
         }
     }
+
+	public void upload(@NotNull S3Location req, Path path) {
+		this.upload(req, path, null);
+	}
+
+	public void upload(@NotNull S3Location req, Path path, Map<String,String> metadata) {
+		log.debug("upload> in> req:{}", req);
+		log.trace("upload> in> Path:{}", path);
+
+		try {
+			var putObj = PutObjectRequest.builder()
+				.bucket(req.getBucket())
+				.key(req.getKey())
+				.metadata(metadata)
+				.build();
+
+			var future = s3.putObject(putObj, AsyncRequestBody.fromFile(path));
+			future.join();
+
+		} catch (Exception e) {
+			var message = String.format("Failed uploading to bucket '%s' key '%s', error: %s",
+				req.getBucket(), req.getKey(), e.getMessage() );
+			log.error("upload> " + message, e);
+			throw new RuntimeException(message, e);
+		}
+	}
+
+	public CompletableFuture<PutObjectResponse> uploadAsync(@NotNull S3Location req, Path path, Map<String,String> metadata) {
+		log.debug("uploadAsync> in> req:{}", req);
+		log.trace("uploadAsync> in> Path:{}", path);
+        try{
+			var putObj = PutObjectRequest.builder()
+			.bucket(req.getBucket())
+			.key(req.getKey())
+			.metadata(metadata)
+			.build();
+
+			CompletableFuture<PutObjectResponse> future = s3.putObject(putObj, AsyncRequestBody.fromFile(path));
+
+			future.join();
+			return future;
+			} catch (Exception e) {
+				var message = String.format("Failed uploading to bucket '%s' key '%s', error: %s",
+					req.getBucket(), req.getKey(), e.getMessage() );
+				log.error("uploadAsync> " + message, e);
+				throw new RuntimeException(message, e);
+			}
+
+
+    }
+
 
     private CompletableFuture<Void> queryS3(@NotNull S3AsyncClient s3,
                                                    S3SourceLocation req,

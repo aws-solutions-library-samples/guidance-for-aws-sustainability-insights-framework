@@ -17,16 +17,24 @@ import com.google.gson.GsonBuilder;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 
 @Data
 public class AuditMessageBlob implements Serializable, Cloneable {
-    private String json;
+    private String auditLog;
     private String key;
 
     public AuditMessageBlob(AuditMessage message, String objectKey) {
-
         var gson = new GsonBuilder().create();
-        this.json = gson.toJson(message);
+        this.auditLog = gson.toJson(message);
         this.key = objectKey;
     }
+
+	public int getMessageSize() {
+		return toJson().getBytes(StandardCharsets.UTF_8).length;
+	}
+
+	public String toJson() {
+		return String.format("{\"key\":\"%s\",\"auditLog\":%s}",key,auditLog);
+	}
 }

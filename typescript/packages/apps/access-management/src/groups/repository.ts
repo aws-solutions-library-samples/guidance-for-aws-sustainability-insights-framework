@@ -55,6 +55,7 @@ export class GroupModuleRepository {
 							name: group.name,
 							description: group.description,
 							state: group.state,
+							tags: group.tags,
 							createdBy: group.createdBy,
 							createdAt: group.createdAt,
 							configuration: group.configuration,
@@ -73,6 +74,9 @@ export class GroupModuleRepository {
 
 		// main item
 		const transaction = this.getPutGroupTransactionWriteCommandInput(group);
+
+		// create tag items
+		transaction.TransactItems.push(...this.tagRepository.getTagTransactWriteCommandInput(group.id, PkType.Group, [group.id], group.tags, {}).TransactItems);
 
 		// hierarchy
 		const parentGroupDbId = createDelimitedAttribute(PkType.Group, parentId);
@@ -341,6 +345,7 @@ export class GroupModuleRepository {
 			updatedBy: i['updatedBy'],
 			updatedAt: i['updatedAt'],
 			configuration: i['configuration'],
+			tags: i['tags'],
 		};
 	}
 

@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/migrator",
+      "comment": "Added a New Migration tool to perform different migrations, initial version includes migrating metrics ",
+      "type": "patch"
+    }
+  ],
+  "packageName": "@sif/migrator"
+}

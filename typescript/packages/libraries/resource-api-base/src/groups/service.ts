@@ -58,10 +58,10 @@ export class GroupService implements IGroupService {
 		this.resourceRepo = resourceRepository;
 	}
 
-	public async isAlternateIdInUse(alternateId: string, groupId: string): Promise<boolean> {
-		this.log.debug(`GroupService> isAlternateIdInUse> in> alternateId:${alternateId}, groupId: ${groupId}`);
+	public async isAlternateIdInUse(alternateId: string, groupId: string, keyPrefix: string): Promise<boolean> {
+		this.log.debug(`GroupService> isAlternateIdInUse> in> alternateId:${alternateId}, groupId: ${groupId}, keyPrefix: ${keyPrefix}`);
 
-		const inUseBy = await this.resourceRepo.getIdByAlternateId(alternateId, groupId);
+		const inUseBy = await this.resourceRepo.getIdByAlternateId(alternateId, groupId, keyPrefix);
 		const inUse = inUseBy !== undefined;
 
 		this.log.debug(`GroupService> isAlternateIdInUse> exit:${inUse}`);

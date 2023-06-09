@@ -63,3 +63,8 @@ export type PipelineMetadata = {
 		timestampField: string
 	}
 };
+
+export interface Output {
+	name: string;
+	type: string;
+}

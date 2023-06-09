@@ -185,7 +185,7 @@ export class ConnectorService {
 		if (options.name) {
 			this.log.info(`ConnectorsService > list > searching by name : ${options.name}`);
 			options.name = options.name.toLowerCase();
-			connectorIds = await this.resourceService.listIdsByAlternateId(sc.groupId, options.name, {
+			connectorIds = await this.resourceService.listIdsByAlternateId(sc.groupId, options.name, PkType.Connector, {
 				includeChildGroups: options?.includeChildGroups,
 				includeParentGroups: options?.includeParentGroups
 			});
@@ -293,7 +293,7 @@ export class ConnectorService {
 	private async validateAlias(sc: SecurityContext, alias: string): Promise<void> {
 		this.log.debug(`ConnectorService> validateAlias> groupId:${sc.groupId}, alias:${alias}`);
 		// Validation - ensure name is unique for the group
-		if (await this.groupService.isAlternateIdInUse(alias, sc.groupId)) {
+		if (await this.groupService.isAlternateIdInUse(alias, sc.groupId, PkType.Connector)) {
 			throw new AlternateIdInUseError(alias);
 		}
 		this.log.debug(`ConnectorService> validateAlias> exit:`);

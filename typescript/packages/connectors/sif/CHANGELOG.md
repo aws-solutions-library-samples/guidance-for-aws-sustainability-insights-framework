@@ -1,6 +1,16 @@
 # Change Log - @sif/activity-pipeline-input-connector
 
-This log was last generated on Mon, 01 May 2023 00:31:09 GMT and should not be manually modified.
+This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+
+## 1.0.7
+Mon, 22 May 2023 22:02:58 GMT
+
+_Version update only_
+
+## 1.0.6
+Mon, 22 May 2023 18:52:26 GMT
+
+_Version update only_
 
 ## 1.0.5
 Mon, 01 May 2023 00:31:09 GMT
