@@ -14,10 +14,10 @@
 	"dependencies": {
 		"pino": "8.6.1",
 		"@aws-sdk/types": "3.226.0",
-		"@aws-sdk/client-s3": "3.229.0",
+		"@aws-sdk/client-s3": "3.350.0",
 		"node-stream-zip": "1.15.0",
-		"@aws-sdk/rds-signer": "3.229.0",
-		"@aws-sdk/client-rds": "3.229.0",
+		"@aws-sdk/rds-signer": "3.350.0",
+		"@aws-sdk/client-rds": "3.350.0",
 		"@aws-sdk/util-stream-node": "3.226.0",
 		"pg": "8.8.0",
 		"axios": "1.2.5",
