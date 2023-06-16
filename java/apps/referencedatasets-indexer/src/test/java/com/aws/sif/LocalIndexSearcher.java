@@ -48,7 +48,7 @@ public class LocalIndexSearcher {
 
         var request = prepareRequest().build();
 
-        var indexLocation = String.format("%s/index",  request.getId());
+        var indexLocation = String.format("%s/index",  "rd3/2");
 
         Path path = Paths.get("/tmp", indexLocation);
 

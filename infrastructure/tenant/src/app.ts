@@ -27,6 +27,7 @@ import { PipelineProcessorsApiStack } from './pipelineProcessor/pipelineProcesso
 import { PipelineApiStack } from './pipelines/pipelines.stack.js';
 import { ReferenceDatasetsApiStack } from './referenceDatasets/referenceDatasets.stack.js';
 import { SharedTenantInfrastructureStack } from './shared/sharedTenant.stack.js';
+import { CleanRoomsConnectorStack } from './connectors/cleanRooms.stack.js';
 import { getOrThrow } from './shared/stack.utils.js';
 
 const tenantApp = new cdk.App();
@@ -86,6 +87,7 @@ const tenantStackNamePrefix = `sif-${tenantId}-${environment}`;
 
 const csvConnectorName = 'sif-csv-pipeline-input-connector';
 const sifConnectorName = 'sif-activity-pipeline-input-connector';
+const cleanRoomsConnectorName = 'sif-cleanRooms-pipeline-input-connector';
 
 const tenantStackName = (suffix: string) => `${tenantStackNamePrefix}-${suffix}`;
 const tenantStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module -- Guidance for Sustainability Insights Framework on AWS (SO9161)`;
@@ -234,3 +236,13 @@ const csvConnectorStack = new CsvConnectorStack(tenantApp, 'csvConnector', {
 	connectorName: csvConnectorName,
 });
 csvConnectorStack.node.addDependency(pipelineApiStack);
+
+const cleanRoomsConnectorStack = new CleanRoomsConnectorStack(tenantApp, 'cleanRoomsConnector', {
+	stackName: tenantStackName('cleanRoomsConnector'),
+	description: tenantStackDescription('cleanRoomsConnector'),
+	env,
+	tenantId,
+	environment,
+	connectorName: cleanRoomsConnectorName
+});
+cleanRoomsConnectorStack.node.addDependency(pipelineApiStack);

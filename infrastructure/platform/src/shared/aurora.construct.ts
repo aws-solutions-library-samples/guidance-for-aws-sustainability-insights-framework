@@ -93,24 +93,40 @@ export class AuroraDatabase extends Construct {
 		]);
 
 		const iamPolicy = new Policy(this, 'iam-policy', {
-			statements: [new PolicyStatement({
-				sid: 'CreateSLRs',
+			statements: [
+				new PolicyStatement({
+				sid: 'CreateRDSSLR',
 				actions: ['iam:CreateServiceLinkedRole'],
 				resources: [
-					`arn:aws:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS*`
+					`arn:aws:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS*`,
 				],
 				conditions: {
 					'StringLike': {
 						'iam:AWSServiceName': 'rds.amazonaws.com'
 					}
 				}
-			}), new PolicyStatement({
+			}),
+				new PolicyStatement({
+					sid: 'CreateECSSLR',
+					actions: ['iam:CreateServiceLinkedRole'],
+					resources: [
+						'arn:aws:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS*'
+					],
+					conditions: {
+						'StringLike': {
+							'iam:AWSServiceName': 'ecs.amazonaws.com'
+						}
+					}
+				})
+				, new PolicyStatement({
 				sid: 'AttachPolicy',
 				actions: [
 					'iam:AttachRolePolicy',
-					'iam:PutRolePolicy'],
+					'iam:PutRolePolicy'
+				],
 				resources: [
 					`arn:aws:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS*`,
+					`arn:aws:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS*`,
 				]
 			})]
 		});

@@ -1,6 +1,13 @@
 # Change Log - @sif/integration-tests
 
-This log was last generated on Mon, 29 May 2023 05:49:44 GMT and should not be manually modified.
+This log was last generated on Thu, 15 Jun 2023 23:37:53 GMT and should not be manually modified.
+
+## 3.13.0
+Thu, 15 Jun 2023 23:37:53 GMT
+
+### Minor changes
+
+- Add new integration tests for cleanroom integration
 
 ## 3.12.0
 Mon, 29 May 2023 05:49:44 GMT

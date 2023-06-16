@@ -67,14 +67,6 @@ export class SharedPlatformInfrastructureStack extends Stack {
 			lockName,
 		});
 
-		new Ecs(this, 'SharedEcsCluster', {
-			vpc: network.vpc,
-			environment: props.environment,
-			repositoryName: props.repositoryName,
-			repositoryArn: props.repositoryArn,
-			imageTag: props.imageTag
-		});
-
 		const auroraDatabase = new AuroraDatabase(this, 'Aurora', {
 			vpc: network.vpc,
 			environment: props.environment,
@@ -82,6 +74,16 @@ export class SharedPlatformInfrastructureStack extends Stack {
 			maxClusterCapacity: props.maxClusterCapacity,
 			clusterDeletionProtection: props.clusterDeletionProtection,
 		});
+
+		const ecs = new Ecs(this, 'SharedEcsCluster', {
+			vpc: network.vpc,
+			environment: props.environment,
+			repositoryName: props.repositoryName,
+			repositoryArn: props.repositoryArn,
+			imageTag: props.imageTag
+		});
+
+		ecs.node.addDependency(auroraDatabase);
 
 		if (props.vpnOptions) {
 			new VpnClient(this, 'Vpn', {

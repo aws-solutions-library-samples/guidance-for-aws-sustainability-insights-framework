@@ -2,6 +2,18 @@
   "name": "@sif/infrastructure-tenant",
   "entries": [
     {
+      "version": "7.15.0",
+      "tag": "@sif/infrastructure-tenant_v7.15.0",
+      "date": "Thu, 15 Jun 2023 23:37:53 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "add infrastructure code for cleanrooms connector"
+          }
+        ]
+      }
+    },
+    {
       "version": "7.14.0",
       "tag": "@sif/infrastructure-tenant_v7.14.0",
       "date": "Fri, 09 Jun 2023 20:40:06 GMT",

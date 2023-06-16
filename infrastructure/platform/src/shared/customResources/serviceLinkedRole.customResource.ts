@@ -16,6 +16,7 @@ import { CreateServiceLinkedRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 const createServiceLinkedRole = async () => {
 	const iamClient = new IAMClient({});
 	await iamClient.send(new CreateServiceLinkedRoleCommand({ AWSServiceName: 'rds.amazonaws.com' }));
+	await iamClient.send(new CreateServiceLinkedRoleCommand({ AWSServiceName: 'ecs.amazonaws.com' }));
 	// even though the role is created, it takes some time before RDS can use it, so we set artificial sleep for this
 	await new Promise(r => setTimeout(r, 30000));
 };

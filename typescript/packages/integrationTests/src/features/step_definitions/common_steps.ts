@@ -41,6 +41,10 @@ Given(/^(.*) should be unauthorized in group (.*)$/, async function(email: strin
 	assert.equal(token, 'NotAuthorizedException');
 });
 
+Given(/^I store the environment variable (.*) as (.*) in global scope$/, async function(variableName, variable) {
+	this['apickli'].setGlobalVariable(variable, process.env[variableName]);
+});
+
 Given(/^I set form data to$/, async function(table: DataTable) {
 	this.apickli.removeRequestHeader('Content-Type');
 	this.apickli.addRequestHeader('Content-Type', 'multipart/form-data');

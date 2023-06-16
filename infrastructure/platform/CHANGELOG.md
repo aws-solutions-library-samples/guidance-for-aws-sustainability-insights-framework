@@ -1,6 +1,13 @@
 # Change Log - @sif/infrastructure-platform
 
-This log was last generated on Thu, 08 Jun 2023 12:58:17 GMT and should not be manually modified.
+This log was last generated on Wed, 14 Jun 2023 00:22:26 GMT and should not be manually modified.
+
+## 2.4.2
+Wed, 14 Jun 2023 00:22:26 GMT
+
+### Patches
+
+- fix ecs service linked role on new deployments
 
 ## 2.4.1
 Thu, 08 Jun 2023 12:58:17 GMT

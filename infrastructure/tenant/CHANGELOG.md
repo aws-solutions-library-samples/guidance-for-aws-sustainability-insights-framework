@@ -1,6 +1,13 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Fri, 09 Jun 2023 20:40:06 GMT and should not be manually modified.
+This log was last generated on Thu, 15 Jun 2023 23:37:53 GMT and should not be manually modified.
+
+## 7.15.0
+Thu, 15 Jun 2023 23:37:53 GMT
+
+### Minor changes
+
+- add infrastructure code for cleanrooms connector
 
 ## 7.14.0
 Fri, 09 Jun 2023 20:40:06 GMT

@@ -111,6 +111,13 @@ export class AuroraSeeder extends Construct {
 			},
 		]);
 
+		NagSuppressions.addResourceSuppressions(customResourceLambda, [
+			{
+				id: 'AwsSolutions-L1',
+				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
+			},
+		]);
+
 		const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
 			onEventHandler: customResourceLambda
 		});

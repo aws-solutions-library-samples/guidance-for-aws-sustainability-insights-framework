@@ -254,5 +254,10 @@
             <version>1.15</version>
             <type>jar</type>
         </dependency>
+		<dependency>
+			<groupId>org.apache.lucene</groupId>
+			<artifactId>lucene-backward-codecs</artifactId>
+			<version>9.5.0</version>
+		</dependency>
     </dependencies>
 </project>

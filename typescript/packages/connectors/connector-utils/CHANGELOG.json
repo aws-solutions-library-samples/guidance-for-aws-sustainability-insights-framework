@@ -1,0 +1,17 @@
+{
+  "name": "@sif/connector-utils",
+  "entries": [
+    {
+      "version": "1.1.0",
+      "tag": "@sif/connector-utils_v1.1.0",
+      "date": "Thu, 15 Jun 2023 23:37:53 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "utility library shared by multiple connectors"
+          }
+        ]
+      }
+    }
+  ]
+}

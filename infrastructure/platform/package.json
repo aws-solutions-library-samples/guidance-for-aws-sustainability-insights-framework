@@ -1,6 +1,6 @@
 {
 	"name": "@sif/infrastructure-platform",
-	"version": "2.4.1",
+	"version": "2.4.2",
 	"description": "SIF: Common Platform Infrastructure.",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",

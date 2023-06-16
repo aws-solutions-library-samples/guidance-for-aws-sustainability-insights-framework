@@ -13,14 +13,12 @@
 
 import { asFunction, Lifetime, createContainer } from 'awilix';
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
-
 import { EventPublisher } from '@sif/events';
-
 import { CsvService } from '../csv/csv.service.js';
-import { ConnectorEvents } from '../events/connector.events.js';
 import pino, { Logger } from 'pino';
 import pretty from 'pino-pretty';
 import pkg from 'aws-xray-sdk';
+import { ConnectorEvents } from '@sif/connector-utils';
 
 const { captureAWSv3Client } = pkg;
 
@@ -45,41 +43,39 @@ class EventBridgeClientFactory {
 }
 
 
-
 // Parameters
-	const eventBusName = process.env['EVENT_BUS_NAME'];
-	const region = process.env['AWS_REGION'];
-	const source = 'com.sif.connectors.input.csv'
+const eventBusName = process.env['EVENT_BUS_NAME'];
+const region = process.env['AWS_REGION'];
+const source = 'com.sif.connectors.input.csv';
 
-	const commonInjectionOptions = {
-		lifetime: Lifetime.SINGLETON,
-	};
+const commonInjectionOptions = {
+	lifetime: Lifetime.SINGLETON,
+};
 
 
+container.register({
 
-	container.register({
+	logger: asFunction(() => logger, {
+		...commonInjectionOptions
+	}),
 
-		logger: asFunction(() => logger, {
-			...commonInjectionOptions
-		}),
+	eventBridgeClient: asFunction(() => EventBridgeClientFactory.create(region), {
+		...commonInjectionOptions,
+	}),
 
-		eventBridgeClient: asFunction(() => EventBridgeClientFactory.create(region), {
-			...commonInjectionOptions,
-		}),
-
-		eventPublisher: asFunction((container) =>
+	eventPublisher: asFunction((container) =>
 			new EventPublisher(
 				logger,
 				container.eventBridgeClient,
 				eventBusName,
 				source
 			),
-			{
-				...commonInjectionOptions,
-			}
-		),
+		{
+			...commonInjectionOptions,
+		}
+	),
 
-		connectorEvents: asFunction((container) =>
+	connectorEvents: asFunction((container) =>
 			new ConnectorEvents(
 				logger,
 				container.eventPublisher,
@@ -87,22 +83,22 @@ class EventBridgeClientFactory {
 				region,
 				source
 			),
-			{
-				...commonInjectionOptions,
-			}
-		),
+		{
+			...commonInjectionOptions,
+		}
+	),
 
-		csvService: asFunction((container) =>
-				new CsvService(
-					logger,
-					container.connectorEvents
-				),
-			{
-				...commonInjectionOptions,
-			}
-		),
+	csvService: asFunction((container) =>
+			new CsvService(
+				logger,
+				container.connectorEvents
+			),
+		{
+			...commonInjectionOptions,
+		}
+	),
 
-	});
+});
 
 
 export {

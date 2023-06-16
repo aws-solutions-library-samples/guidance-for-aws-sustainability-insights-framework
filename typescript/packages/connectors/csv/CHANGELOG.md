@@ -1,6 +1,13 @@
 # Change Log - @sif/csv-pipeline-input-connector
 
-This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+This log was last generated on Thu, 15 Jun 2023 23:37:53 GMT and should not be manually modified.
+
+## 1.1.0
+Thu, 15 Jun 2023 23:37:53 GMT
+
+### Minor changes
+
+- refactor to use utility library
 
 ## 1.0.7
 Mon, 22 May 2023 22:02:58 GMT

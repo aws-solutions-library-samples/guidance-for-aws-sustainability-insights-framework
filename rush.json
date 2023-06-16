@@ -271,7 +271,7 @@
 		 * your PR branch, and in this situation "rush change" will also automatically invoke "git fetch"
 		 * to retrieve the latest activity for the remote main branch.
 		 */
-		"url": "git@ssh.gitlab.aws.dev:sif/sif-core.git",
+		"url": "https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework",
 		/**
 		 * The default branch name. This tells "rush change" which remote branch to compare against.
 		 * The default value is "main"
@@ -481,6 +481,12 @@
 			"shouldPublish": true
 		},
 		{
+			"packageName": "@sif/connector-utils",
+			"projectFolder": "typescript/packages/connectors/connector-utils",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
 			"packageName": "@sif/activity-pipeline-input-connector",
 			"projectFolder": "typescript/packages/connectors/sif",
 			"reviewCategory": "production",
@@ -489,6 +495,30 @@
 		{
 			"packageName": "@sif/csv-pipeline-input-connector",
 			"projectFolder": "typescript/packages/connectors/csv",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sif/clean-rooms-pipeline-input-connector",
+			"projectFolder": "typescript/packages/connectors/clean-rooms",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sif/audit-log-depositor",
+			"projectFolder": "typescript/packages/apps/audit-log-depositor",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sif/concurrency-manager",
+			"projectFolder": "typescript/packages/apps/concurrency-manager",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sif/schema-migrator",
+			"projectFolder": "typescript/packages/apps/schema-migrator",
 			"reviewCategory": "production",
 			"shouldPublish": true
 		}
