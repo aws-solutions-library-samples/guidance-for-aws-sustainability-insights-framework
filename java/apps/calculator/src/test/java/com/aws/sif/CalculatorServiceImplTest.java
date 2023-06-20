@@ -85,6 +85,7 @@ class CalculatorServiceImplTest {
 		underTest = new CalculatorServiceImpl(calculator, s3Utils, auditor, config, activityOutputWriter, usersClient, new Gson());
 
 		when(config.getString("calculator.upload.s3.bucket")).thenReturn("myBucket");
+		when(config.getString("calculator.upload.s3.groups.key")).thenReturn("pipelines/<pipelineId>/executions/<executionId>/groups/<chunkNo>.txt");
 	}
 
 	@Test
@@ -99,21 +100,30 @@ class CalculatorServiceImplTest {
 			.transforms(List.of(
 				new Transform(0, ":one+:two*:three",
 					List.of(new TransformOutput(0, "sum", "number", false, null,
-						null)))))
+						null))),
+				new Transform(1, "ASSIGN_TO_GROUP('/unit')",
+					List.of(new TransformOutput(0, "sum", "number", false, null,
+						null))),
+				new Transform(2, "ASSIGN_TO_GROUP('/test')",
+					List.of(new TransformOutput(0, "sum", "number", false, null,
+						null)))
+			))
 			.build();
 
 		// test
 		var actual = (InlineTransformResponse) underTest.process(request);
 
 		// verify
-		assertEquals(5, actual.getErrors().size());
+		assertEquals(6, actual.getErrors().size());
 		assertEquals("No groupContextId provided.", actual.getErrors().get(0));
 		assertEquals("No pipelineId provided.", actual.getErrors().get(1));
 		assertEquals("No executionId provided.", actual.getErrors().get(2));
-		assertEquals("First output of first transform must be configured as the timestamp.",
+		assertEquals("Only one transform may contain a formula with an ASSIGN_TO_GROUP function.",
 			actual.getErrors().get(3));
-		assertEquals("No `username` provided.",
+		assertEquals("First output of first transform must be configured as the timestamp.",
 			actual.getErrors().get(4));
+		assertEquals("No `username` provided.",
+			actual.getErrors().get(5));
 	}
 
 	@Test

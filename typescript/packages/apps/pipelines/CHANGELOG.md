@@ -1,6 +1,11 @@
 # Change Log - @sif/pipelines
 
-This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+This log was last generated on Mon, 19 Jun 2023 02:37:22 GMT and should not be manually modified.
+
+## 4.6.11
+Mon, 19 Jun 2023 02:37:22 GMT
+
+_Version update only_
 
 ## 4.6.10
 Mon, 22 May 2023 22:02:58 GMT

@@ -54,7 +54,7 @@ public class VariablesTest extends CalculatorBaseTest {
         parameters.put("unused", new StringTypeValue("ONE"));
 
         // mocks
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
 
         var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()
                 .pipelineId(PIPELINE_ID)
@@ -82,7 +82,7 @@ public class VariablesTest extends CalculatorBaseTest {
 		parameters.put("parameter", new BooleanTypeValue(true));
 
 		// mocks
-		when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+		when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
 
 		Exception exception = assertThrows(ArithmeticException.class, () -> {
 			var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()

@@ -1,6 +1,13 @@
 # Change Log - @sif/pipeline-processors
 
-This log was last generated on Fri, 09 Jun 2023 20:40:06 GMT and should not be manually modified.
+This log was last generated on Mon, 19 Jun 2023 02:37:22 GMT and should not be manually modified.
+
+## 4.12.1
+Mon, 19 Jun 2023 02:37:22 GMT
+
+### Patches
+
+- Add dynamic group processing for activites and metrics to support ASSIGN_TO_GROUP
 
 ## 4.12.0
 Fri, 09 Jun 2023 20:40:06 GMT

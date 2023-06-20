@@ -54,7 +54,7 @@ public class UsersClient {
 
         // TODO validate parameters
 
-        var functionName = config.getString("calculator.users.functionName");
+        var functionName = config.getString("calculator.accessManagement.functionName");
         var path = String.format("/users/%s", encodeValue(id) );
 
         var getResponse =this.userInvoker.invokeFunction(functionName, groupContextId, authorizer, "GET", path, Optional.empty(), Optional.empty(), Optional.empty(), User.class);

@@ -14,6 +14,7 @@
 
 package com.aws.sif.execution;
 
+import com.aws.sif.resources.groups.GroupsClient;
 import com.aws.sif.resources.impacts.ImpactsClient;
 import com.aws.sif.resources.calculations.CalculationsClient;
 import com.aws.sif.resources.referenceDatasets.DatasetsClient;
@@ -32,6 +33,7 @@ public abstract class CalculatorBaseTest {
 
     @Mock protected CalculationsClient calculationsClient;
     @Mock protected DatasetsClient datasetsClient;
+	@Mock protected GroupsClient groupsClient;
     @Mock protected ImpactsClient impactsClient;
     @Mock protected Provider<ExecutionVisitor> executionVisitorProvider;
 	protected Calculator underTest;

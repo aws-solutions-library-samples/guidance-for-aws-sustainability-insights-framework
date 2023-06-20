@@ -158,6 +158,18 @@ Where:
 
 ## Miscellaneous functions
 
+### `ASSIGN_TO_GROUP` function
+
+Given a value `(group_value)`, the pipeline processor will apply this group to the output when saving activity values and calculating metrics. In this way every row can be assigned a group context dependent on a calculated value rather than using the `groupContextId` of the execution for every output row. For example, a single pipeline could process data from multiple locations and using `ASSIGN_TO_GROUP` assign that location's group to the output row. `ASSIGN_TO_GROUP` can only be used in one transformer output per pipeline and the `group_value` passed in must either be equal to or a child of the group context of the execution.
+
+```
+ASSIGN_TO_GROUP(group_value)
+```
+
+Where:
+
+- `group_value` (required) string value specifying which group context to apply to this output row
+
 ### `CONVERT` function
 
 Converts a number from one measurement to another.

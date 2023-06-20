@@ -51,7 +51,7 @@ public class AsTimestampTest extends CalculatorBaseTest {
     @MethodSource("providerForSuccess")
     void success(String expression, DynamicTypeValue expected) {
 
-        when(executionVisitorProvider.get()).then(invocation -> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation -> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
 
         var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()
                 .pipelineId(PIPELINE_ID)

@@ -2,6 +2,18 @@
   "name": "@sif/integration-tests",
   "entries": [
     {
+      "version": "3.13.1",
+      "tag": "@sif/integration-tests_v3.13.1",
+      "date": "Mon, 19 Jun 2023 02:37:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Added test for ASSIGN_TO_GROUP"
+          }
+        ]
+      }
+    },
+    {
       "version": "3.13.0",
       "tag": "@sif/integration-tests_v3.13.0",
       "date": "Thu, 15 Jun 2023 23:37:53 GMT",

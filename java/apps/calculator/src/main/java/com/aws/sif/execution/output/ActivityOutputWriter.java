@@ -41,7 +41,6 @@ public class ActivityOutputWriter {
 	private BufferedWriter activityValueWriter;
 	private Path activityValuePath;
 	// context
-	private String groupId;
 	private String pipelineId;
 	private String executionId;
 	private int chunkNo;
@@ -55,9 +54,8 @@ public class ActivityOutputWriter {
 		this.sqsWriter = sqsWriter;
 	}
 
-	public void init(String groupId, String pipelineId, String executionId, int chunkNo,
+	public void init(String pipelineId, String executionId, int chunkNo,
 					 Map<String, String> outputMap) throws IOException {
-		this.groupId = groupId;
 		this.pipelineId = pipelineId;
 		this.executionId = executionId;
 		this.chunkNo = chunkNo;
@@ -79,29 +77,29 @@ public class ActivityOutputWriter {
 	}
 
 	public CompletableFuture<Void> addRecord(final NumberTypeValue time,
+											 final String groupId,
 											 final Map<String, DynamicTypeValue> uniqueIdColumns,
 											 final Map<String, DynamicTypeValue> values, final StringTypeValue auditId, final Boolean isDeletion) throws IOException {
 
-		log.debug("addRecord> in> time:{}, uniqueIdColumns: {}, values:{}, auditId: {}, isDeletion:{}", time, uniqueIdColumns,
+		log.debug("addRecord> in> time:{}, groupId:{}, uniqueIdColumns: {}, values:{}, auditId: {}, isDeletion:{}", time, groupId, uniqueIdColumns,
 			values, auditId, isDeletion);
 
 		Validate.notNull(time, "Time cannot be null.");
+		Validate.notNull(groupId, "Group ID cannot be null.");
 		Validate.notNull(uniqueIdColumns, "Unique id columns cannot be null.");
 		Validate.notNull(values, "Values cannot be null.");
 		Validate.notNull(auditId, "Audit Id cannot be null.");
 
-		Map<String, String> activityValueMap = this.buildActivityRecord(time, uniqueIdColumns, values, auditId, isDeletion);
+		Map<String, String> activityValueMap = this.buildActivityRecord(time, groupId, uniqueIdColumns, values, auditId, isDeletion);
 
 		this.activityValueWriter.append(activityValueMap.get("activityValues"));
 
 		return null;
 	}
 
-
-
-	private Map<String,String> buildActivityRecord(NumberTypeValue time,
+	private Map<String,String> buildActivityRecord(NumberTypeValue time, String groupId,
 										Map<String, DynamicTypeValue> uniqueIdColumns, Map<String, DynamicTypeValue> values, final StringTypeValue auditId, final Boolean isDeletion) {
-		log.debug("buildActivityRecord> in> time:{}, uniqueIdColumns: {}, values:{}, outputMap:{}, auditId:{}, isDeletion:{}", time,
+		log.debug("buildActivityRecord> in> time:{}, groupId:{}, uniqueIdColumns: {}, values:{}, outputMap:{}, auditId:{}, isDeletion:{}", time, groupId,
 			uniqueIdColumns, values, outputMap, auditId, isDeletion);
 
 		Map<String, String> activityValueMap = new HashMap<>();
@@ -131,7 +129,7 @@ public class ActivityOutputWriter {
 		String activity = String.format("""
 			"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s","%s"
 			""",
-			 activityId,this.groupId, this.pipelineId, this.executionId, date, keyValues[0], keyValues[1], keyValues[2], keyValues[3], keyValues[4],String.valueOf(isDeletion));
+			 activityId, groupId, this.pipelineId, this.executionId, date, keyValues[0], keyValues[1], keyValues[2], keyValues[3], keyValues[4],String.valueOf(isDeletion));
 			 StringBuffer activityValues = new StringBuffer();
 
 		var activityString = activity.toString();
@@ -275,8 +273,8 @@ public class ActivityOutputWriter {
 
 		// Send a message to SQS
 		String payload = String.format("""
-			{"pipelineId":"%s","groupId":"%s","executionId":"%s","sequence":"%s", "activityValuesKey": "%s"}
-				""", this.pipelineId, this.groupId,this.executionId, this.chunkNo, activityValueKey);
+			{"pipelineId":"%s","executionId":"%s","sequence":"%s", "activityValuesKey": "%s"}
+				""", this.pipelineId, this.executionId, this.chunkNo, activityValueKey);
 		var deDuplicationId = UUID.randomUUID().toString();
 		this.sqsWriter.submitWithRetry(payload, this.executionId, deDuplicationId);
 	}

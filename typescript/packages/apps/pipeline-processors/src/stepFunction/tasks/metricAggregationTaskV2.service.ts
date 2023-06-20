@@ -25,6 +25,7 @@ import type { Utils } from '@sif/resource-api-base';
 import { AffectedTimeRange, TIME_UNIT_TO_DATE_PART, TimeUnitAbbreviation } from '../../api/metrics/models.js';
 import type { AggregationTaskAuroraRepository } from './aggregationTask.aurora.repository.js';
 import type { MetricAggregationRepository } from './metricAggregationRepository.js';
+import type { AggregationUtil } from '../../utils/aggregation.util.js';
 
 dayjs.extend(weekOfYear);
 dayjs.extend(quarterOfYear);
@@ -36,14 +37,23 @@ export class MetricAggregationTaskServiceV2 {
 	private readonly metricClient: MetricClient;
 	private readonly aggregationTaskRepo: AggregationTaskAuroraRepository;
 	private readonly metricAggregationRepo: MetricAggregationRepository;
+	private readonly metricAggregationUtil: AggregationUtil;
 	private readonly utils: Utils;
 
-	public constructor(log: BaseLogger, metricClient: MetricClient, aggregationTaskRepo: AggregationTaskAuroraRepository, utils: Utils, metricAggregationRepo: MetricAggregationRepository) {
+	public constructor(
+		log: BaseLogger,
+		metricClient: MetricClient,
+		aggregationTaskRepo: AggregationTaskAuroraRepository,
+		utils: Utils,
+		metricAggregationRepo: MetricAggregationRepository,
+		metricAggregationUtil: AggregationUtil
+	) {
 		this.log = log;
 		this.metricClient = metricClient;
 		this.aggregationTaskRepo = aggregationTaskRepo;
 		this.utils = utils;
 		this.metricAggregationRepo = metricAggregationRepo;
+		this.metricAggregationUtil = metricAggregationUtil;
 	}
 
 	public async process(event: ProcessedTaskEvent): Promise<ProcessedTaskEvent> {
@@ -56,6 +66,7 @@ export class MetricAggregationTaskServiceV2 {
 		validateNotEmpty(event.executionId, 'event.executionId');
 
 		const { groupContextId, pipelineId, executionId, metricQueue } = event;
+		let { groupsQueue, nextMetric, nextGroup } = event;
 
 		if (metricQueue.length === 0) {
 			this.log.info(`AggregationTask> process> early exit (no metrics)`);
@@ -65,13 +76,29 @@ export class MetricAggregationTaskServiceV2 {
 			};
 		}
 
+		let currentMetric = nextMetric === undefined ? 1 : nextMetric;
+		let currentGroup = nextGroup === undefined ? 1 : nextGroup;
+
 		const timeRange = event.timeRange ?? (await this.aggregationTaskRepo.getAffectedTimeRange(pipelineId, executionId));
 
+		// if the event doesn't have the groups queue populated yet, go fetch the leaves visited during the execution
+		if (groupsQueue === undefined) {
+			groupsQueue = [];
+			const executionGroupLeaves = await this.metricAggregationUtil.getExecutionGroupLeaves(pipelineId, executionId);
+			this.log.debug(`executionGroupLeaves: ${JSON.stringify(executionGroupLeaves)}`);
+			executionGroupLeaves.forEach((egl, i) => {
+				groupsQueue.push({order: i+1, group: egl});
+			});
+
+			this.log.debug(`created groupsQueue: ${JSON.stringify(groupsQueue)}`);
+		}
+
 		// the group hierarchy to process, starting from the leaf going up
-		const groupHierarchy = this.utils.explodeGroupId(groupContextId).reverse();
+		const groupToProcess = groupsQueue.find(g => g.order === currentGroup);
+		const groupHierarchy = this.utils.explodeGroupId(groupToProcess.group).reverse();
 
 		// sort the metric to process in order of priority or hierarchy then get the first one
-		const [metricToProcess, ...restOfQueue] = metricQueue.sort((a, b) => a.order - b.order);
+		const metricToProcess = metricQueue.find(m => m.order === currentMetric);
 
 		const requestContext = this.buildLambdaRequestContext(groupContextId);
 
@@ -81,13 +108,27 @@ export class MetricAggregationTaskServiceV2 {
 
 		await this.rollupMetric(groupHierarchy, timeRange, metric, pipelineId, executionId);
 
+		// iterate through all of the metrics for each group
+		// so on each run increment the metric processed
+		// if all metrics have been processed, increment the group and reset the metric
+		// aggregation is done when all metrics and groups have been processed
+		nextMetric = currentMetric + 1;
+		nextGroup = currentGroup;
+		if (nextMetric > metricQueue.length) {
+			nextGroup = currentGroup + 1;
+			nextMetric = 1;
+		}
+
 		this.log.info(`MetricAggregationTaskServiceV2> process> exit:`);
 
 		return {
 			...event,
 			timeRange,
-			status: restOfQueue.length > 0 ? 'IN_PROGRESS' : 'SUCCEEDED',
-			metricQueue: restOfQueue
+			status: nextGroup <= groupsQueue.length ? 'IN_PROGRESS' : 'SUCCEEDED',
+			metricQueue,
+			groupsQueue,
+			nextMetric,
+			nextGroup,
 		};
 	}
 

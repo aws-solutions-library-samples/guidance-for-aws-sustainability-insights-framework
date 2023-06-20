@@ -2,6 +2,18 @@
   "name": "@sif/validators",
   "entries": [
     {
+      "version": "1.2.1",
+      "tag": "@sif/validators_v1.2.1",
+      "date": "Mon, 19 Jun 2023 02:37:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Formula validation for ASSIGN_TO_GROUP"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.2.0",
       "tag": "@sif/validators_v1.2.0",
       "date": "Thu, 16 Mar 2023 04:36:57 GMT",

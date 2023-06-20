@@ -274,7 +274,7 @@ export class CalculatorModule extends Construct {
 				'CALCULATIONS_FUNCTION_NAME': props.calculationsApiFunctionName,
 				'REFERENCEDATASETS_FUNCTION_NAME': props.referenceDatasetsApiFunctionName,
 				'IMPACTS_FUNCTION_NAME': props.impactsApiFunctionName,
-				'USERS_FUNCTION_NAME': props.accessManagementApiFunctionName,
+				'ACCESS_MANAGEMENT_FUNCTION_NAME': props.accessManagementApiFunctionName,
 				'RESOURCE_MAPPING_TABLE_NAME': resourceMappingTable.tableName,
 				'ACTIVITY_QUEUE_URL':activityInsertQueue.queueUrl,
 				'AUDIT_QUEUE_URL': auditQueue.queueUrl

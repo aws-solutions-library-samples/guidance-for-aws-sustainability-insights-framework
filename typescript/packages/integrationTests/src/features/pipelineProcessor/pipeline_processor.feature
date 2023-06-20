@@ -355,7 +355,7 @@ Feature:
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
 		When I GET /activities?date=1/1/22&pipelineId=`pipeline_processor_pipeline_id`&showAggregate=true&showHistory=true&uniqueKeyAttributes=month:A
-		And response body path $.activities should be of type array with length 5
+		And response body path $.activities should be of type array with length 3
 		# Aggregated history for the first pipeline execution
 		And response body path $.activities[?(@.executionId=='`success_execution_id`')]['b*c'] should be 870
 		And response body path $.activities[?(@.executionId=='`success_execution_id`')]['b+c'] should be null

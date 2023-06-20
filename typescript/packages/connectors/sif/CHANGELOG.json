@@ -2,6 +2,18 @@
   "name": "@sif/activity-pipeline-input-connector",
   "entries": [
     {
+      "version": "1.0.8",
+      "tag": "@sif/activity-pipeline-input-connector_v1.0.8",
+      "date": "Mon, 19 Jun 2023 02:37:22 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.2.1`"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.0.7",
       "tag": "@sif/activity-pipeline-input-connector_v1.0.7",
       "date": "Mon, 22 May 2023 22:02:58 GMT",

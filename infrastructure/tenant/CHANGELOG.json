@@ -2,6 +2,23 @@
   "name": "@sif/infrastructure-tenant",
   "entries": [
     {
+      "version": "7.15.1",
+      "tag": "@sif/infrastructure-tenant_v7.15.1",
+      "date": "Mon, 19 Jun 2023 02:37:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Updates for ASSIGN_TO_GROUP"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.7.1`"
+          }
+        ]
+      }
+    },
+    {
       "version": "7.15.0",
       "tag": "@sif/infrastructure-tenant_v7.15.0",
       "date": "Thu, 15 Jun 2023 23:37:53 GMT",

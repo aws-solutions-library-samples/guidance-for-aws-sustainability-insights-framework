@@ -59,7 +59,7 @@ public class LookupTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
         when(datasetsClient.getValue(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"mySource", "myValue", "myOutputColumn", "myKeyColumn", Optional.empty(),Optional.empty(), Optional.empty()))
                 .thenReturn(new DatasetsClient.GetValueResponse("0.3",123));
 
@@ -102,7 +102,7 @@ public class LookupTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
         when(datasetsClient.getValue(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"mySource", "myValue", "myOutputColumn", "myKeyColumn", Optional.empty(),Optional.of("22"), Optional.empty()))
                 .thenReturn(new DatasetsClient.GetValueResponse("true",22));
 
@@ -140,7 +140,7 @@ public class LookupTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
         when(datasetsClient.getValue(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"mySource", "myValue", "myOutputColumn", "myKeyColumn", Optional.empty(),Optional.empty(), Optional.of("2022-1-1")))
                 .thenReturn(new DatasetsClient.GetValueResponse("true",22));
 
@@ -173,7 +173,7 @@ public class LookupTest extends CalculatorBaseTest {
         )).build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
         when(datasetsClient.getValue(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"source1", "value1", "column1", "key1", Optional.empty(), Optional.empty(), Optional.empty()))
                 .thenReturn(new DatasetsClient.GetValueResponse("A",22));
         when(datasetsClient.getValue(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID,AUTHORIZER, "source2",  "value2", "column2", "key2", Optional.empty(), Optional.empty(), Optional.empty()))

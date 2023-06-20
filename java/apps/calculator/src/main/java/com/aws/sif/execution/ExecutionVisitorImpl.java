@@ -13,9 +13,13 @@
 package com.aws.sif.execution;
 
 import com.aws.sif.Authorizer;
+import com.aws.sif.execution.output.OutputType;
 import com.aws.sif.resources.calculations.Calculation;
 import com.aws.sif.resources.calculations.CalculationNotFoundException;
 import com.aws.sif.resources.calculations.CalculationsClient;
+import com.aws.sif.resources.groups.Group;
+import com.aws.sif.resources.groups.GroupNotFoundException;
+import com.aws.sif.resources.groups.GroupsClient;
 import com.aws.sif.resources.impacts.Activity;
 import com.aws.sif.resources.impacts.ActivityNotFoundException;
 import com.aws.sif.resources.impacts.ImpactsClient;
@@ -63,12 +67,14 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     // resource clients
     private final CalculationsClient calculationsClient;
     private final DatasetsClient datasetsClient;
+	private final GroupsClient groupsClient;
     private final ImpactsClient impactsClient;
 
     @Inject
-    public ExecutionVisitorImpl(CalculationsClient calculationsClient, DatasetsClient datasetsClient, ImpactsClient impactsClient) {
+    public ExecutionVisitorImpl(CalculationsClient calculationsClient, DatasetsClient datasetsClient, GroupsClient groupsClient, ImpactsClient impactsClient) {
         this.calculationsClient = calculationsClient;
         this.datasetsClient = datasetsClient;
+		this.groupsClient = groupsClient;
         this.impactsClient = impactsClient;
     }
 
@@ -454,6 +460,40 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
         log.trace("visitCoalesceFunctionExpr> exit> {}", result);
         return result;
     }
+
+	@Override public StringTypeValue visitAssignToGroupFunctionExpr(CalculationsParser.AssignToGroupFunctionExprContext ctx) {
+		log.trace("visitAssignToGroupFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+
+		var groupId = super.visit(ctx.groupId).asString().toLowerCase();
+
+		// validate the group passed in actually exists
+		try {
+			if (!this.groupsClient.groupExists(pipelineId, executionId, groupId, groupId, authorizer)) {
+				throw new GroupNotFoundException(String.format("Group passed to ASSIGN_TO_GROUP %s does not exist.", groupId));
+			}
+		} catch (GroupNotFoundException e) {
+			throw new ArithmeticException(String.format("Group passed to ASSIGN_TO_GROUP %s does not exist.", groupId));
+		}
+
+		// the group passed in must be the same as groupContextId or a child
+		var groupIdTokens = groupId.split("/");
+		var groupContextIdTokens = groupContextId.split("/");
+		if (groupIdTokens.length < groupContextIdTokens.length) {
+			throw new ArithmeticException(String.format("The group passed to ASSIGN_TO_GROUP (%s) must be the same as or be a child of the group context of execution (%s)", groupId, groupContextId));
+		}
+		for(int ti=0; ti<groupContextIdTokens.length; ++ti) {
+			if (!groupContextIdTokens[ti].equals(groupIdTokens[ti])) {
+				throw new ArithmeticException(String.format("The group passed to ASSIGN_TO_GROUP (%s) must be the same as or be a child of the group context of execution (%s)", groupId, groupContextId));
+			}
+		}
+
+		auditEvaluated.put(ctx.getText(), groupId);
+
+		var result = new StringTypeValue(groupId);
+		result.setOutputType(OutputType.groupId);
+		log.trace("visitAssignToGroupFunctionExpr> exit> {}", result);
+		return result;
+	}
 
     @Override public DynamicTypeValue visitOptionalGroupParam(CalculationsParser.OptionalGroupParamContext ctx) {
         log.trace("visitOptionalGroupParamContext> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());

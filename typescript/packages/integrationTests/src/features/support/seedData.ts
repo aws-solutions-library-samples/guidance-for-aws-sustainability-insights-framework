@@ -160,7 +160,7 @@ function findMetricsWithDependenciesFulfilled(metricEntries: MetricEntry[], exis
 
 	return metricEntries.filter((me) => {
 		const meJson = JSON.parse(me.definition);
-		if (meJson.outputMetrics?.length ?? 0 === 0) {
+		if ((meJson.outputMetrics?.length ?? 0) === 0) {
 			return true;
 		}
 		const existingMetricNames: string[] = existingMetrics.map((m) => JSON.parse(m.definition).name);

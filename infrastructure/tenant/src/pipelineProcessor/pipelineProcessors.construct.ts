@@ -375,6 +375,7 @@ export class PipelineProcessors extends Construct {
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
 		});
 
+		bucket.grantReadWrite(pipelineAggregationLambda);
 		table.grantReadData(pipelineAggregationLambda);
 		pipelineLambda.grantInvoke(pipelineAggregationLambda);
 		pipelineAggregationLambda.addToRolePolicy(rdsProxyPolicy);
@@ -419,6 +420,7 @@ export class PipelineProcessors extends Construct {
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
 		});
 
+		bucket.grantReadWrite(metricAggregationLambda);
 		table.grantReadData(metricAggregationLambda);
 		metricsTable.grantReadWriteData(metricAggregationLambda);
 		pipelineLambda.grantInvoke(metricAggregationLambda);
@@ -1214,7 +1216,7 @@ export class PipelineProcessors extends Construct {
 			],
 			true);
 
-		NagSuppressions.addResourceSuppressions([verificationLambda, sqlResultProcessorLambda, insertLatestValuesLambda, taskQueueLambda, insertActivityBulkLambda],
+		NagSuppressions.addResourceSuppressions([verificationLambda, sqlResultProcessorLambda, insertLatestValuesLambda, taskQueueLambda, insertActivityBulkLambda, metricAggregationLambda, pipelineAggregationLambda],
 			[
 				{
 					id: 'AwsSolutions-IAM4',

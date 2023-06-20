@@ -11,12 +11,14 @@
  *  and limitations under the License.
  */
 
-package com.aws.sif.execution.output;
+package com.aws.sif.resources.groups;
 
-public enum OutputType {
-    time,
-    uniqueId,
-    value,
-    auditId,
-	groupId
+public class GroupNotFoundException  extends Exception {
+    public GroupNotFoundException(String errorMessage) {
+        super(errorMessage);
+    }
+
+    public GroupNotFoundException(String errorMessage, Throwable cause) {
+        super(errorMessage, cause);
+    }
 }

@@ -1,6 +1,13 @@
 # Change Log - @sif/validators
 
-This log was last generated on Thu, 16 Mar 2023 04:36:57 GMT and should not be manually modified.
+This log was last generated on Mon, 19 Jun 2023 02:37:22 GMT and should not be manually modified.
+
+## 1.2.1
+Mon, 19 Jun 2023 02:37:22 GMT
+
+### Patches
+
+- Formula validation for ASSIGN_TO_GROUP
 
 ## 1.2.0
 Thu, 16 Mar 2023 04:36:57 GMT

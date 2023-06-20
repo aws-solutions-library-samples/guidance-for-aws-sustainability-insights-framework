@@ -2,6 +2,18 @@
   "name": "@sif/pipelines",
   "entries": [
     {
+      "version": "4.6.11",
+      "tag": "@sif/pipelines_v4.6.11",
+      "date": "Mon, 19 Jun 2023 02:37:22 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.2.1`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.6.10",
       "tag": "@sif/pipelines_v4.6.10",
       "date": "Mon, 22 May 2023 22:02:58 GMT",

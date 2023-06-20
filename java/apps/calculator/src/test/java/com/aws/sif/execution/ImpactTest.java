@@ -67,7 +67,7 @@ public class ImpactTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
 
         when(impactsClient.getActivity(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"one", Optional.empty(), Optional.empty() , Optional.empty()))
                 .thenReturn(stubActivity(2));
@@ -105,7 +105,7 @@ public class ImpactTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
         when(impactsClient.getActivity(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"one", Optional.empty(), Optional.of("22"), Optional.empty() ))
                 .thenReturn(stubActivity(22));
 
@@ -142,7 +142,7 @@ public class ImpactTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
         when(impactsClient.getActivity(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"one", Optional.empty(), Optional.empty(), Optional.of("2022-2-2") ))
                 .thenReturn(stubActivity(22));
 
@@ -173,7 +173,7 @@ public class ImpactTest extends CalculatorBaseTest {
         )).build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
 
         when(datasetsClient.getValue(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"B1", "A", "C", "Z", Optional.empty(),Optional.empty(), Optional.empty()))
                 .thenReturn(new DatasetsClient.GetValueResponse("one", 1));
@@ -225,7 +225,7 @@ public class ImpactTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
 
         when(impactsClient.getActivity(PIPELINE_ID, EXECUTION_ID, "/shared", AUTHORIZER,"one", Optional.of("tenantb"), Optional.empty(), Optional.empty() ))
                 .thenReturn(stubActivity(2));
@@ -246,7 +246,7 @@ public class ImpactTest extends CalculatorBaseTest {
 
     private static Stream<Arguments> providerForImpactFunctionFailed_ParseCancellationExceptions() {
         return Stream.of(
-                Arguments.of("impact()", "Line 1:7 mismatched input ')' expecting {AS_TIMESTAMP, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
+                Arguments.of("impact()", "Line 1:7 mismatched input ')' expecting {AS_TIMESTAMP, ASSIGN_TO_GROUP, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
                 Arguments.of("impact('one','two')", "Line 1:18 mismatched input ')' expecting {'+', '-', '*', '/', '^', '>', '>=', '<', '<=', '==', '!=', COMMA, ' '}")
         );
     }

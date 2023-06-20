@@ -19,18 +19,21 @@ import type { ActivitiesRepository } from '../../api/activities/repository.js';
 import type { PipelineProcessorsRepository } from '../../api/executions/repository.js';
 import { getPipelineMetadata } from '../../utils/helper.utils.js';
 import type { ProcessedTaskEvent } from './model.js';
+import type { AggregationUtil } from '../../utils/aggregation.util.js';
 
 export class PipelineAggregationTaskService {
 	private readonly log: BaseLogger;
 	private readonly activitiesRepository: ActivitiesRepository;
 	private readonly pipelineClient: PipelineClient;
 	private readonly pipelineProcessorRepository: PipelineProcessorsRepository;
+	private readonly aggregationUtil: AggregationUtil;
 
-	public constructor(log: BaseLogger, activitiesRepository: ActivitiesRepository, pipelineProcessorRepository: PipelineProcessorsRepository, pipelineClient: PipelineClient) {
+	public constructor(log: BaseLogger, activitiesRepository: ActivitiesRepository, pipelineProcessorRepository: PipelineProcessorsRepository, pipelineClient: PipelineClient, aggregationUtil: AggregationUtil) {
 		this.log = log;
 		this.activitiesRepository = activitiesRepository;
 		this.pipelineClient = pipelineClient;
 		this.pipelineProcessorRepository = pipelineProcessorRepository;
+		this.aggregationUtil = aggregationUtil;
 	}
 
 	public async process(event: ProcessedTaskEvent): Promise<void> {
@@ -61,9 +64,15 @@ export class PipelineAggregationTaskService {
 			const pipeline = await this.pipelineClient.get(pipelineId, execution.pipelineVersion, requestContext);
 			const metadata = getPipelineMetadata(pipeline);
 
-			for await (const [activities, fromOffset] of this.getActivitiesAggregatedBySqlFunctions(pipelineId, executionId, groupContextId, metadata)) {
-				this.log.info(`PipelineAggregationTaskService> process> fromOffset: ${fromOffset}`);
-				await this.activitiesRepository.createAggregatedActivities(activities, pipelineId, executionId, groupContextId, pipeline._aggregatedOutputKeyAndTypeMap, metadata);
+			const executionGroups = await this.aggregationUtil.getExecutionGroups(pipelineId, executionId);
+			this.log.debug(`PipelineAggregationTaskService> process> executionGroups: ${JSON.stringify(executionGroups)}`);
+
+			// run pipeline aggregation for all groups affected by the pipeline execution (possibly many if pipeline used ASSIGN_TO_GROUP, otherwise 1)
+			for await (const group of executionGroups) {
+				for await (const [activities, fromOffset] of this.getActivitiesAggregatedBySqlFunctions(pipelineId, executionId, group, metadata)) {
+					this.log.info(`PipelineAggregationTaskService> process> fromOffset: ${fromOffset}`);
+					await this.activitiesRepository.createAggregatedActivities(activities, pipelineId, executionId, group, pipeline._aggregatedOutputKeyAndTypeMap, metadata);
+				}
 			}
 		}
 		this.log.info(`PipelineAggregationTaskService> process> exit:`);

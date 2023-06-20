@@ -32,36 +32,36 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 @Slf4j
 public class LocalInvokeCalculation {
 
-    private TransformRequest.TransformRequestBuilder prepareRequest() {
-        return TransformRequest.builder()
-                .pipelineId(String.format("pipe-%s",System.currentTimeMillis()))
-                .executionId(String.format("exe-%s", String.valueOf(System.currentTimeMillis())))
-                .groupContextId("/")
-                .username("test@amazon.com")
-                .parameters(List.of(
-                        TransformParameter.builder().key("timestamp").type("string").build(),
-                        TransformParameter.builder().key("zipcode").type("string").build(),
-                        TransformParameter.builder().key("kwh").type("number").build()
-                ))
-                .transforms(List.of(
-                        Transform.builder().index(0).formula("AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')").outputs(
-                                List.of(TransformOutput.builder().index(0).key("timestamp").type("timestamp").build())
-                        ).build(),
-                        Transform.builder().index(1).formula(":zipcode").outputs(
-                                List.of(TransformOutput.builder().index(0).key("zipcode").includeAsUnique(true)._keyMapping("key1").type("string").build())
-                        ).build(),
-                        Transform.builder().index(2).formula(":kwh").outputs(
-                                List.of(TransformOutput.builder().index(0).key("kwh").type("number").build())
-                        ).build(),
-                        Transform.builder().index(3).formula(":kwh*0.25").outputs(
-                                List.of(TransformOutput.builder().index(0).key("co2e").type("number").build())
-                        ).build()
+	private TransformRequest.TransformRequestBuilder prepareRequest() {
+		return TransformRequest.builder()
+			.pipelineId(String.format("pipe-%s",System.currentTimeMillis()))
+			.executionId(String.format("exe-%s", String.valueOf(System.currentTimeMillis())))
+			.groupContextId("/")
+			.username("test@amazon.com")
+			.parameters(List.of(
+				TransformParameter.builder().key("timestamp").type("string").build(),
+				TransformParameter.builder().key("zipcode").type("string").build(),
+				TransformParameter.builder().key("kwh").type("number").build()
+			))
+			.transforms(List.of(
+				Transform.builder().index(0).formula("AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')").outputs(
+					List.of(TransformOutput.builder().index(0).key("timestamp").type("timestamp").build())
+				).build(),
+				Transform.builder().index(1).formula(":zipcode").outputs(
+					List.of(TransformOutput.builder().index(0).key("zipcode").includeAsUnique(true)._keyMapping("key1").type("string").build())
+				).build(),
+				Transform.builder().index(2).formula(":kwh").outputs(
+					List.of(TransformOutput.builder().index(0).key("kwh").type("number").build())
+				).build(),
+				Transform.builder().index(3).formula(":kwh*0.25").outputs(
+					List.of(TransformOutput.builder().index(0).key("co2e").type("number").build())
+				).build()
 //                        Transform.builder().index(5).formula(":date").outputs(
 //                                List.of(TransformOutput.builder().index(0).key("date").type("timestamp").build())
 //                        ).build()
-                ))
-                .chunkNo(0);
-    }
+			))
+			.chunkNo(0);
+	}
 
 //    private TransformRequest.TransformRequestBuilder prepareRequest() {
 //        return TransformRequest.builder()
@@ -79,8 +79,8 @@ public class LocalInvokeCalculation {
 //                .csvHeader("\"left\",\"right\"");
 //    }
 
-    // Only for testing referencedatasets index search invocations
-    // this requires referencedataset to be pre-created.
+	// Only for testing referencedatasets index search invocations
+	// this requires referencedataset to be pre-created.
 //    private TransformRequest.TransformRequestBuilder prepareLookupRequest() {
 //        return TransformRequest.builder()
 //                .pipelineId(String.format("test-%s",System.currentTimeMillis()))
@@ -116,36 +116,36 @@ public class LocalInvokeCalculation {
 //        assertEquals("3\n7\n", actual.getCsv());
 //    }
 
-    @Test
-    public void calculation_s3() throws IOException {
-        // prepare s3 mode request
-        var request = prepareRequest().build();
+	@Test
+	public void calculation_s3() throws IOException {
+		// prepare s3 mode request
+		var request = prepareRequest().build();
 		var bucket = System.getenv("BUCKET_NAME");
-        var inputKeyPrefix = "test/pipelines/pipeline001/electricity_input_small.jl";
-        log.debug("calculation_s3> bucket: {} {}", bucket, inputKeyPrefix);
-        var sourceLocation = new S3SourceLocation();
-        sourceLocation.setBucket(bucket);
-        sourceLocation.setKey(inputKeyPrefix);
-        sourceLocation.setStartByte(0L);
-        sourceLocation.setEndByte(10000L);
-        request.setSourceDataLocation(sourceLocation);
-        log.debug("calculation_s3> request: {}", request);
+		var inputKeyPrefix = "test/pipelines/pipeline001/electricity_input_small.jl";
+		log.debug("calculation_s3> bucket: {} {}", bucket, inputKeyPrefix);
+		var sourceLocation = new S3SourceLocation();
+		sourceLocation.setBucket(bucket);
+		sourceLocation.setKey(inputKeyPrefix);
+		sourceLocation.setStartByte(0L);
+		sourceLocation.setEndByte(10000L);
+		request.setSourceDataLocation(sourceLocation);
+		log.debug("calculation_s3> request: {}", request);
 
-        // execute
-        var gson = new GsonBuilder().create();
-        var handler = new HandlerStream();
-        var inputStream = new ByteArrayInputStream(gson.toJson(request).getBytes());
-        var outputStream = new ByteArrayOutputStream();
-        handler.handleRequest(inputStream, outputStream, null);
+		// execute
+		var gson = new GsonBuilder().create();
+		var handler = new HandlerStream();
+		var inputStream = new ByteArrayInputStream(gson.toJson(request).getBytes());
+		var outputStream = new ByteArrayOutputStream();
+		handler.handleRequest(inputStream, outputStream, null);
 
 
-        var actual = gson.fromJson(new String(outputStream.toByteArray()), S3TransformResponse.class);
-        log.debug("calculation_s3> actual: {}", actual);
+		var actual = gson.fromJson(new String(outputStream.toByteArray()), S3TransformResponse.class);
+		log.debug("calculation_s3> actual: {}", actual);
 
-        // s3 locations should all be populated
-        assertNull(actual.getErrorLocation());
+		// s3 locations should all be populated
+		assertNull(actual.getErrorLocation());
 
-        // download and validate output
+		// download and validate output
 //        var getOb = GetObjectRequest.builder()
 //                .bucket(bucket)
 //                .key(outputKeyPrefix)
@@ -155,5 +155,5 @@ public class LocalInvokeCalculation {
 //        var outputAsString = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
 
 //        assertEquals("3\n7\n", outputAsString);
-    }
+	}
 }

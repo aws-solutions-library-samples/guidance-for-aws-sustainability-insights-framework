@@ -13,6 +13,7 @@ expr
 
     // specific function declarations
     |   AS_TIMESTAMP LPAREN value=expr COMMA pattern=expr (optionalAsTimestampParams)* RPAREN    	# AsTimestampFunctionExpr
+    |   ASSIGN_TO_GROUP LPAREN groupId=expr RPAREN                          # AssignToGroupFunctionExpr
     |   COALESCE LPAREN exprList RPAREN                                     # CoalesceFunctionExpr
     |   CONCAT LPAREN exprList RPAREN                                       # ConcatFunctionExpr
     |   CONVERT LPAREN value=expr COMMA fromUnit=expr COMMA toUnit=expr (optionalConvertParams)* RPAREN	# ConvertFunctionExpr
@@ -129,6 +130,7 @@ optionalRoundDownToParam
 
 // function name declarations
 AS_TIMESTAMP    : A S US T I M E S T A M P ;
+ASSIGN_TO_GROUP : A S S I G N US T O US G R O U P ;
 COALESCE        : C O A L E S C E ;
 CONCAT          : C O N C A T ;
 CONVERT			: C O N V E R T ;

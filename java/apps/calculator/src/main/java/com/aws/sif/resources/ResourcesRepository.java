@@ -113,6 +113,6 @@ public class ResourcesRepository {
     }
 
     public enum Type {
-		ACTIVITY, LOOKUP, FUNCTION
+		ACTIVITY, LOOKUP, FUNCTION, GROUP
     }
 }

@@ -157,7 +157,7 @@ public class CalculatorServiceImpl implements CalculatorService {
 			jsonLine.append("\"").append(header).append("\":");
 			var value = transformed.get(header);
 			if (value instanceof ErrorValue) {
-				jsonLine.append(ERROR_EVALUATING);
+				jsonLine.append("\"").append(ERROR_EVALUATING).append("\"");
 			} else if (value instanceof NullValue) {
 				jsonLine.append("null");
 			} else if (value instanceof StringTypeValue || value instanceof DateTimeTypeValue) {
@@ -183,6 +183,9 @@ public class CalculatorServiceImpl implements CalculatorService {
 		// collection of outputs for inline mode
 		var inlineResultJsonLines = new ArrayList<String>();
 
+		// keep track of group paths visited for pipeline and metrics aggregations
+		var groupsVisited = new HashSet<String>();
+
 		// no point proceeding if we detected an error during initialization or validation
 		if (errors.size() == 0) {
 
@@ -199,8 +202,8 @@ public class CalculatorServiceImpl implements CalculatorService {
 			// this is optional, but activityOutputWriter.init requires it so make the default to 0
 			var chunkNo = req.getChunkNo() == null ? 0 : req.getChunkNo();
 
-			// initialize the RDS writer with the current context
-			activityOutputWriter.init(req.getGroupContextId(), req.getPipelineId(), req.getExecutionId(), chunkNo, outputMap);
+			// initialize the activity writer with the current context
+			activityOutputWriter.init(req.getPipelineId(), req.getExecutionId(), chunkNo, outputMap);
 
 			Type MapStringStringType = new TypeToken<Map<String, String>>() {
 			}.getType();
@@ -226,19 +229,24 @@ public class CalculatorServiceImpl implements CalculatorService {
 							.filter(x -> OutputType.time.equals(x.getValue().getOutputType()))
 							.findFirst().get();
 
+						// if the output row has an entry that is a group id, then use it, otherwise default to execution group
+						var groupIdOutput = outputRow.entrySet().stream()
+							.filter(x -> OutputType.groupId.equals(x.getValue().getOutputType()))
+							.findFirst().orElse(new AbstractMap.SimpleEntry<>("__execution_group_id", new StringTypeValue(req.getGroupContextId())));
+						var rowGroupId = ((StringTypeValue)groupIdOutput.getValue()).getValue();
+						groupsVisited.add(rowGroupId);
+
 						var uniqueIdColumns = outputRow.entrySet().stream()
 							.filter(x -> OutputType.uniqueId.equals(x.getValue().getOutputType()))
 							.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
 
 						var auditId = outputRow.entrySet().stream()
 							.filter(x -> OutputType.auditId.equals(x.getValue().getOutputType()))
 							.findFirst().orElseThrow();
 
-
 						var values = this.getValueMap(req, outputRow);
 
-						activityOutputWriter.addRecord((NumberTypeValue) time.getValue(), uniqueIdColumns, values, (StringTypeValue) auditId.getValue(),(Boolean)isDeletion(req));
+						activityOutputWriter.addRecord((NumberTypeValue) time.getValue(), rowGroupId, uniqueIdColumns, values, (StringTypeValue) auditId.getValue(),(Boolean)isDeletion(req));
 					}
 
 				} catch (Exception e) {
@@ -250,6 +258,13 @@ public class CalculatorServiceImpl implements CalculatorService {
 
 		// post transformation step...
 		var bucket = config.getString("calculator.upload.s3.bucket");
+
+		log.trace("transformInput> groups visited:{}", groupsVisited);
+		if (!req.isDryRun()) {
+			S3Location groupsLocation = new S3Location(bucket, replaceKeyTokens(config.getString("calculator.upload.s3.groups.key"), req));
+			s3.upload(groupsLocation, String.join(System.lineSeparator(), groupsVisited));
+		}
+
 		if (DataSourceLocation.s3.equals(sourceLocation)) {
 			S3Location errorLocation = null;
 			if (errors.size() > 0) {
@@ -291,7 +306,8 @@ public class CalculatorServiceImpl implements CalculatorService {
 
 		} else {
 			this.valueMap = outputRow.entrySet().stream().filter(x -> (OutputType.uniqueId.equals(x.getValue().getOutputType())
-				|| OutputType.value.equals(x.getValue().getOutputType()))).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+				|| OutputType.value.equals(x.getValue().getOutputType()) || OutputType.groupId.equals(x.getValue().getOutputType())))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 		}
 		return this.valueMap;
 	}
@@ -363,7 +379,9 @@ public class CalculatorServiceImpl implements CalculatorService {
 			if (index.get() == 0) {
 				result.setOutputType(OutputType.time);
 			} else if (o.getIncludeAsUnique() == null || !o.getIncludeAsUnique()) {
-				result.setOutputType(OutputType.value);
+				if (!(result.getOutputType() == OutputType.groupId)) {
+					result.setOutputType(OutputType.value);
+				}
 			} else {
 				// throw an error if unique key value in null
 				if (result.asString() == null || result.asString().isEmpty()) {
@@ -479,6 +497,13 @@ public class CalculatorServiceImpl implements CalculatorService {
 					});
 				}
 			});
+
+			var groupIdOutputs = req.getTransforms().stream()
+				.filter(x -> x.getFormula().contains(("ASSIGN_TO_GROUP")))
+				.count();
+			if (groupIdOutputs > 1) {
+				recordError(errorMessages, "validateRequest", "Only one transform may contain a formula with an ASSIGN_TO_GROUP function.");
+			}
 
 			// 1st output of 1st transform must be the timestamp
 			var firstOutput = req.getTransforms().get(0).getOutputs().get(0);

@@ -30,6 +30,8 @@ import com.aws.sif.resources.ResourcesRepository;
 import com.aws.sif.resources.calculations.Calculation;
 import com.aws.sif.resources.calculations.CalculationsClient;
 import com.aws.sif.resources.calculations.CalculationsList;
+import com.aws.sif.resources.groups.Group;
+import com.aws.sif.resources.groups.GroupsClient;
 import com.aws.sif.resources.impacts.ActivitiesList;
 import com.aws.sif.resources.impacts.Activity;
 import com.aws.sif.resources.impacts.ImpactsClient;
@@ -106,8 +108,8 @@ public class CalculatorModule {
 
 	@Provides
 	public ExecutionVisitor provideExecutionVisitor(CalculationsClient calculationsClient,
-													DatasetsClient datasetsClient, ImpactsClient impactsClient) {
-		return new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient);
+													DatasetsClient datasetsClient, GroupsClient groupsClient, ImpactsClient impactsClient) {
+		return new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient);
 	}
 
 	@Provides
@@ -136,7 +138,11 @@ public class CalculatorModule {
 												Config config, ResourcesRepository repository) {
 		return new DatasetsClient(datasetsListInvoker, dataDownloadInvoker, config, repository);
 	}
-
+	@Provides
+	@Singleton
+	public GroupsClient provideGroupsClient(LambdaInvoker<Group> groupsInvoker, Config config, ResourcesRepository repository) {
+		return new GroupsClient(groupsInvoker, config, repository);
+	}
 	@Provides
 	@Singleton
 	public ImpactsClient provideActivitiesClient(LambdaInvoker<Activity> activityInvoker,

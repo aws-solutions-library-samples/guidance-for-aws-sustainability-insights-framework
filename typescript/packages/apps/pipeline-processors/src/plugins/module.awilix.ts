@@ -59,6 +59,7 @@ import { SqlResultProcessorTask } from '../stepFunction/tasks/sqlResultProcessor
 import { AuditExportUtil } from '../utils/auditExport.util.js';
 import { InsertActivityBulkService } from '../stepFunction/tasks/insertActivityBulk.service.js';
 import { MetricsMigrationUtil } from '../utils/metricsMigration.util.js';
+import { AggregationUtil } from '../utils/aggregation.util.js';
 
 const { BUCKET_NAME, BUCKET_PREFIX } = process.env;
 
@@ -110,6 +111,7 @@ declare module '@fastify/awilix' {
 		executionAuditExportService: ExecutionAuditExportService;
 		insertActivityBulkService: InsertActivityBulkService;
 		metricsMigrationUtil: MetricsMigrationUtil;
+		aggregationUtil: AggregationUtil;
 
 	}
 }
@@ -297,10 +299,10 @@ const registerContainer = (app?: FastifyInstance) => {
 		aggregationTaskAuroraRepository: asFunction((container: Cradle) => new AggregationTaskAuroraRepository(app.log, container.baseRepositoryClient), {
 			...commonInjectionOptions,
 		}),
-		aggregationTaskServiceV2: asFunction((container: Cradle) => new MetricAggregationTaskServiceV2(app.log, container.metricClient, container.aggregationTaskAuroraRepository, container.utils, container.metricAggregationRepository), {
+		aggregationTaskServiceV2: asFunction((container: Cradle) => new MetricAggregationTaskServiceV2(app.log, container.metricClient, container.aggregationTaskAuroraRepository, container.utils, container.metricAggregationRepository, container.aggregationUtil), {
 			...commonInjectionOptions,
 		}),
-		pipelineAggregationTaskService: asFunction((container: Cradle) => new PipelineAggregationTaskService(app.log, container.activitiesRepository, container.pipelineProcessorsRepository, container.pipelineClient), {
+		pipelineAggregationTaskService: asFunction((container: Cradle) => new PipelineAggregationTaskService(app.log, container.activitiesRepository, container.pipelineProcessorsRepository, container.pipelineClient, container.aggregationUtil), {
 			...commonInjectionOptions,
 		}),
 		activitiesRepository: asFunction((container: Cradle) => new ActivitiesRepository(app.log, container.baseRepositoryClient), {
@@ -328,6 +330,9 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions,
 		}),
 		metricsMigrationUtil: asFunction((container: Cradle) => new MetricsMigrationUtil(app.log, container.baseRepositoryClient), {
+			...commonInjectionOptions,
+		}),
+		aggregationUtil: asFunction((container: Cradle) => new AggregationUtil(app.log, container.s3Client, sourceDataBucket, sourceDataBucketPrefix), {
 			...commonInjectionOptions,
 		}),
 		executionAuditExportService: asFunction((container: Cradle) => new ExecutionAuditExportService(app.log, container.authChecker, container.pipelineExecutionUtils, container.pipelineProcessorsService, container.auditExportUtil)),

@@ -865,4 +865,60 @@ describe('transformer validator', () => {
 		}).toThrow('Only 1 timestamp field can be aggregated, the field will be used as date field for the aggregated output.');
 
 	});
+
+	it('should throw an error if more than one transform tries to use ASSIGN_TO_GROUP', () => {
+		const transformer: Transformer = {
+			transforms: [
+				{
+					index: 0,
+					formula: ':timestamp',
+					outputs: [
+						{
+							description: 'timestamp of event',
+							index: 0,
+							key: 'ts',
+							type: 'timestamp',
+						},
+					],
+				},
+				{
+					index: 1,
+					formula: 'ASSIGN_TO_GROUP(CONCAT("/","unittestgroup1"))',
+					outputs: [
+						{
+							description: 'group 1',
+							index: 1,
+							key: 'group1',
+							label: 'Group 1',
+							type: 'string'
+						},
+					],
+				},
+				{
+					index: 2,
+					formula: 'ASSIGN_TO_GROUP(CONCAT("/","unittestgroup2"))',
+					outputs: [
+						{
+							description: 'group 2',
+							index: 1,
+							key: 'group2',
+							label: 'Group 2',
+							type: 'string'
+						},
+					],
+				},
+			],
+			parameters: [
+				{
+					index: 0,
+					key: 'timestamp',
+					type: 'timestamp',
+				}
+			],
+		};
+
+		expect(() => {
+			validator.validateTransformer(transformer);
+		}).toThrow('Only 1 transform can use the ASSIGN_TO_GROUP() function.');
+	});
 });

@@ -20,11 +20,13 @@ import type { PipelineProcessorsRepository } from '../../api/executions/reposito
 import type { PipelineExecution } from '../../api/executions/schemas';
 import type { ProcessedTaskEvent } from './model.js';
 import { PipelineAggregationTaskService } from './pipelineAggregationTask.service';
+import type { AggregationUtil } from '../../utils/aggregation.util.js';
 
 describe('PipelineAggregationTaskService', () => {
 	let mockedPipelineRepo: MockProxy<PipelineProcessorsRepository>;
 	let mockedActivitiesRepository: MockProxy<ActivitiesRepository>;
 	let mockedPipelineClient: MockProxy<PipelineClient>;
+	let mockedAggregationUtil: MockProxy<AggregationUtil>;
 	let underTest: PipelineAggregationTaskService;
 
 	beforeEach(() => {
@@ -38,8 +40,9 @@ describe('PipelineAggregationTaskService', () => {
 		mockedPipelineRepo = mock<PipelineProcessorsRepository>();
 		mockedPipelineClient = mock<PipelineClient>();
 		mockedActivitiesRepository = mock<ActivitiesRepository>();
+		mockedAggregationUtil = mock<AggregationUtil>();
 
-		underTest = new PipelineAggregationTaskService(logger, mockedActivitiesRepository, mockedPipelineRepo, mockedPipelineClient);
+		underTest = new PipelineAggregationTaskService(logger, mockedActivitiesRepository, mockedPipelineRepo, mockedPipelineClient, mockedAggregationUtil);
 
 		mockedPipelineRepo.get.mockResolvedValueOnce({ pipelineVersion: 1 } as unknown as PipelineExecution);
 		mockedPipelineClient.get.mockResolvedValueOnce({
@@ -49,7 +52,7 @@ describe('PipelineAggregationTaskService', () => {
 				parameters: [],
 			},
 		} as unknown as Pipeline);
-		mockedActivitiesRepository.getAffectedTimeRange.mockResolvedValueOnce({ from: new Date(), to: new Date() });
+		mockedActivitiesRepository.getAffectedTimeRange.mockResolvedValue({ from: new Date(), to: new Date() });
 	});
 
 	it('Should paginate through all results from aggregated query and insert aggregated result back to Activity table', async () => {
@@ -61,6 +64,7 @@ describe('PipelineAggregationTaskService', () => {
 		});
 
 		mockedActivitiesRepository.aggregateRaw.mockResolvedValueOnce({ data: [], nextToken: undefined });
+		mockedAggregationUtil.getExecutionGroups.mockResolvedValueOnce(['/group/subgroup1']);
 
 		const testEvent: ProcessedTaskEvent = {
 			groupContextId: '/tests',
@@ -84,6 +88,7 @@ describe('PipelineAggregationTaskService', () => {
 			nextToken: undefined,
 		});
 		mockedActivitiesRepository.get.mockResolvedValueOnce({ data: [], nextToken: undefined });
+		mockedAggregationUtil.getExecutionGroups.mockResolvedValueOnce(['/group/subgroup1']);
 
 		const testEvent: ProcessedTaskEvent = {
 			groupContextId: '/tests',
@@ -97,6 +102,30 @@ describe('PipelineAggregationTaskService', () => {
 		await underTest.process(testEvent);
 		expect(mockedActivitiesRepository.aggregateRaw).toBeCalledTimes(1);
 		expect(mockedActivitiesRepository.createAggregatedActivities).toBeCalledTimes(1);
+	});
+
+	it('All activities results fits in first result page, multiple groups', async () => {
+		mockedActivitiesRepository.aggregateRaw.mockResolvedValue({
+			data: Array.from({ length: 1000 }, (value: string) => {
+				return { id: value };
+			}),
+			nextToken: undefined,
+		});
+		mockedActivitiesRepository.get.mockResolvedValue({ data: [], nextToken: undefined });
+		mockedAggregationUtil.getExecutionGroups.mockResolvedValueOnce(['/group/subgroup1','/group/subgroup2']);
+
+		const testEvent: ProcessedTaskEvent = {
+			groupContextId: '/tests',
+			executionId: 'execution-1',
+			pipelineId: 'pipeline-1',
+			requiresAggregation: true,
+			sequence: 0,
+			metricQueue: []
+		};
+
+		await underTest.process(testEvent);
+		expect(mockedActivitiesRepository.aggregateRaw).toBeCalledTimes(2);
+		expect(mockedActivitiesRepository.createAggregatedActivities).toBeCalledTimes(2);
 	});
 
 	it('Should skip aggregation if pipeline does not have aggregation configured', async () => {

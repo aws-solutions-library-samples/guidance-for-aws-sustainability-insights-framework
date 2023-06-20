@@ -1,6 +1,6 @@
 {
 	"name": "@sif/validators",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "Validation library to validate calculations and transforms",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"exports": {

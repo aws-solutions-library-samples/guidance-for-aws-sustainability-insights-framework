@@ -1,6 +1,13 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Thu, 15 Jun 2023 23:37:53 GMT and should not be manually modified.
+This log was last generated on Mon, 19 Jun 2023 02:37:22 GMT and should not be manually modified.
+
+## 7.15.1
+Mon, 19 Jun 2023 02:37:22 GMT
+
+### Patches
+
+- Updates for ASSIGN_TO_GROUP
 
 ## 7.15.0
 Thu, 15 Jun 2023 23:37:53 GMT

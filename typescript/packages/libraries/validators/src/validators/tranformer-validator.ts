@@ -37,6 +37,9 @@ export class TransformerValidator {
 		// validate transform outputs set as keys
 		this.validateTransformsOutputKeys(transformer.transforms);
 
+		// cross-transform validation
+		this.validateTransforms(transformer.transforms);
+
 		// individual transform validation
 		for (const t of transformer.transforms) {
 			this.validateTransformOutput(t);
@@ -122,6 +125,20 @@ export class TransformerValidator {
 		// validate that all transforms are not marked as unique. There always needs to be an unmarked transform
 		if (transforms.length - 1 === numberOutputKeys) {
 			throw new TransformerDefinitionError('All transform outputs cannot be marked as unique. At-least one transform output needs to stay unmarked.');
+		}
+	}
+
+	private validateTransforms(transforms: Transform[]): void {
+		let assignToGroupUsages = 0;
+
+		transforms.forEach((t) => {
+			if (t.formula.toLowerCase().includes("assign_to_group")) {
+				assignToGroupUsages += 1;
+			}
+		});
+
+		if (assignToGroupUsages > 1) {
+			throw new TransformerDefinitionError(`Only 1 transform can use the ASSIGN_TO_GROUP() function.`);
 		}
 	}
 

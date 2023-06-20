@@ -81,6 +81,7 @@ export interface CalculationTaskResult {
 
 
 export type MetricQueue = { order: number, metric: string }[]
+export type GroupsQueue = { order: number, group: string }[]
 
 export type Status = 'FAILED' | 'SUCCEEDED' | 'IN_PROGRESS';
 
@@ -100,6 +101,9 @@ export interface ProcessedTaskEvent {
 	sequence: number;
 	errorLocation?: S3Location;
 	timeRange?: AffectedTimeRange;
+	groupsQueue?: GroupsQueue;
+	nextMetric?: number;
+	nextGroup?: number;
 }
 
 export interface AggregationResult {
@@ -119,7 +123,6 @@ export interface InsertActivityResult {
 export interface InsertActivityBulkEvent {
 	pipelineId: string;
 	executionId: string;
-	groupId:string;
 	sequence: number;
 	activityValuesKey: string;
 };

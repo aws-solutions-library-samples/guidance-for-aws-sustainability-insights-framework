@@ -43,7 +43,7 @@ public class RefTest extends CalculatorBaseTest {
     @MethodSource("providerForSuccess")
     void success(String expression, Map<String,DynamicTypeValue> context, EvaluateResponse expected) {
 
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
 
         var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()
                 .pipelineId(PIPELINE_ID)
@@ -58,7 +58,7 @@ public class RefTest extends CalculatorBaseTest {
 
     private static Stream<Arguments> providerForFailed() {
         return Stream.of(
-                Arguments.of("ref()", "Line 1:4 mismatched input ')' expecting {AS_TIMESTAMP, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
+                Arguments.of("ref()", "Line 1:4 mismatched input ')' expecting {AS_TIMESTAMP, ASSIGN_TO_GROUP, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, SET, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
                 Arguments.of("ref('one','two')", "Line 1:9 mismatched input ',' expecting {')', '+', '-', '*', '/', '^', '>', '>=', '<', '<=', '==', '!=', ' '}")
         );
     }
