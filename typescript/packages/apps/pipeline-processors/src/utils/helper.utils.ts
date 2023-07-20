@@ -30,6 +30,14 @@ export function getPipelineInputKey(bucketPrefix: string, pipelineId: string, ex
 	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/input/${type}`;
 }
 
+export function getPipelineOutputKey(bucketPrefix: string, pipelineId: string, executionId: string): string {
+	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/output/result.csv`;
+}
+
+export function getTaskExecutionResultKey(bucketPrefix: string, pipelineId: string, executionId: string, sequence: number): string {
+	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/output/${sequence}.csv`;
+}
+
 export const ERROR_DATA_FILENAME = 'errors.txt';
 
 export function getPipelineErrorKey(bucketPrefix: string, pipelineId: string, executionId: string): string {

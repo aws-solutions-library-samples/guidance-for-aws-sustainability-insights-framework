@@ -60,7 +60,7 @@ public class TokenTest extends CalculatorBaseTest {
         parameters.put("one:two:three", new StringTypeValue("EMBEDDED COLONS"));
 
         // mocks
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
 
         var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()
                 .pipelineId(PIPELINE_ID)
@@ -86,7 +86,7 @@ public class TokenTest extends CalculatorBaseTest {
         parameters.put("one", new StringTypeValue("ONE"));
 
         // mocks
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
 
         Exception exception = assertThrows(ArithmeticException.class, () -> {
             var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()

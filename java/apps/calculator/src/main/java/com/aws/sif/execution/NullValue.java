@@ -24,9 +24,4 @@ public class NullValue extends DynamicTypeValue<String> {
 	public String getValue() {
 		return null;
 	}
-
-	@Override
-	public int compareTo(@NotNull DynamicTypeValue<String> o) {
-		return "".compareTo(o.getValue());
-	}
 }

@@ -9,6 +9,7 @@ describe('csvService', () => {
 	const pipeline: Pipeline = {
 		updatedAt: new Date(),
 		createdAt: new Date(),
+		type: 'activities',
 		connectorConfig: {
 			input: [{
 				name: 'sif-csv-pipeline-input-connector',

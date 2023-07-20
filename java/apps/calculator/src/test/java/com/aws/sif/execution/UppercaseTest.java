@@ -50,7 +50,7 @@ public class UppercaseTest extends CalculatorBaseTest {
     @MethodSource("providerForSuccess")
     void success(String expression, EvaluateResponse expected) {
 
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
 
         var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()
                 .pipelineId(PIPELINE_ID)

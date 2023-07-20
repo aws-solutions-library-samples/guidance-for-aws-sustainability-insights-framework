@@ -18,7 +18,7 @@ import pino from 'pino';
 import type { GroupPermissions } from '@sif/authz';
 import { CalculatorClient, ConnectorType } from '@sif/clients';
 import type { GroupService, MergeUtils, ResourceService, TagService } from '@sif/resource-api-base';
-import type { TransformerValidator } from '@sif/validators';
+import type { PipelineValidator } from './validator.js';
 
 import type { PipelineRepository } from './repository.js';
 import type { MetricService } from '../metrics/service.js';
@@ -33,7 +33,7 @@ describe('PipelineService', () => {
 	let mockTagService = mock<TagService>();
 	let mockResourceService = mock<ResourceService>();
 	let mockMergeUtils = mock<MergeUtils>();
-	let mockValidator = mock<TransformerValidator>();
+	let mockValidator = mock<PipelineValidator>();
 	let mockPipelineRepository = mock<PipelineRepository>();
 	let mockMetricService = mock<MetricService>();
 	let mockCalculatorClient = mock<CalculatorClient>();

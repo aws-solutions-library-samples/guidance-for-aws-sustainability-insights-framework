@@ -47,6 +47,9 @@ const enableDeleteResource = tenantApp.node.tryGetContext('enableDeleteResource'
 // optional requirement to remove bucket and objects when it got deleted
 const deleteBucket = (tenantApp.node.tryGetContext('deleteBucket') ?? 'false') === 'true';
 
+// optional requirement to expose delete resource endpoint
+const includeCaml = (tenantApp.node.tryGetContext('includeCaml') ?? false) === 'true';
+
 // optional requirements to specify sql or nosql storage type to store the metric (defaulted to sql)
 const metricStorage = tenantApp.node.tryGetContext('metricStorage') as string;
 
@@ -56,6 +59,9 @@ const externallySharedGroupIds = tenantApp.node.tryGetContext('externallySharedG
 
 //optional requirements for audit file features in pipeline processors module
 const downloadAuditFileParallelLimit = (tenantApp.node.tryGetContext('downloadAuditFileParallelLimit') as number) ?? 5;
+
+// Static argument defining the deployed audit version
+const auditVersion = '1';
 
 //optional requirements for calculation engine lambda scaling
 const minScaling = (tenantApp.node.tryGetContext('minScaling') as number) ?? 1;
@@ -91,6 +97,7 @@ const cleanRoomsConnectorName = 'sif-cleanRooms-pipeline-input-connector';
 
 const tenantStackName = (suffix: string) => `${tenantStackNamePrefix}-${suffix}`;
 const tenantStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module -- Guidance for Sustainability Insights Framework on AWS (SO9161)`;
+
 
 const getCaCertResponse = await axios.get('https://www.amazontrust.com/repository/AmazonRootCA1.pem');
 
@@ -134,6 +141,15 @@ const accessManagementStack = new AccessManagementStack(tenantApp, 'AccessManage
 });
 accessManagementStack.node.addDependency(sharedInfrastructureStack);
 
+const auditLogDepositorStack = new AuditLogDepositorStack(tenantApp, 'AuditLogDepositor', {
+	stackName: tenantStackName('auditLogDepositor'),
+	description: tenantStackDescription('AuditLogDepositor'),
+	env,
+	tenantId,
+	environment,
+});
+auditLogDepositorStack.node.addDependency(sharedInfrastructureStack);
+
 const calculatorStack = new CalculatorApiStack(tenantApp, 'Calculator', {
 	stackName: tenantStackName('calculator'),
 	description: tenantStackDescription('Calculator'),
@@ -143,17 +159,9 @@ const calculatorStack = new CalculatorApiStack(tenantApp, 'Calculator', {
 	caCert: getCaCertResponse.data,
 	minScaling,
 	maxScaling,
+	includeCaml
 });
-calculatorStack.node.addDependency(sharedInfrastructureStack);
-
-const auditLogDepositorStack = new AuditLogDepositorStack(tenantApp, 'AuditLogDepositor', {
-	stackName: tenantStackName('auditLogDepositor'),
-	description: tenantStackDescription('AuditLogDepositor'),
-	env,
-	tenantId,
-	environment,
-});
-auditLogDepositorStack.node.addDependency(calculatorStack);
+calculatorStack.node.addDependency(sharedInfrastructureStack,auditLogDepositorStack);
 
 const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'PipelineProcessors', {
 	stackName: tenantStackName('pipelineProcessors'),
@@ -165,6 +173,7 @@ const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'Pipel
 	caCert: getCaCertResponse.data,
 	downloadAuditFileParallelLimit,
 	metricStorage,
+	auditVersion
 });
 pipelineProcessorsStack.node.addDependency(sharedInfrastructureStack);
 pipelineProcessorsStack.node.addDependency(calculatorStack);

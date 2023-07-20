@@ -12,8 +12,8 @@
  */
 
 import type { CloudFormationCustomResourceEvent } from 'aws-lambda';
-import { DescribeAssociationExecutionsCommand, DescribeAssociationExecutionTargetsCommand, SSMClient } from '@aws-sdk/client-ssm';
-import { DescribeInstancesCommand, EC2Client } from '@aws-sdk/client-ec2';
+import { DescribeAssociationExecutionsCommand, DescribeAssociationExecutionTargetsCommand, SendCommandCommand, SSMClient } from '@aws-sdk/client-ssm';
+import { DescribeInstancesCommand, DescribeVolumesModificationsCommand, EC2Client, ModifyVolumeCommand } from '@aws-sdk/client-ec2';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -23,6 +23,7 @@ const ec2 = new EC2Client({ region: AWS_REGION });
 const ssm = new SSMClient({ region: AWS_REGION });
 
 async function checkAssociationForInstance(associationId: string, instanceArn: string): Promise<void> {
+	console.log(`checkAssociationForInstance: in: associationId: ${associationId}, instanceArn: ${instanceArn}`);
 	const environmentId = instanceArn.split(':').pop();
 
 	// Get the Cloud9 EC2 instance id using the tag name that Cloud9 generated under aws:cloud9:environment
@@ -42,6 +43,7 @@ async function checkAssociationForInstance(associationId: string, instanceArn: s
 	}
 
 	const instanceId = describeInstancesResponses.Reservations[0].Instances[0].InstanceId;
+	console.log(`instanceId: ${instanceId}`);
 
 	let bootstrapFinish = false;
 
@@ -80,15 +82,72 @@ async function checkAssociationForInstance(associationId: string, instanceArn: s
 			await sleep(10000);
 		}
 	}
+
+	console.log(`checkAssociationForInstance: exit`);
+}
+
+async function resizeEbs(instanceArn: string): Promise<void> {
+	console.log(`resizeEbs: in: instanceArn: ${instanceArn}`);
+	const environmentId = instanceArn.split(':').pop();
+
+	// Get the Cloud9 EC2 instance id using the tag name that Cloud9 generated under aws:cloud9:environment
+	const describeInstancesResponses = await ec2.send(
+		new DescribeInstancesCommand({
+			Filters: [
+				{
+					Name: `tag:aws:cloud9:environment`,
+					Values: [environmentId],
+				},
+			],
+		})
+	);
+
+	if (describeInstancesResponses.Reservations.length < 1 || describeInstancesResponses.Reservations[0].Instances.length < 1) {
+		throw new Error(`could not find instance volume in environment ${environmentId}`);
+	}
+
+	const instanceId = describeInstancesResponses.Reservations[0].Instances[0].InstanceId;
+	const volumeId = describeInstancesResponses.Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId;
+	console.log(`Found Cloud 9 instance with ID: ${instanceId}`);
+	console.log(`Resizing volume size for volume with id: ${volumeId} to 100 GB, please wait for this operation to complete`);
+
+	await ec2.send(new ModifyVolumeCommand({ VolumeId: volumeId, Size: 100 }));
+
+	// wait for optimizing state
+	let modificationState = '';
+	while (modificationState !== 'optimizing') {
+		await sleep(5000);
+		const stateResponse = await ec2.send(new DescribeVolumesModificationsCommand({VolumeIds: [volumeId]}));
+		modificationState = stateResponse.VolumesModifications[0].ModificationState;
+	}
+
+	// send ssm command to instance to resize file system to new volume size
+	// 		sudo growpart /dev/xvda 1
+	//		sudo resize2fs $(df -h |awk '/^\/dev/{print $1}')
+
+	await ssm.send(new SendCommandCommand({
+		DocumentName: 'AWS-RunShellScript',
+		InstanceIds:[instanceId],
+		Parameters: {
+			commands : [
+				`sudo growpart /dev/xvda 1`,
+				`sudo xfs_growfs -d /`
+			]
+		}
+	}));
+
+	console.log(`resizeEbs: exit`);
 }
 
 export const handler = async (event: CloudFormationCustomResourceEvent): Promise<any> => {
+	console.log(`event: ${JSON.stringify(event)}`);
 	try {
 		switch (event.RequestType) {
 			case 'Update':
 			case 'Create': {
 				const { instanceArn, associationId } = event.ResourceProperties;
-				await checkAssociationForInstance(instanceArn, associationId);
+				await checkAssociationForInstance(associationId, instanceArn);
+				await resizeEbs(instanceArn);
 				return;
 			}
 			case 'Delete': {
@@ -98,7 +157,8 @@ export const handler = async (event: CloudFormationCustomResourceEvent): Promise
 				throw new Error('Unknown request type');
 			}
 		}
-	} catch (Exception) {
+	} catch (e) {
+		console.error(`handler: caught exception: ${JSON.stringify(e)}`);
 		return;
 	}
 };

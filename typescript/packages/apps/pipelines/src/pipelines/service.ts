@@ -21,7 +21,6 @@ import type { SecurityContext } from '@sif/authz';
 import { GroupPermissions, SecurityScope, atLeastAdmin, atLeastReader, atLeastContributor } from '@sif/authz';
 import { AlternateIdInUseError, NotFoundError, UnauthorizedError, GroupService, TagService, ResourceService, MergeUtils, InvalidRequestError } from '@sif/resource-api-base';
 import type { CalculatorClient, CalculatorRequest, ConnectorConfig, Transform } from '@sif/clients';
-import type { TransformerValidator } from '@sif/validators';
 
 import type { Pipeline, PipelineUpdateParams, PipelineCreateParams, PipelineVersionListType, DryRunResponse, Transformer, PipelineConnectors } from './schemas.js';
 import type { PipelineListOptions, PipelineListPaginationKey, PipelineRepository, PipelineVersionPaginationKey } from './repository.js';
@@ -30,7 +29,7 @@ import { InvalidOutputMetricError, PipelineDefinitionError } from '../common/err
 import type { MetricService } from '../metrics/service.js';
 import type { ConnectorService } from '../connectors/service.js';
 import type { Connector } from '../connectors/schemas.js';
-
+import type { PipelineValidator } from './validator.js';
 
 export class PipelineService {
 	private readonly log: FastifyBaseLogger;
@@ -39,11 +38,11 @@ export class PipelineService {
 	private readonly groupService: GroupService;
 	private readonly tagService: TagService;
 	private readonly resourceService: ResourceService;
-	private readonly validator: TransformerValidator;
+	private readonly validator: PipelineValidator;
 	private readonly mergeUtils: MergeUtils;
 	private readonly calculatorClient: CalculatorClient;
 	private readonly metricService: MetricService;
-	private readonly connectorService: ConnectorService
+	private readonly connectorService: ConnectorService;
 
 	public constructor(
 		log: FastifyBaseLogger,
@@ -52,7 +51,7 @@ export class PipelineService {
 		groupService: GroupService,
 		tagService: TagService,
 		resourceService: ResourceService,
-		validator: TransformerValidator,
+		validator: PipelineValidator,
 		mergeUtils: MergeUtils,
 		calculatorClient: CalculatorClient,
 		metricService: MetricService,
@@ -71,15 +70,6 @@ export class PipelineService {
 		this.connectorService = connectorService;
 	}
 
-	private async validateOutputMetrics(metrics: Metrics): Promise<void> {
-		// check if specified metric has other metric as an input
-		const metricsWithOtherMetricAsInput = metrics.filter((k) => k.inputMetrics?.length > 0).map((metric) => metric.name);
-
-		if (metricsWithOtherMetricAsInput.length > 0) {
-			throw new InvalidOutputMetricError(`These output metrics [${metricsWithOtherMetricAsInput}] has metric as an input`);
-		}
-	}
-
 	public async create(sc: SecurityContext, params: PipelineCreateParams): Promise<Pipeline> {
 		this.log.debug(`PipelineService.create(sc, params):[${JSON.stringify(sc)}, ${JSON.stringify(params)}]`);
 
@@ -94,10 +84,7 @@ export class PipelineService {
 		await this.validateAlias(sc, params.name);
 
 		// validate the transformer object
-		await this.validator.validateTransformer(params.transformer);
-
-		// validate any referenced metrics
-		const metrics = await this.extractMetrics(sc, params.transformer, true);
+		await this.validator.validatePipeline(params);
 
 		// if connectors config is defined on the pipeline, lets validate it
 		if(params.connectorConfig) {
@@ -106,8 +93,14 @@ export class PipelineService {
 			throw new PipelineDefinitionError(`Input connector config is required. Specify connectorConfig and an input connector for the pipeline. To check the available default connectors, The list can be retrieved from the connectors API`);
 		}
 
-		// validate that destination metric does not have other metric as an input
-		await this.validateOutputMetrics(metrics);
+		let metrics;
+		if(params.type === 'activities') {
+			// validate any referenced metrics
+			metrics = await this.extractMetrics(sc, params.transformer, true);
+
+			// validate that destination metric does not have other metric as an input
+			await this.validateOutputMetrics(metrics);
+		}
 
 		// validate formula syntax using calculator if dryRunOptions specified
 		if (params.dryRunOptions) {
@@ -135,9 +128,11 @@ export class PipelineService {
 		await this.repository.create(pipeline);
 		await this.tagService.submitGroupSummariesProcess(sc.groupId, PkType.Pipeline, pipeline.tags, {});
 
-		// link any referenced metric's to the pipeline
-		for (const metric of metrics) {
-			await this.metricService.linkPipeline(sc, metric.metricId, { id: pipeline.id, output: metric.output });
+		if(params.type === 'activities') {
+			// link any referenced metric's to the pipeline
+			for (const metric of metrics) {
+				await this.metricService.linkPipeline(sc, metric.metricId, { id: pipeline.id, output: metric.output });
+			}
 		}
 
 		this.log.debug(`PipelineService> create> exit> pipeline:${JSON.stringify(pipeline)}`);
@@ -145,40 +140,6 @@ export class PipelineService {
 		// cleanup the payload before returning
 		this.sanitizePipelineObject(pipeline);
 		return pipeline;
-	}
-
-	private async extractMetrics(sc: SecurityContext, transformer: Transformer, validate: boolean): Promise<Metrics> {
-		this.log.debug(`PipelineService> extractMetrics> in: transformer:${JSON.stringify(transformer)}`);
-
-		const metrics: Metrics = [];
-
-		for (const transform of transformer.transforms) {
-			for (const output of transform.outputs) {
-				if ((output.metrics?.length ?? 0) > 0) {
-					for (const name of output.metrics) {
-						const existing = (await this.metricService.list(sc, { name, includeParentGroups: true }))?.[0];
-						if (validate) {
-							if ((existing?.length ?? 0) === 0) {
-								throw new PipelineDefinitionError(`Metric '${name}' not found.`);
-							} else if (existing.length > 1) {
-								throw new PipelineDefinitionError(`Multiple Metric's found matching name '${name}', but only 1 per hierarchy should exist.`);
-							}
-						}
-						if (existing) {
-							metrics.push({
-								metricId: existing[0].id,
-								output: output.key,
-								inputMetrics: existing[0].inputMetrics,
-								name: existing[0].name
-							});
-						}
-					}
-				}
-			}
-		}
-
-		this.log.debug(`PipelineService > extractMetrics > exit: ${JSON.stringify(metrics)}`);
-		return metrics;
 	}
 
 	public async delete(sc: SecurityContext, pipelineId: string): Promise<void> {
@@ -230,7 +191,7 @@ export class PipelineService {
 		this.validateAccess(sc, atLeastContributor);
 
 		// validate the transformer object
-		this.validator.validateTransformer(pipeline.transformer);
+		this.validator.validatePipeline(pipeline);
 
 		// validate any referenced metrics
 		await this.extractMetrics(sc, pipeline.transformer, true);
@@ -240,6 +201,7 @@ export class PipelineService {
 			dryRun: true,
 			actionType: 'create',
 			pipelineId: ulid(),
+			pipelineType: pipeline.type,
 			executionId: ulid(),
 			groupContextId: sc.groupId,
 			sourceData: pipeline.dryRunOptions.data.map((d) => JSON.stringify(d)),
@@ -402,7 +364,7 @@ export class PipelineService {
 		this.validateOutputIncludeAsUniqueChange(existing.transformer.transforms, merged.transformer.transforms);
 
 		// validate the transformer object
-		this.validator.validateTransformer(merged.transformer);
+		this.validator.validatePipeline(merged);
 
 		// validate formula syntax using calculator if dryRunOptions specified
 		if (merged.dryRunOptions) {
@@ -443,21 +405,6 @@ export class PipelineService {
 		this.sanitizePipelineObject(merged);
 
 		return merged;
-	}
-
-	private validateAccess(sc: SecurityContext, allowedRoles: SecurityScope[]): void {
-		const isAuthorized = this.authChecker.isAuthorized([sc.groupId], sc.groupRoles, allowedRoles, 'all');
-		if (!isAuthorized) {
-			throw new UnauthorizedError(`The caller is not authorized of the group in context \`${JSON.stringify(sc.groupId)}`);
-		}
-	}
-
-	private async validateAlias(sc: SecurityContext, alias: string): Promise<void> {
-		this.log.debug(`PipelineService> validateAlias> groupId:${sc.groupId}, alias:${alias}`);
-		// Validation - ensure name is unique for the group
-		if (await this.groupService.isAlternateIdInUse(alias, sc.groupId, PkType.Pipeline)) {
-			throw new AlternateIdInUseError(alias);
-		}
 	}
 
 	public async grant(securityContext: SecurityContext, id: string, groupId: string): Promise<void> {
@@ -555,6 +502,40 @@ export class PipelineService {
 		return result;
 	}
 
+	private async extractMetrics(sc: SecurityContext, transformer: Transformer, validate: boolean): Promise<Metrics> {
+		this.log.debug(`PipelineService> extractMetrics> in: transformer:${JSON.stringify(transformer)}`);
+
+		const metrics: Metrics = [];
+
+		for (const transform of transformer.transforms) {
+			for (const output of transform.outputs) {
+				if ((output.metrics?.length ?? 0) > 0) {
+					for (const name of output.metrics) {
+						const existing = (await this.metricService.list(sc, { name, includeParentGroups: true }))?.[0];
+						if (validate) {
+							if ((existing?.length ?? 0) === 0) {
+								throw new PipelineDefinitionError(`Metric '${name}' not found.`);
+							} else if (existing.length > 1) {
+								throw new PipelineDefinitionError(`Multiple Metric's found matching name '${name}', but only 1 per hierarchy should exist.`);
+							}
+						}
+						if (existing) {
+							metrics.push({
+								metricId: existing[0].id,
+								output: output.key,
+								inputMetrics: existing[0].inputMetrics,
+								name: existing[0].name
+							});
+						}
+					}
+				}
+			}
+		}
+
+		this.log.debug(`PipelineService > extractMetrics > exit: ${JSON.stringify(metrics)}`);
+		return metrics;
+	}
+
 	/**
 	 * This maps transform outputs to a unique column in postgresdb if transform output contains "includeAsUnique" property. The _keyMapIndex, will be used to identify an activity by additional unique attributes such as
 	 * equipmentId, serialNumber, any output can be tagged to be unique, but only max of 5 (this validation is done in the validator). This is also used when building out the sql query when filtering on activities if a user
@@ -646,6 +627,21 @@ export class PipelineService {
 		this.log.debug(`PipelinesService> sanitizePipelineObject> out>`);
 	}
 
+	private validateAccess(sc: SecurityContext, allowedRoles: SecurityScope[]): void {
+		const isAuthorized = this.authChecker.isAuthorized([sc.groupId], sc.groupRoles, allowedRoles, 'all');
+		if (!isAuthorized) {
+			throw new UnauthorizedError(`The caller is not authorized of the group in context \`${JSON.stringify(sc.groupId)}`);
+		}
+	}
+
+	private async validateAlias(sc: SecurityContext, alias: string): Promise<void> {
+		this.log.debug(`PipelineService> validateAlias> groupId:${sc.groupId}, alias:${alias}`);
+		// Validation - ensure name is unique for the group
+		if (await this.groupService.isAlternateIdInUse(alias, sc.groupId, PkType.Pipeline)) {
+			throw new AlternateIdInUseError(alias);
+		}
+	}
+
 	/**
 	 * validate if the existing Transforms doesnt match with updated transform, throws an error if validation fails.
 	 * @param existingTransforms
@@ -707,9 +703,18 @@ export class PipelineService {
 		}
 
 		// we will validate the output connector config separately
-		if(connectors.output) {
+		if (connectors.output) {
 			// for now, you cannot define output connectors. Only input connectors are supported for now.
 			throw new PipelineDefinitionError('No output connectors are supported for pipelines ');
+		}
+	}
+
+	private async validateOutputMetrics(metrics: Metrics): Promise<void> {
+		// check if specified metric has other metric as an input
+		const metricsWithOtherMetricAsInput = metrics.filter((k) => k.inputMetrics?.length > 0).map((metric) => metric.name);
+
+		if (metricsWithOtherMetricAsInput.length > 0) {
+			throw new InvalidOutputMetricError(`These output metrics [${metricsWithOtherMetricAsInput}] has metric as an input`);
 		}
 	}
 }

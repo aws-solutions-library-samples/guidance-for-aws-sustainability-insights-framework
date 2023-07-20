@@ -148,7 +148,7 @@ Feature:
 		Then response code should be 400
 		And response body path $.message should be Only fields with number type can be aggregated using aggregation functions other than groupBy.
 
-	Scenario: Admin can create new pipeline that output to ghg:scope1:mobile metric
+	Scenario: Admin can create new activities type pipeline that output to ghg:scope1:mobile metric
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
 		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "2023-02-21T14:48:00.000Z", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["int:ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
@@ -182,6 +182,57 @@ Feature:
 		And response body path $.processorOptions.chunkSize should be 1
 		And response body path $.createdBy should be pipelinesapitests_admin@amazon.com
 
+	Scenario: Create Pipeline with type data should fails when aggregations are specified
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"type": "data","connectorConfig": {"input": [{"name": "sif-csv-pipeline-input-connector"}]},"attributes": {"type": "E2E"},"name": "test1","description": "E2E test pipeline","transformer": {"transforms": [{"index": 0,"formula": ":zipcode","outputs": [{"description": "Zipcode where electricity consumption occurred","index": 0,"key": "zipcode","label": "Zip","type": "string"}]},{"index": 1,"formula": ":kwh*10","outputs": [{"description": "input * 10","index": 0,"key": "kwh","label": "kWh","type": "number", "aggregate":"sum"}]}],"parameters": [{"index": 1,"key": "zipcode","label": "Zipcode","description": "Zipcode of electricity consumption","type": "string"},{"index": 2,"key": "kwh","label": "kWh","description": "kWh of electricity generation in the month","type": "number"}]}}
+		When I POST to /pipelines
+		Then response code should be 400
+		And response body path $.message should be Metrics and Aggregations are not supported for pipeline types: data and impacts
+
+	Scenario: Create Pipeline with type data should fails when metrics are specified
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"type": "data","connectorConfig": {"input": [{"name": "sif-csv-pipeline-input-connector"}]},"attributes": {"type": "E2E"},"name": "test1","description": "E2E test pipeline","transformer": {"transforms": [{"index": 0,"formula": ":zipcode","outputs": [{"description": "Zipcode where electricity consumption occurred","index": 0,"key": "zipcode","label": "Zip","type": "string"}]},{"index": 1,"formula": ":kwh*10","outputs": [{"description": "input * 10","index": 0,"key": "kwh","label": "kWh","type": "number", "metrics": ["int:ghg:scope1:mobile"]}]}],"parameters": [{"index": 1,"key": "zipcode","label": "Zipcode","description": "Zipcode of electricity consumption","type": "string"},{"index": 2,"key": "kwh","label": "kWh","description": "kWh of electricity generation in the month","type": "number"}]}}
+		When I POST to /pipelines
+		Then response code should be 400
+		And response body path $.message should be Metrics and Aggregations are not supported for pipeline types: data and impacts
+
+	Scenario: Admin can create new data type pipeline
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"type": "data","connectorConfig": {"input": [{"name": "sif-csv-pipeline-input-connector"}]},"attributes": {"type": "E2E"},"name": "test1","description": "E2E test pipeline","transformer": {"transforms": [{"index": 0,"formula": ":zipcode","outputs": [{"description": "Zipcode where electricity consumption occurred","index": 0,"key": "zipcode","label": "Zip","type": "string"}]},{"index": 1,"formula": ":kwh*10","outputs": [{"description": "input * 10","index": 0,"key": "kwh","label": "kWh","type": "number"}]}],"parameters": [{"index": 1,"key": "zipcode","label": "Zipcode","description": "Zipcode of electricity consumption","type": "string"},{"index": 2,"key": "kwh","label": "kWh","description": "kWh of electricity generation in the month","type": "number"}]}}
+		When I POST to /pipelines
+		Then response code should be 201
+		And response body path $.type should be data
+		And I store the value of body path $.id as data_type_pipeline_id in global scope
+
+	Scenario: Create Pipeline with type impacts should fails when metrics are specified
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to { "type": "impacts", "connectorConfig": { "input": [ { "name": "sif-csv-pipeline-input-connector" } ] }, "attributes": { "type": "E2E" }, "name": "test2", "description": "E2E test pipeline", "transformer": { "transforms": [ { "index": 0, "formula": "CONCAT('eiolca',:product)", "outputs": [ { "index": 0, "key": "activityName", "type": "string" } ] }, { "index": 1, "formula": "'ghg_emissions'", "outputs": [ { "index": 0, "key": "impactName", "type": "string" } ] }, { "index": 2, "formula": "'co2e'", "outputs": [ { "index": 0, "key": "componentKey", "type": "string" } ] }, { "index": 3, "formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)", "outputs": [ { "index": 0, "key": "componentValue", "type": "number", "metrics": ["int:ghg:scope1:mobile"] } ] }, { "index": 4, "formula": "'pollutant'", "outputs": [ { "index": 0, "key": "componentType", "type": "string" } ] } ], "parameters": [ { "index": 0, "key": "product", "type": "string" }, { "index": 0, "key": "chosen_value", "type": "number" }, { "index": 0, "key": "co2ePerDollar_1", "type": "number" }, { "index": 0, "key": "co2ePerDollar_2", "type": "number" }, { "index": 0, "key": "co2ePerDollar_3", "type": "number" }, { "index": 0, "key": "co2ePerDollar_4", "type": "number" }, { "index": 0, "key": "co2ePerDollar_5", "type": "number" } ] } }
+		When I POST to /pipelines
+		Then response code should be 400
+		And response body path $.message should be Metrics and Aggregations are not supported for pipeline types: data and impacts
+
+	Scenario: Create Pipeline with type impacts should fails when aggregations are specified
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to { "type": "impacts", "connectorConfig": { "input": [ { "name": "sif-csv-pipeline-input-connector" } ] }, "attributes": { "type": "E2E" }, "name": "test2", "description": "E2E test pipeline", "transformer": { "transforms": [ { "index": 0, "formula": "CONCAT('eiolca',:product)", "outputs": [ { "index": 0, "key": "activityName", "type": "string" } ] }, { "index": 1, "formula": "'ghg_emissions'", "outputs": [ { "index": 0, "key": "impactName", "type": "string" } ] }, { "index": 2, "formula": "'co2e'", "outputs": [ { "index": 0, "key": "componentKey", "type": "string" } ] }, { "index": 3, "formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)", "outputs": [ { "index": 0, "key": "componentValue", "type": "number", "aggregate": "sum" } ] }, { "index": 4, "formula": "'pollutant'", "outputs": [ { "index": 0, "key": "componentType", "type": "string" } ] } ], "parameters": [ { "index": 0, "key": "product", "type": "string" }, { "index": 0, "key": "chosen_value", "type": "number" }, { "index": 0, "key": "co2ePerDollar_1", "type": "number" }, { "index": 0, "key": "co2ePerDollar_2", "type": "number" }, { "index": 0, "key": "co2ePerDollar_3", "type": "number" }, { "index": 0, "key": "co2ePerDollar_4", "type": "number" }, { "index": 0, "key": "co2ePerDollar_5", "type": "number" } ] } }
+		When I POST to /pipelines
+		Then response code should be 400
+		And response body path $.message should be Metrics and Aggregations are not supported for pipeline types: data and impacts
+
+	Scenario: Create Pipeline with type impacts should fails when required column(s) are not specified
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to { "type": "impacts", "connectorConfig": { "input": [ { "name": "sif-csv-pipeline-input-connector" } ] }, "attributes": { "type": "E2E" }, "name": "test2", "description": "E2E test pipeline", "transformer": { "transforms": [ { "index": 0, "formula": "CONCAT('eiolca',:product)", "outputs": [ { "index": 0, "key": "activityName", "type": "string" } ] }, { "index": 1, "formula": "'ghg_emissions'", "outputs": [ { "index": 0, "key": "impactName", "type": "string" } ] }, { "index": 2, "formula": "'co2e'", "outputs": [ { "index": 0, "key": "componentKey", "type": "string" } ] }, { "index": 3, "formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)", "outputs": [ { "index": 0, "key": "componentValue", "type": "number" } ] } ], "parameters": [ { "index": 0, "key": "product", "type": "string" }, { "index": 0, "key": "chosen_value", "type": "number" }, { "index": 0, "key": "co2ePerDollar_1", "type": "number" }, { "index": 0, "key": "co2ePerDollar_2", "type": "number" }, { "index": 0, "key": "co2ePerDollar_3", "type": "number" }, { "index": 0, "key": "co2ePerDollar_4", "type": "number" }, { "index": 0, "key": "co2ePerDollar_5", "type": "number" } ] } }
+		When I POST to /pipelines
+		Then response code should be 400
+		And response body path $.message should be Missing mandatory output columns. For data pipeline type the following columns are mandatory 'activityName', 'impactName', 'componentKey', 'componentValue', 'componentType'
+
+	Scenario: Admin can create new impacts type pipeline
+		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
+		And I set body to { "type": "impacts", "connectorConfig": { "input": [ { "name": "sif-csv-pipeline-input-connector" } ] }, "attributes": { "type": "E2E" }, "name": "test2", "description": "E2E test pipeline", "transformer": { "transforms": [ { "index": 0, "formula": "CONCAT('eiolca',:product)", "outputs": [ { "index": 0, "key": "activityName", "type": "string" } ] }, { "index": 1, "formula": "'ghg_emissions'", "outputs": [ { "index": 0, "key": "impactName", "type": "string" } ] }, { "index": 2, "formula": "'co2e'", "outputs": [ { "index": 0, "key": "componentKey", "type": "string" } ] }, { "index": 3, "formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)", "outputs": [ { "index": 0, "key": "componentValue", "type": "number" } ] }, { "index": 4, "formula": "'pollutant'", "outputs": [ { "index": 0, "key": "componentType", "type": "string" } ] } ], "parameters": [ { "index": 0, "key": "product", "type": "string" }, { "index": 0, "key": "chosen_value", "type": "number" }, { "index": 0, "key": "co2ePerDollar_1", "type": "number" }, { "index": 0, "key": "co2ePerDollar_2", "type": "number" }, { "index": 0, "key": "co2ePerDollar_3", "type": "number" }, { "index": 0, "key": "co2ePerDollar_4", "type": "number" }, { "index": 0, "key": "co2ePerDollar_5", "type": "number" } ] } }
+		When I POST to /pipelines
+		Then response code should be 201
+		And response body path $.type should be impacts
+		And I store the value of body path $.id as impacts_type_pipeline_id in global scope
+
 	Scenario: Admin can dry run a calculation before updating
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
 		And I set body to {"dryRunOptions":{"data":[{"reading date":"1/1/22","value_1":"10","value_2":"10"}]}}
@@ -195,21 +246,21 @@ Feature:
 
 	Scenario: Admin cannot create new pipeline with metric that had been setup with other metric as an input
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline_metric_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number","metrics":["int:ghg:scope1"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline_metric_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number","metrics":["int:ghg:scope1"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 400
 		And response body path $.message should be These output metrics \[int\:ghg\:scope1\] has metric as an input
 
 	Scenario: Contributor can create new pipeline
 		Given I authenticate using email pipelinesApiTests_contributor@amazon.com and password p@ssword1
-		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"contr_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"contr_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And I store the value of body path $.id as contr_pipeline_id in global scope
 
 	Scenario: Reader cannot create new pipeline
 		Given I authenticate using email pipelinesApiTests_reader@amazon.com and password p@ssword1
-		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"reader_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"reader_not_allowed","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
 		When I POST to /pipelines
 		Then response code should be 403
 
@@ -433,7 +484,7 @@ Feature:
 
 	Scenario: Setup: Admin can create another pipeline (to help test list api)
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline2","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index": 0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap","category":"A"},"attributes":{"key":"val"}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline2","transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":"#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))","outputs":[{"index":0,"key":"vehicle","label":"Vehicle","description":"some description about pin24","type":"number"}]}],"parameters":[{"index": 0,"key":"reading date","type":"string"},{"index":1,"key":"pin24","label":"pin 24","description":"some description about pin24","type":"string"}]},"tags":{"source":"sap","category":"A"},"attributes":{"key":"val"}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -493,7 +544,7 @@ Feature:
 		And response body path $.pipelines[?(@.version==2)].id should be `pipeline1_pipeline_id`
 		And response body path $.pipelines[?(@.version==2)].name should be pipeline1
 
-	Scenario: Updating state to dsiabled should override all versions
+	Scenario: Updating state to disabled should override all versions
 		When I pause for 1000ms
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
 		And I set body to {"state":"disabled"}
@@ -604,6 +655,16 @@ Feature:
 		When I DELETE /pipelines/`contr_pipeline_id`
 		Then response code should be 204
 		When I GET /pipelines/`contr_pipeline_id`
+		Then response code should be 404
+
+		When I DELETE /pipelines/`data_type_pipeline_id`
+		Then response code should be 204
+		When I GET /pipelines/`data_type_pipeline_id`
+		Then response code should be 404
+
+		When I DELETE /pipelines/`impacts_type_pipeline_id`
+		Then response code should be 204
+		When I GET /pipelines/`impacts_type_pipeline_id`
 		Then response code should be 404
 
 		When I DELETE /metrics/`metric_scope1_mobile_id`

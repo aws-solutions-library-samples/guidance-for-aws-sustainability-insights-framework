@@ -115,7 +115,7 @@
 	 * LTS schedule: https://nodejs.org/en/about/releases/
 	 * LTS versions: https://nodejs.org/en/download/releases/
 	 */
-	"nodeSupportedVersionRange": ">=16.13.0 <17.0.0",
+	"nodeSupportedVersionRange": ">=18.16.0 <19.0.0",
 	/**
 	 * Odd-numbered major versions of Node.js are experimental.  Even-numbered releases
 	 * spend six months in a stabilization period before the first Long Term Support (LTS) version.
@@ -519,6 +519,12 @@
 		{
 			"packageName": "@sif/schema-migrator",
 			"projectFolder": "typescript/packages/apps/schema-migrator",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sif/dynamodb-seeder",
+			"projectFolder": "typescript/packages/libraries/dynamodb-seeder",
 			"reviewCategory": "production",
 			"shouldPublish": true
 		}

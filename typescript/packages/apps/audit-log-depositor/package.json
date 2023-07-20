@@ -1,11 +1,11 @@
 {
 	"name": "@sif/audit-log-depositor",
 	"description": "SIF: Audit Log Depositor.",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",
 	"scripts": {
-		"clean": "npx shx rm -rf dist *.log",
+		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build": "npx tsc -b",
 		"test": "npm run build && vitest run --passWithNoTests",
 		"start": "rushx build && node -r dotenv/config dist/server.js",
@@ -26,7 +26,7 @@
 		"@esbuild-plugins/node-modules-polyfill": "0.1.4",
 		"@tsconfig/node16-strictest-esm": "1.0.3",
 		"@types/aws-lambda": "8.10.106",
-		"@types/node": "16.11.7",
+		"@types/node": "18.16.19",
 		"@types/prettier": "2.7.1",
 		"@typescript-eslint/eslint-plugin": "5.38.1",
 		"@typescript-eslint/parser": "5.38.1",

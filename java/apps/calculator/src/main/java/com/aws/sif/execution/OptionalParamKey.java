@@ -10,5 +10,7 @@ public enum OptionalParamKey {
     locale,
     timezone,
     roundDownTo,
-	quantityKind;
+	quantityKind,
+	limit,
+	index,
 }

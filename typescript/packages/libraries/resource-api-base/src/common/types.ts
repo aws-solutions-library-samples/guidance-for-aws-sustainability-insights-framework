@@ -21,8 +21,8 @@ export type FastifyTypebox = FastifyInstance<RawServerDefault, RawRequestDefault
 export type DynamoDbPaginationKey = { [key: string]: string } | undefined;
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function stringEnum<T extends string[]>(values: [...T], description: string) {
-	return Type.Unsafe<T[number]>({ type: 'string', enum: values, description });
+export function stringEnum<T extends string[]>(values: [...T], description: string, defaultOption?: string) {
+	return Type.Unsafe<T[number]>({ type: 'string', enum: values, description, default: defaultOption });
 }
 
 type IntoStringLiteralUnion<T> = { [K in keyof T]: T[K] extends string ? TLiteral<T[K]> : never };

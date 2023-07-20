@@ -18,7 +18,7 @@ import { AuditExportUtil } from './auditExport.util';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { AthenaClient } from '@aws-sdk/client-athena';
 import type { SQSClient } from '@aws-sdk/client-sqs';
-import type { PipelineClient } from '@sif/clients';
+import type { ExecutionClient, PipelineClient } from '@sif/clients';
 import type { GetLambdaRequestContext, GetSignedUrl } from '../plugins/module.awilix.js';
 import type { Pipeline } from '@sif/clients';
 
@@ -26,6 +26,7 @@ import type { Pipeline } from '@sif/clients';
 const pipeline: Pipeline = {
 	createdAt: new Date(),
 	updatedAt: new Date(),
+	type: 'activities',
 	connectorConfig: {
 		input: [{
 			name: 'sif-csv-pipeline-input-connector',
@@ -113,6 +114,7 @@ describe('AuditExportUtil', () => {
 	let mockSQSClient: SQSClient;
 	let mockAthenaClient: AthenaClient;
 	let mockPipelineClient: PipelineClient;
+	let mockExecutionClient: ExecutionClient;
 	let mockLambdaRequestContext: GetLambdaRequestContext;
 	let mockGetSignedUrl: GetSignedUrl;
 	let mockSQSUrl = 'some-url';
@@ -133,9 +135,10 @@ describe('AuditExportUtil', () => {
 		mockSQSClient = mock<SQSClient>();
 		mockAthenaClient = mock<AthenaClient>();
 		mockPipelineClient = mock<PipelineClient>();
+		mockExecutionClient = mock<ExecutionClient>();
 		mockLambdaRequestContext = mock<GetLambdaRequestContext>();
 		mockGetSignedUrl = mock<GetSignedUrl>();
-		util = new AuditExportUtil(logger, mockS3Client, mockGetSignedUrl, mockBucketName, mockBucketPrefix, mockSQSClient, mockAthenaClient, mockSQSUrl, mockPipelineClient, mockLambdaRequestContext, mockAthenaDBName, mockAuditLogTableName);
+		util = new AuditExportUtil(logger, mockS3Client, mockGetSignedUrl, mockBucketName, mockBucketPrefix, mockSQSClient, mockAthenaClient, mockSQSUrl, mockPipelineClient, mockExecutionClient, mockLambdaRequestContext, mockAthenaDBName, mockAuditLogTableName);
 	});
 
 	it('should create a athena query needed to perform an audit log export', () => {
@@ -144,7 +147,7 @@ describe('AuditExportUtil', () => {
 			"\tSELECT auditId, ikv['timestamp'] AS in_timestamp, ikv['zipcode'] AS in_zipcode, ikv['kwh'] AS in_kwh\n" +
 			"\tFROM (\n" +
 			"\t\tSELECT  auditId, map_agg(input.name, input.value) ikv\n" +
-			"\t\tFROM    \"audit-logs\" CROSS JOIN UNNEST(inputs) AS t(input)\n" +
+			"\t\tFROM    \"audit-logs-v1\" CROSS JOIN UNNEST(inputs) AS t(input)\n" +
 			"\t\tWHERE   pipeline_id = '01h03evc0mjceh3qa4cyd5zzrx'\n" +
 			"\t\tAND     execution_id = '01h0672sx482bzc26fpb7y8fq0'\n" +
 			"\t\tAND     input.name <> '___row_identifier___'\n" +
@@ -163,7 +166,7 @@ describe('AuditExportUtil', () => {
 			"\t\t\tmap_agg(output.name, output.resources.activities) AS okv_impacts,\n" +
 			"\t\t\tmap_agg(output.name, output.resources.calculations) AS okv_calculations,\n" +
 			"\t\t\tmap_agg(output.name, output.resources.referenceDatasets) AS okv_referenceDatasets\n" +
-			"\t\tFROM    \"audit-logs\" CROSS JOIN UNNEST(outputs) AS t(output)\n" +
+			"\t\tFROM    \"audit-logs-v1\" CROSS JOIN UNNEST(outputs) AS t(output)\n" +
 			"\t\tWHERE   pipeline_id = '01h03evc0mjceh3qa4cyd5zzrx'\n" +
 			"\t\tAND     execution_id = '01h0672sx482bzc26fpb7y8fq0'\n" +
 			"\t\tGROUP BY auditId\n" +
@@ -177,7 +180,7 @@ describe('AuditExportUtil', () => {
 			"out_co2e_formula, out_co2e_results,out_co2e_impacts,out_co2e_calculations,out_co2e_referenceDatasets\n" +
 			"FROM inputs LEFT JOIN outputs ON inputs.auditId = outputs.auditId"
 
-		const query = util['createAthenaQuery'](pipeline, '01h0672sx482bzc26fpb7y8fq0');
+		const query = util['createAthenaQuery'](pipeline, '01h0672sx482bzc26fpb7y8fq0', 1);
 
 		expect(query).toEqual(expectedQuery);
 

@@ -679,14 +679,14 @@ describe('ActivitiesRepository', () => {
 			'col2."booleanOutput__error",\r\n' +
 			'col2."booleanOutput__errorMessage"\n' +
 			'FROM "filtered_activity" fa\n' +
-			'\tJOIN (\t(SELECT\t"activityId", "executionId", "auditId",  "createdAt", "val" as "stringOutput", "error" as "stringOutput__error", "errorMessage" as "stringOutput__errorMessage"\n' +
-			`\t\t\tFROM "ActivityStringValue" WHERE "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
+			'\tLEFT JOIN (\t(SELECT\t"activityId", "executionId", "auditId",  "createdAt", "val" as "stringOutput", "error" as "stringOutput__error", "errorMessage" as "stringOutput__errorMessage"\n' +
+			`\t\t\tFROM "ActivityStringValue" tbl WHERE tbl.name = 'stringOutput' AND "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
 			'\t\t  ) col0 USING ("activityId" )\r\n' +
-			'JOIN (\t(SELECT\t"activityId",   "createdAt", "val" as "numericOutput", "error" as "numericOutput__error", "errorMessage" as "numericOutput__errorMessage"\n' +
-			`\t\t\tFROM "ActivityNumberValue" WHERE "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
+			'LEFT JOIN (\t(SELECT\t"activityId",   "createdAt", "val" as "numericOutput", "error" as "numericOutput__error", "errorMessage" as "numericOutput__errorMessage"\n' +
+			`\t\t\tFROM "ActivityNumberValue" tbl WHERE tbl.name = 'numericOutput' AND "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
 			'\t\t  ) col1 USING ("activityId" , "createdAt")\r\n' +
-			'JOIN (\t(SELECT\t"activityId",   "createdAt", "val" as "booleanOutput", "error" as "booleanOutput__error", "errorMessage" as "booleanOutput__errorMessage"\n' +
-			`\t\t\tFROM "ActivityBooleanValue" WHERE "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
+			'LEFT JOIN (\t(SELECT\t"activityId",   "createdAt", "val" as "booleanOutput", "error" as "booleanOutput__error", "errorMessage" as "booleanOutput__errorMessage"\n' +
+			`\t\t\tFROM "ActivityBooleanValue" tbl WHERE tbl.name = 'booleanOutput' AND "executionId"='pipe1-exec1' )asv join "filtered_activity" fa USING ("activityId")\n` +
 			'\t\t  ) col2 USING ("activityId" , "createdAt")\n' +
 			'ORDER BY col0."createdAt"\n' +
 			'LIMIT 100 OFFSET 0';

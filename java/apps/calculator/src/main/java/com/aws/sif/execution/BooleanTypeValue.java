@@ -24,8 +24,4 @@ public class BooleanTypeValue extends DynamicTypeValue<Boolean> {
 
 	private final Boolean value;
 
-	@Override
-	public int compareTo(@NotNull DynamicTypeValue<Boolean> o) {
-		return value.compareTo(o.getValue());
-	}
 }

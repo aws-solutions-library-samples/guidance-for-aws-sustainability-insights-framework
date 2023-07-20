@@ -20,6 +20,8 @@ import { Semaphore } from './semaphore.construct.js';
 import { Ecs } from './ecs.construct.js';
 import { NagSuppressions } from 'cdk-nag';
 import type { Construct } from 'constructs';
+import { Caml } from './caml.construct.js';
+import type { InstanceType } from '@aws-cdk/aws-sagemaker-alpha';
 
 
 interface VpnOptions {
@@ -27,9 +29,18 @@ interface VpnOptions {
 	clientArn: string;
 }
 
+interface CamlOptions {
+	camlArtifactBucket: string;
+	camlArtifactKey: string;
+	camlContainerTag: string,
+	camlRepositoryHash: string,
+	camlInstanceType: InstanceType
+}
+
 export type SharedPlatformStackProperties = StackProps & {
 	environment: string;
 	vpnOptions: VpnOptions;
+	camlOptions: CamlOptions;
 	minClusterCapacity: number;
 	maxClusterCapacity: number;
 	clusterDeletionProtection: boolean;
@@ -55,6 +66,17 @@ export class SharedPlatformInfrastructureStack extends Stack {
 		});
 
 		const lockName = `sif-${props.environment}-lock`;
+
+		if (props.camlOptions) {
+			new Caml(this, 'Caml', {
+				environment: props.environment,
+				camlArtifactBucket: props.camlOptions?.camlArtifactBucket,
+				camlArtifactKey: props.camlOptions?.camlArtifactKey,
+				camlContainerTag: props.camlOptions?.camlContainerTag,
+				camlRepositoryHash: props.camlOptions?.camlRepositoryHash,
+				camlInstanceType: props.camlOptions?.camlInstanceType
+			});
+		}
 
 		const semaphore = new Semaphore(this, 'Semaphore', {
 			environment: props.environment,

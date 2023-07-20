@@ -79,7 +79,7 @@ export class AuroraSeeder extends Construct {
 			functionName: `${namePrefix}-database-seeder`,
 			description: `rds schema and user seeder: Tenant ${props.tenantId}`,
 			entry: path.join(__dirname, './customResources/databaseSeeder.customResource.ts'),
-			runtime: Runtime.NODEJS_16_X,
+			runtime: Runtime.NODEJS_18_X,
 			tracing: Tracing.ACTIVE,
 			memorySize: 512,
 			logRetention: RetentionDays.ONE_WEEK,
@@ -87,7 +87,7 @@ export class AuroraSeeder extends Construct {
 			bundling: {
 				minify: true,
 				format: OutputFormat.ESM,
-				target: 'node16.15',
+				target: 'node18.16',
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
@@ -96,34 +96,6 @@ export class AuroraSeeder extends Construct {
 			environment: {},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml')
 		});
-		
-		NagSuppressions.addResourceSuppressions(customResourceLambda, [
-			{
-				id: 'AwsSolutions-L1',
-				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
-			},
-		]);
-
-		NagSuppressions.addResourceSuppressions(customResourceLambda, [
-			{
-				id: 'AwsSolutions-L1',
-				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
-			},
-		]);
-
-		NagSuppressions.addResourceSuppressions(customResourceLambda, [
-			{
-				id: 'AwsSolutions-L1',
-				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
-			},
-		]);
-
-		NagSuppressions.addResourceSuppressions(customResourceLambda, [
-			{
-				id: 'AwsSolutions-L1',
-				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
-			},
-		]);
 
 		const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
 			onEventHandler: customResourceLambda

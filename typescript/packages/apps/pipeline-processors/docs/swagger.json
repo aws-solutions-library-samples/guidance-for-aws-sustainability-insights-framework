@@ -151,6 +151,10 @@
             "description": "The version of the pipeline when the execution is created.",
             "type": "number"
           },
+          "auditVersion": {
+            "description": "The version of the audit when the execution is created.",
+            "type": "number"
+          },
           "connectorOverrides": {
             "description": "any overrides for the connectors which are configured on for the pipeline",
             "type": "object",
@@ -347,6 +351,56 @@
         },
         "required": [
           "urls"
+        ]
+      },
+      "auditResource": {
+        "type": "object",
+        "properties": {
+          "pipelineId": {
+            "description": "pipelineId of the audit log",
+            "type": "string"
+          },
+          "executionId": {
+            "description": "executionId of the audit log",
+            "type": "string"
+          },
+          "auditId": {
+            "description": "Id of the audit log",
+            "type": "string"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {}
+          },
+          "outputs": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "pipelineId",
+          "executionId",
+          "auditId"
+        ]
+      },
+      "auditList": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "exportUrl": {
+            "type": "string"
+          },
+          "audits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/auditResource"
+            }
+          }
+        },
+        "required": [
+          "audits"
         ]
       },
       "activityResource": {
@@ -567,6 +621,111 @@
                 "examples": {
                   "Pipeline Execution Error Download Url": {
                     "summary": "pipeline execution error download url",
+                    "value": {
+                      "url": "s3-signed-url..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pipelines/{pipelineId}/executions/{executionId}/outputDownloadUrl": {
+      "post": {
+        "tags": [
+          "Pipelines"
+        ],
+        "description": "Returns a pre-signed URL to download the pipeline execution output file. Only applicable for data and impacts pipeline type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/signedUrl_request"
+              },
+              "examples": {
+                "New download output signedUrl request": {
+                  "expiration": 2000
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "pipelineId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "executionId",
+            "required": true,
+            "description": "Identifier of a execution of the pipeline."
+          },
+          {
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/signedUrl_response"
+                },
+                "examples": {
+                  "Pipeline Execution Output Download Url": {
+                    "summary": "pipeline execution output download url",
                     "value": {
                       "url": "s3-signed-url..."
                     }
@@ -998,12 +1157,24 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "type": "array",
-                  "items": {
-                    "description": "The audit information for an activity.",
-                    "type": "object",
-                    "additionalProperties": {}
-                  }
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "exportUrl": {
+                      "type": "string"
+                    },
+                    "audits": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/auditResource"
+                      }
+                    }
+                  },
+                  "required": [
+                    "audits"
+                  ]
                 },
                 "examples": {
                   "List of audit versions for an activity": {
@@ -1588,8 +1759,8 @@
                     "value": {
                       "metrics": [
                         {
-                          "date": "2022-01-01T07:00:00.000Z",
-                          "metricId": "01H0K4G02Q889K1BWNRHEP2KQ4",
+                          "date": "2021-12-31T16:00:00.000Z",
+                          "metricId": "01H5K9012BRJB0273380KJRXJ4",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 1,
@@ -1600,8 +1771,8 @@
                           "version": "latest"
                         },
                         {
-                          "date": "2022-02-01T07:00:00.000Z",
-                          "metricId": "01H0K4G02Q889K1BWNRHEP2KQ4",
+                          "date": "2022-01-31T16:00:00.000Z",
+                          "metricId": "01H5K9012BRJB0273380KJRXJ4",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 2,
@@ -1612,8 +1783,8 @@
                           "version": "latest"
                         },
                         {
-                          "date": "2022-03-01T07:00:00.000Z",
-                          "metricId": "01H0K4G02Q889K1BWNRHEP2KQ4",
+                          "date": "2022-02-28T16:00:00.000Z",
+                          "metricId": "01H5K9012BRJB0273380KJRXJ4",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 3,

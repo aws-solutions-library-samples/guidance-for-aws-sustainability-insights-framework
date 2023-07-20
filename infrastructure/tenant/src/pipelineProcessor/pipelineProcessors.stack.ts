@@ -41,7 +41,7 @@ import {
 	accessManagementApiFunctionNameParameter,
 	auditLogDepositorDatabaseNameParameter,
 	auditLogDepositorTableNameParameter,
-	calculatorFunctionNameParameter,
+	calculatorFunctionNameParameter, impactsApiFunctionNameParameter,
 	pipelineProcessorApiFunctionNameParameter,
 	pipelinesApiFunctionNameParameter
 } from '../shared/ssm.construct.js';
@@ -55,6 +55,7 @@ export type PipelineProcessorsStackProperties = StackProps & {
 	downloadAuditFileParallelLimit: number;
 	csvConnectorName: string;
 	metricStorage: string;
+	auditVersion: string;
 };
 
 export class PipelineProcessorsApiStack extends Stack {
@@ -98,6 +99,11 @@ export class PipelineProcessorsApiStack extends Stack {
 
 		const pipelineApiFunctionName = StringParameter.fromStringParameterAttributes(this, 'pipelineApiFunctionName', {
 			parameterName: pipelinesApiFunctionNameParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const impactApiFunctionName = StringParameter.fromStringParameterAttributes(this, 'impactApiFunctionName', {
+			parameterName: impactsApiFunctionNameParameter(props.tenantId, props.environment),
 			simpleName: false,
 		}).stringValue;
 
@@ -192,6 +198,7 @@ export class PipelineProcessorsApiStack extends Stack {
 			releaseLockSqsQueueArn,
 			accessManagementApiFunctionName,
 			pipelineApiFunctionName,
+			impactApiFunctionName,
 			pipelineProcessorApiFunctionName,
 			cognitoUserPoolId,
 			eventBusName,

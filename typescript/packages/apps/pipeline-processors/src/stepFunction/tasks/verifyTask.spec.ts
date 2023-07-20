@@ -23,7 +23,7 @@ import type { SecurityContext } from '@sif/authz';
 import type { VerificationTaskEvent } from './model';
 import type { Pipeline } from '@sif/clients';
 import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix';
-import type { LambdaRequestContext } from '@sif/clients/dist';
+import type { LambdaRequestContext } from '@sif/clients';
 
 describe('Verify Task', () => {
 	const mockedS3Client = mockClient(S3Client);
@@ -70,6 +70,7 @@ describe('Verify Task', () => {
 		},
 		executionId: '55555',
 		pipelineId: '111111',
+		pipelineType: 'activities'
 	};
 
 	const mockPipeline = {
@@ -113,6 +114,7 @@ describe('Verify Task', () => {
 			executionId: sampleEvent.executionId,
 			groupContextId: mockPipelineExecution.groupContextId,
 			transformer: mockPipeline.transformer,
+			pipelineType: sampleEvent.pipelineType
 		});
 		// Check the last chunk
 		expect(result.chunks[expectedChunkNum - 1].range[0]).toBe(4000004);

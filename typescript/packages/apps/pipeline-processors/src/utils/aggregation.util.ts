@@ -13,7 +13,7 @@
 
 import { ListObjectsV2Command, ListObjectsV2CommandInput, GetObjectCommand, GetObjectCommandInput, GetObjectCommandOutput, S3Client } from '@aws-sdk/client-s3';
 import type { BaseLogger } from 'pino';
-import { GroupNode } from './groupNode';
+import { GroupNode } from './groupNode.js';
 
 // The calculator will write out to S3 a list group nodes visited during processing. This is per chunk so in S3
 // there will exist a text file for each chunk that has the group values for that chunk.
@@ -100,7 +100,7 @@ export class AggregationUtil {
 				}
 			});
 		}
-		
+
 		// sort by hierarchy length (longest first)
 		const sortedGroupPaths = Array.from(groupsSet).sort((a,b) => {
 			return b.split('/').length - a.split('/').length;

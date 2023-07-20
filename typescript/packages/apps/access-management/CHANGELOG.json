@@ -2,6 +2,37 @@
   "name": "@sif/access-management",
   "entries": [
     {
+      "version": "4.1.0",
+      "tag": "@sif/access-management_v4.1.0",
+      "date": "Thu, 20 Jul 2023 00:30:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "repo cleaning script added"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "update node version to 18.x"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.8.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.0.21",
       "tag": "@sif/access-management_v4.0.21",
       "date": "Thu, 25 May 2023 14:48:59 GMT",

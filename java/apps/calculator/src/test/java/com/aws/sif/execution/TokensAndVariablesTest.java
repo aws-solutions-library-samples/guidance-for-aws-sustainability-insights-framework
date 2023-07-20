@@ -53,7 +53,7 @@ public class TokensAndVariablesTest extends CalculatorBaseTest {
 		);
 
         // mocks
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
 
         var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()
                 .pipelineId(PIPELINE_ID)

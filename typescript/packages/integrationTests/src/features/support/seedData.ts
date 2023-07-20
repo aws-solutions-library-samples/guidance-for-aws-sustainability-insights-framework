@@ -159,11 +159,20 @@ function sortMetricEntriesByDependency(metricEntries: MetricEntry[], sortType: M
 function findMetricsWithDependenciesFulfilled(metricEntries: MetricEntry[], existingMetrics: MetricEntry[]): MetricEntry[] {
 
 	return metricEntries.filter((me) => {
+		const existingMetricNames: string[] = existingMetrics.map((m) => JSON.parse(m.definition).name);
+
+		// don't include this metric if it already exists in the existing array
+		if (existingMetricNames.includes(JSON.parse(me.definition).name)) {
+			return false;
+		}
+
+		// if metric has no output metrics it can be added
 		const meJson = JSON.parse(me.definition);
 		if ((meJson.outputMetrics?.length ?? 0) === 0) {
 			return true;
 		}
-		const existingMetricNames: string[] = existingMetrics.map((m) => JSON.parse(m.definition).name);
+		
+		// if all of the output metrics for this metric are in the existing array then this metric can be added
 		return (meJson.outputMetrics.every((om: string) => existingMetricNames.includes(om)));
 	});
 }
@@ -177,7 +186,6 @@ async function delaySec(s: number): Promise<void> {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 async function apiGet(url: string, path: string, groupContext: string, authToken: string): Promise<ApiResponse> {
-	// console.log(`url: ${url}, path: ${path}, groupContext: ${groupContext}`);
 	try {
 		const response = await axios.get(`${url}/${path}`, {
 			headers: {
@@ -207,7 +215,6 @@ async function apiGet(url: string, path: string, groupContext: string, authToken
 }
 
 async function apiPost(url: string, path: string, groupContext: string, authToken: string, data: string): Promise<ApiResponse> {
-	// console.log(`url: ${url}, path: ${path}, groupContext: ${groupContext}, data: ${data}`);
 	try {
 		const response = await axios.post(`${url}/${path}`, data, {
 			headers: {
@@ -235,7 +242,6 @@ async function apiPost(url: string, path: string, groupContext: string, authToke
 }
 
 async function apiPatch(url: string, path: string, groupContext: string, authToken: string, data: string): Promise<ApiResponse> {
-	// console.log(`url: ${url}, path: ${path}, groupContext: ${groupContext}, data: ${data}`);
 	try {
 		const response = await axios.patch(`${url}/${path}`, data, {
 			headers: {
@@ -263,7 +269,6 @@ async function apiPatch(url: string, path: string, groupContext: string, authTok
 }
 
 async function apiDelete(url: string, path: string, groupContext: string, authToken: string): Promise<ApiResponse> {
-	// console.log(`url: ${url}, path: ${path}, groupContext: ${groupContext}`);
 	try {
 		const response = await axios.delete(`${url}/${path}`, {
 			headers: {
@@ -298,7 +303,6 @@ async function uploadCsvDataset(se: SeedEntry, uploadUrl: string): Promise<void>
 }
 
 async function s3Upload(url: string, data: string): Promise<ApiResponse> {
-	// console.log(`url: ${url}, data: ${data}`);
 	try {
 		const response = await axios.put(url, data);
 		return {
@@ -792,9 +796,7 @@ if (require.main === module) {
 		const seedEntries = await listSeedEntries(seedDir);
 
 		if (operation === 'seed') {
-			// console.log('Groups');
 			await seedGroups(seedEntries, apiEndpoints.accessManagement, token);
-			// console.log('Users');
 			await seedUsers(seedEntries, username, password, apiEndpoints.accessManagement, token);
 			// datasets
 			await seedDatasets(seedEntries, apiEndpoints.referenceDatasets, token);
@@ -819,9 +821,7 @@ if (require.main === module) {
 			await deleteImpacts(seedEntries, apiEndpoints.impacts, token);
 			// datasets
 			await deleteDatasets(seedEntries, apiEndpoints.referenceDatasets, token);
-			// console.log('Users');
 			await deleteUsers(seedEntries, username, password, apiEndpoints.accessManagement, token);
-			// console.log('Groups');
 			await deleteGroups(seedEntries, apiEndpoints.accessManagement, token);
 		} else {
 			console.error(`Invalid operation requested: ${operation} (valid options: seed or delete)`);

@@ -1,0 +1,50 @@
+{
+	"name": "@sif/dynamodb-seeder",
+	"version": "1.51.0",
+	"description": "A seeder for dynamodb tables",
+	"author": "William Sia <willsia@amazon.com>",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"types": "./dist/index.d.js",
+	"type": "module",
+	"scripts": {
+		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
+		"build": "tsc -b && npm run bundle:lambda",
+		"bundle:lambda": "rm -rf dist/lambdas && npx ts-node --esm --prefer-ts-exts esbuild.ts",
+		"test": "npm run build && vitest run --passWithNoTests"
+	},
+	"dependencies": {
+		"aws-cdk-lib": "2.87.0",
+		"constructs": "10.1.71",
+		"aws-lambda": "1.0.7",
+		"@aws-sdk/client-dynamodb": "3.229.0",
+		"@aws-sdk/client-s3": "3.229.0",
+		"@aws-sdk/lib-dynamodb": "3.229.0"
+	},
+	"devDependencies": {
+		"cdk-nag": "2.21.80",
+		"@types/aws-lambda": "8.10.106",
+		"@tsconfig/node16-strictest-esm": "1.0.3",
+		"@types/node": "18.16.19",
+		"@types/prettier": "2.6.0",
+		"@typescript-eslint/eslint-plugin": "5.32.0",
+		"@typescript-eslint/parser": "5.32.0",
+		"eslint": "8.24.0",
+		"shx": "0.3.3",
+		"ts-node": "10.9.1",
+		"typescript": "4.8.4",
+		"esbuild": "0.14.53",
+		"aws-cdk": "2.87.0",
+		"vitest": "0.23.4",
+		"vitest-mock-extended": "0.1.16",
+		"@types/lodash.chunk": "4.2.7",
+		"custom-resource-helper": "1.0.15",
+		"lodash.chunk": "4.2.0"
+	},
+	"private": false
+}

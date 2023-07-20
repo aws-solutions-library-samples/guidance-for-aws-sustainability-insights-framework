@@ -21,5 +21,9 @@ export * from './clients/pipeline.client.js';
 export * from './clients/pipeline.models.js';
 export * from './clients/connector.client.js';
 export * from './clients/connector.models.js';
+export * from './clients/impact.client.js';
+export * from './clients/impact.model.js';
+export * from './clients/execution.client.js';
+export * from './clients/execution.models.js';
 export * from './common/models.js';
 

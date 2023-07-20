@@ -23,6 +23,8 @@ export interface Metric {
 	version: number;
 }
 
+export type MetricQueue = { order: number, metric: string }[]
+
 export interface InputPipeline {
 	pipelineId: string;
 	output: string;

@@ -24,6 +24,6 @@ export const handler: SqlResultProcessorTaskHandler = async (event, _context, _c
 	app.log.debug(`sqlResultProcessor > handler > event:${JSON.stringify(event)}`);
 	const task = di.resolve<SqlResultProcessorTask>('sqlResultProcessorTask');
 	const r = await task.process(event);
-	app.log.debug(`resultProcessorLambda > handler > exit: ${JSON.stringify(r)}`);
+	app.log.debug(`sqlResultProcessor > handler > exit: ${JSON.stringify(r)}`);
 	return r;
 };

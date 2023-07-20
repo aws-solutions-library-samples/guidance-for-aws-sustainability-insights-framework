@@ -14,12 +14,13 @@ mainSteps:
         - echo LANG=en_US.utf-8 >> /etc/environment
         - echo LC_ALL=en_US.UTF-8 >> /etc/environment
         - . /home/ec2-user/.bashrc
-        - yum -y install sqlite telnet jq strace tree gcc glibc-static python3 python3-pip gettext bash-completion
+        - echo '=== Installing dependencies ==='
+        - yum -y install sqlite telnet jq strace tree gcc glibc-static python3 python3-pip gettext bash-completion java-17-amazon-corretto-devel
         - PATH=$PATH:/usr/bin
         - sudo rm -rf /usr/local/apache-maven/
-        - wget http://mirror.olnevhost.net/pub/apache/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz
-        - tar xvf apache-maven-3.5.4-bin.tar.gz
-        - sudo mv apache-maven-3.5.4  /usr/local/apache-maven
+        - wget http://mirror.olnevhost.net/pub/apache/maven/maven-3/3.9.3/binaries/apache-maven-3.9.3-bin.tar.gz
+        - tar xvf apache-maven-3.9.3-bin.tar.gz
+        - sudo mv apache-maven-3.9.3  /usr/local/apache-maven
         - |
           cat <<EOT >> /home/ec2-user/.bashrc
           export PATH=/usr/local/apache-maven/bin:$PATH

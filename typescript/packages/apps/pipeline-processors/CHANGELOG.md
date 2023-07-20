@@ -1,6 +1,34 @@
 # Change Log - @sif/pipeline-processors
 
-This log was last generated on Mon, 19 Jun 2023 02:37:22 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+
+## 4.13.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- updated audit log query log in accordance with new designs
+- update node version to 18.x
+
+### Patches
+
+- added new endpoint to download output of data and emission_factor type pipeline
+- repo cleaning script added
+- run local bugfix
+
+## 4.12.3
+Mon, 03 Jul 2023 02:39:22 GMT
+
+### Patches
+
+- fix query activies with showHistory set to true to make sure we return results from multiple version of pipeline configuration
+
+## 4.12.2
+Fri, 30 Jun 2023 17:08:59 GMT
+
+### Patches
+
+- fix show history query issue
 
 ## 4.12.1
 Mon, 19 Jun 2023 02:37:22 GMT

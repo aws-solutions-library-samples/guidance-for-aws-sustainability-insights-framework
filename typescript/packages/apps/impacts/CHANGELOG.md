@@ -1,6 +1,17 @@
 # Change Log - @sif/impacts
 
-This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+
+## 4.5.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- update node version to 18.x
+
+### Patches
+
+- repo cleaning script added
 
 ## 4.4.0
 Mon, 22 May 2023 22:02:58 GMT

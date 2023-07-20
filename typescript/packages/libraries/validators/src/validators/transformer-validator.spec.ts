@@ -29,7 +29,7 @@ describe('transformer validator', () => {
 		validator = new TransformerValidator(logger);
 	});
 
-	it('transformer Happy path', () => {
+	it('activities pipeline transformer Happy path', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -95,11 +95,11 @@ describe('transformer validator', () => {
 			],
 		};
 
-		validator.validateTransformer(transformer);
+		validator.validateActivitiesPipelineTransformer(transformer);
 	});
 
 	// transformer object has no parameters
-	it('should throw an error if no parameters are specified', () => {
+	it('activities pipeline should throw an error if no parameters are specified', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -144,12 +144,12 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('');
 	});
 
 	// transformer object has no transforms
-	it('should throw an error if no transforms are specified', () => {
+	it('activities pipeline should throw an error if no transforms are specified', () => {
 		const transformer: Transformer = {
 			parameters: [
 				{
@@ -170,12 +170,12 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('The position of the transforms (their `index`) must begin from 0.');
 	});
 
 	// transforms index doesn't start with 0
-	it('should throw an error if transforms sequenced index doesn\'t start from 0 i.e. 3,4,5', () => {
+	it('activities pipeline should throw an error if transforms sequenced index doesn\'t start from 0 i.e. 3,4,5', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -241,12 +241,12 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('The order of the transforms (their \'index\') must not be skipping or missing a position.');
 	});
 
 	// transform index skips a number in the sequence
-	it('should throw an error if transforms sequence skips an index i.e. 0,1,3', () => {
+	it('activities pipeline should throw an error if transforms sequence skips an index i.e. 0,1,3', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -295,12 +295,12 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('The order of the transforms (their \'index\') must not be skipping or missing a position.');
 	});
 
 	// transforms doesnt have output defined
-	it('should throw an error if any transform doesn\'t have output defined', () => {
+	it('activities pipeline should throw an error if any transform doesn\'t have output defined', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -357,12 +357,12 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('Transform must have an output defined.');
 	});
 
 	// transforms have more than 1 output
-	it('should throw an error if there are more then one outputs defined for any transform', () => {
+	it('activities pipeline should throw an error if there are more then one outputs defined for any transform', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -418,11 +418,11 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('Only 1 output per transform is supported.');
 	});
 
-	it('transformer defines more than 5 key values', () => {
+	it('activities pipeline transformer defines more than 5 key values', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -546,11 +546,11 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('Only up to 5 outputs (other than timestamp) can be defined as keys. 6 are defined as keys.');
 	});
 
-	it('should throw an error if the transform output keys are not unique', () => {
+	it('activities pipeline should throw an error if the transform output keys are not unique', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -617,11 +617,11 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('Transform output key needs to be unique.');
 	});
 
-	it('should throw an error if all transforms are marked as unique', () => {
+	it('activities pipeline should throw an error if all transforms are marked as unique', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -689,7 +689,7 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('All transform outputs cannot be marked as unique. At-least one transform output needs to stay unmarked.');
 	});
 
@@ -706,7 +706,7 @@ describe('transformer validator', () => {
 		['timestamp', 'sum'],
 		['timestamp', 'min'],
 		['timestamp', 'max'],
-	])('configuring type %s with aggregation function %s should throws exception', (type: any, aggregate: any) => {
+	])('activities pipeline configuring type %s with aggregation function %s should throws exception', (type: any, aggregate: any) => {
 
 		const transformerToTest: Transformer = {
 			transforms: [
@@ -775,11 +775,11 @@ describe('transformer validator', () => {
 			],
 		};
 		expect(() => {
-			validator.validateTransformer(transformerToTest);
+			validator.validateActivitiesPipelineTransformer(transformerToTest);
 		}).toThrow('Only fields with number type can be aggregated using aggregation functions other than groupBy.');
 	});
 
-	it('should throw an error if more than one timestamp fields are being aggregated', () => {
+	it('activities pipeline should throw an error if more than one timestamp fields are being aggregated', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -861,12 +861,12 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('Only 1 timestamp field can be aggregated, the field will be used as date field for the aggregated output.');
 
 	});
 
-	it('should throw an error if more than one transform tries to use ASSIGN_TO_GROUP', () => {
+	it('activities pipeline should throw an error if more than one transform tries to use ASSIGN_TO_GROUP', () => {
 		const transformer: Transformer = {
 			transforms: [
 				{
@@ -918,7 +918,485 @@ describe('transformer validator', () => {
 		};
 
 		expect(() => {
-			validator.validateTransformer(transformer);
+			validator.validateActivitiesPipelineTransformer(transformer);
 		}).toThrow('Only 1 transform can use the ASSIGN_TO_GROUP() function.');
 	});
+
+	// data pipeline first transform doesnt need to be timestamp
+	it('should validate a data type pipeline which doesnt require the first column to be timestamp', () => {
+		const transformer: Transformer = {
+			'transforms':
+				[
+					{
+						'index': 0,
+						'formula': ':product',
+						'outputs':
+							[
+								{
+									'index': 0,
+									'key': 'product',
+									'type': 'string'
+								}
+							]
+					},
+					{
+						'index': 1,
+						'formula': '1',
+						'outputs':
+							[
+								{
+									'index': 0,
+									'key': 'chosen_result',
+									'type': 'string'
+								}
+							]
+					},
+					{
+						'index': 2,
+						'formula': 'GETVALUE(CAML(:product),\'[0].naicsCode.2012\')',
+						'outputs':
+							[
+								{
+									'index': 0,
+									'key': 'naicsCode_1',
+									'type': 'number'
+								}
+							]
+					},
+					{
+						'index': 3,
+						'formula': 'GETVALUE(CAML(:product),\'[0].bea_code\')',
+						'outputs':
+							[
+								{
+									'index': 0,
+									'key': 'beaCode_1',
+									'type': 'string'
+								}
+							]
+					},
+					{
+						'index': 4,
+						'formula': 'GETVALUE(CAML(:product),\'[0].Title\')',
+						'outputs':
+							[
+								{
+									'index': 0,
+									'key': 'title_1',
+									'type': 'string'
+								}
+							]
+					},
+					{
+						'index': 5,
+						'formula': 'GETVALUE(CAML(:product),\'[0].eio_co2\')',
+						'outputs':
+							[
+								{
+									'index': 0,
+									'key': 'co2ePerDollar_1',
+									'type': 'number'
+								}
+							]
+					},
+					{
+						'index': 6,
+						'formula': 'GETVALUE(CAML(:product),\'[0].cosine_score\')',
+						'outputs':
+							[
+								{
+									'index': 0,
+									'key': 'confidence_1',
+									'type': 'number'
+								}
+							]
+					}
+				],
+			'parameters':
+				[
+					{
+						'index': 0,
+						'key': ':product',
+						'type': 'string'
+					}
+				]
+		};
+		validator.validateDataPipelineTransformer(transformer);
+	})
+
+	// data pipeline if there is an aggregation or metric configuration we get an error
+	it('should throw an error if the pipeline type is data and metric or aggregation has been configured on it', () => {
+		const transformer: Transformer = {
+			transforms: [
+				{
+					index: 0,
+					formula: 'if(:one==\'ok\',50,1)',
+					outputs: [
+						{
+							description: 'some description about pin24',
+							index: 0,
+							key: 'sum',
+							label: 'Vehicle',
+							type: 'number',
+							includeAsUnique: true,
+						},
+					],
+				},
+				{
+					index: 1,
+					formula: 'if(:two==10,50,1)',
+					outputs: [
+						{
+							description: 'some description about pin24',
+							index: 0,
+							key: 'sumtwo',
+							label: 'Vehicle',
+							type: 'number',
+							metrics: [
+								"int:ghg:scope1:mobile"
+							]
+						},
+					],
+				},
+			],
+			parameters: [
+				{
+					index: 0,
+					key: 'one',
+					type: 'number',
+				},
+				{
+					index: 1,
+					key: 'two',
+					type: 'number'
+				}
+			]
+		}
+
+		expect(() => {
+			validator.validateDataPipelineTransformer(transformer);
+		}).toThrow('Metrics and Aggregations are not supported for pipeline types: data and impacts');
+	});
+
+	// impact pipeline first transform doesnt need to be timestamp
+	it('should validate impacts type pipeline which doesnt require the first column to be timestamp', () => {
+		const transformer: Transformer =     {
+			"transforms":
+				[
+					{
+						"index": 0,
+						"formula": "CONCAT('eiolca',:product)",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "activityName",
+									"type": "string"
+								}
+							]
+					},
+					{
+						"index": 1,
+						"formula": "'ghg_emissions'",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "impactName",
+									"type": "string"
+								}
+							]
+					},
+					{
+						"index": 2,
+						"formula": "'co2e'",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "componentKey",
+									"type": "string"
+								}
+							]
+					},
+					{
+						"index": 3,
+						"formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "componentValue",
+									"type": "number"
+								}
+							]
+					},
+					{
+						"index": 4,
+						"formula": "'pollutant'",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "componentType",
+									"type": "string"
+								}
+							]
+					},
+				],
+			"parameters":
+				[
+					{
+						"index": 0,
+						"key": "product",
+						"type": "string"
+					},
+					{
+						"index": 0,
+						"key": "chosen_value",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_1",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_2",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_3",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_4",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_5",
+						"type": "number"
+					}
+				]
+		};
+
+		validator.validateImpactPipelineTransformer(transformer);
+	});
+
+	// impact pipeline throws an error if all mandatory transforms arent defined
+	it('should throw an error if the pipeline type is impact and metric or aggregation has been configured on it', () => {
+		const transformer: Transformer =     {
+			"transforms":
+				[
+					{
+						"index": 0,
+						"formula": "CONCAT('eiolca',:product)",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "activityName",
+									"type": "string",
+									metrics: [
+										'somemetric'
+									]
+								}
+							]
+					},
+					{
+						"index": 1,
+						"formula": "'ghg_emissions'",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "impactName",
+									"type": "string"
+								}
+							]
+					},
+					{
+						"index": 2,
+						"formula": "'co2e'",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "componentKey",
+									"type": "string"
+								}
+							]
+					},
+					{
+						"index": 3,
+						"formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "componentValue",
+									"type": "number"
+								}
+							]
+					},
+					{
+						"index": 4,
+						"formula": "'pollutant'",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "componentType",
+									"type": "string"
+								}
+							]
+					},
+				],
+			"parameters":
+				[
+					{
+						"index": 0,
+						"key": "product",
+						"type": "string"
+					},
+					{
+						"index": 0,
+						"key": "chosen_value",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_1",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_2",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_3",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_4",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_5",
+						"type": "number"
+					}
+				]
+		};
+
+		expect(() => {
+			validator.validateImpactPipelineTransformer(transformer);
+		}).toThrow('Metrics and Aggregations are not supported for pipeline types: data and impacts');
+	});
+
+	it('should throw an error if the pipeline type is impact and mandatory transform output isnt specified', () => {
+		const transformer: Transformer =     {
+			"transforms":
+				[
+					{
+						"index": 0,
+						"formula": "CONCAT('eiolca',:product)",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "activityName",
+									"type": "string"
+								}
+							]
+					},
+					{
+						"index": 1,
+						"formula": "'ghg_emissions'",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "impactName",
+									"type": "string"
+								}
+							]
+					},
+					{
+						"index": 2,
+						"formula": "'co2e'",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "componentKey",
+									"type": "string"
+								}
+							]
+					},
+					{
+						"index": 3,
+						"formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)",
+						"outputs":
+							[
+								{
+									"index": 0,
+									"key": "componentValue",
+									"type": "number"
+								}
+							]
+					}
+				],
+			"parameters":
+				[
+					{
+						"index": 0,
+						"key": "product",
+						"type": "string"
+					},
+					{
+						"index": 0,
+						"key": "chosen_value",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_1",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_2",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_3",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_4",
+						"type": "number"
+					},
+					{
+						"index": 0,
+						"key": "co2ePerDollar_5",
+						"type": "number"
+					}
+				]
+		};
+
+		expect(() => {
+			validator.validateImpactPipelineTransformer(transformer);
+		}).toThrow('Missing mandatory output columns. For data pipeline type the following columns are mandatory \'activityName\', \'impactName\', \'componentKey\', \'componentValue\', \'componentType\'');
+	});
+
 });

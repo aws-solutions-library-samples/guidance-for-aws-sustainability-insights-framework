@@ -1,6 +1,18 @@
 # Change Log - @sif/clients
 
-This log was last generated on Mon, 22 May 2023 22:02:58 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+
+## 1.7.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- added new clients for execution
+- update node version to 18.x
+
+### Patches
+
+- repo cleaning script added
 
 ## 1.6.2
 Mon, 22 May 2023 22:02:58 GMT

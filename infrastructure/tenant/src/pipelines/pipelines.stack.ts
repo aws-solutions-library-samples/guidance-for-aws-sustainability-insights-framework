@@ -85,7 +85,7 @@ export class PipelineApiStack extends Stack {
 			workerQueueArn: base.workerQueueArn,
 			enableDeleteResource: props.enableDeleteResource,
 			calculatorFunctionName: calculatorFunctionName,
-			pipelinesApiFunctionName
+			pipelinesApiFunctionName,
 		});
 		module.node.addDependency(base);
 

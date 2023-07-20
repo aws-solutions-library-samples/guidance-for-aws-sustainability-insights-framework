@@ -72,6 +72,7 @@ export class CleanRoomsService {
 			await this.connectorEvents.publishResponse({
 				executionId: executionId,
 				pipelineId: pipeline.id,
+				pipelineType: pipeline.type,
 				status: 'success',
 				statusMessage: `successfully queried input from cleanrooms for pipeline: ${pipeline.id}, execution: ${executionId}`
 			});
@@ -84,6 +85,7 @@ export class CleanRoomsService {
 				executionId: executionId,
 				pipelineId: pipeline.id,
 				status: 'error',
+				pipelineType: pipeline.type,
 				statusMessage: error.message
 			});
 		}
@@ -139,6 +141,7 @@ export class CleanRoomsService {
 			await this.connectorEvents.publishResponse({
 				executionId: event.executionId,
 				pipelineId: event.pipeline.id,
+				pipelineType: event.pipeline.type,
 				status: 'error',
 				statusMessage: Exception.message
 			});

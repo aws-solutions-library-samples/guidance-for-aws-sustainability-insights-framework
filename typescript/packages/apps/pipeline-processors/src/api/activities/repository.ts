@@ -161,7 +161,7 @@ WHERE a."type" = 'raw';`;
 		}
 
 		const query = `
-SELECT DISTINCT a."activityId", a."date", a."pipelineId", x."executionId", x."auditId", x."createdAt"
+SELECT DISTINCT a."activityId", a."date", a."pipelineId", x."executionId", x."auditId", x."createdAt", a."auditVersion"
 FROM "Activity" a
 	JOIN ( SELECT "activityId", "auditId", "createdAt", "executionId" FROM "ActivityStringValue" WHERE "activityId" = ${activityId}
 		UNION SELECT "activityId", "auditId", "createdAt", "executionId" FROM "ActivityNumberValue" WHERE "activityId" = ${activityId}
@@ -730,14 +730,14 @@ LIMIT ${req.maxRows} OFFSET ${req.nextToken}
 		}
 
 		if (filteredConditions.length > 0) {
-			filteredConditionStatements = `WHERE ${filteredConditions.join(' AND ')}`;
+			filteredConditionStatements = `AND ${filteredConditions.join(' AND ')}`;
 		}
 
 		Object.entries(outputKeysAndTypes).forEach(([key, value], index) => {
 			const tableAlias = `col${index}`;
 			selectColumns.push(`col${index}."${key}"`, `col${index}."${key}__error"`, `col${index}."${key}__errorMessage"`);
-			joinStatements.push(`JOIN (	(SELECT	"activityId", ${index < 1 ? '"executionId", "auditId",' : ''}  "createdAt", "val" as "${key}", "error" as "${key}__error", "errorMessage" as "${key}__errorMessage"
-			FROM "${this.typeToValueTableMap[value].name}" ${filteredConditionStatements} )asv join "filtered_activity" fa USING ("activityId")
+			joinStatements.push(`LEFT JOIN (	(SELECT	"activityId", ${index < 1 ? '"executionId", "auditId",' : ''}  "createdAt", "val" as "${key}", "error" as "${key}__error", "errorMessage" as "${key}__errorMessage"
+			FROM "${this.typeToValueTableMap[value].name}" tbl WHERE tbl.name = '${key}' ${filteredConditionStatements} )asv join "filtered_activity" fa USING ("activityId")
 		  ) ${tableAlias} USING ("activityId" ${index < 1 ? '' : ', "createdAt"'})`);
 		});
 
@@ -898,11 +898,11 @@ LIMIT ${req.maxRows} OFFSET ${req.nextToken??0}`;
 		return count;
 	}
 
-	public async moveActivities(event:InsertActivityBulkEvent, sharedConnection?: Client){
+	public async moveActivities(event:InsertActivityBulkEvent, auditVersion:number, sharedConnection?: Client){
 		this.log.debug(`ActivitiesRepository> moveActivities> in: executionId:${event.executionId}, sequence:${event.sequence}`);
 
-		const queryStatement = `INSERT INTO "Activity"("groupId", "pipelineId", "date", "key1", "key2","key3","key4","key5")
-			SELECT t."groupId", t."pipelineId", to_timestamp("dateString"::numeric), t."key1", t."key2",t."key3",t."key4",t."key5"
+		const queryStatement = `INSERT INTO "Activity"("groupId", "pipelineId", "date", "key1", "key2","key3","key4","key5", "auditVersion")
+			SELECT t."groupId", t."pipelineId", to_timestamp("dateString"::numeric), t."key1", t."key2",t."key3",t."key4",t."key5",'${auditVersion}'
 			FROM "ActivityValue_${event.executionId}_${event.sequence}" t
 			LEFT JOIN "Activity" a
 			ON a."groupId"=t."groupId" AND a."pipelineId"=t."pipelineId" AND a."date"=to_timestamp("dateString"::numeric) AND a."type"='raw'

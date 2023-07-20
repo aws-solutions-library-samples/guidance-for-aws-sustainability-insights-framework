@@ -18,11 +18,91 @@ const tags: Tags = {
 	category: 'A/B/C/1',
 };
 
+const impactsTransformer: Transformer = {
+	'transforms':
+		[
+			{
+				'index': 0,
+				'formula': 'CONCAT(\'eiolca_\',:product)',
+				'outputs':
+					[
+						{
+							'index': 0,
+							'key': 'activityName',
+							'type': 'string'
+						}
+					]
+			},
+			{
+				'index': 1,
+				'formula': '\'ghg_emissions\'',
+				'outputs':
+					[
+						{
+							'index': 0,
+							'key': 'impactName',
+							'type': 'string'
+						}
+					]
+			},
+			{
+				'index': 2,
+				'formula': '\'co2e\'',
+				'outputs':
+					[
+						{
+							'index': 0,
+							'key': 'componentKey',
+							'type': 'string'
+						}
+					]
+			},
+			{
+				'index': 3,
+				'formula': '\'carbon\'',
+				'outputs':
+					[
+						{
+							'index': 0,
+							'key': 'componentType',
+							'type': 'string'
+						}
+					]
+			},
+			{
+				'index': 3,
+				'formula': ':componentValue',
+				'outputs':
+					[
+						{
+							'index': 0,
+							'key': 'componentValue',
+							'type': 'number'
+						}
+					]
+			}
+		],
+	'parameters':
+		[
+			{
+				'index': 0,
+				'key': 'product',
+				'type': 'string'
+			},
+			{
+				'index': 1,
+				'key': 'componentValue',
+				'type': 'number'
+			},
+		]
+};
+
+
 const transformer: Transformer = {
 	transforms: [
 		{
 			index: 0,
-			formula: "LOOKUP('vehicle_type', IN(:pin24))",
+			formula: 'LOOKUP(\'vehicle_type\', IN(:pin24))',
 			outputs: [
 				{
 					index: 0,
@@ -35,7 +115,7 @@ const transformer: Transformer = {
 		},
 		{
 			index: 1,
-			formula: "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+			formula: '#VEHICLE_EMISSIONS(\'vehicle_type\', IN(:pin24))',
 			outputs: [
 				{
 					index: 0,
@@ -48,7 +128,7 @@ const transformer: Transformer = {
 		},
 		{
 			index: 2,
-			formula: "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+			formula: '#VEHICLE_EMISSIONS(\'vehicle_type\', IN(:pin24))',
 			outputs: [
 				{
 					index: 0,
@@ -112,6 +192,7 @@ const pipelinePagination: PipelineListType = {
 const createdBy = 'someone@example.com';
 const description = 'this is a description';
 const groups = ['/'];
+const type = 'activities';
 
 export const pipelineFullExample: Pipeline = {
 	// auto gen id ?
@@ -129,19 +210,42 @@ export const pipelineFullExample: Pipeline = {
 	updatedAt: createdAt,
 	updatedBy: createdBy,
 	version: 1,
+	type
 };
 
-export const pipelineNewExample: PipelineCreateParams = {
+export const pipelineImpactsNewExample: PipelineCreateParams = {
+	attributes,
+	description,
+	name,
+	processorOptions,
+	transformer: impactsTransformer,
+	tags,
+	type: 'impacts'
+};
+
+export const pipelineDataNewExample: PipelineCreateParams = {
 	attributes,
 	description,
 	name,
 	processorOptions,
 	transformer,
 	tags,
+	type: 'data'
+};
+
+
+export const pipelineActivitiesNewExample: PipelineCreateParams = {
+	attributes,
+	description,
+	name,
+	processorOptions,
+	transformer,
+	tags,
+	type
 };
 
 export const pipelineDryRunExample = {
-	...pipelineNewExample,
+	...pipelineActivitiesNewExample,
 	dryRunOptions: {
 		data: ['10,10'],
 	},

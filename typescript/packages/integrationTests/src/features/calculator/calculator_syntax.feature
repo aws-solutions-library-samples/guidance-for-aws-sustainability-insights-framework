@@ -70,7 +70,7 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be sum
-		And response body path $.data[0] should be 40
+		And response body path $.data[0] should match stringified json "{\"sum\":40}"
 
 	Scenario: Should be able to use camelCase for variable
 		Given I'm using the calculations api
@@ -81,7 +81,7 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be sum
-		And response body path $.data[0] should be 40
+		And response body path $.data[0] should match stringified json "{\"sum\":40}"
 
 	Scenario: Should be able to use CAPITAL case for variable
 		Given I'm using the calculations api
@@ -92,7 +92,7 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be sum
-		And response body path $.data[0] should be 40
+		And response body path $.data[0] should match stringified json "{\"sum\":40}"
 
 	Scenario: Should be able to use IF for branching condition
 		Given I'm using the calculations api
@@ -103,7 +103,7 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be sum
-		And response body path $.data[0] should be 2000
+		And response body path $.data[0] should match stringified json "{\"sum\":2000}"
 
 	Scenario: Should be able to use concatenate strings
 		Given I'm using the calculations api
@@ -114,7 +114,7 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be sum
-		And response body path $.data[0] should be left_text_right_text
+		And response body path $.data[0] should match stringified json "{\"sum\":\"left_text_right_text\"}"
 
 	Scenario: Should be able return condition based on switch statement
 		Given I'm using the calculations api
@@ -125,7 +125,8 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be result
-		And response body path $.data[0] should be match second
+		And response body path $.data[0] should match stringified json "{\"result\":\"match second\"}"
+
 
 	Scenario: Should be able to combine multiple syntax
 		Given I'm using the calculations api
@@ -136,21 +137,21 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
-		And response body path $.data[0] should be 200000
+		And response body path $.data[0] should match stringified json "{\"output\":200000}"
 		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :value=100\nSWITCH(:input, 'first', 0, 'second', IF(:left>:right,:left*:value,:right*:value))", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ,  { "index": 2, "key": "input", "label": "input", "description": "text input", "type": "string" }],"outputs": [ { "name": "output", "description": "The total.", "type": "number" } ], "dryRunOptions": { "data": [{"left":3000,"right":2000,"input":"second"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
-		And response body path $.data[0] should be 300000
+ 		And response body path $.data[0] should match stringified json "{\"output\":300000}"
 		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "set :value=100\nSWITCH(:input, 'first', CONCAT('sif','-','framework'), 'second', IF(:left>:right,:left*:value,:right*:value))", "parameters": [ { "index": 0, "key": "left", "label": "left", "description": "left side of operand", "type": "number" }, { "index": 1, "key": "right", "label": "right", "description": "right side of operand", "type": "number" } ,  { "index": 2, "key": "input", "label": "input", "description": "text input", "type": "string" }],"outputs": [ { "name": "output", "description": "The total.", "type": "string" } ], "dryRunOptions": { "data": [{"left":1000,"right":2000,"input":"first"}] } }
 		When I POST to /calculations?dryRun=true
 		Then response code should be 200
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
-		And response body path $.data[0] should be sif-framework
+ 		And response body path $.data[0] should match stringified json "{\"output\":\"sif-framework\"}"
 
 	Scenario: Testing Calculator syntax that references version 1 of other resources
 		Given I'm using the calculations api
@@ -161,7 +162,7 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
-		And response body path $.data[0] should be 5565
+ 		And response body path $.data[0] should match stringified json "{\"output\":5565}"
 
 	Scenario: Testing Calculator syntax that references version 2 of other resources
 		Given I'm using the calculations api
@@ -172,7 +173,7 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
-		And response body path $.data[0] should be -13333
+ 		And response body path $.data[0] should match stringified json "{\"output\":-13333}"
 
 	Scenario: Testing Calculator syntax by specifying versionAsAt 2023-02-21T01:00:00.000Z (resolves to version 1)
 		Given I'm using the calculations api
@@ -183,7 +184,7 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
-		And response body path $.data[0] should be 5565
+ 		And response body path $.data[0] should match stringified json "{\"output\":5565}"
 
 	Scenario: Testing Calculator syntax by specifying versionAsAt 2023-02-24T01:00:00.000Z (resolves to version 2)
 		Given I'm using the calculations api
@@ -194,7 +195,72 @@ Feature:
 		And response body should contain headers
 		And response body should contain data
 		And response body path $.headers[0] should be output
-		And response body path $.data[0] should be -13333
+ 		And response body path $.data[0] should match stringified json "{\"output\":-13333}"
+
+	Scenario: Testing Calculator formula that match product using CaML model
+		Given I'm using the calculations api
+		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula perform CAML matching.","formula":"CAML(:input)","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The top 5 matches","type":"string"}],"dryRunOptions":{"data":[{"input":"computer keyboard"}]}}
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be output
+		And response body path $.data[0] should match stringified json "{\"output\":[{\"title\":\"Computer terminals and other computer peripheral equipment manufacturing\",\"naicsCode\":\"334118\",\"beaCode\":\"334118\",\"confidence\":0.663,\"co2ePerDollar\":0.199},{\"title\":\"Business support services\",\"naicsCode\":\"561410\",\"beaCode\":\"561400\",\"confidence\":0.524,\"co2ePerDollar\":0.14300000000000002},{\"title\":\"All other miscellaneous manufacturing\",\"naicsCode\":\"339992\",\"beaCode\":\"339990\",\"confidence\":0.501,\"co2ePerDollar\":0.276},{\"title\":\"Support activities for printing\",\"naicsCode\":\"323120\",\"beaCode\":\"323120\",\"confidence\":0.483,\"co2ePerDollar\":0.30400000000000005},{\"title\":\"Data processing, hosting, and related services\",\"naicsCode\":\"518210\",\"beaCode\":\"518200\",\"confidence\":0.471,\"co2ePerDollar\":0.17500000000000002}]}"
+
+	Scenario: Testing Calculator formula that extract value using GetValue
+		Given I'm using the calculations api
+		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula perform CAML matching.","formula":"GET_VALUE(CAML(:input),'$[0].title')","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The top 5 matches","type":"string"}],"dryRunOptions":{"data":[{"input":"computer keyboard"}]}}
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be output
+		And response body path $.data[0] should match stringified json "{\"output\":\"Computer terminals and other computer peripheral equipment manufacturing\"}"
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula perform CAML matching.","formula":"GET_VALUE(CAML(:input),'$[0].co2ePerDollar')","parameters":[{"index":0,"key":"input","label":"input","description":"input data.","type":"string"}],"outputs":[{"name":"output","description":"The top 5 matches","type":"string"}],"dryRunOptions":{"data":[{"input":"computer keyboard"}]}}
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be output
+		And response body path $.data[0] should match stringified json "{\"output\":0.199}"
+
+		Scenario: Should be able split string into multiple strings
+		Given I'm using the calculations api
+		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
+		# Happy Path
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to split string by comma.","formula":"split(:text,:regex)","parameters":[{"index":0,"key":"text","label":"text","description":"input text","type":"string"},{"index":1,"key":"regex","label":"regex","description":"input regex","type":"string"}],"outputs":[{"name":"first","description":"First item in the string list.","type":"string"}],"dryRunOptions":{"data":[{"text":"a,b,c","regex":","}]}}
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be first
+		And response body path $.data[0] should match stringified json "{\"first\":[\"a\",\"b\",\"c\"]}"
+		# Retrieve item by index
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to split string by comma.","formula":"split(:text,:regex)[2]","parameters":[{"index":0,"key":"text","label":"text","description":"input text","type":"string"},{"index":1,"key":"regex","label":"regex","description":"input regex","type":"string"}],"outputs":[{"name":"first","description":"First item in the string list.","type":"string"}],"dryRunOptions":{"data":[{"text":"a,b,c","regex":","}]}}
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be first
+		And response body path $.data[0] should match stringified json "{\"first\":\"c\"}"
+		# Specify regular expression as delimeter
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to split string by comma.","formula":"split(:text,:regex)","parameters":[{"index":0,"key":"text","label":"text","description":"input text","type":"string"},{"index":1,"key":"regex","label":"regex","description":"input regex","type":"string"}],"outputs":[{"name":"first","description":"First item in the string list.","type":"string"}],"dryRunOptions":{"data":[{"text":"a,b;c-d","regex":"(,|;|-)"}]}}
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be first
+		And response body path $.data[0] should match stringified json "{\"first\":[\"a\",\"b\",\"c\",\"d\"]}"
+		# Specify the limit variable to limit the results
+		And I set body to {"name":"calculator_syntax_check","summary":"Sample formula to split string by comma.","formula":"split(:text,:regex,limit=2)","parameters":[{"index":0,"key":"text","label":"text","description":"input text","type":"string"},{"index":1,"key":"regex","label":"regex","description":"input regex","type":"string"}],"outputs":[{"name":"first","description":"First item in the string list.","type":"string"}],"dryRunOptions":{"data":[{"text":"a,b;c-d","regex":"(,|;|-)"}]}}
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be first
+		And response body path $.data[0] should match stringified json "{\"first\":[\"a\",\"b;c-d\"]}"
 
 	Scenario: Teardown - Activities
 		Given I'm using the impacts api

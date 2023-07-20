@@ -10,7 +10,7 @@ Key features include:
 - **Calculations** - Extensible calculator allowing the definition of custom calculations.
 - **Emission factors** - Extensible emission factory catalog, allowing the addition of custom impact factors.
 - **Reference datasets** - Custom datasets can be used as part of the data pipelines to augment data.
-- **Data ingestion pipelines** -Import csv files of business activities in any format, applying calculations and transforming to customizable outputs.
+- **Data ingestion pipelines** - Import any format of csv file, import directly from AWS Clean Rooms, or create your own input data connector to import business activities from other data sources using our input data connector framework. Then apply calculations to transform the data to desired outputs.
 - **Metrics (KPI's)** - Define metrics to be automatically aggregated based on data ingest pipeline outputs, rolled up to the organizational reporting boundaries and different time units.
 - **Versioning** - All pipeline outputs, metrics, calculations, emission factors, and reference datasets, are versioned, for full traceability.
 - **Auditability** - Full traceability of how a data pipeline output was achieved allowing repeatability of calculations and results.
@@ -29,7 +29,10 @@ Key benefits include:
 
 If you are interested in how to deploy it, follow this [deployment walkthrough](docs/deployment/walkthrough.md).
 
-Once deployed, if you are interested in how to use it, follow this [user guide walkthrough](docs/walkthrough.md).
+Once deployed, if you are interested in how to use it, see these walkthroughs:
+
+- [End to end walkthrough](docs/walkthrough.md)
+- [AWS Clean Rooms walkthrough](typescript/packages/connectors/clean-rooms/README.md)
 
 Deploying SIF in production? Check out [path to production](docs/deployment/path_to_production.md).
 

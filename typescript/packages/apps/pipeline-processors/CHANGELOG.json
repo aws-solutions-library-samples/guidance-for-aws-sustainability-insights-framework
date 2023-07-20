@@ -2,6 +2,79 @@
   "name": "@sif/pipeline-processors",
   "entries": [
     {
+      "version": "4.13.0",
+      "tag": "@sif/pipeline-processors_v4.13.0",
+      "date": "Thu, 20 Jul 2023 00:30:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "added new endpoint to download output of data and emission_factor type pipeline"
+          },
+          {
+            "comment": "repo cleaning script added"
+          },
+          {
+            "comment": "run local bugfix"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "updated audit log query log in accordance with new designs"
+          },
+          {
+            "comment": "update node version to 18.x"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.7.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.8.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.3.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.12.3",
+      "tag": "@sif/pipeline-processors_v4.12.3",
+      "date": "Mon, 03 Jul 2023 02:39:22 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix query activies with showHistory set to true to make sure we return results from multiple version of pipeline configuration"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.12.2",
+      "tag": "@sif/pipeline-processors_v4.12.2",
+      "date": "Fri, 30 Jun 2023 17:08:59 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix show history query issue"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.12.1",
       "tag": "@sif/pipeline-processors_v4.12.1",
       "date": "Mon, 19 Jun 2023 02:37:22 GMT",

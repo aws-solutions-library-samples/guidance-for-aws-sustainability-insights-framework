@@ -12,12 +12,12 @@
  */
 
 import type { SecurityContext } from '@sif/authz';
-import type { CalculatorClient } from '@sif/clients';
+import type { CalculatorClient, MetricClient, LambdaRequestContext } from '@sif/clients';
 import pino from 'pino';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MockProxy, mock } from 'vitest-mock-extended';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { GetSecurityContext } from '../../plugins/module.awilix.js';
+import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
 import { CalculationTask } from './calculationTask';
 import type { CalculationChunk, CalculationContext } from './model.js';
 
@@ -57,7 +57,10 @@ const sampleTransforms = [
 ];
 
 describe('Calculation Task', () => {
-	let underTest: CalculationTask, mockedCalculatorClient: MockProxy<CalculatorClient>, mockedPipelineProcessorsService: MockProxy<PipelineProcessorsService>;
+	let underTest: CalculationTask,
+		mockedCalculatorClient: MockProxy<CalculatorClient>,
+		mockedPipelineProcessorsService: MockProxy<PipelineProcessorsService>,
+		mockMetricClient: MockProxy<MetricClient>;
 
 	let sampleChunkFirst: CalculationChunk = { sequence: 0, range: [0, 100] };
 	let sampleChunkSecond: CalculationChunk = { sequence: 1, range: [101, 200] };
@@ -77,6 +80,7 @@ describe('Calculation Task', () => {
 		mockedPipelineProcessorsService = mock<PipelineProcessorsService>();
 		mockedCalculatorClient = mock<CalculatorClient>();
 		mockedPipelineProcessorsService = mock<PipelineProcessorsService>();
+		mockMetricClient = mock<MetricClient>();
 		mockedCalculatorClient.process.mockReset();
 		mockedCalculatorClient.process.mockResolvedValue({
 			data: [],
@@ -88,7 +92,12 @@ describe('Calculation Task', () => {
 			return {} as unknown as SecurityContext;
 		};
 
-		underTest = new CalculationTask(logger, mockedPipelineProcessorsService, mockedCalculatorClient, mockGetContext);
+		const mockGetLambdaRequestContext: GetLambdaRequestContext = (): LambdaRequestContext => {
+			return {} as unknown as LambdaRequestContext;
+		};
+
+
+		underTest = new CalculationTask(logger, mockedPipelineProcessorsService, mockedCalculatorClient, mockGetContext, mockGetLambdaRequestContext, mockMetricClient);
 	});
 
 	it('happy path first chunk', async () => {
@@ -98,6 +107,7 @@ describe('Calculation Task', () => {
 				transforms: sampleTransforms,
 				parameters: sampleParameters,
 			},
+			pipelineType: 'activities',
 			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
 			executionId: 'unit-test-pipeline-execution',
@@ -109,6 +119,7 @@ describe('Calculation Task', () => {
 		expect(mockedCalculatorClient.process).toHaveBeenCalledWith({
 			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
+			pipelineType: 'activities',
 			executionId: 'unit-test-pipeline-execution',
 			parameters: sampleParameters,
 			transforms: sampleTransforms,
@@ -132,6 +143,7 @@ describe('Calculation Task', () => {
 	it('happy path second chunk', async () => {
 		const context: CalculationContext = {
 			actionType: 'create',
+			pipelineType: 'activities',
 			transformer: {
 				transforms: sampleTransforms,
 				parameters: sampleParameters,
@@ -149,6 +161,7 @@ describe('Calculation Task', () => {
 			username: 'admin',
 			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
+			pipelineType: 'activities',
 			executionId: 'unit-test-pipeline-execution',
 			parameters: sampleParameters,
 			transforms: sampleTransforms,

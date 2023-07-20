@@ -50,6 +50,18 @@ export class S3 extends Construct {
 				{
 					name: 'archive',
 					archiveAccessTierTime: Duration.days(90),
+					deepArchiveAccessTierTime: Duration.days(720)
+				},
+				{
+					name: 'audit',
+					prefix: '*/audit',
+					archiveAccessTierTime: Duration.days(90),
+					deepArchiveAccessTierTime: Duration.days(360)
+				},
+				{
+					name: 'query',
+					prefix: '*/query/results',
+					archiveAccessTierTime: Duration.days(90),
 					deepArchiveAccessTierTime: Duration.days(180)
 				}
 			],

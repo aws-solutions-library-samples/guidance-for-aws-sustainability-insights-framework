@@ -24,13 +24,15 @@ import { FileError } from '../common/errors.js';
 import { getPipelineInputKey } from '../utils/helper.utils.js';
 import type { GetLambdaRequestContext, GetSecurityContext } from '../plugins/module.awilix.js';
 import type { PipelineClient } from '@sif/clients';
+import type { VerificationTaskEvent } from '../stepFunction/tasks/model';
 
 export class EventProcessor {
 	private readonly log: BaseLogger;
 	private readonly sfnClient: SFNClient;
 	private readonly pipelineProcessorsService: PipelineProcessorsService;
 	private readonly getSecurityContext: GetSecurityContext;
-	private readonly stateMachineArn: string;
+	private readonly activitiesPipelineStateMachineArn: string;
+	private readonly dataPipelineStateMachineArn: string;
 	private readonly connectorUtility: ConnectorUtility;
 	private readonly s3Client: S3Client;
 	private readonly bucketName: string;
@@ -45,7 +47,8 @@ export class EventProcessor {
 		getSecurityContext: GetSecurityContext,
 		connectorUtility: ConnectorUtility,
 		s3Client: S3Client,
-		stateMachineArn: string,
+		activitiesStateMachineArn: string,
+		dataStateMachineArn: string,
 		bucketName: string,
 		bucketPrefix: string,
 		pipelineClient: PipelineClient,
@@ -55,7 +58,8 @@ export class EventProcessor {
 		this.log = log;
 		this.sfnClient = sfnClient;
 		this.pipelineProcessorsService = pipelineProcessorsService;
-		this.stateMachineArn = stateMachineArn;
+		this.activitiesPipelineStateMachineArn = activitiesStateMachineArn;
+		this.dataPipelineStateMachineArn = dataStateMachineArn;
 		this.connectorUtility = connectorUtility;
 		this.s3Client = s3Client;
 		this.bucketName = bucketName;
@@ -164,18 +168,22 @@ export class EventProcessor {
 				// if the status of the event is error then we throw that error, this will get caught by the try/catch and execution will be updated as a failure with its error status message
 				throw new Error(event.statusMessage);
 			}
+
+			const verificationTaskInput: VerificationTaskEvent = {
+				source: {
+					bucket: this.bucketName,
+					key: getPipelineInputKey(this.bucketPrefix, event.pipelineId, event.executionId, 'transformed'),
+				},
+				pipelineId: event.pipelineId as string,
+				executionId: event.executionId as string,
+				pipelineType: event.pipelineType
+			};
+
 			// Trigger State Machine
 			const command = await this.sfnClient.send(
 				new StartExecutionCommand({
-					stateMachineArn: this.stateMachineArn,
-					input: JSON.stringify({
-						source: {
-							bucket: this.bucketName,
-							key: getPipelineInputKey(this.bucketPrefix, event.pipelineId, event.executionId, 'transformed'),
-						},
-						pipelineId: event.pipelineId as string,
-						executionId: event.executionId as string,
-					}),
+					stateMachineArn: event.pipelineType === 'activities' ? this.activitiesPipelineStateMachineArn : this.dataPipelineStateMachineArn,
+					input: JSON.stringify(verificationTaskInput),
 				})
 			);
 			const executionArn = command.executionArn;
@@ -195,7 +203,6 @@ export class EventProcessor {
 		}
 
 		this.log.info(`EventProcessor > process > exit:`);
-
 	}
 
 	private async copyFile(source: S3Location, destination: S3Location): Promise<void> {

@@ -16,16 +16,18 @@ import type { CustomResource } from './customResource.js';
 import type { CustomResourceEvent } from './customResource.model.js';
 import type { DatabaseSeederCustomResource } from './databaseSeeder.customResource.js';
 import type { ConnectorSeederCustomResource } from './connectorSeederCustomResource';
+import type { GlueSeederCustomResource } from './glueSeederCustomResource.js';
 
 export class CustomResourceManager {
 	private readonly customResources: { [key: string]: CustomResource };
 	private readonly logger: Logger;
 
-	constructor(logger: Logger, databaseSeederCustomResource: DatabaseSeederCustomResource, connectorSeederCustomResource: ConnectorSeederCustomResource) {
+	constructor(logger: Logger, databaseSeederCustomResource: DatabaseSeederCustomResource, connectorSeederCustomResource: ConnectorSeederCustomResource, glueSeederCustomResource:GlueSeederCustomResource) {
 		this.logger = logger;
 		this.customResources = {};
 		this.customResources['Custom::DatabaseSeeder'] = databaseSeederCustomResource;
 		this.customResources['Custom::ConnectorSeeder'] = connectorSeederCustomResource;
+		this.customResources['Custom::GlueSeeder'] = glueSeederCustomResource;
 	}
 
 	public async create(event: CustomResourceEvent): Promise<unknown> {

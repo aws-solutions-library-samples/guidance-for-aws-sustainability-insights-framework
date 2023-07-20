@@ -1,6 +1,6 @@
 {
 	"name": "@sif/deployment-helper",
-	"version": "0.4.0",
+	"version": "0.5.0",
 	"description": "Custom resources library to automate resource creation",
 	"author": "William Sia <willsia@amazon.com>",
 	"exports": {
@@ -13,7 +13,7 @@
 	"types": "./dist/index.d.js",
 	"type": "module",
 	"scripts": {
-		"clean": "npx shx rm -rf dist *.log tsconfig.tsbuildinfo",
+		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build": "npx tsc -b",
 		"test": "npm run build && vitest run --passWithNoTests"
 	},
@@ -28,6 +28,7 @@
 		"@aws-sdk/client-rds": "3.229.0",
 		"@aws-sdk/client-iam": "3.229.0",
 		"@aws-sdk/client-lambda": "3.229.0",
+		"@aws-sdk/client-glue": "3.229.0",
 		"aws-xray-sdk": "3.4.1",
 		"axios": "1.2.5",
 		"@aws-sdk/client-secrets-manager": "3.229.0",
@@ -41,7 +42,7 @@
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",
-		"@types/node": "16.11.7",
+		"@types/node": "18.16.19",
 		"@types/prettier": "2.6.0",
 		"@types/pg": "8.6.6",
 		"@typescript-eslint/eslint-plugin": "5.32.0",

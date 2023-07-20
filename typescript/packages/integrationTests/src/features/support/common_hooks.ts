@@ -70,7 +70,7 @@ Before({ tags: '@setup_common' }, async function() {
 	const nodeEnv = process.env.NODE_ENV as string;
 	global.apicklis = {
 		accessManagement: await createApi(nodeEnv, process.env.ACCESS_MANAGEMENT_BASE_URL as string, {}),
-		impacts: await createApi(nodeEnv, process.env.impacts_BASE_URL as string, {}),
+		impacts: await createApi(nodeEnv, process.env.IMPACTS_BASE_URL as string, {}),
 		calculations: await createApi(nodeEnv, process.env.CALCULATIONS_BASE_URL as string, {}),
 		pipelineProcessor: await createApi(nodeEnv, process.env.PIPELINE_PROCESSOR_BASE_URL as string, {}),
 		pipelines: await createApi(nodeEnv, process.env.PIPELINES_BASE_URL as string, {}),

@@ -1,6 +1,17 @@
 # Change Log - @sif/authz
 
-This log was last generated on Fri, 31 Mar 2023 06:04:14 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+
+## 2.2.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- update node version to 18.x
+
+### Patches
+
+- repo cleaning script added
 
 ## 2.1.5
 Fri, 31 Mar 2023 06:04:14 GMT

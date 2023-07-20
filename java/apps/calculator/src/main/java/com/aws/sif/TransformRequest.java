@@ -13,6 +13,7 @@
 
 package com.aws.sif;
 
+import com.aws.sif.execution.PipelineType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -72,5 +73,10 @@ public class TransformRequest {
      * to indicate whether to create calculation or delete the row
      */
     private CalculatorActionType actionType;
+
+    /**
+     * to indicate what type of processing that need to be done based on pipeline type
+     */
+    private PipelineType pipelineType;
 
 }

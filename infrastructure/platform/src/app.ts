@@ -16,6 +16,7 @@ import { SharedPlatformInfrastructureStack } from './shared/sharedPlatform.stack
 import { AwsSolutionsChecks } from 'cdk-nag';
 import { getOrThrow } from './shared/stack.utils.js';
 import { Aspects } from 'aws-cdk-lib';
+import { InstanceType } from '@aws-cdk/aws-sagemaker-alpha';
 
 const app = new cdk.App();
 
@@ -34,6 +35,17 @@ const rdsConcurrencyLimit = (app.node.tryGetContext('rdsConcurrencyLimit') as nu
 const repositoryName = app.node.tryGetContext('repositoryName');
 const repositoryArn = app.node.tryGetContext('repositoryArn');
 const imageTag = app.node.tryGetContext('imageTag');
+
+const includeCaml = (app.node.tryGetContext('includeCaml') ?? 'false') === 'true';
+// optional requirement to specify your CaML model artifact
+const camlArtifactBucket = app.node.tryGetContext('camlArtifactBucket');
+const camlArtifactKey = app.node.tryGetContext('camlArtifactKey');
+// optional requirement to specify Hugging Face container tag
+const camlContainerTag = app.node.tryGetContext('camlContainerTag') ?? '1.13.1-transformers4.26.0-gpu-py39-cu117-ubuntu20.04';
+// optional requirement to specify Hugging Face sentence-transformers/all-mpnet-base-v2 model repository hash
+const camlRepositoryHash = app.node.tryGetContext('camlRepositoryHash') ?? 'bd44305fd6a1b43c16baf96765e2ecb20bca8e1d';
+// optimal requirement to specify SageMake instance type for CaML inference
+const camlInstanceType = app.node.tryGetContext('camlInstanceType') ?? InstanceType.G4DN_XLARGE;
 
 let certArn, clientArn;
 
@@ -60,9 +72,11 @@ new SharedPlatformInfrastructureStack(app, 'SharedPlatform', {
 	maxClusterCapacity: maxClusterCapacity,
 	clusterDeletionProtection: clusterDeletionProtection,
 	vpnOptions: includeVpnClient ? { certArn, clientArn } : undefined,
+	camlOptions: includeCaml ? { camlArtifactBucket, camlArtifactKey, camlContainerTag, camlRepositoryHash, camlInstanceType } : undefined,
 	deleteBucket,
 	rdsConcurrencyLimit,
 	repositoryName,
 	repositoryArn,
-	imageTag
+	imageTag,
+
 });

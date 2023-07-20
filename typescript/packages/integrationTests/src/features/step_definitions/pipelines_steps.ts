@@ -16,17 +16,25 @@ import { Then, When } from '@cucumber/cucumber';
 import assert, { fail } from 'assert';
 import { createApi } from '../support/util';
 
-async function clonePipelineApi() {
+async function cloneExistingApi(resourceName: string, baseUrl: string) {
 	const nodeEnv = process.env.NODE_ENV as string;
-	const endpoint = await createApi(nodeEnv, process.env.PIPELINES_BASE_URL as string, {});
+	const endpoint = await createApi(nodeEnv, baseUrl, {});
 	endpoint.removeRequestHeader('x-groupcontextid');
 	endpoint.removeRequestHeader('Authorization');
-	endpoint.addRequestHeader('Authorization', global.apicklis['pipelines'].headers['Authorization']);
-	endpoint.addRequestHeader('x-groupcontextid', global.apicklis['pipelines'].headers['x-groupcontextid']);
+	endpoint.addRequestHeader('Authorization', global.apicklis[resourceName].headers['Authorization']);
+	endpoint.addRequestHeader('x-groupcontextid', global.apicklis[resourceName].headers['x-groupcontextid']);
 	return endpoint;
 }
 
-When(/^I create (.*) metrics with prefix (.*) and tags (.*)$/, async function(numOfMetrics: string, prefix:string, tags: string) {
+async function clonePipelineApi() {
+	return (await cloneExistingApi('pipelines', process.env.PIPELINES_BASE_URL as string));
+}
+
+async function cloneImpactsApi() {
+	return (await cloneExistingApi('impacts', process.env.IMPACTS_BASE_URL as string));
+}
+
+When(/^I create (.*) metrics with prefix (.*) and tags (.*)$/, async function(numOfMetrics: string, prefix: string, tags: string) {
 
 	const [tagKey, tagValue] = tags.split(':');
 	const url = `metrics`;
@@ -61,14 +69,14 @@ When(/^I create (.*) metrics with prefix (.*) and tags (.*)$/, async function(nu
 
 Then(/^no metric exists with tags (.*)$/, async function(tags: string) {
 
-	const getMetrics = async () : Promise<void> => {
+	const getMetrics = async (): Promise<void> => {
 		const url = `metrics?tags=${encodeURIComponent(tags)}&count=50&includeParentGroups=true&includeChildGroups=true`;
 		await this['apickli'].sendWithAxios('GET', url);
 		const { metrics } = JSON.parse(this['apickli'].httpResponse.body);
 		return metrics;
-	}
+	};
 
-	const deleteFunction = async (metrics:any) : Promise<void> => {
+	const deleteFunction = async (metrics: any): Promise<void> => {
 
 		const deleteMetricsFutures = metrics?.map(async (m: any) => {
 			const endpoint = await clonePipelineApi();
@@ -76,21 +84,33 @@ Then(/^no metric exists with tags (.*)$/, async function(tags: string) {
 			await endpoint.sendWithAxios('DELETE', `metrics/${m.id}`);
 		});
 		await Promise.all(deleteMetricsFutures);
-	}
+	};
 
 	// may need to loop a few times as metrics with dependencies on other metrics cannot be deleted without dependencies removed
-	for(let i=0; i<3; i++) {
-		await deleteFunction( await getMetrics());
+	for (let i = 0; i < 3; i++) {
+		await deleteFunction(await getMetrics());
 	}
+});
 
+Then(/^no activities exists with tags (.*)$/, async function(tags: string) {
+	const url = `activities?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
+	await this['apickli'].sendWithAxios('GET', url);
+	const { activities } = JSON.parse(this['apickli'].httpResponse.body);
+	for (const { id } of activities) {
+		const endpoint = await cloneImpactsApi();
+		endpoint.removeRequestHeader('Content-Type');
+		await endpoint.sendWithAxios('DELETE', `activities/${id}`);
+		const statusCode = endpoint?.httpResponse?.statusCode ?? 0;
+		if (statusCode !== 204 && statusCode !== 404) {
+			fail(`Invalid response code ${statusCode} for ${url}`);
+		}
+	}
 });
 
 Then(/^no pipeline exists with tags (.*)$/, async function(tags: string) {
 	const url = `pipelines?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
 	await this['apickli'].sendWithAxios('GET', url);
 	const { pipelines } = JSON.parse(this['apickli'].httpResponse.body);
-
-
 	for (const { id } of pipelines) {
 		const endpoint = await clonePipelineApi();
 		endpoint.removeRequestHeader('Content-Type');
@@ -102,7 +122,7 @@ Then(/^no pipeline exists with tags (.*)$/, async function(tags: string) {
 	}
 });
 
-When(/^I create (.*) pipelines with prefix (.*) and definition (.*) and tags (.*)$/, async function(numOfPipelines: string, prefix:string, createPipelineRequest: string, tags: string) {
+When(/^I create (.*) pipelines with prefix (.*) and definition (.*) and tags (.*)$/, async function(numOfPipelines: string, prefix: string, createPipelineRequest: string, tags: string) {
 
 	const [tagKey, tagValue] = tags.split(':');
 	const url = `pipelines`;

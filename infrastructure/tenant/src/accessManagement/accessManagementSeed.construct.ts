@@ -13,7 +13,7 @@
 
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
-import { DynamoDBSeeder, Seeds } from '@cloudcomponents/cdk-dynamodb-seeder';
+import { DynamoDBSeeder, Seeds } from '@sif/dynamodb-seeder';
 
 export type AccessManagementSeedConstructProperties = {
 	administratorEmail: string;

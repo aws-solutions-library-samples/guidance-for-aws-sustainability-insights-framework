@@ -72,7 +72,7 @@ export class Cognito extends Construct {
 		const commonBundlingOptions = {
 			minify: true,
 			format: OutputFormat.ESM,
-			target: 'node16.15',
+			target: 'node18.16',
 			sourceMap: false,
 			sourcesContent: false,
 			banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
@@ -87,7 +87,7 @@ export class Cognito extends Construct {
 			functionName: `${namePrefix}-preTokenGenerationLambdaTrigger`,
 			description: `Cognito Construct Pre Token Generation Lambda Trigger: Tenant ${props.tenantId}`,
 			entry: path.join(__dirname, './triggers/preTokenGeneration.trigger.ts'),
-			runtime: Runtime.NODEJS_16_X,
+			runtime: Runtime.NODEJS_18_X,
 			tracing: Tracing.ACTIVE,
 			memorySize: 512,
 			logRetention: RetentionDays.ONE_WEEK,
@@ -101,13 +101,6 @@ export class Cognito extends Construct {
 			},
 			depsLockFilePath
 		});
-
-		NagSuppressions.addResourceSuppressions(preTokenGenerationLambdaTrigger, [
-			{
-				id: 'AwsSolutions-L1',
-				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
-			},
-		]);
 
 		const invokeLambdaPolicy = new PolicyStatement({
 			actions: ['lambda:InvokeFunction'],

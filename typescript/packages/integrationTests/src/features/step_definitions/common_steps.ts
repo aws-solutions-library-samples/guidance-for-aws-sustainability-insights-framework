@@ -20,10 +20,17 @@ import assert, { fail } from 'assert';
 import axios from 'axios';
 import fs from 'fs';
 import FormData from 'form-data';
+import { JSONPath } from 'jsonpath-plus';
 
 global.jwts = {};
 global.localUserClaims = {
 	integrationtests: '/|||admin',
+};
+
+const evaluateJsonPath = function(path: string, content: any) {
+	const contentJson = JSON.parse(content);
+	const evalResult = JSONPath({ path, json: contentJson });
+	return (evalResult.length > 0) ? evalResult[0] : null;
 };
 
 Given(/^I authenticate using email (.*) and password (.*)$/, async function(email: string, password: string) {
@@ -166,7 +173,6 @@ When(/^I download the output CSV file from the url stored at global variable (.*
 			},
 		});
 		assert.equal(response.status, 200);
-
 		const csvString: string = response.data as string;
 		const csvRows = csvString.split(/\r*\n/);
 
@@ -223,6 +229,13 @@ When(/^I download the output text file from the url stored at global variable (.
 		console.error(e);
 		throw new Error('Failed validating output file from S3');
 	}
+});
+
+Then(/^response body path (.*) should match stringified json (.*)$/, function(path, value) {
+	path = this.apickli.replaceVariables(path);
+	value = JSON.parse(this.apickli.replaceVariables(value));
+	const evalValue = evaluateJsonPath(path, this.apickli.getResponseObject().body);
+	assert.equal(evalValue, value);
 });
 
 function getAccessManagementInvoker(): Invoker {

@@ -13,7 +13,7 @@
 	"types": "./dist/index.d.js",
 	"type": "module",
 	"scripts": {
-		"clean": "npx shx rm -rf dist *.log tsconfig.tsbuildinfo",
+		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build": "npx tsc -b",
 		"migrate:metrics": "rushx build && node dist/app.js",
 		"test": "npm run build && vitest run --passWithNoTests"
@@ -33,7 +33,7 @@
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",
-		"@types/node": "16.11.7",
+		"@types/node": "18.16.19",
 		"@types/prettier": "2.6.0",
 		"@typescript-eslint/eslint-plugin": "5.32.0",
 		"@typescript-eslint/parser": "5.32.0",

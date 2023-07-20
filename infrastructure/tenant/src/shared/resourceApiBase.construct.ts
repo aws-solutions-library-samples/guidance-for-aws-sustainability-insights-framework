@@ -224,7 +224,7 @@ export class ResourceApiBase extends Construct {
 				 * Ignore reason: there is no risk of path traversal in this context
 				*/
 				entry: path.join(__dirname, props.queue.moduleSqsLambdaLocation), // nosemgrep
-				runtime: Runtime.NODEJS_16_X,
+				runtime: Runtime.NODEJS_18_X,
 				tracing: Tracing.ACTIVE,
 				memorySize: 512,
 				timeout: Duration.minutes(5),
@@ -240,7 +240,7 @@ export class ResourceApiBase extends Construct {
 				bundling: {
 					minify: true,
 					format: OutputFormat.ESM,
-					target: 'node16.15',
+					target: 'node18.16',
 					sourceMap: false,
 					sourcesContent: false,
 					banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
@@ -252,13 +252,6 @@ export class ResourceApiBase extends Construct {
 				*/
 				depsLockFilePath: path.join(__dirname, props.queue.pnpmLockFileLocation), // nosemgrep
 			});
-
-			NagSuppressions.addResourceSuppressions(sqsLambda, [
-				{
-					id: 'AwsSolutions-L1',
-					reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
-				},
-			]);
 
 			sqsLambda.node.addDependency(workerQueue);
 

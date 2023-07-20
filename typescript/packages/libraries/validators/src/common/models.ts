@@ -49,7 +49,7 @@ interface Output {
 	label?: string;
 	type: 'string' | 'number' | 'boolean' | 'timestamp';
 	includeAsUnique?: boolean;
-	metric?: string;
+	metrics?: string[];
 	aggregate?: 'max' | 'min' | 'mean' | 'sum' | 'groupBy' | 'count';
 }
 

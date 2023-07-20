@@ -72,6 +72,7 @@ describe('PipelineAggregationTaskService', () => {
 			pipelineId: 'pipeline-1',
 			requiresAggregation: true,
 			sequence: 0,
+			pipelineType: 'activities',
 			metricQueue: []
 		};
 
@@ -95,6 +96,7 @@ describe('PipelineAggregationTaskService', () => {
 			executionId: 'execution-1',
 			pipelineId: 'pipeline-1',
 			requiresAggregation: true,
+			pipelineType: 'activities',
 			sequence: 0,
 			metricQueue: []
 		};
@@ -116,6 +118,7 @@ describe('PipelineAggregationTaskService', () => {
 
 		const testEvent: ProcessedTaskEvent = {
 			groupContextId: '/tests',
+			pipelineType: 'activities',
 			executionId: 'execution-1',
 			pipelineId: 'pipeline-1',
 			requiresAggregation: true,
@@ -134,6 +137,7 @@ describe('PipelineAggregationTaskService', () => {
 			executionId: 'execution-1',
 			pipelineId: 'pipeline-1',
 			requiresAggregation: false,
+			pipelineType: 'activities',
 			sequence: 0,
 			metricQueue: []
 		};

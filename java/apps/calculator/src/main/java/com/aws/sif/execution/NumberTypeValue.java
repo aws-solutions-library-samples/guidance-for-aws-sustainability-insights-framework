@@ -26,28 +26,25 @@ import java.math.MathContext;
 @EqualsAndHashCode(callSuper = true)
 public class NumberTypeValue extends DynamicTypeValue<BigDecimal> {
 
-	private final BigDecimal value;
+    private final BigDecimal value;
 
     public NumberTypeValue(long i) {
         this.value = new BigDecimal(i);
     }
+
     public NumberTypeValue(String s) {
         this.value = new BigDecimal(s);
     }
+
     public NumberTypeValue(BigDecimal bd) {
         this.value = bd;
     }
+
     public NumberTypeValue(float f) {
         this.value = new BigDecimal(f, MathContext.DECIMAL64).stripTrailingZeros();
     }
+
     public NumberTypeValue(double d) {
         this.value = new BigDecimal(d, MathContext.DECIMAL64).stripTrailingZeros();
     }
-
-	@Override
-	public int compareTo(@NotNull DynamicTypeValue<BigDecimal> o) {
-		log.info("*************");
-		return value.compareTo(o.getValue());
-	}
-
 }

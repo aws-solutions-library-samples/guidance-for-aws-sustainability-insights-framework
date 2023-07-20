@@ -19,7 +19,7 @@ import org.apache.commons.lang3.Validate;
 
 @Slf4j
 public class Auditor {
-	private final SQSWriter writer;
+	private final DataStreamProducer producer;
 
 	/**
 	 * Remembers the last Async thrown exception
@@ -31,19 +31,19 @@ public class Auditor {
 	 */
 	private boolean failOnError;
 
-	public Auditor(SQSWriter writer) {
-		this.writer = writer;
+	public Auditor(DataStreamProducer producer) {
+		this.producer = producer;
 	}
 
-	public void log(AuditMessage message) throws Exception {
+	public void log(AuditMessage message, int chunkNo) throws Exception {
 		log.debug("log> in> message:{}", message);
 
 		Validate.notNull(message);
-		Validate.validState((writer != null && !writer.isDestroyed()), "S3 writer has been destroyed");
+		Validate.validState((producer != null && !producer.isDestroyed()), "DataStreamProducer producer has been destroyed");
 
 		propagateAsyncExceptions();
 
-		writer.addAuditMessage(message).handleAsync((record, throwable) -> {
+		producer.addAuditMessage(message,chunkNo).handleAsync((record, throwable) -> {
 			if (throwable != null) {
 				final String msg = "An error has occurred trying to write a record.";
 				if (failOnError) {
@@ -58,7 +58,7 @@ public class Auditor {
 	}
 
 	public void flushSync() {
-		this.writer.flushSync();
+		this.producer.flushSync();
 	}
 
 	private void propagateAsyncExceptions() throws Exception {

@@ -1,6 +1,19 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Mon, 19 Jun 2023 02:37:22 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+
+## 7.16.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- updated audit publish path to use kinesis stream and firehose
+- adding optional context to enable CaML on tenant deployment
+- update node version to 18.x
+
+### Patches
+
+- repo cleaning script added
 
 ## 7.15.1
 Mon, 19 Jun 2023 02:37:22 GMT

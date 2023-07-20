@@ -12,23 +12,20 @@
  */
 
 import type { BaseLogger } from 'pino';
-import type { CalculatorClient, CalculatorRequest, CalculatorS3TransformResponse } from '@sif/clients';
+import type { CalculatorClient, CalculatorRequest, CalculatorS3TransformResponse, MetricClient } from '@sif/clients';
 import { validateDefined, validateNotEmpty } from '@sif/validators';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { GetSecurityContext } from '../../plugins/module.awilix.js';
+import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
 import type { CalculationChunk, CalculationContext, CalculationTaskEvent, CalculationTaskResult, S3Location } from './model.js';
 
 export class CalculationTask {
-	private readonly log: BaseLogger;
-	private readonly pipelineProcessorsService: PipelineProcessorsService;
-	private readonly getSecurityContext: GetSecurityContext;
-	private readonly calculatorClient: CalculatorClient;
 
-	constructor(log: BaseLogger, pipelineProcessorsService: PipelineProcessorsService, calculatorClient: CalculatorClient, getSecurityContext: GetSecurityContext) {
-		this.getSecurityContext = getSecurityContext;
-		this.log = log;
-		this.pipelineProcessorsService = pipelineProcessorsService;
-		this.calculatorClient = calculatorClient;
+	constructor(private log: BaseLogger,
+				private pipelineProcessorsService: PipelineProcessorsService,
+				private calculatorClient: CalculatorClient,
+				private getSecurityContext: GetSecurityContext,
+				private getLambdaRequestContext: GetLambdaRequestContext,
+				private metricClient: MetricClient) {
 	}
 
 	private async assembleCalculatorRequest(chunk: CalculationChunk, source: S3Location, context: CalculationContext): Promise<CalculatorRequest> {
@@ -57,6 +54,7 @@ export class CalculationTask {
 			parameters: context.transformer.parameters,
 			transforms: context.transformer.transforms,
 			actionType: context.actionType,
+			pipelineType: context.pipelineType,
 			sourceDataLocation: {
 				bucket: source.bucket,
 				key: source.key,
@@ -75,13 +73,13 @@ export class CalculationTask {
 		this.log.info(`CalculationTask > process > in > event: ${JSON.stringify(event)}`);
 
 		const { context, source, chunk } = event;
-		const { pipelineId, executionId: executionId, groupContextId, transformer } = context;
-
+		const { pipelineId, executionId: executionId, groupContextId, transformer, pipelineType } = context;
+		const securityContext = await this.getSecurityContext(executionId, 'contributor', groupContextId);
 		const result: CalculationTaskResult = { sequence: chunk.sequence };
 		if (result.sequence === 0) {
 
 			const metrics = Array.from(new Set(transformer.transforms.flatMap((t) => t.outputs.flatMap((o) => o.metrics ?? []))));
-			const metricQueue = await this.pipelineProcessorsService.getMetricsToProcessSorted(metrics, groupContextId);
+			const metricQueue = await this.metricClient.sortMetricsByDependencyOrder(metrics, this.getLambdaRequestContext(securityContext));
 
 			const outputs = transformer.transforms.flatMap((t) =>
 				t.outputs.filter(o => !o.includeAsUnique && t.index > 0)        // needs values only (no keys, and no timestamp)
@@ -94,6 +92,7 @@ export class CalculationTask {
 				executionId,
 				outputs,
 				requiresAggregation,
+				pipelineType
 			});
 		}
 
@@ -109,7 +108,6 @@ export class CalculationTask {
 			}
 		} catch (error) {
 			this.log.error(`CalculationTask > process > error : ${JSON.stringify(error)}`);
-			const securityContext = await this.getSecurityContext(executionId, 'contributor', groupContextId);
 			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, {
 				status: 'failed',
 				statusMessage: error.message,

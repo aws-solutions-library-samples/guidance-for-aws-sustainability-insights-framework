@@ -89,6 +89,21 @@ Where:
 - `expression` (required) an expression that should evaluate to a string. The result of this expression is converted to upper case characters.
 
 
+### `SPLIT` function
+
+Split the provided text given the delimiter that separates them. If specifying an index, the string at the index is returned, otherwise the whole array is returned as a string.
+
+```
+SPLIT( text, regex, limit=? )[ index ]
+```
+
+Where:
+
+- `text` (required) the text that would be split into multiple string by the delimiter.
+- `regex` (required) the delimiting regular expression.
+- `limit` (optional) the limit parameter controls the number of times the pattern is applied and therefore affects the length of the resulting array.
+- `index` (optional) if specified, the function will return the string at the specified index.
+
 ## Logical functions
 
 ### `COALESCE` function
@@ -218,6 +233,44 @@ Where:
 
 - `'output'` (required) represents the name of the output within the pipeline transform to reference.
 
+
+
+### `CAML` function
+
+Perform semantic text similarity matching using [CaML](https://www.amazon.science/publications/caml-carbon-footprinting-of-household-products-with-zero-shot-semantic-text-similarity) model between input string and the text description of products and return the top 5 matches.
+
+The evaluated response list will include:
+1. [NAICS codes](https://www.census.gov/programs-surveys/economic-census/year/2022/guidance/understanding-naics.html)
+2. BEA code
+3. Title of the product
+4. CO2E per dollar
+5. Prediction confidence rate.
+
+Note: this function may only be used within the context of a pipeline transform. It may not be used within the context of a custom calculation definition.
+
+```
+CAML ( 'value' )
+```
+
+Where:
+
+- `'value'` (required) represents string that will be used to match description of the product.
+
+
+### `GET_VALUE` function
+
+Given JSON as the input, will return the value after evaluating the JsonPath query.
+
+```
+GET_VALUE( 'JSON', 'query' )
+```
+
+Where:
+
+- `'json'` (required) represents JSON that we want to query.
+- `'query`' (required) represents the JsonPath query that we will use to retrieve a value .
+
+
 ## Custom defined functions
 
 Custom defined functions are referenced by prefixing the name of the function with a `#`.
@@ -268,7 +321,4 @@ CONCAT( 'The total is ', :myVariable, ' units.' )
 Where:
 - `set :name = value` sets a variable called `name` to the `value`
 - `:name` references the variable
-
-
-
 

@@ -41,7 +41,8 @@ export class CsvService {
 				executionId: executionId,
 				pipelineId: pipeline.id,
 				status: 'success',
-				statusMessage: `successfully processed input file for pipeline: ${pipeline.id}, execution: ${executionId}`
+				statusMessage: `successfully processed input file for pipeline: ${pipeline.id}, execution: ${executionId}`,
+				pipelineType: pipeline.type
 			});
 
 		} catch (error) {
@@ -52,7 +53,8 @@ export class CsvService {
 				executionId: executionId,
 				pipelineId: pipeline.id,
 				status: 'error',
-				statusMessage: error.message
+				statusMessage: error.message,
+				pipelineType: pipeline.type
 			});
 		}
 

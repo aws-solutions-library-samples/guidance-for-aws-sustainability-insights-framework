@@ -1,11 +1,11 @@
 {
 	"name": "@sif/reference-datasets",
-	"version": "4.5.0",
+	"version": "4.6.0",
 	"description": "Reference Datasets: Manages Reference Datasets",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"type": "module",
 	"scripts": {
-		"clean": "npx shx rm -rf dist *.log",
+		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build": "npx tsc -b",
 		"test": "npm run build && vitest run --passWithNoTests",
 		"prestart": "npx ts-node --esm --prefer-ts-exts src/localConfigGenerator.ts",
@@ -58,7 +58,7 @@
 		"@rushstack/eslint-config": "3.0.0",
 		"@tsconfig/node16-strictest-esm": "1.0.3",
 		"@types/aws-lambda": "8.10.102",
-		"@types/node": "16.11.7",
+		"@types/node": "18.16.19",
 		"@types/prettier": "2.6.0",
 		"@types/uuid": "8.3.0",
 		"@typescript-eslint/eslint-plugin": "5.32.0",

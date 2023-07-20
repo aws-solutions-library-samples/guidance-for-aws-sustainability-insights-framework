@@ -1,7 +1,7 @@
 {
 	"name": "@sif/pipeline-processors",
 	"description": "SIF: Common authz related functionality",
-	"version": "4.12.1",
+	"version": "4.13.0",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {
 		".": {
@@ -13,7 +13,7 @@
 	"types": "./dist/index.d.js",
 	"type": "module",
 	"scripts": {
-		"clean": "npx shx rm -rf dist *.log tsconfig.tsbuildinfo",
+		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build": "npx tsc -b",
 		"prestart": "npx ts-node --esm --prefer-ts-exts src/localConfigGenerator.ts",
 		"start": "rushx build && node -r dotenv/config dist/server.js",
@@ -61,7 +61,8 @@
 		"just-clone": "6.2.0",
 		"ulid": "2.3.0",
 		"@aws-sdk/rds-signer": "3.229.0",
-		"aws-xray-sdk": "3.4.1"
+		"aws-xray-sdk": "3.4.1",
+		"deepmerge":"4.3.1"
 	},
 	"devDependencies": {
 		"@aws-sdk/client-cloudformation": "3.229.0",
@@ -69,7 +70,7 @@
 		"@tsconfig/node16-strictest-esm": "1.0.3",
 		"@types/aws-lambda": "8.10.104",
 		"@types/convert-array-to-csv": "2.0.0",
-		"@types/node": "16.11.7",
+		"@types/node": "18.16.19",
 		"@types/prettier": "2.6.0",
 		"@types/pg": "8.6.6",
 		"@types/validator": "13.7.10",

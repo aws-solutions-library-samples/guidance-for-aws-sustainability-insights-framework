@@ -50,6 +50,7 @@ export class PipelineProcessorsRepository {
 			// we should populate groupContextId from previous version where we store the value in securityContextId
 			groupContextId: i.hasOwnProperty('groupContextId') ? i['groupContextId'] : i['securityContextId'],
 			pipelineId: pk?.[1] as string,
+			auditVersion: (i['auditVersion'] as number) ?? 0,
 			// ttl: i['ttl'],
 		};
 	}

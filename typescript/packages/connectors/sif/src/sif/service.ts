@@ -80,6 +80,7 @@ export class SifService {
 			await this.connectorEvents.publishResponse({
 				executionId: executionId,
 				pipelineId: pipeline.id,
+				pipelineType: pipeline.type,
 				status: 'error',
 				statusMessage: (error as Error).message
 			});
@@ -90,6 +91,7 @@ export class SifService {
 			executionId: executionId,
 			pipelineId: pipeline.id,
 			status: 'success',
+			pipelineType: pipeline.type,
 			statusMessage: `successfully processed input file for pipeline: ${pipeline.id}, execution: ${executionId}`,
 			securityContext
 		});

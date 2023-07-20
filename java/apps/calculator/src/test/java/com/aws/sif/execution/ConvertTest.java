@@ -59,7 +59,7 @@ public class ConvertTest extends CalculatorBaseTest {
     @MethodSource("providerForSuccess")
     void success(String expression, EvaluateResponse expected) {
 
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
 
         var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()
                 .pipelineId(PIPELINE_ID)
@@ -84,7 +84,7 @@ public class ConvertTest extends CalculatorBaseTest {
 		Map<String,DynamicTypeValue> parameters = new LinkedHashMap<>();
 
 		// mocks
-		when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+		when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
 
 		Exception exception = assertThrows(ArithmeticException.class, () -> {
 			var evaluateExpressionRequest = CalculatorImpl.EvaluateExpressionRequest.builder()

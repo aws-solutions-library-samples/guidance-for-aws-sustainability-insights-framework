@@ -37,7 +37,7 @@ export class SamplePipelineInputConnectorStack extends cdk.Stack {
 		const connectorLambda = new NodejsFunction(this, 'SampleInputConnectorLambda', {
 			functionName: 'sample-input-connector-lambda',
 			description: `sample input connector`,
-			runtime: Runtime.NODEJS_16_X,
+			runtime: Runtime.NODEJS_18_X,
 			entry: path.join(__dirname, '../src/handler.ts'),
 			environment: {
 				EVENT_BUS_NAME: eventBusName,

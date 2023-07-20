@@ -15,6 +15,7 @@ import { Type } from '@sinclair/typebox';
 import { apiVersion100, commonHeaders, notFoundResponse, FastifyTypebox, id, versionAsAtQS } from '@sif/resource-api-base';
 import { atLeastReader } from '@sif/authz';
 import { activityAuditListExample } from '../examples.js';
+import {auditList} from './schema.js'
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 dayjs.extend(utc);
@@ -37,9 +38,7 @@ export default function listActivityAuditsRoute(fastify: FastifyTypebox, _option
 			response: {
 				200: {
 					description: 'Success.',
-					...Type.Array(Type.Record(Type.String(), Type.Any(), {
-						description: 'The audit information for an activity.',
-					})),
+					...Type.Array(Type.Ref(auditList)),
 					'x-examples': {
 						'List of audit versions for an activity': {
 							summary: 'Audit detail.',

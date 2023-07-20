@@ -40,12 +40,7 @@ rush build
 First timers need to bootstrap
 
 ```shell
-npm run cdk -- bootstrap \
- -c environment=? \
- -c repositoryUrl=? \
- -c instanceType=? \
- -c ownerArn=? \
- --all
+npm run cdk -- bootstrap -c environment=? --all
 ```
 
 More details on the context that you can provide when deploying the cdk application can be found below:

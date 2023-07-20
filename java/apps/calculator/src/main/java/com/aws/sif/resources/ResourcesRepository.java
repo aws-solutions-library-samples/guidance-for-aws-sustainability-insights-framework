@@ -40,47 +40,56 @@ public class ResourcesRepository {
         this.config = config;
     }
 
-    public Mapping getMapping(String pipelineId, String executionId, String groupContextId, Type type, String name) {
-        log.debug("getMapping> in> pipelineId:{}, executionId:{}, groupContextId:{}, type:{}, name:{}",
-                pipelineId, executionId, groupContextId, type, name);
+    public Mapping getMapping(String key, Type type, String name) {
+        log.debug("getMapping> in> key:{}, type:{}, name:{}",
+                key, type, name);
 
         var request = GetItemRequest.builder()
                 .tableName(config.getString("calculator.resourceMappingTableName"))
                 .key(Map.of(
-                        "pk", AttributeValue.builder().s(String.format("%s:%s:%s", pipelineId, executionId, encodeValue(groupContextId))).build(),
+                        "pk", AttributeValue.builder().s(key).build(),
                         "sk", AttributeValue.builder().s(String.format("%s:%s", type, encodeValue(name))).build()
                 ))
                 .build();
         log.debug("getMapping> request:{}", request);
 
         var response = ddb.getItem(request)
-                            .thenApplyAsync(r-> {
-                                log.trace("getMapping> response:{}", r);
-                                if (r.hasItem()) {
-                                    var item = r.item();
-                                    var id = item.get("id").s();
-                                    var version = Integer.parseInt(item.get("version").n());
-                                    var result = new Mapping(id, version);
-                                    log.debug("getMapping> exit:{}", result);
-                                    return result;
-                                } else {
-                                    return null;
-                                }
-                            }).join();
+                .thenApplyAsync(r -> {
+                    log.trace("getMapping> response:{}", r);
+                    if (r.hasItem()) {
+                        var item = r.item();
+                        var id = item.get("id").s();
+                        var version = Integer.parseInt(item.get("version").n());
+                        var result = new Mapping(id, version);
+                        log.debug("getMapping> exit:{}", result);
+                        return result;
+                    } else {
+                        return null;
+                    }
+                }).join();
 
         log.debug("getMapping> exit:{}", response);
         return response;
-
     }
 
-    public void saveMapping(String pipelineId, String executionId, String groupContextId, Type type, String name, Mapping mapping) {
-        log.debug("saveMapping> in> pipelineId:{}, executionId:{}, groupContextId:{}, type:{}, name:{}, mapping:{}",
-                pipelineId, executionId, groupContextId, type, name, mapping);
+    public Mapping getMapping(String pipelineId, String executionId, String groupContextId, Type type, String name) {
+        log.debug("getMapping> in> pipelineId:{}, executionId:{}, groupContextId:{}, type:{}, name:{}",
+                pipelineId, executionId, groupContextId, type, name);
+
+        var key = String.format("%s:%s:%s", pipelineId, executionId, encodeValue(groupContextId));
+
+        var response = this.getMapping(key, type, name);
+        log.debug("getMapping> exit:{}", response);
+        return response;
+    }
+
+    public void saveMapping(String key, Type type, String name, Mapping mapping) {
+        log.debug("saveMapping> in> key:{}, type: {}, name: {}, mapping: {}", key, type, name, mapping);
 
         var request = PutItemRequest.builder()
                 .tableName(config.getString("calculator.resourceMappingTableName"))
                 .item(Map.of(
-                        "pk", AttributeValue.builder().s(String.format("%s:%s:%s", pipelineId, executionId, encodeValue(groupContextId))).build(),
+                        "pk", AttributeValue.builder().s(key).build(),
                         "sk", AttributeValue.builder().s(String.format("%s:%s", type, encodeValue(name))).build(),
                         "id", AttributeValue.builder().s(mapping.id).build(),
                         "version", AttributeValue.builder().n(String.valueOf(mapping.latestVersion)).build()
@@ -95,7 +104,14 @@ public class ResourcesRepository {
         }
 
         log.debug("saveMapping>");
+    }
 
+    public void saveMapping(String pipelineId, String executionId, String groupContextId, Type type, String name, Mapping mapping) {
+        log.debug("saveMapping> in> pipelineId:{}, executionId:{}, groupContextId:{}, type:{}, name:{}, mapping:{}",
+                pipelineId, executionId, groupContextId, type, name, mapping);
+        var key = String.format("%s:%s:%s", pipelineId, executionId, encodeValue(groupContextId));
+        this.saveMapping(key, type, name, mapping);
+        log.debug("saveMapping>");
     }
 
     @Value
@@ -113,6 +129,6 @@ public class ResourcesRepository {
     }
 
     public enum Type {
-		ACTIVITY, LOOKUP, FUNCTION, GROUP
+        ACTIVITY, LOOKUP, FUNCTION, GROUP, CAML
     }
 }

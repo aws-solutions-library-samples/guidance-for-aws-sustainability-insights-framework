@@ -13,13 +13,13 @@
   "commands": [
 
     {
-      "commandKind": "bulk",
+      "commandKind": "global",
       "name": "clean",
       "summary": "Clean build files.",
       "description": "Removes any project specific build and deployment files from each project.",
-      "enableParallelism": true,
-      "allowWarningsInSuccessfulBuild": true
-    },
+	  "safeForSimultaneousRushProcesses": true,
+	  "shellCommand": "./scripts/clean.bash"
+	},
 
     {
       "commandKind": "bulk",

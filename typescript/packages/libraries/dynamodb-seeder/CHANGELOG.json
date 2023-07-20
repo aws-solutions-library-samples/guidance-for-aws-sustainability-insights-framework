@@ -1,0 +1,17 @@
+{
+  "name": "@sif/dynamodb-seeder",
+  "entries": [
+    {
+      "version": "1.51.0",
+      "tag": "@sif/dynamodb-seeder_v1.51.0",
+      "date": "Thu, 20 Jul 2023 00:30:14 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "fork the @cloudcomponents/cdk-dynamodb-seeder to sif"
+          }
+        ]
+      }
+    }
+  ]
+}

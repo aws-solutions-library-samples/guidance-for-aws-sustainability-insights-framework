@@ -2,6 +2,34 @@
   "name": "@sif/csv-pipeline-input-connector",
   "entries": [
     {
+      "version": "1.2.0",
+      "tag": "@sif/csv-pipeline-input-connector_v1.2.0",
+      "date": "Thu, 20 Jul 2023 00:30:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "repo cleaning script added"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "update node version to 18.x"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.7.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/connector-utils\" to `1.2.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.1.0",
       "tag": "@sif/csv-pipeline-input-connector_v1.1.0",
       "date": "Thu, 15 Jun 2023 23:37:53 GMT",

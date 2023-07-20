@@ -13,33 +13,18 @@
 
 import { GetObjectCommand, GetObjectCommandInput, PutObjectCommand, PutObjectCommandInput, S3Client } from '@aws-sdk/client-s3';
 import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
-
 import { getPipelineErrorKey } from '../../utils/helper.utils.js';
-
 import type { BaseLogger } from 'pino';
-import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { GetSecurityContext } from '../../plugins/module.awilix.js';
 import type { ProcessedTaskEvent } from './model.js';
+import { validateNotEmpty } from '@sif/validators';
 
 export class ResultProcessorTask {
-	private readonly log: BaseLogger;
-	private readonly s3Client: S3Client;
-	private readonly pipelineProcessorsService: PipelineProcessorsService;
-	private readonly dataBucket: string;
-	private readonly dataPrefix: string;
-	private readonly getSecurityContext: GetSecurityContext;
 
-	constructor(log: BaseLogger, getSecurityContext: GetSecurityContext, pipelineProcessorsService: PipelineProcessorsService, s3Client: S3Client, dataBucket: string, dataPrefix: string) {
-		this.s3Client = s3Client;
-		this.log = log;
-		this.pipelineProcessorsService = pipelineProcessorsService;
-		this.dataBucket = dataBucket;
-		this.dataPrefix = dataPrefix;
-		this.getSecurityContext = getSecurityContext;
+	constructor(protected log: BaseLogger, protected s3Client: S3Client, protected dataBucket: string, protected dataPrefix: string) {
 	}
 
 	private async storeCalculationOutput(combinedOutput: string, pipelineId: string, executionId: string, key: string): Promise<void> {
-		this.log.info(`ResultProcessorTask > storeCalculationOutput > in > pipelineId: ${pipelineId}, executionId: ${executionId}, key: ${key}`);
+		this.log.trace(`ResultProcessorTask > storeCalculationOutput > in > pipelineId: ${pipelineId}, executionId: ${executionId}, key: ${key}`);
 
 		const params: PutObjectCommandInput = {
 			Bucket: this.dataBucket,
@@ -47,10 +32,10 @@ export class ResultProcessorTask {
 			Body: combinedOutput,
 		};
 		await this.s3Client.send(new PutObjectCommand(params));
-		this.log.info(`ResultProcessorTask > storeCalculationOutput > exit:`);
+		this.log.trace(`ResultProcessorTask > storeCalculationOutput > exit:`);
 	}
 
-	private async getContentFromFile(bucket: string, key: string): Promise<string> {
+	protected async getContentFromFile(bucket: string, key: string): Promise<string> {
 		const getObjectParams: GetObjectCommandInput = {
 			Key: key,
 			Bucket: bucket,
@@ -59,33 +44,35 @@ export class ResultProcessorTask {
 		return await sdkStreamMixin(response.Body).transformToString();
 	}
 
-	public async process(event: ProcessedTaskEvent[]): Promise<void> {
+	protected async concatenateS3Error(pipelineId: string, executionId: string, errorS3LocationList: { bucket: string, key: string }[]): Promise<void> {
+		this.log.trace(`ResultProcessorTask > concatenateS3Error > pipelineId: ${JSON.stringify(pipelineId)}, executionId: ${executionId}, errorS3LocationList: ${errorS3LocationList}`);
+		const concatenatedErrors = [];
+		for (const errorS3Location of errorS3LocationList) {
+			concatenatedErrors.push(await this.getContentFromFile(errorS3Location.bucket, errorS3Location.key));
+		}
+		if (concatenatedErrors.length > 0) {
+			const concatenatedErrorMessage = concatenatedErrors.join('\r\n');
+			await this.storeCalculationOutput(concatenatedErrorMessage, pipelineId, executionId, getPipelineErrorKey(this.dataPrefix, pipelineId, executionId));
+		}
+		this.log.trace(`ResultProcessorTask > concatenateS3Error > exit >`);
+	}
+
+	public async process(event: ProcessedTaskEvent[]): Promise<[string, string]> {
 		this.log.info(`ResultProcessorTask > process > event: ${JSON.stringify(event)}`);
+		validateNotEmpty(event, 'event');
+		validateNotEmpty(event[0].executionId, 'executionId');
+		validateNotEmpty(event[0].pipelineId, 'pipelineId');
 
-		// first result is where common and overall metadata is stored so as to remove duplicates
-		const firstResult = event[0];
-		const { executionId, pipelineId, status } = firstResult;
+		// first result is where common and overall metadata is stored
+		const { executionId, pipelineId, status } = event[0];
+		const errorS3LocationList = event.filter(o => o.errorLocation).map(o => o.errorLocation);
+		await this.concatenateS3Error(pipelineId, executionId, errorS3LocationList);
 
-		let concatenatedErrors = '';
-		for (const { errorLocation } of event) {
-			if (errorLocation) {
-				concatenatedErrors += await this.getContentFromFile(errorLocation.bucket, errorLocation.key);
-				concatenatedErrors += '\r\n'; // error message files from Calculation Engine do not have newline
-			}
-		}
+		const taskStatus = (status === 'FAILED' || errorS3LocationList.length > 0) ? 'failed' : 'success';
+		const taskStatusMessage = taskStatus == 'failed' ? 'error when performing calculation' : undefined;
+		const taskResult: [string, string] = [taskStatus, taskStatusMessage];
 
-
-		const securityContext = await this.getSecurityContext(executionId);
-
-		if (concatenatedErrors.length > 0 || status==='FAILED')  {
-			// If errors, store the errors to s3, and mark failed
-			await this.storeCalculationOutput(concatenatedErrors, pipelineId, executionId, getPipelineErrorKey(this.dataPrefix, pipelineId, executionId));
-			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, { status: 'failed' });
-		} else {
-			// Mark the pipeline as succeeded
-			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, { status: 'success' });
-		}
-
-		this.log.info(`ResultProcessorTask > process > exit:`);
+		this.log.info(`ResultProcessorTask > process > exit > result: ${taskResult}`);
+		return taskResult;
 	}
 }

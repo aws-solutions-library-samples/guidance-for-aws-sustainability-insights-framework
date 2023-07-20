@@ -12,7 +12,7 @@
  */
 
 import type { Handler } from 'aws-lambda/handler';
-import type { Transformer, ActionType } from '@sif/clients';
+import type { Transformer, ActionType, PipelineType } from '@sif/clients';
 import type { Output } from '../../api/activities/models';
 import type { AffectedTimeRange } from '../../api/metrics/models';
 
@@ -23,6 +23,7 @@ export interface VerificationTaskEvent {
 	};
 	pipelineId: string;
 	executionId: string;
+	pipelineType: PipelineType;
 };
 
 export interface VerificationTaskOutput {
@@ -35,6 +36,7 @@ export interface CalculationContext {
 	pipelineId: string;
 	executionId: string;
 	actionType: ActionType;
+	pipelineType: PipelineType;
 	groupContextId: string;
 	transformer: Transformer;
 	pipelineCreatedBy: string;
@@ -76,6 +78,7 @@ export interface CalculationTaskResult {
 	errorLocation?: S3Location;
 	requiresAggregation?: boolean;
 	metricQueue?: MetricQueue;
+	pipelineType?: string;
 	sequence: number;
 };
 
@@ -86,13 +89,14 @@ export type GroupsQueue = { order: number, group: string }[]
 export type Status = 'FAILED' | 'SUCCEEDED' | 'IN_PROGRESS';
 
 export interface ProcessedTaskEventWithStartTime {
- startTime: string;
- input: ProcessedTaskEvent[];
+	startTime: string;
+	input: ProcessedTaskEvent[];
 }
 
 export interface ProcessedTaskEvent {
 	groupContextId?: string;
 	pipelineId?: string;
+	pipelineType: PipelineType;
 	executionId?: string;
 	outputs?: Output[];
 	requiresAggregation?: boolean;
@@ -133,11 +137,16 @@ export type CalculationTaskHandler = Handler<CalculationTaskEvent, CalculationTa
 
 export type SqlResultProcessorTaskHandler = Handler<ProcessedTaskEventWithStartTime, ProcessedTaskEvent[]>;
 
+export type RawResultProcessorTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent[]>;
+
 export type ResultProcessorTaskHandler = Handler<ProcessedTaskEvent[], void>;
 
 export type MetricAggregationTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent[]>;
 
 export type PipelineAggregationTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent>;
 
+export type ImpactCreationTaskHandler = Handler<ProcessedTaskEvent[], void>;
+
 export type InsertActivityBulkTaskHandler = Handler<InsertActivityBulkEvent[], InsertActivityBulkEvent>;
+
 export type InsertActivityBulkCompletionTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent>;

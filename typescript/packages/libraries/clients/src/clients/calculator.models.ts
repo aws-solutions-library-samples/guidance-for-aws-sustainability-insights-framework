@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import type { Parameter, Transform } from './pipeline.models.js';
+import type { Parameter, PipelineType, Transform } from './pipeline.models.js';
 
 export class CalculatorDryRunError extends Error {
 	public constructor(message: string) {
@@ -40,7 +40,7 @@ export interface CalculatorRequest {
 	parameters: Parameter[];
 	transforms: Transform[];
 	actionType: ActionType;
-
+	pipelineType: PipelineType;
 	/**
 	 * the combination of field names that represent the unique columns of a row. Used
 	 * for uploading audit reports. If no uniqueness is available then audit reports for

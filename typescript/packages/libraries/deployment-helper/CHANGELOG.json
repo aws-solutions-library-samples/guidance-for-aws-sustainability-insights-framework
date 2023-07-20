@@ -2,6 +2,31 @@
   "name": "@sif/deployment-helper",
   "entries": [
     {
+      "version": "0.5.0",
+      "tag": "@sif/deployment-helper_v0.5.0",
+      "date": "Thu, 20 Jul 2023 00:30:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "repo cleaning script added"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "update node version to 18.x"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.7.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.1.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "0.4.0",
       "tag": "@sif/deployment-helper_v0.4.0",
       "date": "Thu, 08 Jun 2023 01:01:56 GMT",

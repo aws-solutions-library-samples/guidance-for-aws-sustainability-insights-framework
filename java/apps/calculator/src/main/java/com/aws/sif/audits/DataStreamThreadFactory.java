@@ -18,14 +18,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SQSWriterThreadFactory implements ThreadFactory {
+public class DataStreamThreadFactory implements ThreadFactory {
     /** Static threadsafe counter use to generate thread name suffix. */
     private static final AtomicLong count = new AtomicLong(0);
 
     @Override
     public Thread newThread(@Nonnull final Runnable runnable) {
         Thread thread = Executors.defaultThreadFactory().newThread(runnable);
-        thread.setName("sqs-writer-thread-" + count.getAndIncrement());
+        thread.setName("kds-writer-thread-" + count.getAndIncrement());
         thread.setDaemon(false);
         return thread;
     }

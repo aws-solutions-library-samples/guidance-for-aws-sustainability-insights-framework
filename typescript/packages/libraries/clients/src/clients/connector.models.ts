@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import type { Pipeline } from './pipeline.models.js';
+import type { Pipeline, PipelineType } from './pipeline.models.js';
 export interface ConnectorParameter {
 	name: string;
 	description?: string;
@@ -63,6 +63,7 @@ export interface ConnectorIntegrationResponseEvent {
 	status: 'success' | 'error',
 	statusMessage: string,
 	securityContext?: SecurityContext;
+	pipelineType: PipelineType;
 }
 
 export enum SecurityScope {

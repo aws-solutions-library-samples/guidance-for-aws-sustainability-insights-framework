@@ -53,7 +53,7 @@ public class CustomTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
         when(calculationsClient.getCalculation(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"custom_multiply", Optional.empty(), Optional.empty(), Optional.empty() ))
                 .thenReturn(stubCustomMultiplyCalculation());
 
@@ -91,7 +91,7 @@ public class CustomTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
         when(calculationsClient.getCalculation(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"custom_multiply", Optional.empty(), Optional.empty(), Optional.of("2022-1-1") ))
                 .thenReturn(stubCustomMultiplyCalculation());
 
@@ -138,7 +138,7 @@ public class CustomTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks..
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
 
         when(calculationsClient.getCalculation(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"custom_multiply", Optional.empty(), Optional.empty(), Optional.empty()))
                 .thenReturn(stubCustomMultiplyCalculation());
@@ -185,7 +185,7 @@ public class CustomTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
         when(calculationsClient.getCalculation(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"custom_multiply", Optional.empty(), Optional.empty(), Optional.empty()))
                 .thenReturn(stubCustomMultiplyCalculation());
 
@@ -235,7 +235,7 @@ public class CustomTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
         when(calculationsClient.getCalculation(PIPELINE_ID, EXECUTION_ID, GROUP_CONTEXT_ID, AUTHORIZER,"custom_multiply", Optional.empty(), Optional.empty(), Optional.empty()))
                 .thenReturn(stubCustomMultiplyCalculation());
 
@@ -280,7 +280,7 @@ public class CustomTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
         when(calculationsClient.getCalculation(PIPELINE_ID, EXECUTION_ID, "/shared", AUTHORIZER,"custom_multiply", Optional.of("tenantb"), Optional.empty(), Optional.empty() ))
                 .thenReturn(stubCustomMultiplyCalculation());
 
@@ -320,7 +320,7 @@ public class CustomTest extends CalculatorBaseTest {
                 .build();
 
         // set up mocks...
-        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient));
+        when(executionVisitorProvider.get()).then(invocation-> new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson));
         when(calculationsClient.getCalculation(PIPELINE_ID, EXECUTION_ID, "/shared/l2/l3/l4", AUTHORIZER,"custom_multiply", Optional.empty(), Optional.empty(), Optional.empty() ))
                 .thenReturn(stubCustomMultiplyCalculation());
 

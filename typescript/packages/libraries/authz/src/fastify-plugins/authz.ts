@@ -37,7 +37,7 @@ export interface AuthzOptions {
  *
  * If running in `development` mode, the groups, roles, and email, are extracted from the `x-email` and `x-groups` headers.
  */
-export default fp<AuthzOptions>(async (app, opts): Promise<void> => {
+export default fp<AuthzOptions>(async (app: any, opts: any): Promise<void> => {
 	const externallySharedGroupIds = (process.env['EXTERNALLY_SHARED_GROUP_IDS'] as string)?.split(',');
 
 	/**

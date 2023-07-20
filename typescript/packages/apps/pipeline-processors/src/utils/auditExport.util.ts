@@ -16,7 +16,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { GetSignedUrl, GetLambdaRequestContext } from '../plugins/module.awilix.js';
 import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
 import { AthenaClient, StartQueryExecutionCommand, GetQueryExecutionCommand } from '@aws-sdk/client-athena';
-import type { Pipeline, PipelineClient, SecurityContext } from '@sif/clients';
+import type { Pipeline, PipelineClient, ExecutionClient, SecurityContext } from '@sif/clients';
 import { validateNotEmpty } from '@sif/validators';
 export class AuditExportUtil {
 
@@ -29,6 +29,7 @@ export class AuditExportUtil {
 	private readonly athena: AthenaClient
 	private readonly sqsQueueUrl: string;
 	private readonly pipelineClient: PipelineClient;
+	private readonly executionClient: ExecutionClient;
 	private readonly getLambdaRequestContext: GetLambdaRequestContext;
 	private readonly athenaDatabaseName: string;
 	private readonly athenaAuditLogsTableName: string;
@@ -43,6 +44,7 @@ export class AuditExportUtil {
 		athena: AthenaClient,
 		sqsQueueUrl: string,
 		pipelineClient: PipelineClient,
+		executionClient: ExecutionClient,
 		getLambdaRequestContext: GetLambdaRequestContext,
 		athenaDatabaseName: string,
 		athenaAuditLogsTableName: string,
@@ -56,6 +58,7 @@ export class AuditExportUtil {
 		this.athena = athena;
 		this.sqsQueueUrl = sqsQueueUrl;
 		this.pipelineClient = pipelineClient;
+		this.executionClient = executionClient;
 		this.getLambdaRequestContext = getLambdaRequestContext;
 		this.athenaDatabaseName = athenaDatabaseName;
 		this.athenaAuditLogsTableName = athenaAuditLogsTableName;
@@ -179,8 +182,15 @@ export class AuditExportUtil {
 
 		const pipeline = await this.pipelineClient.get(params.pipelineId, undefined, this.getLambdaRequestContext(params.securityContext));
 
+		const execution = await this.executionClient.get(params.pipelineId, params.executionId, this.getLambdaRequestContext(params.securityContext));
+
+		let auditVersion = 0;
+		if( execution?.auditVersion){
+			auditVersion = execution.auditVersion;
+		}
+
 		// create the query itself, below is a sample of the query which needs to be dynamically created based on the pipeline input/outputs etc
-		const query = this.createAthenaQuery(pipeline, params.executionId)
+		const query = this.createAthenaQuery(pipeline,params.executionId, auditVersion);
 
 		try {
 			const startQueryExecutionCommand = new StartQueryExecutionCommand({
@@ -216,8 +226,9 @@ export class AuditExportUtil {
 		this.log.info(`ExportUtility> processAuditExportRequest> out`)
 	}
 
-	private createAthenaQuery(pipeline:Pipeline, executionId) {
+	private createAthenaQuery(pipeline:Pipeline, executionId:string, auditVersion:number ) {
 
+		const tableName = `${this.athenaAuditLogsTableName}-v${auditVersion}`;
 		const pipelineOutputKeys = pipeline.transformer.transforms
 			.flatMap(transform => transform.outputs)
 			.map(output => output.key);
@@ -229,7 +240,7 @@ WITH inputs AS (
 		}).join(', ')}
 	FROM (
 		SELECT  auditId, map_agg(input.name, input.value) ikv
-		FROM    "${this.athenaAuditLogsTableName}" CROSS JOIN UNNEST(inputs) AS t(input)
+		FROM    "${tableName}" CROSS JOIN UNNEST(inputs) AS t(input)
 		WHERE   pipeline_id = '${pipeline.id}'
 		AND     execution_id = '${executionId}'
 		AND     input.name <> '___row_identifier___'
@@ -247,7 +258,7 @@ WITH inputs AS (
 			map_agg(output.name, output.resources.activities) AS okv_impacts,
 			map_agg(output.name, output.resources.calculations) AS okv_calculations,
 			map_agg(output.name, output.resources.referenceDatasets) AS okv_referenceDatasets
-		FROM    "${this.athenaAuditLogsTableName}" CROSS JOIN UNNEST(outputs) AS t(output)
+		FROM    "${tableName}" CROSS JOIN UNNEST(outputs) AS t(output)
 		WHERE   pipeline_id = '${pipeline.id}'
 		AND     execution_id = '${executionId}'
 		GROUP BY auditId

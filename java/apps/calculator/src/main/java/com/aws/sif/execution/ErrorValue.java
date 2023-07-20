@@ -20,17 +20,11 @@ import org.jetbrains.annotations.NotNull;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ErrorValue extends DynamicTypeValue<String> {
-
-
     private final String errorMessage;
 
-	@Override
-	public String getValue() {
-		return null;
-	}
+    @Override
+    public String getValue() {
+        return null;
+    }
 
-	@Override
-	public int compareTo(@NotNull DynamicTypeValue<String> o) {
-		return "".compareTo(o.getValue());
-	}
 }

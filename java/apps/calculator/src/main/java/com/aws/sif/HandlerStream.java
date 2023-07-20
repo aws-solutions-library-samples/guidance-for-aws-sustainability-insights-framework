@@ -34,21 +34,28 @@ public class HandlerStream implements RequestStreamHandler {
 
     // DI static so that caches can live beyond handler execution.
     private static final CalculatorComponent component;
+
     static {
         component = DaggerCalculatorComponent.builder().build();
     }
 
-    @Inject @Setter
-    public CalculatorService calculatorService;
+    @Inject
+    @Setter
+    public ActivityTypeCalculatorService activityTypeCalculatorService;
 
-	@Inject @Setter
-	public Config config;
+    @Inject
+    @Setter
+    public DataTypeCalculatorService dataTypeCalculatorService;
+
+    @Inject
+    @Setter
+    public Config config;
 
     public HandlerStream() {
         // As AWS Lambda manages the creation of this handler class and not Dagger, this technique registers
         // this object with Dagger which then allows it to inject its dependencies by Dagger.
         component.inject(this);
-		log.debug("config: {}", config.root().render());
+        log.debug("config: {}", config.root().render());
     }
 
     @Override
@@ -61,7 +68,19 @@ public class HandlerStream implements RequestStreamHandler {
             var request = gson.fromJson(reader, TransformRequest.class);
 
             log.debug("handleRequest> in> request:{}", request);
-            var result = calculatorService.process(request);
+
+            TransformResponse result;
+
+            switch (request.getPipelineType()) {
+                case activities -> {
+                    result = activityTypeCalculatorService.process(request);
+                }
+                case data, impacts -> {
+                    result = dataTypeCalculatorService.process(request);
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + request.getPipelineType());
+            }
+
             log.trace("handleRequest> in> result:{}", result);
 
             outputStream.write(gson.toJson(result).getBytes(StandardCharsets.US_ASCII));
@@ -70,9 +89,9 @@ public class HandlerStream implements RequestStreamHandler {
             log.error("handleRequest> " + e.getMessage(), e);
             throw e;
         } catch (InterruptedException e) {
-			log.error("handleRequest> " + e.getMessage(), e);
-			throw new RuntimeException(e);
-		}
+            log.error("handleRequest> " + e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
 
-	}
+    }
 }

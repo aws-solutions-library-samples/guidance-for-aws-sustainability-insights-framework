@@ -16,15 +16,56 @@ import type { Transformer, Transform } from '../common/models.js';
 import { TransformerDefinitionError } from '../common/errors.js';
 
 export class TransformerValidator {
-	private readonly log: BaseLogger;
 
-	public constructor(log: BaseLogger) {
-		this.log = log;
+	public constructor(
+		private readonly log: BaseLogger
+	) {
+	}
+
+	public validateDataPipelineTransformer(transformer: Transformer) {
+		this.log.debug(`TransformerValidator> validateDataPipelineTransformer> in: transformer :${transformer}`);
+
+		// rules: validate common rules
+		this.validateCommonRules(transformer);
+		// rule: validate unsupported features such as metric an aggregations
+		this.validateUnsupportedMetricsAndAggregations(transformer);
+	}
+
+	public validateImpactPipelineTransformer(transformer: Transformer) {
+		this.log.debug(`TransformerValidator> validateDataPipelineTransformer> in: transformer :${transformer}`);
+
+		// rules: validate common rules
+		this.validateCommonRules(transformer);
+		// rule: validate unsupported features such as metric an aggregations
+		this.validateUnsupportedMetricsAndAggregations(transformer);
+		// rule: validate mandatory output column names [activityName, impactName, componentKey, componentValue, componentType].
+		this.validateImpactsRequiredColumns(transformer);
+	}
+
+	public validateActivitiesPipelineTransformer(transformer: Transformer) {
+		this.log.debug(`TransformerValidator> validateActivitiesPipelineTransformer> in: transformer :${transformer}`);
+
+		// validate common rules
+		this.validateCommonRules(transformer);
+		// validate any aggregations specified, this is only applicable if the pipeline type is activities
+		this.validateTransformAggregations(transformer);
+		// validate the assign_to_group function specified within the transform, only applicable if pipeline type is activities
+		this.validateTransformAssignToGroup(transformer);
+		// validate the first transform, the validation happens uniquely on the first transform being timestamp and only 1 output metric is supported
+		this.validateFirstTransform(transformer);
+
 	}
 
 
-	public validateTransformer(transformer: Transformer): void {
-		this.log.debug(`Validator> validateTransformer> in: transformer :${transformer}`);
+	private validateCommonRules(transformer: Transformer) {
+		this.log.debug(`TransformerValidator> validateCommonRules> in: transformer :${transformer}`);
+
+		/*
+		common transformer validation rules
+		1. transformer should have parameters
+		2. transformers within the transformer should have the right sequence, the sequence should always start from 0 and should not be skipping
+		3. individual transform output validation
+		 */
 
 		// check if transformer has parameters defined
 		if ((!transformer.parameters.length ?? 0) === 0) {
@@ -37,15 +78,11 @@ export class TransformerValidator {
 		// validate transform outputs set as keys
 		this.validateTransformsOutputKeys(transformer.transforms);
 
-		// cross-transform validation
-		this.validateTransforms(transformer.transforms);
-
 		// individual transform validation
 		for (const t of transformer.transforms) {
 			this.validateTransformOutput(t);
 		}
 
-		this.log.debug(`Validator> validateTransformer> out:`);
 	}
 
 	private validateTransformsSequence(transforms: Transform[]): void {
@@ -63,26 +100,14 @@ export class TransformerValidator {
 		}
 	}
 
-	private validateTransformsOutputKeys(transforms: Transform[]): void {
+	private validateTransformAggregations(transformer: Transformer) {
 		// as of now we only allow 5 outputs (not including first output) to be key outputs
-		let outputsKeySet = new Set();
-		let outputKeys = [];
-		let numberOutputKeys = 0;
 		let timestampAggregatedField = 0;
 		let hasAggregateConfiguration = false;
 		let invalidAggregateType = 0;
 
-		transforms.forEach((t) => {
+		transformer.transforms.forEach((t) => {
 			t.outputs?.forEach((o) => {
-				// add the key to the outputsKeySet, we will use this to later validate if the output keys matches this set
-				outputsKeySet.add(o.key);
-				outputKeys.push(o.key);
-				// check if the output is specified as unique and ignore the first index, since its the required timestamp one
-				if (o.includeAsUnique && t.index !== 0) {
-					// tracker for the output keys used
-					numberOutputKeys += 1;
-				}
-
 				if (o.aggregate) {
 					// if a field contains aggregate field then this pipeline has aggregate configuration defined
 					hasAggregateConfiguration = true;
@@ -109,6 +134,26 @@ export class TransformerValidator {
 				throw new TransformerDefinitionError(`Only fields with number type can be aggregated using aggregation functions other than groupBy.`);
 			}
 		}
+	}
+
+	private validateTransformsOutputKeys(transforms: Transform[]): void {
+		// as of now we only allow 5 outputs (not including first output) to be key outputs
+		let outputsKeySet = new Set();
+		let outputKeys = [];
+		let numberOutputKeys = 0;
+
+		transforms.forEach((t) => {
+			t.outputs?.forEach((o) => {
+				// add the key to the outputsKeySet, we will use this to later validate if the output keys matches this set
+				outputsKeySet.add(o.key);
+				outputKeys.push(o.key);
+				// check if the output is specified as unique and ignore the first index, since its the required timestamp one
+				if (o.includeAsUnique && t.index !== 0) {
+					// tracker for the output keys used
+					numberOutputKeys += 1;
+				}
+			});
+		});
 
 		// check if the keys were more than 5, if they were throw an error
 		if (numberOutputKeys > 5) {
@@ -128,17 +173,31 @@ export class TransformerValidator {
 		}
 	}
 
-	private validateTransforms(transforms: Transform[]): void {
+	private validateTransformAssignToGroup(transformer: Transformer): void {
 		let assignToGroupUsages = 0;
 
-		transforms.forEach((t) => {
-			if (t.formula.toLowerCase().includes("assign_to_group")) {
+		transformer.transforms.forEach((t) => {
+			if (t.formula.toLowerCase().includes('assign_to_group')) {
 				assignToGroupUsages += 1;
 			}
 		});
 
 		if (assignToGroupUsages > 1) {
 			throw new TransformerDefinitionError(`Only 1 transform can use the ASSIGN_TO_GROUP() function.`);
+		}
+	}
+
+	private validateFirstTransform(transformer: Transformer) {
+		const firstTransform = transformer.transforms[0];
+
+		const firstOutput = firstTransform.outputs[0];
+
+		if (firstOutput.type !== 'timestamp') {
+			throw new TransformerDefinitionError(`The 1st output of the 1st transform must be the timestamp of the incoming event.`);
+		}
+
+		if ((firstOutput.metrics?.length ?? 0) > 0) {
+			throw new TransformerDefinitionError(`The timestamp of the event cannot be marked as a Metric.`);
 		}
 	}
 
@@ -153,17 +212,31 @@ export class TransformerValidator {
 		if ((transform.outputs?.length ?? 0) > 1) {
 			throw new TransformerDefinitionError(`Only 1 output per transform is supported.`);
 		}
+	}
 
-		if (transform.index === 0) {
-			const firstOutput = transform.outputs[0];
+	private validateUnsupportedMetricsAndAggregations(transformer: Transformer): void {
+		this.log.debug(`Validator> validateUnsupportedMetricsAndAggregations> in: outputs:${JSON.stringify(transformer)}`);
 
-			if (firstOutput.type !== 'timestamp') {
-				throw new TransformerDefinitionError(`The 1st output of the 1st transform must be the timestamp of the incoming event.`);
-			}
+		transformer.transforms.forEach((t) => {
+			t.outputs?.forEach((o) => {
+				// check if output contains metric or aggregation, if it does, we gotta throw an error
+				if (o.metrics || o.aggregate) {
+					throw new TransformerDefinitionError(`Metrics and Aggregations are not supported for pipeline types: data and impacts`);
+				}
+			});
+		});
+	}
 
-			if ((firstOutput.metric?.length ?? 0) > 0) {
-				throw new TransformerDefinitionError(`The timestamp of the event cannot be marked as a Metric.`);
-			}
+	private validateImpactsRequiredColumns(transformer: Transformer) {
+		this.log.debug(`Validator> validateImpactsRequiredColumns> in: outputs:${JSON.stringify(transformer)}`);
+		const mandatoryOutputColNames = ['activityName', 'impactName', 'componentKey', 'componentValue', 'componentType'];
+		// so, we need to extract all the output keys from the individual transforms. We map the transforms then we map the outputs then we flatten the array, but this doesn't eliminate any dupes, we handle that by sticking the gnarly one-liner into a set
+		const transformOutputNames = new Set(transformer.transforms.map(t => t.outputs.map(o => o.key)).flat());
+
+		// check if the mandatory output names are present in the transform output names
+		if (!mandatoryOutputColNames.every(x => transformOutputNames.has(x))) {
+			throw new TransformerDefinitionError('Missing mandatory output columns. For data pipeline type the following columns are mandatory \'activityName\', \'impactName\', \'componentKey\', \'componentValue\', \'componentType\'');
 		}
+
 	}
 }

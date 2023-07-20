@@ -17,7 +17,7 @@ import { atLeastContributor } from '@sif/authz';
 import { badRequestResponse, commonHeaders, conflictResponse, apiVersion100, FastifyTypebox, forbiddenResponse } from '@sif/resource-api-base';
 
 import { newPipelineRequestBody, dryRunQS, pipelineResource, dryRunResponse } from '../schemas.js';
-import { dryRunExampleResponse, pipelineDryRunExample, pipelineFullExample, pipelineNewExample } from '../examples.js';
+import { dryRunExampleResponse, pipelineDryRunExample, pipelineFullExample, pipelineActivitiesNewExample, pipelineDataNewExample, pipelineImpactsNewExample } from '../examples.js';
 
 export default function createPipelineRoute(fastify: FastifyTypebox, _options: unknown, done: () => void): void {
 	fastify.route({
@@ -34,9 +34,17 @@ export default function createPipelineRoute(fastify: FastifyTypebox, _options: u
 			body: {
 				...Type.Ref(newPipelineRequestBody),
 				'x-examples': {
-					'New Pipeline Configuration': {
-						summary: 'Creates a new Pipeline configuration.',
-						value: { ...pipelineNewExample },
+					'New Activities Pipeline Configuration': {
+						summary: 'Creates a new activities pipeline configuration.',
+						value: { ...pipelineActivitiesNewExample },
+					},
+					'New Data Pipeline Configuration': {
+						summary: 'Creates a new data pipeline configuration.',
+						value: { ...pipelineDataNewExample },
+					},
+					'New Impacts Pipeline Configuration': {
+						summary: 'Creates a new impacts pipeline configuration.',
+						value: { ...pipelineImpactsNewExample },
 					},
 					'Dry Run a new pipeline ': {
 						summary: 'Dry Run new Pipeline configuration.',

@@ -19,6 +19,7 @@ describe('HelperUtil', () => {
 	const pipeline: Pipeline = {
 		createdAt: new Date(),
 		updatedAt: new Date(),
+		type: 'activities',
 		'id' : '123',
 		'createdBy': 'e2e_tests_admin@amazon.com',
 		'transformer': {

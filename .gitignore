@@ -174,3 +174,8 @@ site
 **/.antlr
 
 license-checker/
+
+**/caml/model/
+
+model.tar.gz
+/python/apps/caml/model/

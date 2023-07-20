@@ -22,6 +22,8 @@ export const pipelineId: TString = Type.String({ description: 'Identifier of the
 
 export const pipelineVersion: TNumber = Type.Number({ description: 'The version of the pipeline when the execution is created.' });
 
+export const auditVersion: TNumber = Type.Number({ description: 'The version of the audit when the execution is created.' });
+
 export const fromExecutionIdPaginationParam: TString = Type.Optional(Type.String({ description: 'Pipeline execution ID to paginate from (exclusive).' }));
 
 export const countPaginationParam = Type.Optional(Type.Integer({ description: 'Count of results to return.' }));
@@ -91,6 +93,7 @@ export const pipelineExecutionFull = Type.Object(
 		inputUploadUrl: Type.Optional(Type.String({ description: 'this property depends on if the execution requires a file uploaded for the execution. By default it generates a signed url for files which are in SIF format.' })),
 		pipelineId,
 		pipelineVersion,
+		auditVersion: Type.Optional(auditVersion),
 		connectorOverrides,
 		status,
 		statusMessage: Type.Optional(statusMessage),

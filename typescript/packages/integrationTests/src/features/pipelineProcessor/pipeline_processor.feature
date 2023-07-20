@@ -142,27 +142,6 @@ Feature:
 		And response body path $.activities should be of type array with length 6
 		And response body should not contain $.pagination
 
-	Scenario: Retrieve Audit 1 for Activity 1
-		Given I'm using the pipelineProcessor api
-		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
-		And I set x-groupcontextid header to /pipelineProcessorTest
-		When I GET /activities/`activity_id_1`/audits?versionAsAt=`activity_id_1_created_at_1`
-		And response body path $.length should be 1
-		And response body path $[0].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[0].executionId should be `success_execution_id`
-		And response body path $[0].outputs[3]['formula'] should be :b\*:c
-		And response body path $[0].outputs[3]['result'] should be 10
-		And response body path $[0].outputs[3]['evaluated'][':b'] should be 10
-		And response body path $[0].outputs[3]['evaluated'][':c'] should be 1
-		When I GET /activities/`activity_id_1`/audits
-		And response body path $.length should be 2
-		And response body path $[0].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[0].executionId should be `success_execution_id`
-		And response body path $[0].outputs[3]['formula'] should be :b\*:c
-		And response body path $[0].outputs[3]['result'] should be 10
-		And response body path $[0].outputs[3]['evaluated'][':b'] should be 10
-		And response body path $[0].outputs[3]['evaluated'][':c'] should be 1
-
 	# [WIP] TODO: fix this test, this test will validate the aggregated audit exported file
 #	Scenario: Retrieve and validate Audit Export
 #		Given I'm using the pipelineProcessor api
@@ -209,29 +188,6 @@ Feature:
 		When I GET /activities?date=1/1/22&executionId=`delete_execution_id`&pipelineId=`pipeline_processor_pipeline_id`&showAggregate=true
 		And response body path $.activities[?(@.date=='2022-01-01T00:00:00.000Z')]['b*c'] should be 860
 		And response body path $.activities should be of type array with length 1
-
-	Scenario: Retrieve Audit 2 for Activity 1
-		Given I'm using the pipelineProcessor api
-		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
-		And I set x-groupcontextid header to /pipelineProcessorTest
-		When I GET /activities/`activity_id_1`/audits?versionAsAt=`activity_id_1_created_at_2`
-		And response body path $.length should be 1
-		And response body path $[0].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[0].executionId should be `delete_execution_id`
-		And response body path $[0].outputs[3]['evaluated'] should be null
-		And response body path $[0].outputs[3]['result'] should be null
-		When I GET /activities/`activity_id_1`/audits
-		And response body path $.length should be 3
-		And response body path $[0].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[0].executionId should be `delete_execution_id`
-		And response body path $[0].outputs[3]['evaluated'] should be null
-		And response body path $[0].outputs[3]['result'] should be null
-		And response body path $[1].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[1].executionId should be `success_execution_id`
-		And response body path $[1].outputs[3]['formula'] should be :b\*:c
-		And response body path $[1].outputs[3]['result'] should be 10
-		And response body path $[1].outputs[3]['evaluated'][':b'] should be 10
-		And response body path $[1].outputs[3]['evaluated'][':c'] should be 1
 
 	Scenario: Upload Input File with All Errors for Pipeline Processing
 		Given I'm using the pipelineProcessor api
@@ -319,36 +275,6 @@ Feature:
 			| Failed processing row {reading date=1/4/22, a=C, b=30, c=Three}, err: Character T is neither a decimal digit number, decimal point, nor "e" notation exponential mark. |
 			| Failed processing row {reading date=1/4/22, a=F, b=60, c=Six}, err: Character S is neither a decimal digit number, decimal point, nor "e" notation exponential mark.   |
 
-	Scenario: Retrieve Audit 3 for Activity 1
-		Given I'm using the pipelineProcessor api
-		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
-		And I set x-groupcontextid header to /pipelineProcessorTest
-		When I GET /activities/`activity_id_1`/audits?versionAsAt=`activity_id_1_created_at_3`
-		And response body path $.length should be 1
-		And response body path $[0].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[0].executionId should be `some_success_some_errors_execution_id`
-		And response body path $[0].outputs[3]['formula'] should be :b\*:c
-		And response body path $[0].outputs[3]['result'] should be 10
-		And response body path $[0].outputs[3]['evaluated'][':b'] should be 10
-		And response body path $[0].outputs[3]['evaluated'][':c'] should be 1
-		When I GET /activities/`activity_id_1`/audits
-		And response body path $.length should be 4
-		And response body path $[0].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[0].executionId should be `some_success_some_errors_execution_id`
-		And response body path $[0].outputs[3]['formula'] should be :b\*:c
-		And response body path $[0].outputs[3]['result'] should be 10
-		And response body path $[0].outputs[3]['evaluated'][':b'] should be 10
-		And response body path $[0].outputs[3]['evaluated'][':c'] should be 1
-		And response body path $[1].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[1].executionId should be `delete_execution_id`
-		And response body path $[1].outputs[3]['evaluated'] should be null
-		And response body path $[1].outputs[3]['result'] should be null
-		And response body path $[2].pipelineId should be `pipeline_processor_pipeline_id`
-		And response body path $[2].executionId should be `success_execution_id`
-		And response body path $[2].outputs[3]['formula'] should be :b\*:c
-		And response body path $[2].outputs[3]['result'] should be 10
-		And response body path $[2].outputs[3]['evaluated'][':b'] should be 10
-		And response body path $[2].outputs[3]['evaluated'][':c'] should be 1
 
 	Scenario: Retrieve raw and aggregated history of activities
 		Given I'm using the pipelineProcessor api
@@ -448,6 +374,82 @@ Feature:
 		And response body path $.activities[?(@.a=='E' && @.date=='2022-01-08T00:00:00.000Z')]['b*c'] should be null
 		And response body path $.activities[?(@.a=='F' && @.date=='2022-01-08T00:00:00.000Z')]['b*c'] should be null
 
+	Scenario: Retrieve Audit 1 for Activity 1
+		Given I'm using the pipelineProcessor api
+		Then I pause for 60000ms
+		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorTest
+		When I GET /activities/`activity_id_1`/audits?versionAsAt=`activity_id_1_created_at_1`
+		And response body path $[0].audits.length should be 1
+		And response body path $[0].audits[0].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[0].executionId should be `success_execution_id`
+		And response body path $[0].audits[0].outputs[3]['formula'] should be :b\*:c
+		And response body path $[0].audits[0].outputs[3]['result'] should be 10
+		And response body path $[0].audits[0].outputs[3]['evaluated'][':b'] should be 10
+		And response body path $[0].audits[0].outputs[3]['evaluated'][':c'] should be 1
+		When I GET /activities/`activity_id_1`/audits
+		And response body path $[0].audits.length should be 4
+		And response body path $[0].audits[0].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[0].executionId should be `success_execution_id`
+		And response body path $[0].audits[0].outputs[3]['formula'] should be :b\*:c
+		And response body path $[0].audits[0].outputs[3]['result'] should be 10
+		And response body path $[0].audits[0].outputs[3]['evaluated'][':b'] should be 10
+		And response body path $[0].audits[0].outputs[3]['evaluated'][':c'] should be 1
+
+Scenario: Retrieve Audit 2 for Activity 1
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorTest
+		When I GET /activities/`activity_id_1`/audits?versionAsAt=`activity_id_1_created_at_2`
+		And response body path $[0].audits.length should be 1
+		And response body path $[0].audits[0].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[0].executionId should be `delete_execution_id`
+		And response body path $[0].audits[0].outputs[3]['evaluated'] should be null
+		And response body path $[0].audits[0].outputs[3]['result'] should be null
+		When I GET /activities/`activity_id_1`/audits
+		And response body path $[0].audits.length should be 4
+		And response body path $[0].audits[2].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[2].executionId should be `delete_execution_id`
+		And response body path $[0].audits[2].outputs[3]['evaluated'] should be null
+		And response body path $[0].audits[2].outputs[3]['result'] should be null
+		And response body path $[0].audits[2].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[1].executionId should be `success_execution_id`
+		And response body path $[0].audits[1].outputs[3]['formula'] should be :b\*:c
+		And response body path $[0].audits[1].outputs[3]['result'] should be 10
+		And response body path $[0].audits[1].outputs[3]['evaluated'][':b'] should be 10
+		And response body path $[0].audits[1].outputs[3]['evaluated'][':c'] should be 1
+
+	Scenario: Retrieve Audit 3 for Activity 1
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorTest
+		When I GET /activities/`activity_id_1`/audits?versionAsAt=`activity_id_1_created_at_3`
+		And response body path $[0].audits.length should be 1
+		And response body path $[0].audits[0].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[0].executionId should be `some_success_some_errors_execution_id`
+		And response body path $[0].audits[0].outputs[3]['formula'] should be :b\*:c
+		And response body path $[0].audits[0].outputs[3]['result'] should be 10
+		And response body path $[0].audits[0].outputs[3]['evaluated'][':b'] should be 10
+		And response body path $[0].audits[0].outputs[3]['evaluated'][':c'] should be 1
+		When I GET /activities/`activity_id_1`/audits
+		And response body path $[0].audits.length should be 4
+		And response body path $[0].audits[3].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[3].executionId should be `some_success_some_errors_execution_id`
+		And response body path $[0].audits[3].outputs[3]['formula'] should be :b\*:c
+		And response body path $[0].audits[3].outputs[3]['result'] should be 10
+		And response body path $[0].audits[3].outputs[3]['evaluated'][':b'] should be 10
+		And response body path $[0].audits[3].outputs[3]['evaluated'][':c'] should be 1
+		And response body path $[0].audits[1].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[2].executionId should be `delete_execution_id`
+		And response body path $[0].audits[2].outputs[3]['evaluated'] should be null
+		And response body path $[0].audits[2].outputs[3]['result'] should be null
+		And response body path $[0].audits[1].pipelineId should be `pipeline_processor_pipeline_id`
+		And response body path $[0].audits[1].executionId should be `success_execution_id`
+		And response body path $[0].audits[1].outputs[3]['formula'] should be :b\*:c
+		And response body path $[0].audits[1].outputs[3]['result'] should be 10
+		And response body path $[0].audits[1].outputs[3]['evaluated'][':b'] should be 10
+		And response body path $[0].audits[1].outputs[3]['evaluated'][':c'] should be 1
+
 	Scenario: Teardown - Pipeline
 		When I'm using the pipelines api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
@@ -471,5 +473,4 @@ Feature:
 		And group /pipelineProcessorTest has user pipeline_processor_admin@amazon.com revoked
 		And group / has user pipeline_processor_admin@amazon.com revoked
 		And group /pipelineProcessorTest has been removed
-
 

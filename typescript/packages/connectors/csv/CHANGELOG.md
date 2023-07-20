@@ -1,6 +1,17 @@
 # Change Log - @sif/csv-pipeline-input-connector
 
-This log was last generated on Thu, 15 Jun 2023 23:37:53 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+
+## 1.2.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- update node version to 18.x
+
+### Patches
+
+- repo cleaning script added
 
 ## 1.1.0
 Thu, 15 Jun 2023 23:37:53 GMT

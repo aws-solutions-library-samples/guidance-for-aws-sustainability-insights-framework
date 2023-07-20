@@ -2,6 +2,49 @@
   "name": "@sif/calculations",
   "entries": [
     {
+      "version": "4.8.0",
+      "tag": "@sif/calculations_v4.8.0",
+      "date": "Thu, 20 Jul 2023 00:30:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "repo cleaning script added"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "update node version to 18.x"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/authz\" to `2.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/proxy\" to `1.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.8.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.3.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.7.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.7.1",
       "tag": "@sif/calculations_v4.7.1",
       "date": "Mon, 19 Jun 2023 02:37:22 GMT",

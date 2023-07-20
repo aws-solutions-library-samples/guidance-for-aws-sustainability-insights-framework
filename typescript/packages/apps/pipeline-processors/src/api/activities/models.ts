@@ -16,6 +16,7 @@ export type ActivityReference = {
 	pipelineId: string;
 	executionId: string;
 	auditId: string;
+	auditVersion?: number,
 	date: Date;
 	createdAt: Date;
 }

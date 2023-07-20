@@ -17,7 +17,8 @@ import com.aws.sif.execution.output.OutputType;
 import com.aws.sif.resources.calculations.Calculation;
 import com.aws.sif.resources.calculations.CalculationNotFoundException;
 import com.aws.sif.resources.calculations.CalculationsClient;
-import com.aws.sif.resources.groups.Group;
+import com.aws.sif.resources.caml.CamlClient;
+import com.aws.sif.resources.caml.CamlNotEnabledException;
 import com.aws.sif.resources.groups.GroupNotFoundException;
 import com.aws.sif.resources.groups.GroupsClient;
 import com.aws.sif.resources.impacts.Activity;
@@ -25,6 +26,11 @@ import com.aws.sif.resources.impacts.ActivityNotFoundException;
 import com.aws.sif.resources.impacts.ImpactsClient;
 import com.aws.sif.resources.referenceDatasets.DatasetsClient;
 import com.aws.sif.resources.referenceDatasets.ReferenceDatasetNotFoundException;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.JsonPath;
 import io.github.qudtlib.Qudt;
 import io.github.qudtlib.exception.InconvertibleQuantitiesException;
 import io.github.qudtlib.model.QuantityValue;
@@ -32,6 +38,7 @@ import io.github.qudtlib.model.Unit;
 import lang.sif.CalculationsBaseVisitor;
 import lang.sif.CalculationsParser;
 import lombok.extern.slf4j.Slf4j;
+import net.minidev.json.JSONArray;
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import javax.inject.Inject;
@@ -41,6 +48,7 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.*;
+import java.util.regex.PatternSyntaxException;
 
 @Slf4j
 public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeValue> implements ExecutionVisitor {
@@ -69,13 +77,18 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
     private final DatasetsClient datasetsClient;
 	private final GroupsClient groupsClient;
     private final ImpactsClient impactsClient;
+    private final CamlClient camlClient;
+    private final Gson gson;
+    public static final Configuration jsonConf = Configuration.defaultConfiguration();
 
     @Inject
-    public ExecutionVisitorImpl(CalculationsClient calculationsClient, DatasetsClient datasetsClient, GroupsClient groupsClient, ImpactsClient impactsClient) {
+    public ExecutionVisitorImpl(CalculationsClient calculationsClient, DatasetsClient datasetsClient, GroupsClient groupsClient, ImpactsClient impactsClient, CamlClient camlClient, Gson gson) {
         this.calculationsClient = calculationsClient;
         this.datasetsClient = datasetsClient;
 		this.groupsClient = groupsClient;
         this.impactsClient = impactsClient;
+        this.camlClient = camlClient;
+        this.gson = gson;
     }
 
     @Override
@@ -495,6 +508,73 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 		return result;
 	}
 
+    @Override
+    public DynamicTypeValue visitSplitFunctionExpr(CalculationsParser.SplitFunctionExprContext ctx) {
+        log.trace("visitSplitFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+
+        var text = super.visit(ctx.text);
+        verifyNotNullOrError(text, "Invalid text to parse.");
+
+        var regex = super.visit(ctx.regex);
+        verifyNotNullOrError(text, "Invalid regex to parse.");
+
+		var optionalParams = getOptionalParams(ctx.optionalSplitParams());
+		Optional<BigDecimal> limitParam = getOptionalParamValue(optionalParams, OptionalParamKey.limit);
+
+		Optional<Integer> indexParam = (ctx.index!=null) ? Optional.of(Integer.parseInt(super.visit(ctx.index).asString())) : Optional.empty();
+
+        DynamicTypeValue result;
+        try {
+			var splitResult = limitParam.isPresent() ? text.asString().split(regex.asString(), limitParam.get().intValue()) : text.asString().split(regex.asString()) ;
+            result = indexParam.isPresent() ? newTypeValue(splitResult[indexParam.get()]) : new ObjectTypeValue(gson.toJson(splitResult));
+        } catch (PatternSyntaxException | NumberFormatException e) {
+            throw new ArithmeticException(e.getMessage());
+        }
+        auditEvaluated.put(ctx.getText(), result.asString());
+        log.trace("visitSplitFunctionExpr> exit> {}", result);
+        return result;
+    }
+
+    @Override
+    public DynamicTypeValue visitGetValueFunctionExpr(CalculationsParser.GetValueFunctionExprContext ctx) {
+        log.trace("visitGetValueFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+
+        var json = super.visit(ctx.json);
+        verifyNotNullOrError(json, "Invalid json to parse.");
+
+        var query = super.visit(ctx.query);
+        verifyNotNullOrError(query, "Invalid query to evaluate.");
+
+        DynamicTypeValue result;
+
+        try {
+            var queryResult = JsonPath.using(jsonConf).parse(json.asString()).read(JsonPath.compile(query.asString()));
+            if (queryResult instanceof JSONArray) {
+                // if JSONPath returns collection(JSONArray), iterate through the result and add it to result with ListTypeValue
+                List<DynamicTypeValue> array = new ArrayList<>();
+                for (int x = 0; x < ((JSONArray) queryResult).size(); x++) {
+                    var value = ((JSONArray) queryResult).get(x);
+                    var valueAsString = (value == null) ? null : value.toString();
+                    array.add(newTypeValue(valueAsString));
+                }
+                result = new ListTypeValue(array);
+            } else {
+                // if the result is not a collection(JSONArray) return it as a String/Number/Boolean type
+                var queryResultAsString = (queryResult == null) ? null : queryResult.toString();
+                result = newTypeValue(queryResultAsString);
+            }
+        } catch (InvalidJsonException e) {
+            throw new ArithmeticException("Unable to parse json: " + e.getMessage().replace("net.minidev.json.parser.ParseException: ", ""));
+        } catch (Exception e) {
+            throw new ArithmeticException(e.getMessage());
+        }
+
+        // Audit logs
+        auditEvaluated.put(ctx.getText(), result.asString());
+        log.trace("visitGetValueFunctionExpr> exit> {}", result);
+        return result;
+    }
+
     @Override public DynamicTypeValue visitOptionalGroupParam(CalculationsParser.OptionalGroupParamContext ctx) {
         log.trace("visitOptionalGroupParamContext> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.group, ctx.expr());
@@ -530,11 +610,42 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
         return result;
     }
 
-
     @Override public DynamicTypeValue visitOptionalVersionParam(CalculationsParser.OptionalVersionParamContext ctx) {
         log.trace("visitOptionalVersionParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 		var result = getOptionalParamValue(OptionalParamKey.version, ctx.expr());
         log.trace("visitOptionalVersionParam> exit> {}", result);
+        return result;
+    }
+
+	@Override public DynamicTypeValue visitOptionalLimitParam(CalculationsParser.OptionalLimitParamContext ctx) {
+		log.trace("visitOptionalLimitParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+		var result = getOptionalParamValue(OptionalParamKey.limit, ctx.expr());
+		log.trace("visitOptionalLimitParam> exit> {}", result);
+		return result;
+	}
+
+	@Override public DynamicTypeValue visitOptionalArrayIndexParam(CalculationsParser.OptionalArrayIndexParamContext ctx) {
+		log.trace("visitOptionalArrayIndexParam> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+		var result = getOptionalParamValue(OptionalParamKey.index, ctx.expr());
+		log.trace("visitOptionalArrayIndexParam> exit> {}", result);
+		return result;
+	}
+
+    @Override
+    public ObjectTypeValue visitCamlFunctionExpr(CalculationsParser.CamlFunctionExprContext ctx) {
+        log.trace("visitCamlFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+
+        var value = super.visit(ctx.value);
+        verifyNotNullOrError(value, "CaML input value is not specified");
+
+        ObjectTypeValue result;
+        try {
+            result = new ObjectTypeValue(gson.toJson(this.camlClient.getProductMatches(value.asString())));
+        } catch (CamlNotEnabledException e) {
+            throw new ArithmeticException(e.getMessage());
+        }
+        auditEvaluated.put(ctx.getText(), result.asString());
+        log.trace("visitCamlFunctionExpr> exit> {}", result);
         return result;
     }
 
@@ -681,6 +792,9 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
 	private <T> DynamicTypeValue newTypeValue(String value) {
 		DynamicTypeValue result;
+		if (value==null) {
+			return new NullValue();
+		}
 		try {
 			result = new NumberTypeValue(value);
 		} catch (NumberFormatException nfe) {
@@ -1051,8 +1165,5 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 			throw new ArithmeticException( failureMessage);
 		}
 	}
-
-
-
 }
 

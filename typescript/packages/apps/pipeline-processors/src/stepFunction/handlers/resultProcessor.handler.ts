@@ -14,15 +14,28 @@
 import { buildLightApp } from '../../app.light';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
-import type { ResultProcessorTaskHandler } from '../tasks/model';
-import type { ResultProcessorTask } from '../tasks/resultProcessorTask';
+import type { ResultProcessorTaskHandler } from '../tasks/model.js';
+import type { PipelineProcessorsService } from '../../api/executions/service.js';
+import type { GetSecurityContext } from '../../plugins/module.awilix.js';
+import { validateNotEmpty } from '@sif/validators';
+import type { ResultProcessorTask } from '../tasks/resultProcessorTask.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
+const task = di.resolve<ResultProcessorTask>('resultProcessorTask');
+const service = di.resolve<PipelineProcessorsService>('pipelineProcessorsService');
+const getSecurityContext = di.resolve<GetSecurityContext>('getSecurityContext');
 
-export const handler: ResultProcessorTaskHandler = async (event, _context, _callback) : Promise<void> => {
+export const handler: ResultProcessorTaskHandler = async (event, _context, _callback): Promise<void> => {
 	app.log.info(`resultProcessorLambda > handler > event: ${JSON.stringify(event)}`);
-	const task = di.resolve<ResultProcessorTask>('resultProcessorTask');
-	await task.process(event);
+
+	validateNotEmpty(event, 'event');
+	validateNotEmpty(event[0].executionId, 'executionId');
+	validateNotEmpty(event[0].pipelineId, 'pipelineId');
+
+	const [status, statusMessage] = await task.process(event);
+	// set the status
+	const { executionId, pipelineId } = event[0];
+	await service.update(await getSecurityContext(executionId), pipelineId, executionId, { status, statusMessage });
 	app.log.info(`resultProcessorLambda > handler > exit:`);
 };

@@ -2,6 +2,31 @@
   "name": "@sif/concurrency-manager",
   "entries": [
     {
+      "version": "0.2.0",
+      "tag": "@sif/concurrency-manager_v0.2.0",
+      "date": "Thu, 20 Jul 2023 00:30:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "repo cleaning script added"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "update node version to 18.x"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/dynamodb-utils\" to `2.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/validators\" to `1.3.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "0.1.1",
       "tag": "@sif/concurrency-manager_v0.1.1",
       "date": "Mon, 19 Jun 2023 02:37:22 GMT",

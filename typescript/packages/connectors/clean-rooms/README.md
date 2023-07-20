@@ -2,23 +2,29 @@
 
 ## Introduction
 
-This module allows one to create a pipeline that sources its input from AWS Clean Rooms query execution.
+[AWS Clean Rooms](https://docs.aws.amazon.com/clean-rooms/latest/userguide/what-is.html) allows organizations to securely share data with approved collaborators without needing to share the underlying data. Examples of this include upstream suppliers, or downstream customers, using Clean Rooms to store and analyze their carbon emission data, then sharing the summary of this emission data with collaborators for use with calculating their scope 3 emissions. In terms of SIF, the use of Clean Rooms is as a collaborator (consumer of the shared data).
+
+This connector allows one to create a pipeline that retrieves its input (activities) directly from an AWS Clean Rooms collaboration.
 
 ## Walkthrough
 
 ### Step 1: Setting up AWS Clean Rooms
 
-You need to [set up](https://docs.aws.amazon.com/clean-rooms/latest/userguide/setting-up.html) AWS Clean Rooms in the same account where SIF is deployed.
+For this step you need to already be part of an AWS Clean Rooms [collaboration](https://docs.aws.amazon.com/clean-rooms/latest/userguide/create-collaboration.html) as a [member](https://docs.aws.amazon.com/clean-rooms/latest/userguide/create-membership.html) (such as if a supplier/customer has already granted you access to a collaboration), or [set up your own](https://docs.aws.amazon.com/clean-rooms/latest/userguide/setting-up.html) AWS Clean Rooms collaboration which can be used just for this walkthrough. Once you have been added as a member to a collaboration you should be provided a `membershipIdentifier` which you will need later.
 
-For this walkthrough example, we assume that you want to query the daily sum amount of emission from a **configured table** named **emission** given a particular time range.
+### Step 2: Defining the AWS Clean Rooms query
 
-**Query**
+The Clean Rooms tables are queried via SQL, and that SQL query is what is needed by SIF. You can use the [Clean Rooms SQL code editor and/or Analysis builder UI](https://docs.aws.amazon.com/clean-rooms/latest/userguide/query-data.html) to first define and test the query to access the data you are after. This query will be specific to the data being shared.
+
+As an example for the purpose of this walkthrough, let's assume that we need to query the daily total of emissions from a **configured table** named **emission** for a particular time range.
+
+**Example Query**
 
 ```sql
 SELECT SUM("amount") "amount", "date" FROM  "emission" WHERE  "date" > '2022-01-01' AND "date" < '2022-01-03'  GROUP BY "date"
 ```
 
-**Results**
+**Example Results**
 ```csv
 amount,date
 175,2022-01-01
@@ -27,11 +33,12 @@ amount,date
 175,2022-01-04
 ```
 
-Make sure that you can run query above successfully as an AWS Clean Rooms [member](https://docs.aws.amazon.com/clean-rooms/latest/userguide/create-membership.html) in a [collaboration](https://docs.aws.amazon.com/clean-rooms/latest/userguide/create-collaboration.html), you need to specify the membershipId when triggering the pipeline execution.
+### Step 3: Defining the pipeline
 
-### Step 2: Configuring the pipeline
+In this step we will be creating a pipeline that will query Clean Rooms to retrieve the requested activity data for processing. Some points of interest:
 
-In this step we will be creating a pipeline that will run `StartProtectedQuery` in AWS CleanRooms and store the results as Activities.
+- `connectorConfig.input[0].parameters.query` represents the query from the previous step. As part of this we are defining `#dateTo` and `#dateFrom` parameters which we can inject the value to filter the data returned at point of execution.
+- `transformer.parameters` represents the columns being returned from the query.
 
 ```http request
 POST /pipelines
@@ -50,7 +57,7 @@ Body:
             {
                 "name": "sif-cleanRooms-pipeline-input-connector",
                 "parameters": {
-                    // We will make the date range configurable, so user can trigger multiple execution with differen time rannge using the same pipeline
+                    // We will make the date range configurable, so user can trigger multiple execution with different time range using the same pipeline
                     "query": "SELECT SUM(\"amount\") \"amount\", \"date\" FROM  \"emission\" WHERE \"date\" < '#dateTo' AND \"date\" > '#dateFrom' GROUP BY \"date\""
                 }
             }
@@ -100,13 +107,6 @@ Body:
                 "type": "number"
             }
         ]
-    },
-    "tags": {
-        "feature": "pipeline_processor_cleanrooms"
-    },
-    "attributes": {
-        "key1": "val",
-        "key2": "val"
     }
 }
 ```
@@ -173,17 +173,7 @@ Body:
             }
         ]
     },
-    "tags": {
-        "feature": "pipeline_processor_cleanrooms"
-    },
-    "attributes": {
-        "key1": "val",
-        "key2": "val"
-    },
-
-    "groups": [
-        "/"
-    ],
+    "groups": [ "/" ],
     "createdBy": "<some-email>",
     "createdAt": "2023-06-15T02:14:22.402Z",
     "updatedAt": "2023-06-15T02:14:22.402Z",
@@ -192,9 +182,13 @@ Body:
 }
 ```
 
-### Step 3: Triggering the pipeline execution for a given date range
+### Step 4: Triggering the pipeline execution for a given date range
 
-Now we will trigger an execution for the pipeline we had just created.
+Now we will trigger an execution for the pipeline we had just created. What's important here are the parameters values we define as part of `connectorOverrides.sif-cleanRooms-pipeline-input-connector.parameters`:
+
+- `membershipId`: the `membershipIdentifier` from step 1.
+- `parameters.dateTo`: the value for the `#dateTo` parameter we defined as part of the SQL query in step 3.
+- `parameters.dateFrom`: the value for the `#dateFrom` parameter we defined as part of the SQL query in step 3.
 
 **REQUEST**
 
@@ -254,7 +248,7 @@ Body:
 }
 ```
 
-### Step 4: Waiting until the pipeline execution finishes
+### Step 5: Waiting until the pipeline execution finishes
 
 We query the pipeline execution endpoint to check for its completion status.
 
@@ -297,7 +291,7 @@ Authorization: <INSERT TOKEN>
 }
 ```
 
-### Step 4: Query the activities generated by our pipeline
+### Step 6: Query the activities generated by our pipeline
 
 We query the activities endpoint to get the pipeline execution results.
 

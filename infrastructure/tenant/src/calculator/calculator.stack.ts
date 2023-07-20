@@ -31,7 +31,7 @@ import {
 	referenceDatasetsApiFunctionNameParameter
 } from '../shared/ssm.construct.js';
 import { CalculatorModule } from './calculator.construct.js';
-
+import { auditLogDepositorDataStreamArnParameter, auditLogDepositorDataStreamNameParameter } from '../auditLogDepositor/auditLogDepositor.construct.js';
 
 export type CalculatorStackProperties = StackProps & {
 	tenantId: string;
@@ -39,7 +39,10 @@ export type CalculatorStackProperties = StackProps & {
 	caCert: string;
 	minScaling: number;
 	maxScaling: number;
+	includeCaml: boolean;
 };
+
+export const camlInferenceEndpointNameParameter = (environment: string) => `/sif/shared/${environment}/caml/inferenceEndpointName`;
 
 export class CalculatorApiStack extends Stack {
 	constructor(scope: Construct, id: string, props?: CalculatorStackProperties) {
@@ -105,11 +108,24 @@ export class CalculatorApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
+		const camlInferenceEndpointName = props.includeCaml ? StringParameter.fromStringParameterAttributes(this, 'camlInferenceEndpointName', {
+			parameterName: camlInferenceEndpointNameParameter(props.environment),
+			simpleName: false
+		}).stringValue : undefined;
+
+		const auditDataStreamArn = StringParameter.fromStringParameterAttributes(this, 'auditDataStreamArn', {
+			parameterName: auditLogDepositorDataStreamArnParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const auditDataStreamName = StringParameter.fromStringParameterAttributes(this, 'auditDataStreamName', {
+			parameterName: auditLogDepositorDataStreamNameParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
 
 		new CalculatorModule(this, 'Calculator', {
 			tenantId: props.tenantId,
 			environment: props.environment,
-			// caCert: props.caCert,
 			minScaling: props.minScaling,
 			maxScaling: props.maxScaling,
 			customResourceProviderToken,
@@ -122,7 +138,10 @@ export class CalculatorApiStack extends Stack {
 			calculationsApiFunctionName,
 			calculatorFunctionName,
 			kmsKeyArn,
-			tenantSecretArn
+			tenantSecretArn,
+			camlInferenceEndpointName,
+			auditDataStreamArn,
+			auditDataStreamName,
 		});
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [

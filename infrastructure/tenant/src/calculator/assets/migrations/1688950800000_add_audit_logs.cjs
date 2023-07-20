@@ -11,10 +11,13 @@
  *  and limitations under the License.
  */
 
-package com.aws.sif;
 
-import java.io.IOException;
+exports.shorthands = undefined;
 
-public interface CalculatorService {
-    TransformResponse process(TransformRequest request) throws InterruptedException, IOException;
-}
+exports.up = pgm => {
+
+	pgm.sql(`ALTER TABLE "Activity" ADD COLUMN "auditVersion" integer DEFAULT '0';`);
+};
+
+exports.down = pgm => {
+};

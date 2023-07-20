@@ -19,7 +19,7 @@ if (require.main === module) {
 		const [tenantId, environment, groupContext, username, password, newPassword] = process.argv.slice(2);
 
 		if (process.argv.length < 7) {
-			throw new Error('Missing arguments\r\nHow to run the command: \r\n> npm run generate:postman:environment -- <tenantId> <environment> <groupContext> <username> <password> <newPassword>');
+			throw new Error('Missing arguments\r\nHow to run the command: \r\n> npm run generate:postman:environment -- <tenantId> <environment> <groupContext> <username> <password> <newPassword (optional)>');
 		}
 
 		process.env['COGNITO_CLIENT_ID'] = (await getUrl(`/sif/${tenantId}/${environment}/shared/userPoolClientId`, '')).value;

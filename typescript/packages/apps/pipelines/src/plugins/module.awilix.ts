@@ -28,6 +28,7 @@ import { MetricRepository } from '../metrics/repository.js';
 import { MetricService } from '../metrics/service.js';
 import { ConnectorRepository } from '../connectors/repository.js';
 import { ConnectorService } from '../connectors/service.js';
+import { PipelineValidator } from '../pipelines/validator.js';
 
 declare module '@fastify/awilix' {
 	interface Cradle extends BaseCradle {
@@ -38,7 +39,8 @@ declare module '@fastify/awilix' {
 		metricRepository: MetricRepository;
 		metricService: MetricService;
 		dynamoDbUtils: DynamoDbUtils;
-		validator: TransformerValidator;
+		pipelineValidator: PipelineValidator;
+		transformerValidator: TransformerValidator;
 		calculatorClient: CalculatorClient;
 	}
 }
@@ -63,7 +65,7 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 		dynamoDbUtils: asFunction((container: Cradle) => new DynamoDbUtils(app.log, container.dynamoDBDocumentClient), {
 			...commonInjectionOptions,
 		}),
-		validator: asFunction(() => new TransformerValidator(app.log), {
+		transformerValidator: asFunction(() => new TransformerValidator(app.log), {
 			...commonInjectionOptions,
 		}),
 		calculatorClient: asFunction((container) => new CalculatorClient(app.log, container.lambdaClient, calculatorFunctionName), {
@@ -82,7 +84,7 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 					container.groupService,
 					container.tagService,
 					container.resourceService,
-					container.validator,
+					container.pipelineValidator,
 					container.mergeUtils,
 					container.calculatorClient,
 					container.metricService,
@@ -128,5 +130,8 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 		metricService: asFunction((container) => new MetricService(app.log, container.authChecker, container.metricRepository, container.groupService, container.tagService, container.resourceService, container.mergeUtils), {
 			...commonInjectionOptions,
 		}),
+		pipelineValidator: asFunction((container) => new PipelineValidator(app.log, container.transformerValidator), {
+			...commonInjectionOptions,
+		})
 	});
 });

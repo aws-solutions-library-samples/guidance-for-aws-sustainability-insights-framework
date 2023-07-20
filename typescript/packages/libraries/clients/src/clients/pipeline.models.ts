@@ -19,6 +19,8 @@ export interface Transform {
 	outputs: TransformOutput[];
 }
 
+export type PipelineType = 'activities' | 'data' | 'impacts'
+
 export interface TransformOutput {
 	index: number;
 	key: string;
@@ -44,7 +46,7 @@ export interface Pipeline {
 	id: string;
 	createdAt: Date;
 	updatedAt: Date;
-	connectorConfig?: PipelineConnectorConfig
+	connectorConfig?: PipelineConnectorConfig;
 	transformer: Transformer;
 	version: number;
 	createdBy: string;
@@ -52,6 +54,7 @@ export interface Pipeline {
 		chunkSize?: number;
 	};
 	_aggregatedOutputKeyAndTypeMap: Record<string, string>;
+	type: PipelineType;
 }
 
 export interface PipelineVersionList {

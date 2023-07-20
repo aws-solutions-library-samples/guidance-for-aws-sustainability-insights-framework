@@ -337,6 +337,7 @@ export class PipelineRepository {
 	private assemblePipeline(i: Record<string, any>, verbose = false): Pipeline {
 		const pk = expandDelimitedAttribute(i['pk']);
 		const pipeline: Pipeline = {
+			activeAt: i['activeAt'],
 			attributes: i['attributes'],
 			createdAt: i['createdAt'],
 			createdBy: i['createdBy'],
@@ -350,9 +351,9 @@ export class PipelineRepository {
 			state: i['state'],
 			tags: i['tags'],
 			updatedAt: i['updatedAt'],
-			activeAt: i['activeAt'],
 			updatedBy: i['updatedBy'],
 			version: i['version'],
+			type: i['type'] ?? 'activities',
 			_aggregatedOutputKeyAndTypeMap: i['_aggregatedOutputKeyAndTypeMap'],
 		};
 

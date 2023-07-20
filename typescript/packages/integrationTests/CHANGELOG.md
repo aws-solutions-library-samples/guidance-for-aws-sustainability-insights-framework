@@ -1,6 +1,21 @@
 # Change Log - @sif/integration-tests
 
-This log was last generated on Mon, 19 Jun 2023 02:37:22 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+
+## 3.14.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- updated audit log tests accordingly
+- add integration tests for CaML
+- update node version to 18.x
+
+### Patches
+
+- repo cleaning script added
+- Added generator for insomnia environment
+- seeder bugfix
 
 ## 3.13.1
 Mon, 19 Jun 2023 02:37:22 GMT

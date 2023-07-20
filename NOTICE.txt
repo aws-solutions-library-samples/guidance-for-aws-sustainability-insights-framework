@@ -62,7 +62,7 @@ AWS SDK under the Apache License Version 2.0
 "@types/aws-lambda@8.10.106","MIT","https://github.com/DefinitelyTyped/DefinitelyTyped"
 "@types/http-errors@1.8.2","MIT","https://github.com/DefinitelyTyped/DefinitelyTyped"
 "@types/jwt-encode@1.0.0","MIT","https://github.com/DefinitelyTyped/DefinitelyTyped"
-"@types/node@16.11.7","MIT","https://github.com/DefinitelyTyped/DefinitelyTyped"
+"@types/node@18.16.1","MIT","https://github.com/DefinitelyTyped/DefinitelyTyped"
 "@types/pg@8.6.6","MIT","https://github.com/DefinitelyTyped/DefinitelyTyped"
 "@types/prettier@2.6.0","MIT","https://github.com/DefinitelyTyped/DefinitelyTyped"
 "@types/prettier@2.7.1","MIT","https://github.com/DefinitelyTyped/DefinitelyTyped"

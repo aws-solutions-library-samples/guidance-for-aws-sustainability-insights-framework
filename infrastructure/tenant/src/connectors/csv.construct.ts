@@ -53,7 +53,7 @@ export class CsvConnector extends Construct {
 			functionName: props.csvConnectorFunctionName,
 			description: `CSV Connector: Tenant ${props.tenantId}`,
 			entry: path.join(__dirname, '../../../../typescript/packages/connectors/csv/src/lambda_eventbridge.ts'),
-			runtime: Runtime.NODEJS_16_X,
+			runtime: Runtime.NODEJS_18_X,
 			tracing: Tracing.ACTIVE,
 			memorySize: 1054,
 			timeout: Duration.seconds(300),
@@ -65,7 +65,7 @@ export class CsvConnector extends Construct {
 			bundling: {
 				minify: true,
 				format: OutputFormat.ESM,
-				target: 'node16.15',
+				target: 'node18.16',
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
@@ -73,13 +73,6 @@ export class CsvConnector extends Construct {
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
 		});
-
-		NagSuppressions.addResourceSuppressions(connectorLambda, [
-			{
-				id: 'AwsSolutions-L1',
-				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
-			},
-		]);
 
 		// create dead letter queue
 		const deadLetterQueue = new Queue(this, 'DeadLetterQueue');

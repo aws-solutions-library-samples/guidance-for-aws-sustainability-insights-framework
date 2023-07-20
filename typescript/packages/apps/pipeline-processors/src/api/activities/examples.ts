@@ -72,200 +72,267 @@ export const activityVersionsListExample: ActivityVersionsList = {
 	},
 };
 
-export const activityAuditListExample = [
-	{
-		'activityId': 1144,
-		'date': '2022-01-03T16:00:00.000Z',
-		'pipelineId': '01gwh2f5zwqryq789v42g1akrz',
-		'executionId': '01gwh2hpz1dbpskw8vq531jg94',
-		'auditId': '8e50a420-c138-406b-a794-4f1e973018f5',
-		'createdAt': '2023-03-27T00:21:58.322Z',
-		'executionNo': 0,
-		'outputs': [
-			{
-				'index': 0,
-				'name': 'time',
-				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\')',
-				'evaluated': {
-					'AS_TIMESTAMP(:reading date,\'M/d/yy\')': '1641254400000',
-					':reading date': '1/4/22'
+export const activityAuditListExample = [{
+	"status": "SUCCEEDED",
+	"exportUrl": "<S3 Export Url>",
+	"audits": [{
+			"pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
+			"executionId": "01h5ewn4wvsk1fx5rhjm682zjg",
+			"auditId": "12b42b60-6198-44df-a075-167a6a740f1f",
+			"inputs": [{
+				"name": "___row_identifier___",
+				"value": "1/4/22-A-10-1"
+			}, {
+				"name": "reading date",
+				"value": "1/4/22"
+			}, {
+				"name": "a",
+				"value": "A"
+			}, {
+				"name": "b",
+				"value": "10"
+			}, {
+				"name": "c",
+				"value": "1"
+			}],
+			"outputs": [{
+				"index": 0,
+				"name": "time",
+				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+				"evaluated": {
+					":reading date": "1/4/22",
+					"AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
 				},
-				'result': '1641254400000'
-			},
-			{
-				'index': 1,
-				'name': 'month',
-				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')',
-				'evaluated': {
-					'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')': '1640995200000',
-					':reading date': '1/4/22'
+				"result": "1641254400000",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 1,
+				"name": "month",
+				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+				"evaluated": {
+					":reading date": "1/4/22",
+					"AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
 				},
-				'result': '1640995200000'
-			},
-			{
-				'index': 2,
-				'name': 'a',
-				'formula': ':a',
-				'evaluated': {
-					':a': 'A'
+				"result": "1640995200000",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 2,
+				"name": "a",
+				"formula": ":a",
+				"evaluated": {
+					":a": "A"
 				},
-				'result': 'A'
-			},
-			{
-				'index': 3,
-				'name': 'b*c',
-				'formula': ':b*:c',
-				'evaluated': {
-					':b': '10',
-					':c': '1'
+				"result": "A",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 3,
+				"name": "b*c",
+				"formula": ":b*:c",
+				"evaluated": {
+					":b": "10",
+					":c": "1"
 				},
-				'result': '10'
-			}
-		]
-	},
-	{
-		'activityId': 1144,
-		'date': '2022-01-03T16:00:00.000Z',
-		'pipelineId': '01gwh2f5zwqryq789v42g1akrz',
-		'executionId': '01gwh2g8k79v4qfq4m9pvz05q1',
-		'auditId': '5ca76cb8-bb74-4a7b-ac9c-31b1b594b1f7',
-		'createdAt': '2023-03-27T00:21:11.104Z',
-		'executionNo': 0,
-		'outputs': [
-			{
-				'index': 0,
-				'name': 'time',
-				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\')',
-				'evaluated': {
-					'AS_TIMESTAMP(:reading date,\'M/d/yy\')': '1641254400000',
-					':reading date': '1/4/22'
+				"result": "10",
+				"errormessage": null,
+				"resources": null
+			}]
+		},
+		{
+			"pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
+			"executionId": "01h5ewn4wvsk1fx5rhjm682zjg",
+			"auditId": "f50357e1-d2ba-4351-bf28-d9281d74e150",
+			"inputs": [{
+				"name": "___row_identifier___",
+				"value": "1/4/22-A-10-1"
+			}, {
+				"name": "reading date",
+				"value": "1/4/22"
+			}, {
+				"name": "a",
+				"value": "A"
+			}, {
+				"name": "b",
+				"value": "10"
+			}, {
+				"name": "c",
+				"value": "1"
+			}],
+			"outputs": [{
+					"index": 0,
+					"name": "time",
+					"formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+					"evaluated": {
+						":reading date": "1/4/22",
+						"AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
+					},
+					"result": "1641254400000",
+					"errormessage": null,
+					"resources": null
 				},
-				'result': '1641254400000'
-			},
-			{
-				'index': 1,
-				'name': 'month',
-				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')',
-				'evaluated': {
-					'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')': '1640995200000',
-					':reading date': '1/4/22'
+				{
+					"index": 1,
+					"name": "month",
+					"formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+					"evaluated": {
+						":reading date": "1/4/22",
+						"AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
+					},
+					"result": "1640995200000",
+					"errormessage": null,
+					"resources": null
+				}, {
+					"index": 2,
+					"name": "a",
+					"formula": ":a",
+					"evaluated": {
+						":a": "A"
+					},
+					"result": "A",
+					"errormessage": null,
+					"resources": null
+				}, {
+					"index": 3,
+					"name": "b*c",
+					"formula": ":b*:c",
+					"evaluated": {
+						":b": "10",
+						":c": "1"
+					},
+					"result": "10",
+					"errormessage": null,
+					"resources": null
+				}
+			]
+		},
+		{
+			"pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
+			"executionId": "01h5ewqm8x2ywd64s9b5p2b0fd",
+			"auditId": "51aa61ea-936d-4e26-b610-9e15f3f6c43b",
+			"inputs": [{
+				"name": "___row_identifier___",
+				"value": "1/4/22-A--"
+			}, {
+				"name": "reading date",
+				"value": "1/4/22"
+			}, {
+				"name": "a",
+				"value": "A"
+			}, {
+				"name": "b",
+				"value": ""
+			}, {
+				"name": "c",
+				"value": ""
+			}],
+			"outputs": [{
+				"index": 0,
+				"name": "time",
+				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+				"evaluated": {
+					":reading date": "1/4/22",
+					"AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
 				},
-				'result': '1640995200000'
-			},
-			{
-				'index': 2,
-				'name': 'a',
-				'formula': ':a',
-				'evaluated': {
-					':a': 'A'
+				"result": "1641254400000",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 1,
+				"name": "month",
+				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+				"evaluated": {
+					":reading date": "1/4/22",
+					"AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
 				},
-				'result': 'A'
-			},
-			{
-				'index': 3,
-				'name': 'b*c',
-				'formula': ':b*:c'
-			}
-		]
-	},
-	{
-		'activityId': 1144,
-		'date': '2022-01-03T16:00:00.000Z',
-		'pipelineId': '01gwh2f5zwqryq789v42g1akrz',
-		'executionId': '01gwh2fb3g2e33ghb08pab5hma',
-		'auditId': '80eda70e-cc36-480e-9b95-6c010cf951d0',
-		'createdAt': '2023-03-27T00:20:52.759Z',
-		'executionNo': 0,
-		'outputs': [
-			{
-				'index': 0,
-				'name': 'time',
-				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\')',
-				'evaluated': {
-					'AS_TIMESTAMP(:reading date,\'M/d/yy\')': '1641254400000',
-					':reading date': '1/4/22'
+				"result": "1640995200000",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 2,
+				"name": "a",
+				"formula": ":a",
+				"evaluated": {
+					":a": "A"
 				},
-				'result': '1641254400000'
-			},
-			{
-				'index': 1,
-				'name': 'month',
-				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')',
-				'evaluated': {
-					'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')': '1640995200000',
-					':reading date': '1/4/22'
+				"result": "A",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 3,
+				"name": "b*c",
+				"formula": ":b*:c",
+				"evaluated": null,
+				"result": null,
+				"errormessage": null,
+				"resources": null
+			}]
+		},
+		{
+			"pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
+			"executionId": "01h5ewts1j6ef1d8n11zh0zdte",
+			"auditId": "a8f2c849-4908-4b8a-a7c8-2359629bc9c3",
+			"inputs": [{
+				"name": "___row_identifier___",
+				"value": "1/4/22-A-10-1"
+			}, {
+				"name": "reading date",
+				"value": "1/4/22"
+			}, {
+				"name": "a",
+				"value": "A"
+			}, {
+				"name": "b",
+				"value": "10"
+			}, {
+				"name": "c",
+				"value": "1"
+			}],
+			"outputs": [{
+				"index": 0,
+				"name": "time",
+				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+				"evaluated": {
+					":reading date": "1/4/22",
+					"AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
 				},
-				'result': '1640995200000'
-			},
-			{
-				'index': 2,
-				'name': 'a',
-				'formula': ':a',
-				'evaluated': {
-					':a': 'A'
+				"result": "1641254400000",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 1,
+				"name": "month",
+				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+				"evaluated": {
+					":reading date": "1/4/22",
+					"AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
 				},
-				'result': 'A'
-			},
-			{
-				'index': 3,
-				'name': 'b*c',
-				'formula': ':b*:c',
-				'evaluated': {
-					':b': '10',
-					':c': '1'
+				"result": "1640995200000",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 2,
+				"name": "a",
+				"formula": ":a",
+				"evaluated": {
+					":a": "A"
 				},
-				'result': '10'
-			}
-		]
-	},
-	{
-		'activityId': 1144,
-		'date': '2022-01-03T16:00:00.000Z',
-		'pipelineId': '01gwh2f5zwqryq789v42g1akrz',
-		'executionId': '01gwh2fb3g2e33ghb08pab5hma',
-		'auditId': 'ab633d60-c50c-424e-add1-e6810766b1b4',
-		'createdAt': '2023-03-27T00:20:52.722Z',
-		'executionNo': 0,
-		'outputs': [
-			{
-				'index': 0,
-				'name': 'time',
-				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\')',
-				'evaluated': {
-					'AS_TIMESTAMP(:reading date,\'M/d/yy\')': '1641254400000',
-					':reading date': '1/4/22'
+				"result": "A",
+				"errormessage": null,
+				"resources": null
+			}, {
+				"index": 3,
+				"name": "b*c",
+				"formula": ":b*:c",
+				"evaluated": {
+					":b": "10",
+					":c": "1"
 				},
-				'result': '1641254400000'
-			},
-			{
-				'index': 1,
-				'name': 'month',
-				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')',
-				'evaluated': {
-					'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')': '1640995200000',
-					':reading date': '1/4/22'
-				},
-				'result': '1640995200000'
-			},
-			{
-				'index': 2,
-				'name': 'a',
-				'formula': ':a',
-				'evaluated': {
-					':a': 'A'
-				},
-				'result': 'A'
-			},
-			{
-				'index': 3,
-				'name': 'b*c',
-				'formula': ':b*:c',
-				'evaluated': {
-					':b': '10',
-					':c': '1'
-				},
-				'result': '10'
-			}
-		]
-	}
-];
+				"result": "10",
+				"errormessage": null,
+				"resources": null
+			}]
+		}
+	]
+}];

@@ -23,9 +23,4 @@ import org.jetbrains.annotations.NotNull;
 @ToString(callSuper = true)
 public class StringTypeValue extends DynamicTypeValue<String> {
     private final String value;
-
-	@Override
-	public int compareTo(@NotNull DynamicTypeValue<String> o) {
-		return value.compareTo(o.getValue());
-	}
 }

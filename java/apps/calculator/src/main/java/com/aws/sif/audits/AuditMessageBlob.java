@@ -13,28 +13,20 @@
 
 package com.aws.sif.audits;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import lombok.Data;
-
+import software.amazon.awssdk.core.SdkBytes;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 
 @Data
 public class AuditMessageBlob implements Serializable, Cloneable {
-    private String auditLog;
-    private String key;
+    private SdkBytes bytes;
+	private final Gson gson = new GsonBuilder().create();
 
-    public AuditMessageBlob(AuditMessage message, String objectKey) {
-        var gson = new GsonBuilder().create();
-        this.auditLog = gson.toJson(message);
-        this.key = objectKey;
+    public AuditMessageBlob(AuditMessage message) {
+        var json = this.gson.toJson(message);
+        this.bytes = SdkBytes.fromByteArray(json.getBytes());
     }
-
-	public int getMessageSize() {
-		return toJson().getBytes(StandardCharsets.UTF_8).length;
-	}
-
-	public String toJson() {
-		return String.format("{\"key\":\"%s\",\"auditLog\":%s}",key,auditLog);
-	}
 }
+

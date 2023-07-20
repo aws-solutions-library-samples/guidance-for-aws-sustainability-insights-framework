@@ -25,13 +25,16 @@ export class InsertActivityBulkService {
 	private readonly s3Client: S3Client;
 	private readonly bucket: string;
 	private readonly bucketPrefix: string;
+	private readonly auditVersion: number; // Current audit version
 
-	public constructor(log: BaseLogger, activitiesRepository: ActivitiesRepository, s3Client: S3Client, bucket: string, bucketPrefix: string) {
+
+	public constructor(log: BaseLogger, activitiesRepository: ActivitiesRepository, s3Client: S3Client, bucket: string, bucketPrefix: string, auditVersion: number) {
 		this.log = log;
 		this.activitiesRepository = activitiesRepository;
 		this.s3Client = s3Client;
 		this.bucket = bucket;
 		this.bucketPrefix = bucketPrefix;
+		this.auditVersion = auditVersion;
 
 	}
 
@@ -58,6 +61,7 @@ export class InsertActivityBulkService {
 		let status = 'success';
 		let sharedDbConnection: Client;
 		try {
+
 			sharedDbConnection = await this.activitiesRepository.getConnection();
 			// create the temporary tables
 			await this.activitiesRepository.createTempTables(event, sharedDbConnection);
@@ -66,7 +70,7 @@ export class InsertActivityBulkService {
 			await this.activitiesRepository.loadDataFromS3(event, this.bucket, sharedDbConnection);
 
 			// start the transactional migration process
-			await this.activitiesRepository.moveActivities(event, sharedDbConnection);
+			await this.activitiesRepository.moveActivities(event, this.auditVersion, sharedDbConnection);
 			await this.activitiesRepository.moveActivityValues(event, sharedDbConnection);
 
 		} catch (Exception) {

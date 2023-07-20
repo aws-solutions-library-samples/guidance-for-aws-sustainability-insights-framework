@@ -144,6 +144,8 @@ export class CalculationService {
 			groupContextId: securityContext.groupId,
 			sourceData: calculation.dryRunOptions.data.map((d) => JSON.stringify(d)),
 			parameters: calculation.parameters,
+			// when executing dry run in calculator it's the same as activities type
+			pipelineType: 'activities',
 			transforms: [
 				{
 					index: 0,

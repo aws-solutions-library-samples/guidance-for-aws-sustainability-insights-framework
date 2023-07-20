@@ -14,7 +14,7 @@
 import { Invoker, LambdaApiGatewayEventBuilder } from '@sif/lambda-invoker';
 
 import { ClientServiceBase } from '../common/common.js';
-import type { Metric, MetricList } from './metric.models.js';
+import type { Metric, MetricList, MetricQueue } from './metric.models.js';
 import type { LambdaRequestContext } from '../common/models.js';
 import type { BaseLogger } from 'pino';
 
@@ -48,6 +48,52 @@ export class MetricClient extends ClientServiceBase {
 		const result = await this.lambdaInvoker.invoke(this.metricFunctionName, event);
 		this.log.info(`MetricClient > getById > exit > result: ${JSON.stringify(result)}`);
 		return result.body as Metric;
+	}
+
+	public async sortMetricsByDependencyOrder(metricNames: string[], requestContext?: LambdaRequestContext): Promise<MetricQueue> {
+		this.log.trace(`MetricClient> sortMetricsByDependencyOrder> metricNames: ${metricNames}, requestContext: ${JSON.stringify(requestContext)}`);
+		let order = 1;
+		const metrics: Metric[] = [];
+
+		for (const name of metricNames) {
+			metrics.push(await this.getByName(name, undefined, requestContext));
+		}
+
+		const metricQueue: MetricQueue = [];
+		metricQueue.push(...metrics.map((k) => {
+			return {
+				order: order++,
+				metric: k.name
+			};
+		}));
+
+		let parentMetricNames = Object.values(metrics).flatMap((k) => k.outputMetrics);
+		while ((parentMetricNames?.length ?? 0) > 0) {
+			const parentMetrics: Metric[] = [];
+			for (const name of parentMetricNames) {
+				if (name === null || name === undefined) {
+					continue;
+				}
+				parentMetrics.push(await this.getByName(name, undefined, requestContext));
+			}
+
+			for (const parentMetric of parentMetrics) {
+				if (metricQueue.find(o => o.metric === parentMetric.name) !== undefined) {
+					throw new Error(`Metric ${parentMetric.name} already referenced but discovered in Metric dependency path.`);
+				}
+				metricQueue.push({
+					order: order++,
+					metric: parentMetric.name
+				});
+			}
+
+			// let see if the parent metrics have any parents of their own
+			parentMetricNames = Object.values(parentMetrics)
+				?.filter((k) => k !== null)
+				?.flatMap((k) => k.outputMetrics);
+		}
+		this.log.trace(`MetricClient> sortMetricsByDependencyOrder> exit>  metricQueue: ${metricQueue}`);
+		return metricQueue;
 	}
 
 	public async getByName(metricName: string, version?: number, requestContext?: LambdaRequestContext): Promise<Metric> {

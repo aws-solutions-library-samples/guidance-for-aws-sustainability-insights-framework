@@ -2,6 +2,40 @@
   "name": "@sif/integration-tests",
   "entries": [
     {
+      "version": "3.14.0",
+      "tag": "@sif/integration-tests_v3.14.0",
+      "date": "Thu, 20 Jul 2023 00:30:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "repo cleaning script added"
+          },
+          {
+            "comment": "Added generator for insomnia environment"
+          },
+          {
+            "comment": "seeder bugfix"
+          }
+        ],
+        "minor": [
+          {
+            "comment": "updated audit log tests accordingly"
+          },
+          {
+            "comment": "add integration tests for CaML"
+          },
+          {
+            "comment": "update node version to 18.x"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/lambda-invoker\" to `1.1.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "3.13.1",
       "tag": "@sif/integration-tests_v3.13.1",
       "date": "Mon, 19 Jun 2023 02:37:22 GMT",

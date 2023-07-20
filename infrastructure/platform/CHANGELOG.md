@@ -1,6 +1,25 @@
 # Change Log - @sif/infrastructure-platform
 
-This log was last generated on Wed, 14 Jun 2023 00:22:26 GMT and should not be manually modified.
+This log was last generated on Fri, 21 Jul 2023 01:41:57 GMT and should not be manually modified.
+
+## 2.5.1
+Fri, 21 Jul 2023 01:41:57 GMT
+
+### Patches
+
+- fix semaphore event bridge rule to use the right suffix
+
+## 2.5.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- add construct for deploying CaML sagemker endpoint
+- update node version to 18.x
+
+### Patches
+
+- repo cleaning script added
 
 ## 2.4.2
 Wed, 14 Jun 2023 00:22:26 GMT

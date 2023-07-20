@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/node:16.20.0-alpine3.18
+FROM public.ecr.aws/docker/library/node:18.16.1-alpine3.18
 WORKDIR /usr
 COPY . /usr
 RUN rm -rf node_modules

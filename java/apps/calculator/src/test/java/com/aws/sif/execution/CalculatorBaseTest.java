@@ -14,10 +14,12 @@
 
 package com.aws.sif.execution;
 
+import com.aws.sif.resources.caml.CamlClient;
 import com.aws.sif.resources.groups.GroupsClient;
 import com.aws.sif.resources.impacts.ImpactsClient;
 import com.aws.sif.resources.calculations.CalculationsClient;
 import com.aws.sif.resources.referenceDatasets.DatasetsClient;
+import com.google.gson.Gson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,8 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.inject.Provider;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 public abstract class CalculatorBaseTest {
@@ -35,6 +35,8 @@ public abstract class CalculatorBaseTest {
     @Mock protected DatasetsClient datasetsClient;
 	@Mock protected GroupsClient groupsClient;
     @Mock protected ImpactsClient impactsClient;
+    @Mock protected Gson gson;
+    @Mock protected CamlClient camlClient;
     @Mock protected Provider<ExecutionVisitor> executionVisitorProvider;
 	protected Calculator underTest;
 

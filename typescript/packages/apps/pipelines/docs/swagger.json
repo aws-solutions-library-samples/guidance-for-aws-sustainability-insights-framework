@@ -128,6 +128,16 @@
               }
             }
           },
+          "type": {
+            "type": "string",
+            "enum": [
+              "impacts",
+              "activities",
+              "data"
+            ],
+            "description": "The type property on the pipelines specific which type of pipeline is required. There are 3 types of pipelines data, activities & impacts. They each have a unique implementation and dont overlap with one another. Data pipeline is a simple pipeline which only transforms the data with no aggregations. The impacts pipeline can load emission factors and activities pipeline processes activities data",
+            "default": "activities"
+          },
           "transformer": {
             "description": "Transformer configuration of the pipeline.",
             "type": "object",
@@ -285,6 +295,7 @@
         },
         "required": [
           "name",
+          "type",
           "transformer"
         ]
       },
@@ -414,6 +425,16 @@
             "required": [
               "input"
             ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "impacts",
+              "activities",
+              "data"
+            ],
+            "description": "The type property on the pipelines specific which type of pipeline is required. There are 3 types of pipelines data, activities & impacts. They each have a unique implementation and dont overlap with one another. Data pipeline is a simple pipeline which only transforms the data with no aggregations. The impacts pipeline can load emission factors and activities pipeline processes activities data",
+            "default": "activities"
           },
           "state": {
             "type": "string",
@@ -598,6 +619,7 @@
           "groups",
           "id",
           "name",
+          "type",
           "state",
           "transformer",
           "version"
@@ -1000,6 +1022,16 @@
                     "input"
                   ]
                 },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "impacts",
+                    "activities",
+                    "data"
+                  ],
+                  "description": "The type property on the pipelines specific which type of pipeline is required. There are 3 types of pipelines data, activities & impacts. They each have a unique implementation and dont overlap with one another. Data pipeline is a simple pipeline which only transforms the data with no aggregations. The impacts pipeline can load emission factors and activities pipeline processes activities data",
+                  "default": "activities"
+                },
                 "state": {
                   "type": "string",
                   "enum": [
@@ -1183,6 +1215,7 @@
                 "groups",
                 "id",
                 "name",
+                "type",
                 "state",
                 "transformer",
                 "version"
@@ -1339,6 +1372,16 @@
                     "input"
                   ]
                 },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "impacts",
+                    "activities",
+                    "data"
+                  ],
+                  "description": "The type property on the pipelines specific which type of pipeline is required. There are 3 types of pipelines data, activities & impacts. They each have a unique implementation and dont overlap with one another. Data pipeline is a simple pipeline which only transforms the data with no aggregations. The impacts pipeline can load emission factors and activities pipeline processes activities data",
+                  "default": "activities"
+                },
                 "state": {
                   "type": "string",
                   "enum": [
@@ -1522,6 +1565,7 @@
                 "groups",
                 "id",
                 "name",
+                "type",
                 "state",
                 "transformer",
                 "version"
@@ -2591,8 +2635,8 @@
                 "$ref": "#/components/schemas/newPipelineRequestBody"
               },
               "examples": {
-                "New Pipeline Configuration": {
-                  "summary": "Creates a new Pipeline configuration.",
+                "New Activities Pipeline Configuration": {
+                  "summary": "Creates a new activities pipeline configuration.",
                   "value": {
                     "attributes": {
                       "description": "this pipeline transforms the incomming data to include calculated",
@@ -2620,7 +2664,7 @@
                         },
                         {
                           "index": 1,
-                          "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                          "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                           "outputs": [
                             {
                               "index": 0,
@@ -2633,7 +2677,7 @@
                         },
                         {
                           "index": 2,
-                          "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                          "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                           "outputs": [
                             {
                               "index": 0,
@@ -2677,7 +2721,187 @@
                     },
                     "tags": {
                       "category": "A/B/C/1"
-                    }
+                    },
+                    "type": "activities"
+                  }
+                },
+                "New Data Pipeline Configuration": {
+                  "summary": "Creates a new data pipeline configuration.",
+                  "value": {
+                    "attributes": {
+                      "description": "this pipeline transforms the incomming data to include calculated",
+                      "label": "Sports Arena Diesel Emissions Pipeline"
+                    },
+                    "description": "this is a description",
+                    "name": "sportsarena:dieselemissions:pipeline",
+                    "processorOptions": {
+                      "chunkSize": 10
+                    },
+                    "transformer": {
+                      "transforms": [
+                        {
+                          "index": 0,
+                          "formula": "LOOKUP('vehicle_type', IN(:pin24))",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "vehicle",
+                              "label": "Vehicle",
+                              "description": "some description about pin24",
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        {
+                          "index": 1,
+                          "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "vehicle",
+                              "label": "Vehicle",
+                              "description": "some description about pin24",
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        {
+                          "index": 2,
+                          "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "vehicle",
+                              "label": "Vehicle",
+                              "description": "some description about pin24",
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        {
+                          "index": 3,
+                          "formula": "IN(:distance)",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "vehicle",
+                              "label": "Vehicle",
+                              "description": "some description about pin24",
+                              "type": "number"
+                            }
+                          ]
+                        }
+                      ],
+                      "parameters": [
+                        {
+                          "index": 0,
+                          "key": "pin24",
+                          "label": "pin 24",
+                          "description": "some description about pin24",
+                          "type": "string"
+                        },
+                        {
+                          "index": 0,
+                          "key": "distance",
+                          "label": "Distance",
+                          "description": "distance travelled",
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "tags": {
+                      "category": "A/B/C/1"
+                    },
+                    "type": "data"
+                  }
+                },
+                "New Impacts Pipeline Configuration": {
+                  "summary": "Creates a new impacts pipeline configuration.",
+                  "value": {
+                    "attributes": {
+                      "description": "this pipeline transforms the incomming data to include calculated",
+                      "label": "Sports Arena Diesel Emissions Pipeline"
+                    },
+                    "description": "this is a description",
+                    "name": "sportsarena:dieselemissions:pipeline",
+                    "processorOptions": {
+                      "chunkSize": 10
+                    },
+                    "transformer": {
+                      "transforms": [
+                        {
+                          "index": 0,
+                          "formula": "CONCAT('eiolca_',:product)",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "activityName",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        {
+                          "index": 1,
+                          "formula": "'ghg_emissions'",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "impactName",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        {
+                          "index": 2,
+                          "formula": "'co2e'",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "componentKey",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        {
+                          "index": 3,
+                          "formula": "'carbon'",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "componentType",
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        {
+                          "index": 3,
+                          "formula": ":componentValue",
+                          "outputs": [
+                            {
+                              "index": 0,
+                              "key": "componentValue",
+                              "type": "number"
+                            }
+                          ]
+                        }
+                      ],
+                      "parameters": [
+                        {
+                          "index": 0,
+                          "key": "product",
+                          "type": "string"
+                        },
+                        {
+                          "index": 1,
+                          "key": "componentValue",
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "tags": {
+                      "category": "A/B/C/1"
+                    },
+                    "type": "impacts"
                   }
                 },
                 "Dry Run a new pipeline ": {
@@ -2709,7 +2933,7 @@
                         },
                         {
                           "index": 1,
-                          "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                          "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                           "outputs": [
                             {
                               "index": 0,
@@ -2722,7 +2946,7 @@
                         },
                         {
                           "index": 2,
-                          "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                          "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                           "outputs": [
                             {
                               "index": 0,
@@ -2767,6 +2991,7 @@
                     "tags": {
                       "category": "A/B/C/1"
                     },
+                    "type": "activities",
                     "dryRunOptions": {
                       "data": [
                         "10,10"
@@ -2913,7 +3138,7 @@
                           },
                           {
                             "index": 1,
-                            "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                            "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                             "outputs": [
                               {
                                 "index": 0,
@@ -2926,7 +3151,7 @@
                           },
                           {
                             "index": 2,
-                            "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                            "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                             "outputs": [
                               {
                                 "index": 0,
@@ -2973,7 +3198,8 @@
                       },
                       "updatedAt": "2022-08-10T23:55:20.322Z",
                       "updatedBy": "someone@example.com",
-                      "version": 1
+                      "version": 1,
+                      "type": "activities"
                     }
                   }
                 }
@@ -3205,7 +3431,7 @@
                               },
                               {
                                 "index": 1,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -3218,7 +3444,7 @@
                               },
                               {
                                 "index": 2,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -3265,7 +3491,8 @@
                           },
                           "updatedAt": "2022-08-10T23:55:20.322Z",
                           "updatedBy": "someone@example.com",
-                          "version": 1
+                          "version": 1,
+                          "type": "activities"
                         },
                         {
                           "attributes": {
@@ -3301,7 +3528,7 @@
                               },
                               {
                                 "index": 1,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -3314,7 +3541,7 @@
                               },
                               {
                                 "index": 2,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -3361,7 +3588,8 @@
                           },
                           "updatedAt": "2022-08-10T23:55:20.322Z",
                           "updatedBy": "someone@example.com",
-                          "version": 1
+                          "version": 1,
+                          "type": "activities"
                         },
                         {
                           "attributes": {
@@ -3397,7 +3625,7 @@
                               },
                               {
                                 "index": 1,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -3410,7 +3638,7 @@
                               },
                               {
                                 "index": 2,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -3457,7 +3685,8 @@
                           },
                           "updatedAt": "2022-08-10T23:55:20.322Z",
                           "updatedBy": "someone@example.com",
-                          "version": 1
+                          "version": 1,
+                          "type": "activities"
                         },
                         {
                           "attributes": {
@@ -3493,7 +3722,7 @@
                               },
                               {
                                 "index": 1,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -3506,7 +3735,7 @@
                               },
                               {
                                 "index": 2,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -3553,7 +3782,8 @@
                           },
                           "updatedAt": "2022-08-10T23:55:20.322Z",
                           "updatedBy": "someone@example.com",
-                          "version": 2
+                          "version": 2,
+                          "type": "activities"
                         }
                       ],
                       "pagination": {
@@ -3622,7 +3852,7 @@
                         },
                         {
                           "index": 1,
-                          "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                          "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                           "outputs": [
                             {
                               "index": 0,
@@ -3635,7 +3865,7 @@
                         },
                         {
                           "index": 2,
-                          "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                          "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                           "outputs": [
                             {
                               "index": 0,
@@ -3680,6 +3910,7 @@
                     "tags": {
                       "category": "A/B/C/1"
                     },
+                    "type": "activities",
                     "dryRunOptions": {
                       "data": [
                         "10,10"
@@ -3870,6 +4101,16 @@
                             "input"
                           ]
                         },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "impacts",
+                            "activities",
+                            "data"
+                          ],
+                          "description": "The type property on the pipelines specific which type of pipeline is required. There are 3 types of pipelines data, activities & impacts. They each have a unique implementation and dont overlap with one another. Data pipeline is a simple pipeline which only transforms the data with no aggregations. The impacts pipeline can load emission factors and activities pipeline processes activities data",
+                          "default": "activities"
+                        },
                         "state": {
                           "type": "string",
                           "enum": [
@@ -4053,6 +4294,7 @@
                         "groups",
                         "id",
                         "name",
+                        "type",
                         "state",
                         "transformer",
                         "version"
@@ -4240,7 +4482,7 @@
                           },
                           {
                             "index": 1,
-                            "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                            "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                             "outputs": [
                               {
                                 "index": 0,
@@ -4253,7 +4495,7 @@
                           },
                           {
                             "index": 2,
-                            "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                            "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                             "outputs": [
                               {
                                 "index": 0,
@@ -4300,7 +4542,8 @@
                       },
                       "updatedAt": "2022-08-10T23:55:20.322Z",
                       "updatedBy": "someone@example.com",
-                      "version": 1
+                      "version": 1,
+                      "type": "activities"
                     }
                   }
                 }
@@ -4435,7 +4678,7 @@
                           },
                           {
                             "index": 1,
-                            "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                            "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                             "outputs": [
                               {
                                 "index": 0,
@@ -4448,7 +4691,7 @@
                           },
                           {
                             "index": 2,
-                            "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                            "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                             "outputs": [
                               {
                                 "index": 0,
@@ -4495,7 +4738,8 @@
                       },
                       "updatedAt": "2022-08-10T23:55:20.322Z",
                       "updatedBy": "someone@example.com",
-                      "version": 1
+                      "version": 1,
+                      "type": "activities"
                     }
                   }
                 }
@@ -4640,7 +4884,7 @@
                               },
                               {
                                 "index": 1,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -4653,7 +4897,7 @@
                               },
                               {
                                 "index": 2,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -4700,7 +4944,8 @@
                           },
                           "updatedAt": "2022-08-10T23:55:20.322Z",
                           "updatedBy": "someone@example.com",
-                          "version": 1
+                          "version": 1,
+                          "type": "activities"
                         },
                         {
                           "attributes": {
@@ -4736,7 +4981,7 @@
                               },
                               {
                                 "index": 1,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -4749,7 +4994,7 @@
                               },
                               {
                                 "index": 2,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -4796,7 +5041,8 @@
                           },
                           "updatedAt": "2022-08-10T23:55:20.322Z",
                           "updatedBy": "someone@example.com",
-                          "version": 1
+                          "version": 1,
+                          "type": "activities"
                         },
                         {
                           "attributes": {
@@ -4832,7 +5078,7 @@
                               },
                               {
                                 "index": 1,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -4845,7 +5091,7 @@
                               },
                               {
                                 "index": 2,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -4892,7 +5138,8 @@
                           },
                           "updatedAt": "2022-08-10T23:55:20.322Z",
                           "updatedBy": "someone@example.com",
-                          "version": 1
+                          "version": 1,
+                          "type": "activities"
                         },
                         {
                           "attributes": {
@@ -4928,7 +5175,7 @@
                               },
                               {
                                 "index": 1,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -4941,7 +5188,7 @@
                               },
                               {
                                 "index": 2,
-                                "formula": "#VEHCILE_EMISSIONS('vehicle_type', IN(:pin24))",
+                                "formula": "#VEHICLE_EMISSIONS('vehicle_type', IN(:pin24))",
                                 "outputs": [
                                   {
                                     "index": 0,
@@ -4988,7 +5235,8 @@
                           },
                           "updatedAt": "2022-08-10T23:55:20.322Z",
                           "updatedBy": "someone@example.com",
-                          "version": 2
+                          "version": 2,
+                          "type": "activities"
                         }
                       ],
                       "pagination": {

@@ -13,23 +13,24 @@
 
 package com.aws.sif.di;
 
-import com.amazonaws.services.lambda.runtime.Client;
-import com.aws.sif.CalculatorService;
-import com.aws.sif.CalculatorServiceImpl;
+import com.aws.sif.ActivityTypeCalculatorService;
+import com.aws.sif.DataTypeCalculatorService;
 import com.aws.sif.S3Utils;
 import com.aws.sif.audits.Auditor;
-import com.aws.sif.audits.SQSWriter;
+import com.aws.sif.audits.DataStreamProducer;
 import com.aws.sif.execution.Calculator;
 import com.aws.sif.execution.CalculatorImpl;
 import com.aws.sif.execution.ExecutionVisitor;
 import com.aws.sif.execution.ExecutionVisitorImpl;
+import com.aws.sif.execution.output.ActivityTypeOutputWriter;
 import com.aws.sif.execution.output.ActivitySqsWriter;
-import com.aws.sif.execution.output.ActivityOutputWriter;
+import com.aws.sif.execution.output.DataTypeOutputWriter;
 import com.aws.sif.lambdaInvoker.LambdaInvoker;
 import com.aws.sif.resources.ResourcesRepository;
 import com.aws.sif.resources.calculations.Calculation;
 import com.aws.sif.resources.calculations.CalculationsClient;
 import com.aws.sif.resources.calculations.CalculationsList;
+import com.aws.sif.resources.caml.CamlClient;
 import com.aws.sif.resources.groups.Group;
 import com.aws.sif.resources.groups.GroupsClient;
 import com.aws.sif.resources.impacts.ActivitiesList;
@@ -48,9 +49,10 @@ import dagger.Module;
 import dagger.Provides;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
-import software.amazon.awssdk.services.firehose.FirehoseAsyncClient;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.awssdk.services.lambda.LambdaAsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
 import javax.inject.Provider;
@@ -67,6 +69,15 @@ public class CalculatorModule {
 
 		return config;
 	}
+
+	@Provides
+	@Singleton
+	public SageMakerRuntimeClient provideSageMakerRuntimeClient(Config config) {
+		return SageMakerRuntimeClient.builder()
+			.region(Region.of(config.getString("calculator.aws.region")))
+			.build();
+	}
+
 
 	@Provides
 	@Singleton
@@ -101,6 +112,14 @@ public class CalculatorModule {
 	}
 
 	@Provides
+    @Singleton
+    public KinesisAsyncClient provideKinesisAsyncClient(Config config) {
+        return KinesisAsyncClient.builder()
+                .region(Region.of(config.getString("calculator.aws.region")))
+                .build();
+    }
+
+	@Provides
 	@Singleton
 	public LambdaInvoker provideLambdaInvoker(LambdaAsyncClient lambdaClient) {
 		return new LambdaInvoker<>(lambdaClient);
@@ -108,8 +127,8 @@ public class CalculatorModule {
 
 	@Provides
 	public ExecutionVisitor provideExecutionVisitor(CalculationsClient calculationsClient,
-													DatasetsClient datasetsClient, GroupsClient groupsClient, ImpactsClient impactsClient) {
-		return new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient);
+													DatasetsClient datasetsClient, GroupsClient groupsClient, ImpactsClient impactsClient, CamlClient camlClient, Gson gson) {
+		return new ExecutionVisitorImpl(calculationsClient, datasetsClient, groupsClient, impactsClient, camlClient, gson);
 	}
 
 	@Provides
@@ -165,10 +184,23 @@ public class CalculatorModule {
 
 	@Provides
 	@Singleton
-	public CalculatorService provideCalculatorService(Calculator calculator, S3Utils s3Utils, Auditor auditor,
-													  Config config, ActivityOutputWriter activityOutputWriter, UsersClient usersClient, Gson gson) {
-		return new CalculatorServiceImpl(calculator, s3Utils, auditor, config, activityOutputWriter, usersClient, gson);
+	public CamlClient provideCamlClient(SageMakerRuntimeClient sagemakerClient, Config config, Gson gson, ResourcesRepository repository) {
+		return new CamlClient(sagemakerClient, config, gson, repository);
 	}
+
+    @Provides
+    @Singleton
+    public ActivityTypeCalculatorService provideActivityTypeCalculatorService(Calculator calculator, S3Utils s3Utils, Auditor auditor,
+            Config config, ActivityTypeOutputWriter outputWriter, UsersClient usersClient, Gson gson) {
+        return new ActivityTypeCalculatorService(calculator, s3Utils, auditor, config, outputWriter, usersClient, gson);
+    }
+
+    @Provides
+    @Singleton
+    public DataTypeCalculatorService provideDataTypeCalculatorService(Calculator calculator, S3Utils s3Utils, Auditor auditor,
+            Config config, DataTypeOutputWriter outputWriter, UsersClient usersClient, Gson gson) {
+        return new DataTypeCalculatorService(calculator, s3Utils, auditor, config, outputWriter, usersClient, gson);
+    }
 
 	@Provides
 	@Singleton
@@ -177,13 +209,13 @@ public class CalculatorModule {
 	}
 
 	@Provides
-	public SQSWriter provideSQSWriter(SqsAsyncClient sqsClient, Config config) {
-		return new SQSWriter(sqsClient, config);
+	public DataStreamProducer provideDataStreamProducer(KinesisAsyncClient kinesisAsyncClient, Config config) {
+		return new DataStreamProducer(kinesisAsyncClient, config);
 	}
 
 	@Provides
-	public Auditor provideAuditor(SQSWriter writer) {
-		return new Auditor(writer);
+	public Auditor provideAuditor(DataStreamProducer producer) {
+		return new Auditor(producer);
 	}
 
 	@Provides
@@ -192,8 +224,12 @@ public class CalculatorModule {
 	}
 
 	@Provides
-	public ActivityOutputWriter provideActivityOutputWriter(Config config, S3Utils s3, ActivitySqsWriter sqsWriter) {
-		return new ActivityOutputWriter(config, s3, sqsWriter);
+	public ActivityTypeOutputWriter provideActivityTypeOutputWriter(Config config, S3Utils s3, ActivitySqsWriter sqsWriter) {
+		return new ActivityTypeOutputWriter(config, s3, sqsWriter);
 	}
 
+	@Provides
+	public DataTypeOutputWriter provideDataTypeOutputWriter(Config config, S3Utils s3) {
+		return new DataTypeOutputWriter(config, s3);
+	}
 }

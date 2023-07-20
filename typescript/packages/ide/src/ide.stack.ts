@@ -91,13 +91,13 @@ export class IDEStack extends Stack {
 			entry: path.join(__dirname, './customResources/checkAssociation.ts'),
 			functionName: `${namePrefix}-checkSsmAssociation`,
 			description: `SIF IDE Stack: Tenant ${props.environment}`,
-			runtime: Runtime.NODEJS_16_X,
+			runtime: Runtime.NODEJS_18_X,
 			tracing: Tracing.ACTIVE,
 			timeout: Duration.minutes(15),
 			bundling: {
 				minify: true,
 				format: OutputFormat.ESM,
-				target: 'node16.15',
+				target: 'node18.16',
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
@@ -115,12 +115,12 @@ export class IDEStack extends Stack {
 
 		// 👇 create a policy statement
 		const ssmPolicy = new PolicyStatement({
-			actions: ['ssm:DescribeAssociationExecutions', 'ssm:DescribeAssociationExecutionTargets'],
+			actions: ['ssm:DescribeAssociationExecutions', 'ssm:DescribeAssociationExecutionTargets', 'ssm:SendCommand'],
 			resources: ['*'],
 		});
 
 		const ec2Policy = new PolicyStatement({
-			actions: ['ec2:DescribeInstances'],
+			actions: ['ec2:DescribeInstances', 'ec2:ModifyVolume', 'ec2:DescribeVolumesModifications'],
 			resources: ['*'],
 		});
 

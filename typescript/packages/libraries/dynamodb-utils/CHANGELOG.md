@@ -1,6 +1,17 @@
 # Change Log - @sif/dynamodb-utils
 
-This log was last generated on Wed, 08 Feb 2023 23:51:58 GMT and should not be manually modified.
+This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+
+## 2.1.0
+Thu, 20 Jul 2023 00:30:14 GMT
+
+### Minor changes
+
+- update node version to 18.x
+
+### Patches
+
+- repo cleaning script added
 
 ## 2.0.3
 Wed, 08 Feb 2023 23:51:58 GMT

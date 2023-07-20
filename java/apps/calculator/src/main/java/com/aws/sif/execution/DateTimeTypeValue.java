@@ -31,9 +31,4 @@ public class DateTimeTypeValue extends DynamicTypeValue<OffsetDateTime> {
     public DateTimeTypeValue(BigDecimal bd) {
         this.value = OffsetDateTime.ofInstant(Instant.ofEpochMilli(bd.longValue()), ZoneOffset.UTC);
     }
-
-	@Override
-	public int compareTo(@NotNull DynamicTypeValue<OffsetDateTime> o) {
-		return value.compareTo(o.getValue());
-	}
 }

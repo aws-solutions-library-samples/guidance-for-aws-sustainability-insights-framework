@@ -13,11 +13,12 @@
 
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';import type { Construct } from 'constructs';
-import { calculatorAuditSqsQueueArnParameter } from '../calculator/calculator.construct.js';
 import { AuditLogDepositorModule } from './auditLogDepositor.construct.js';
 import { NagSuppressions } from 'cdk-nag';
 import { bucketNameParameter } from '../shared/s3.construct.js';
 import { auditLogDepositorDatabaseNameParameter, auditLogDepositorTableNameParameter } from '../shared/ssm.construct.js';
+import { kmsKeyArnParameter } from '../shared/kms.construct.js';
+import { customResourceProviderTokenParameter } from '../shared/deploymentHelper.construct.js';
 
 
 export type AuditLogDepositorStackProperties = StackProps & {
@@ -32,11 +33,6 @@ export class AuditLogDepositorStack extends Stack {
 		// validation
 		this.validateMandatoryParam(props, 'tenantId');
 		this.validateMandatoryParam(props, 'environment');
-
-		const auditQueueArn = StringParameter.fromStringParameterAttributes(this, 'auditQueueArn', {
-			parameterName: calculatorAuditSqsQueueArnParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
 
 		const bucketName = StringParameter.fromStringParameterAttributes(this, 'bucketName', {
 			parameterName: bucketNameParameter(props.tenantId, props.environment),
@@ -53,13 +49,24 @@ export class AuditLogDepositorStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
+		const kmsKeyArn = StringParameter.fromStringParameterAttributes(this, 'kmsKeyArn', {
+			parameterName: kmsKeyArnParameter(props.tenantId, props.environment),
+			simpleName: false
+		}).stringValue;
+
+		const customResourceProviderToken = StringParameter.fromStringParameterAttributes(this, 'customResourceProviderToken', {
+			parameterName: customResourceProviderTokenParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
 		new AuditLogDepositorModule(this, 'AuditLogDepositor', {
 			tenantId: props.tenantId,
 			environment: props.environment,
-			auditQueueArn,
 			bucketName,
 			auditLogsDatabaseName,
-			auditLogsTableName
+			auditLogsTableName,
+			kmsKeyArn,
+			customResourceProviderToken
 		});
 
 		NagSuppressions.addResourceSuppressionsByPath(

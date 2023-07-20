@@ -1,6 +1,6 @@
 {
 	"name": "@sif/lambda-invoker",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"description": "Lambda Invoker",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {
@@ -13,7 +13,7 @@
 	"types": "./dist/esm/index.d.ts",
 	"type": "module",
 	"scripts": {
-		"clean": "npx shx rm -rf dist *.log tsconfig.tsbuildinfo",
+		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build:tsc": "npx tsc --project tsconfig.json",
 		"build": "npx ts-node --esm --prefer-ts-exts esbuild.ts",
 		"test": "npm run build && vitest run"
@@ -30,7 +30,7 @@
 		"@types/antlr4-autosuggest": "0.0.0",
 		"@types/antlr4": "4.7.2",
 		"@types/http-errors": "1.8.2",
-		"@types/node": "16.11.7",
+		"@types/node": "18.16.19",
 		"@types/prettier": "2.6.0",
 		"@typescript-eslint/eslint-plugin": "5.32.0",
 		"@typescript-eslint/parser": "5.32.0",

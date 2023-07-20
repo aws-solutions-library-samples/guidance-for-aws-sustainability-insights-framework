@@ -25,6 +25,7 @@ import pkg from 'aws-xray-sdk';
 const { captureAWSv3Client } = pkg;
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ECSClient } from '@aws-sdk/client-ecs';
+import { GlueClient } from '@aws-sdk/client-glue';
 import pretty from 'pino-pretty';
 import { DatabaseSeederCustomResource } from '../customResources/databaseSeeder.customResource';
 import { CustomResourceManager } from '../customResources/customResource.manager';
@@ -42,6 +43,7 @@ import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
 import fs from 'fs';
 import StreamZip from 'node-stream-zip';
 import { DatabaseSeederContainer } from '../customResources/databaseSeeder.container';
+import { GlueSeederCustomResource } from '../customResources/glueSeederCustomResource';
 // @ts-ignore
 const migrate = nodePgMigrate.default;
 const container = createContainer({
@@ -85,6 +87,13 @@ class ECSClientFactory {
 	public static create(region: string | undefined): ECSClient {
 		const ecsClient = captureAWSv3Client(new ECSClient({ region }));
 		return ecsClient;
+	}
+}
+
+class GlueClientFactory {
+	public static create(region: string | undefined): GlueClient {
+		const glueClient = captureAWSv3Client(new GlueClient({ region }));
+		return glueClient;
 	}
 }
 
@@ -190,6 +199,9 @@ container.register({
 	lambdaClient: asFunction(() => LambdaClientFactory.create(awsRegion), {
 		...commonInjectionOptions
 	}),
+	glueClient: asFunction(() => GlueClientFactory.create(awsRegion), {
+		...commonInjectionOptions,
+	}),
 	invoker: asFunction((container) => new Invoker(logger, container.lambdaClient), {
 		...commonInjectionOptions
 	}),
@@ -214,7 +226,11 @@ container.register({
 		logger, container.connectorClient), {
 		...commonInjectionOptions,
 	}),
-	customResourceManager: asFunction((container) => new CustomResourceManager(logger, container.databaseSeederCustomResource, container.connectorSeederCustomResource), {
+	glueSeederCustomResource: asFunction((container) => new GlueSeederCustomResource(
+		logger, container.glueClient), {
+		...commonInjectionOptions,
+	}),
+	customResourceManager: asFunction((container) => new CustomResourceManager(logger, container.databaseSeederCustomResource, container.connectorSeederCustomResource, container.glueSeederCustomResource), {
 		...commonInjectionOptions,
 	})
 });

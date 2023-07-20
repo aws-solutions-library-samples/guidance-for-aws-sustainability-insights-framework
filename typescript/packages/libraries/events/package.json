@@ -1,6 +1,6 @@
 {
 	"name": "@sif/events",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"description": "Platform events",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {
@@ -13,7 +13,7 @@
 	"types": "./dist/index.d.js",
 	"type": "module",
 	"scripts": {
-		"clean": "npx shx rm -rf dist *.log tsconfig.tsbuildinfo",
+		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"test": "npm run build && vitest run --passWithNoTests",
 		"build": "npx tsc -b"
 	},
@@ -25,7 +25,7 @@
 		"@tsconfig/node16-strictest-esm": "1.0.3",
 		"@types/antlr4-autosuggest": "0.0.0",
 		"@types/antlr4": "4.7.2",
-		"@types/node": "16.11.7",
+		"@types/node": "18.16.19",
 		"@types/prettier": "2.6.0",
 		"@typescript-eslint/eslint-plugin": "5.32.0",
 		"@typescript-eslint/parser": "5.32.0",

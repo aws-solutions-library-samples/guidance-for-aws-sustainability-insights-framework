@@ -62,7 +62,7 @@ export class AuroraDatabase extends Construct {
 		const commonBundlingOptions: BundlingOptions = {
 			minify: true,
 			format: OutputFormat.ESM,
-			target: 'node16.15',
+			target: 'node18.16',
 			sourceMap: false,
 			sourcesContent: false,
 			banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
@@ -75,7 +75,7 @@ export class AuroraDatabase extends Construct {
 			functionName: `sif-${props.environment}-roleSeeder`,
 			description: `create service linked role if needed: Tenant ${props.environment}`,
 			entry: path.join(__dirname, './customResources/serviceLinkedRole.customResource.ts'),
-			runtime: Runtime.NODEJS_16_X,
+			runtime: Runtime.NODEJS_18_X,
 			tracing: Tracing.ACTIVE,
 			memorySize: 256,
 			logRetention: RetentionDays.ONE_WEEK,
@@ -84,13 +84,6 @@ export class AuroraDatabase extends Construct {
 			environment: {},
 			depsLockFilePath
 		});
-
-		NagSuppressions.addResourceSuppressions(customResourceLambda, [
-			{
-				id: 'AwsSolutions-L1',
-				reason: 'NODEJS_16_X to NODEJS_18_X upgrade not ready.',
-			},
-		]);
 
 		const iamPolicy = new Policy(this, 'iam-policy', {
 			statements: [

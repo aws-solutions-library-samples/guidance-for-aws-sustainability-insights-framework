@@ -54,10 +54,10 @@ export class VerifyTask {
 		while (objectSize > 0) {
 			let range;
 			if (objectSize <= chunkSize) {
-				range = [ startCounter, response.ContentLength ];
+				range = [startCounter, response.ContentLength];
 			} else {
 				const endCounter = startCounter + chunkSize;
-				range = [ startCounter, endCounter ];
+				range = [startCounter, endCounter];
 				startCounter = endCounter + 1;
 			}
 			chunks.push({
@@ -71,7 +71,7 @@ export class VerifyTask {
 	public async process(event: VerificationTaskEvent): Promise<VerificationTaskOutput> {
 		this.log.info(`VerifyTask > process > event : ${JSON.stringify(event)}`);
 
-		const { pipelineId, executionId: executionId, source } = event;
+		const { pipelineId, executionId: executionId, source, pipelineType } = event;
 
 		const securityContext = await this.getSecurityContext(executionId);
 
@@ -94,7 +94,7 @@ export class VerifyTask {
 
 		const chunks = await this.createCalculationChunks(source, chunkSize);
 
-		const output = {
+		const output: VerificationTaskOutput = {
 			source,
 			chunks,
 			context: {
@@ -104,6 +104,7 @@ export class VerifyTask {
 				actionType: actionType as ActionType,
 				transformer: pipelineConfiguration.transformer,
 				pipelineCreatedBy: pipelineConfiguration.createdBy,
+				pipelineType
 			}
 		};
 

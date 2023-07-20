@@ -50,6 +50,8 @@ const name: TString = Type.String({ description: 'Pipeline name.' });
 
 const attributeType = stringEnum(['string', 'number', 'boolean', 'timestamp'], 'Attribute type.');
 
+const pipelineType = stringEnum(['impacts', 'activities', 'data'], 'The type property on the pipelines specific which type of pipeline is required. There are 3 types of pipelines data, activities & impacts. They each have a unique implementation and dont overlap with one another. Data pipeline is a simple pipeline which only transforms the data with no aggregations. The impacts pipeline can load emission factors and activities pipeline processes activities data', 'activities');
+
 export const pipelineConnector = Type.Object({
 	name: Type.String({ description: 'name of the connector' }),
 	parameters: Type.Optional(Type.Record(Type.String(), Type.Any(), {
@@ -181,6 +183,7 @@ export const newPipelineRequestBody = Type.Object(
 		name,
 		connectorConfig: Type.Optional(connectorConfig),
 		processorOptions: Type.Optional(processorOptions),
+		type: pipelineType,
 		transformer,
 		tags: Type.Optional(tags),
 	},
@@ -217,6 +220,7 @@ export const pipelineResource = Type.Object(
 		name,
 		processorOptions: Type.Optional(processorOptions),
 		connectorConfig: Type.Optional(connectorConfig),
+		type: pipelineType,
 		state,
 		tags: Type.Optional(tags),
 		transformer,
@@ -265,3 +269,4 @@ export type Transformer = Static<typeof transformer>;
 export type DryRunResponse = Static<typeof dryRunResponse>;
 export type Groups = Static<typeof groups>;
 export type PipelineConnectors = Static<typeof connectorConfig>;
+export type PipelineType = Static<typeof pipelineType>;

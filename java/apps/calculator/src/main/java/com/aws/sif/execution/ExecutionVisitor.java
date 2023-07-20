@@ -74,6 +74,9 @@ public interface ExecutionVisitor extends CalculationsVisitor<DynamicTypeValue> 
     DynamicTypeValue visitCustomFunctionExpr(CalculationsParser.CustomFunctionExprContext ctx);
 
     @Override
+    ObjectTypeValue visitCamlFunctionExpr(CalculationsParser.CamlFunctionExprContext ctx);
+
+    @Override
     DynamicTypeValue visitRefFunctionExpr(CalculationsParser.RefFunctionExprContext ctx);
 
     @Override

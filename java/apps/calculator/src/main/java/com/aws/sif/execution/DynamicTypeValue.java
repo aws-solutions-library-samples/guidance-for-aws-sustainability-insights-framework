@@ -24,7 +24,7 @@ import java.util.Comparator;
 
 @EqualsAndHashCode
 @ToString()
-public abstract class DynamicTypeValue<T extends Comparable<T>> implements Comparable<DynamicTypeValue<T>>  {
+public abstract class DynamicTypeValue<T>  {
 
 	protected DynamicTypeValue() {}
 	protected DynamicTypeValue(OptionalParamKey key) {
