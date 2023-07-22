@@ -1,6 +1,13 @@
 # Change Log - @sif/infrastructure-platform
 
-This log was last generated on Fri, 21 Jul 2023 01:41:57 GMT and should not be manually modified.
+This log was last generated on Fri, 21 Jul 2023 23:58:18 GMT and should not be manually modified.
+
+## 2.5.2
+Fri, 21 Jul 2023 23:58:18 GMT
+
+### Patches
+
+- Update CDK version.
 
 ## 2.5.1
 Fri, 21 Jul 2023 01:41:57 GMT

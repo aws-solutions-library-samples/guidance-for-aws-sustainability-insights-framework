@@ -38,6 +38,8 @@ export const csvConnectorFunctionNameParameter = (tenantId: string, environment:
 
 export class SSM extends Construct {
     public pipelineApiFunctionNameParameter: ssm.StringParameter;
+	public auditLogDepositorDatabaseNameParameter: ssm.StringParameter;
+	public auditLogDepositorTableNameParameter: ssm.StringParameter;
 
 	constructor(scope: Construct, id: string, props: SSMConstructProperties) {
 		super(scope, id);
@@ -95,12 +97,12 @@ export class SSM extends Construct {
 			stringValue: `${namePrefix}-auditLogDepositorApi`,
 		});
 
-		new ssm.StringParameter(this, 'auditLogDepositorDatabaseNameParameter', {
+		this.auditLogDepositorDatabaseNameParameter = new ssm.StringParameter(this, 'auditLogDepositorDatabaseNameParameter', {
 			parameterName: auditLogDepositorDatabaseNameParameter(props.tenantId, props.environment),
 			stringValue: `${namePrefix}-audit-log-depositor`,
 		});
 
-		new ssm.StringParameter(this, 'auditLogDepositorTableNameParameter', {
+		this.auditLogDepositorTableNameParameter = new ssm.StringParameter(this, 'auditLogDepositorTableNameParameter', {
 			parameterName: auditLogDepositorTableNameParameter(props.tenantId, props.environment),
 			stringValue: `audit-logs`,
 		});

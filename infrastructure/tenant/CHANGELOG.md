@@ -1,6 +1,13 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+This log was last generated on Fri, 21 Jul 2023 23:58:18 GMT and should not be manually modified.
+
+## 7.16.1
+Fri, 21 Jul 2023 23:58:18 GMT
+
+### Patches
+
+- Fix SSM dependency issue within stack.
 
 ## 7.16.0
 Thu, 20 Jul 2023 00:30:14 GMT

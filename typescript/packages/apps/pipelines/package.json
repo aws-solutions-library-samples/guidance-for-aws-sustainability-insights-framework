@@ -1,6 +1,6 @@
 {
 	"name": "@sif/pipelines",
-	"version": "4.7.0",
+	"version": "4.7.1",
 	"description": "Pipelines module",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"type": "module",
@@ -38,7 +38,7 @@
 		"@sif/validators": "workspace:*",
 		"@sif/clients": "workspace:*",
 		"awilix": "7.0.3",
-		"aws-cdk-lib": "2.76.0",
+		"aws-cdk-lib": "2.87.0",
 		"aws-lambda": "1.0.7",
 		"constructs": "10.1.71",
 		"dotenv": "16.0.3",

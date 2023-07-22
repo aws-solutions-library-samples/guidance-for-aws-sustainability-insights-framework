@@ -13,7 +13,7 @@
 import { CfnParameter, Fn, Stack, StackProps } from 'aws-cdk-lib';
 import type { Construct } from 'constructs';
 import { NagSuppressions } from 'cdk-nag';
-import { SSM, auditLogDepositorDatabaseNameParameter, auditLogDepositorTableNameParameter } from './ssm.construct.js';
+import { SSM } from './ssm.construct.js';
 import { Cognito } from './cognito.construct.js';
 import { S3 } from './s3.construct.js';
 import { Bus } from './eventbus.construct.js';
@@ -143,16 +143,9 @@ export class SharedTenantInfrastructureStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
-		const auditLogsTableName = StringParameter.fromStringParameterAttributes(this, 'AuditLogsTableName', {
-			parameterName: auditLogDepositorTableNameParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
+		const auditLogsTableName = ssmConstruct.auditLogDepositorTableNameParameter.stringValue;
 
-		const auditLogsDatabaseName = StringParameter.fromStringParameterAttributes(this, 'AuditLogsDatabaseName', {
-			parameterName: auditLogDepositorDatabaseNameParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
+		const auditLogsDatabaseName = ssmConstruct.auditLogDepositorDatabaseNameParameter.stringValue;
 
 		const auroraSeeder = new AuroraSeeder(this, 'AuroraSeeder', {
 			tenantId: props.tenantId,

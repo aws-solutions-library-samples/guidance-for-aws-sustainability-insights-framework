@@ -18,7 +18,7 @@ importers:
       '@types/prettier': 2.6.0
       '@typescript-eslint/eslint-plugin': 5.32.0
       '@typescript-eslint/parser': 5.32.0
-      aws-cdk: 2.78.0
+      aws-cdk: 2.87.0
       aws-cdk-lib: 2.87.0
       cdk-nag: 2.21.80
       constructs: 10.1.71
@@ -52,7 +52,7 @@ importers:
       '@types/prettier': 2.6.0
       '@typescript-eslint/eslint-plugin': 5.32.0_676dsoiooslfv264yopq3dfm2y
       '@typescript-eslint/parser': 5.32.0_ypn2ylkkyfa5i233caldtndbqa
-      aws-cdk: 2.78.0
+      aws-cdk: 2.87.0
       esbuild: 0.15.1
       eslint: 8.24.0
       pnpm: 7.17.1
@@ -86,7 +86,7 @@ importers:
       '@typescript-eslint/eslint-plugin': 5.32.0
       '@typescript-eslint/parser': 5.32.0
       awilix: 7.0.3
-      aws-cdk: 2.78.0
+      aws-cdk: 2.87.0
       aws-cdk-lib: 2.87.0
       axios: 1.2.5
       cdk-nag: 2.21.80
@@ -140,7 +140,7 @@ importers:
       '@types/prettier': 2.6.0
       '@typescript-eslint/eslint-plugin': 5.32.0_676dsoiooslfv264yopq3dfm2y
       '@typescript-eslint/parser': 5.32.0_ypn2ylkkyfa5i233caldtndbqa
-      aws-cdk: 2.78.0
+      aws-cdk: 2.87.0
       cdk-nag: 2.21.80_id2izpsv55hxxbpj7eqv3flyg4
       esbuild: 0.15.1
       eslint: 8.24.0
@@ -504,7 +504,7 @@ importers:
       '@typescript-eslint/eslint-plugin': 5.32.0
       '@typescript-eslint/parser': 5.32.0
       awilix: 7.0.3
-      aws-cdk-lib: 2.76.0
+      aws-cdk-lib: 2.87.0
       aws-lambda: 1.0.7
       constructs: 10.1.71
       cucumber-tsflow: 3.3.0
@@ -549,7 +549,7 @@ importers:
       '@sif/resource-api-base': link:../../libraries/resource-api-base
       '@sinclair/typebox': 0.25.16
       awilix: 7.0.3
-      aws-cdk-lib: 2.76.0_constructs@10.1.71
+      aws-cdk-lib: 2.87.0_constructs@10.1.71
       aws-lambda: 1.0.7
       constructs: 10.1.71
       dayjs: 1.11.7
@@ -760,7 +760,7 @@ importers:
       '@typescript-eslint/eslint-plugin': 5.33.0
       '@typescript-eslint/parser': 5.33.0
       awilix: 7.0.3
-      aws-cdk-lib: 2.76.0
+      aws-cdk-lib: 2.87.0
       aws-lambda: 1.0.7
       aws-sdk-client-mock: 2.0.0
       constructs: 10.1.71
@@ -806,7 +806,7 @@ importers:
       '@sif/validators': link:../../libraries/validators
       '@sinclair/typebox': 0.25.16
       awilix: 7.0.3
-      aws-cdk-lib: 2.76.0_constructs@10.1.71
+      aws-cdk-lib: 2.87.0_constructs@10.1.71
       aws-lambda: 1.0.7
       aws-sdk-client-mock: 2.0.0
       constructs: 10.1.71
@@ -1334,8 +1334,8 @@ importers:
       '@types/prettier': 2.6.0
       '@typescript-eslint/eslint-plugin': 5.32.0
       '@typescript-eslint/parser': 5.32.0
-      aws-cdk: 2.76.0
-      aws-cdk-lib: 2.76.0
+      aws-cdk: 2.87.0
+      aws-cdk-lib: 2.87.0
       aws-lambda: 1.0.7
       cdk-nag: 2.21.80
       constructs: 10.1.71
@@ -1361,9 +1361,9 @@ importers:
       '@types/prettier': 2.6.0
       '@typescript-eslint/eslint-plugin': 5.32.0_676dsoiooslfv264yopq3dfm2y
       '@typescript-eslint/parser': 5.32.0_ypn2ylkkyfa5i233caldtndbqa
-      aws-cdk: 2.76.0
-      aws-cdk-lib: 2.76.0_constructs@10.1.71
-      cdk-nag: 2.21.80_yobf4bli6fiflu6iuocy2ebczq
+      aws-cdk: 2.87.0
+      aws-cdk-lib: 2.87.0_constructs@10.1.71
+      cdk-nag: 2.21.80_id2izpsv55hxxbpj7eqv3flyg4
       constructs: 10.1.71
       esbuild: 0.15.1
       eslint: 8.24.0
@@ -1974,17 +1974,11 @@ packages:
       - react-native
     dev: false
 
-  /@aws-cdk/asset-awscli-v1/2.2.163:
-    resolution: {integrity: sha512-4HfyzBxnsewMw7V4dvPEf31qogJUqRqYwoTBC41rA51JkfM7BwgaofRIW2ykJroMVNBB3KQQUFjntKkVlEXHPA==}
-
   /@aws-cdk/asset-awscli-v1/2.2.200:
     resolution: {integrity: sha512-Kf5J8DfJK4wZFWT2Myca0lhwke7LwHcHBo+4TvWOGJrFVVKVuuiLCkzPPRBQQVDj0Vtn2NBokZAz8pfMpAqAKg==}
 
   /@aws-cdk/asset-kubectl-v20/2.1.1:
     resolution: {integrity: sha512-U1ntiX8XiMRRRH5J1IdC+1t5CE89015cwyt5U63Cpk0GnMlN5+h9WsWMlKlPXZR4rdq/m806JRlBMRpBUB2Dhw==}
-
-  /@aws-cdk/asset-node-proxy-agent-v5/2.0.137:
-    resolution: {integrity: sha512-sAkyTuX50bm0VkisMQRohav56q6mIig3pTLVVY97yQwgPMu46MQ9u4py66EONQlEnOdcudt4bk7SWwHC4hLieQ==}
 
   /@aws-cdk/asset-node-proxy-agent-v5/2.0.165:
     resolution: {integrity: sha512-bsyLQD/vqXQcc9RDmlM1XqiFNO/yewgVFXmkMcQkndJbmE/jgYkzewwYGrBlfL725hGLQipXq19+jwWwdsXQqg==}
@@ -9060,6 +9054,7 @@ packages:
   /at-least-node/1.0.0:
     resolution: {integrity: sha512-+q/t7Ekv1EDY2l6Gda6LLiX14rU9TV20Wa3ofeQmwPFZbOMo9DXrLbOjFaaclkXKWidIaopwAObQDqwWtGUjqg==}
     engines: {node: '>= 4.0.0'}
+    dev: true
 
   /atomic-batcher/1.0.2:
     resolution: {integrity: sha512-EFGCRj4kLX1dHv1cDzTk+xbjBFj1GnJDpui52YmEcxxHHEWjYyT6l51U7n6WQ28osZH4S9gSybxe56Vm7vB61Q==}
@@ -9090,38 +9085,6 @@ packages:
       camel-case: 4.1.2
       fast-glob: 3.2.12
     dev: false
-
-  /aws-cdk-lib/2.76.0_constructs@10.1.71:
-    resolution: {integrity: sha512-EYWdHh/qJA7v+jD6SeW+BOEChI7oe6IYPHHap+SoJMUrKBVSDKnIGJ8wTP5eV6F27aYaUQiA7rWTKcCWoda8ag==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      constructs: ^10.0.0
-    dependencies:
-      '@aws-cdk/asset-awscli-v1': 2.2.163
-      '@aws-cdk/asset-kubectl-v20': 2.1.1
-      '@aws-cdk/asset-node-proxy-agent-v5': 2.0.137
-      '@balena/dockerignore': 1.0.2
-      case: 1.6.3
-      constructs: 10.1.71
-      fs-extra: 9.1.0
-      ignore: 5.2.4
-      jsonschema: 1.4.1
-      minimatch: 3.1.2
-      punycode: 2.3.0
-      semver: 7.5.0
-      table: 6.8.1
-      yaml: 1.10.2
-    bundledDependencies:
-      - '@balena/dockerignore'
-      - case
-      - fs-extra
-      - ignore
-      - jsonschema
-      - minimatch
-      - punycode
-      - semver
-      - table
-      - yaml
 
   /aws-cdk-lib/2.87.0_constructs@10.1.71:
     resolution: {integrity: sha512-9kirXX7L7OP/yGmCbaYlkt5OAtowGiGw0AYFIQvSwvx/UU3aJO5XuDwAgDsvToDkRpBi0yX0bNwqa0DItu+C6A==}
@@ -9154,22 +9117,6 @@ packages:
       - semver
       - table
       - yaml
-
-  /aws-cdk/2.76.0:
-    resolution: {integrity: sha512-y6VHtqUpYenn6mGIBFbcGGXIoXfKA3o0eGL/eeD/gUJ9TcPrgMLQM1NxSMb5JVsOk5BPPXzGmvB0gBu40utGqg==}
-    engines: {node: '>= 14.15.0'}
-    hasBin: true
-    optionalDependencies:
-      fsevents: 2.3.2
-    dev: true
-
-  /aws-cdk/2.78.0:
-    resolution: {integrity: sha512-fDqImTHefBjr8RYduO0bQRkINYJRGKdTXABeLsaMP6Ff4qDXTymaplyvUxNSB9DlQ+oXQ/aJgqFGiIJXSr+kpg==}
-    engines: {node: '>= 14.15.0'}
-    hasBin: true
-    optionalDependencies:
-      fsevents: 2.3.2
-    dev: true
 
   /aws-cdk/2.87.0:
     resolution: {integrity: sha512-dBm74nl3dMUxoAzgjcfKnzJyoVNIV//B1sqDN11cC3LXEflYapcBxPxZHAyGcRXg5dW3m14dMdKVQfmt4N970g==}
@@ -9467,16 +9414,6 @@ packages:
     dependencies:
       aws-cdk-lib: 2.87.0_constructs@10.1.71
       constructs: 10.1.71
-
-  /cdk-nag/2.21.80_yobf4bli6fiflu6iuocy2ebczq:
-    resolution: {integrity: sha512-cAisU7FY693so4Kx4QofAe21XvxiLT6qzM9b6q9O4cTgJIV3vdc1gQNaIxAqf1qQEfnRK72dvCXo6joHqNDGFg==}
-    peerDependencies:
-      aws-cdk-lib: ^2.45.0
-      constructs: ^10.0.5
-    dependencies:
-      aws-cdk-lib: 2.76.0_constructs@10.1.71
-      constructs: 10.1.71
-    dev: true
 
   /centra/2.6.0:
     resolution: {integrity: sha512-dgh+YleemrT8u85QL11Z6tYhegAs3MMxsaWAq/oXeAmYJ7VxL3SI9TZtnfaEvNDMAPolj25FXIb3S+HCI4wQaQ==}
@@ -11605,6 +11542,7 @@ packages:
       graceful-fs: 4.2.11
       jsonfile: 6.1.0
       universalify: 2.0.0
+    dev: true
 
   /fs.realpath/1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}

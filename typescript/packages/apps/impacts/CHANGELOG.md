@@ -1,6 +1,13 @@
 # Change Log - @sif/impacts
 
-This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+This log was last generated on Fri, 21 Jul 2023 23:58:18 GMT and should not be manually modified.
+
+## 4.5.1
+Fri, 21 Jul 2023 23:58:18 GMT
+
+### Patches
+
+- Update CDK version.
 
 ## 4.5.0
 Thu, 20 Jul 2023 00:30:14 GMT

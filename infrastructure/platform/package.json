@@ -1,6 +1,6 @@
 {
 	"name": "@sif/infrastructure-platform",
-	"version": "2.5.1",
+	"version": "2.5.2",
 	"description": "SIF: Common Platform Infrastructure.",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",
@@ -30,7 +30,7 @@
 		"@types/prettier": "2.6.0",
 		"@typescript-eslint/eslint-plugin": "5.32.0",
 		"@typescript-eslint/parser": "5.32.0",
-		"aws-cdk": "2.78.0",
+		"aws-cdk": "2.87.0",
 		"esbuild": "0.15.1",
 		"eslint": "8.24.0",
 		"pnpm": "7.17.1",

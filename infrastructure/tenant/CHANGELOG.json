@@ -2,6 +2,18 @@
   "name": "@sif/infrastructure-tenant",
   "entries": [
     {
+      "version": "7.16.1",
+      "tag": "@sif/infrastructure-tenant_v7.16.1",
+      "date": "Fri, 21 Jul 2023 23:58:18 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Fix SSM dependency issue within stack."
+          }
+        ]
+      }
+    },
+    {
       "version": "7.16.0",
       "tag": "@sif/infrastructure-tenant_v7.16.0",
       "date": "Thu, 20 Jul 2023 00:30:14 GMT",

@@ -1,7 +1,7 @@
 {
 	"name": "@sif/infrastructure-tenant",
 	"description": "SIF: Common Tenant Infrastructure.",
-	"version": "7.16.0",
+	"version": "7.16.1",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",
 	"scripts": {
@@ -45,7 +45,7 @@
 		"@types/prettier": "2.6.0",
 		"@typescript-eslint/eslint-plugin": "5.32.0",
 		"@typescript-eslint/parser": "5.32.0",
-		"aws-cdk": "2.78.0",
+		"aws-cdk": "2.87.0",
 		"cdk-nag": "2.21.80",
 		"esbuild": "0.15.1",
 		"eslint": "8.24.0",

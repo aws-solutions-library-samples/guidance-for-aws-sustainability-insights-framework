@@ -2,6 +2,18 @@
   "name": "@sif/pipelines",
   "entries": [
     {
+      "version": "4.7.1",
+      "tag": "@sif/pipelines_v4.7.1",
+      "date": "Fri, 21 Jul 2023 23:58:18 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Update CDK version."
+          }
+        ]
+      }
+    },
+    {
       "version": "4.7.0",
       "tag": "@sif/pipelines_v4.7.0",
       "date": "Thu, 20 Jul 2023 00:30:14 GMT",

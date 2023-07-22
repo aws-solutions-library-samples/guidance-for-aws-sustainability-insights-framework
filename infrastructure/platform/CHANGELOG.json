@@ -2,6 +2,18 @@
   "name": "@sif/infrastructure-platform",
   "entries": [
     {
+      "version": "2.5.2",
+      "tag": "@sif/infrastructure-platform_v2.5.2",
+      "date": "Fri, 21 Jul 2023 23:58:18 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Update CDK version."
+          }
+        ]
+      }
+    },
+    {
       "version": "2.5.1",
       "tag": "@sif/infrastructure-platform_v2.5.1",
       "date": "Fri, 21 Jul 2023 01:41:57 GMT",

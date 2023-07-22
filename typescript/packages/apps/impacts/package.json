@@ -1,7 +1,7 @@
 {
 	"name": "@sif/impacts",
 	"description": "SIF: Impacts management.",
-	"version": "4.5.0",
+	"version": "4.5.1",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",
 	"scripts": {
@@ -33,7 +33,7 @@
 		"@sif/dynamodb-utils": "workspace:*",
 		"@sif/resource-api-base": "workspace:*",
 		"awilix": "7.0.3",
-		"aws-cdk-lib": "2.76.0",
+		"aws-cdk-lib": "2.87.0",
 		"aws-lambda": "1.0.7",
 		"constructs": "10.1.71",
 		"dayjs": "1.11.7",
