@@ -27,7 +27,6 @@ import com.aws.sif.resources.impacts.ImpactsClient;
 import com.aws.sif.resources.referenceDatasets.DatasetsClient;
 import com.aws.sif.resources.referenceDatasets.ReferenceDatasetNotFoundException;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
@@ -105,10 +104,11 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
 		this.variables = new HashMap<>();
 
-        this.auditEvaluated = new HashMap<>();
-        this.auditActivities = new ArrayList<>();
-        this.auditCalculations = new ArrayList<>();
-        this.auditReferenceDatasets = new ArrayList<>();
+		// auditing
+		this.auditEvaluated = new HashMap<>();
+		this.auditActivities = new ArrayList<>();
+		this.auditCalculations = new ArrayList<>();
+		this.auditReferenceDatasets = new ArrayList<>();
 
         var result = super.visit(req.getTree());
 
@@ -291,17 +291,16 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
         log.trace("visitPredicateExpr> exit> {}", result);
         return result;
     }
-    @Override public NumberTypeValue visitSignedExpr(CalculationsParser.SignedExprContext ctx) {
-        log.trace("visitSignedExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+	@Override public NumberTypeValue visitSignedExpr(CalculationsParser.SignedExprContext ctx) {
+		log.trace("visitSignedExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
-        var result = super.visit((ctx.expr()));
-        var resultAsNumber = asNumber(result, "Signed expressions must be numeric.");
+		var result = super.visit((ctx.expr()));
+		var resultAsNumber = asNumber(result, "Signed expressions must be numeric.");
 
-        var factor = BigDecimal.valueOf( ("-".equals(ctx.op.getText())) ? -1 : 1);
-        var signedResult = new NumberTypeValue(resultAsNumber.getValue().multiply(factor));
-        log.trace("visitSignedExpr> exit> {}", signedResult);
-        return signedResult;
-    }
+		var signedResult = new NumberTypeValue(resultAsNumber.getValue().multiply(BigDecimal.valueOf(-1)));
+		log.trace("visitSignedExpr> exit> {}", signedResult);
+		return signedResult;
+	}
 
     @Override public NumberTypeValue visitScientificAtom(CalculationsParser.ScientificAtomContext ctx) {
         log.trace("visitScientificAtom> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
@@ -725,7 +724,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 			var optionalParam = super.visit(expr);
 			map.put(optionalParam.getKey(), optionalParam);
 		}
-		log.trace("getOptionalParams> exit> {}", map.toString());
+		log.trace("getOptionalParams> exit> {}", map);
 		return map;
 	}
 
@@ -885,6 +884,18 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 
         // track what we have evaluated for the audit log
         auditEvaluated.put(ctx.getText(), result.getResult().asString());
+		if (result.getEvaluated()!=null) {
+			auditEvaluated.putAll(result.getEvaluated());
+		}
+		if (result.getActivities()!=null) {
+			auditActivities.addAll(result.getActivities());
+		}
+		if (result.getCalculations()!=null) {
+			auditCalculations.addAll(result.getCalculations());
+		}
+		if (result.getReferenceDatasets()!=null) {
+			auditReferenceDatasets.addAll(result.getReferenceDatasets());
+		}
 
         log.trace("visitCustomFunctionExpr> exit> {}", result.getResult());
         return result.getResult();

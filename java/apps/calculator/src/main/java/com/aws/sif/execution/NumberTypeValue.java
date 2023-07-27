@@ -28,12 +28,18 @@ public class NumberTypeValue extends DynamicTypeValue<BigDecimal> {
 
     private final BigDecimal value;
 
+	@Override
+	public BigDecimal getValue() {
+		// hack: force removal of scientific notation
+		return new BigDecimal(value.stripTrailingZeros().toPlainString());
+	}
+
     public NumberTypeValue(long i) {
-        this.value = new BigDecimal(i);
+        this.value = new BigDecimal(i, MathContext.DECIMAL64);
     }
 
     public NumberTypeValue(String s) {
-        this.value = new BigDecimal(s);
+        this.value = new BigDecimal(s, MathContext.DECIMAL64);
     }
 
     public NumberTypeValue(BigDecimal bd) {
@@ -41,10 +47,10 @@ public class NumberTypeValue extends DynamicTypeValue<BigDecimal> {
     }
 
     public NumberTypeValue(float f) {
-        this.value = new BigDecimal(f, MathContext.DECIMAL64).stripTrailingZeros();
+        this.value = new BigDecimal(f, MathContext.DECIMAL64);
     }
 
     public NumberTypeValue(double d) {
-        this.value = new BigDecimal(d, MathContext.DECIMAL64).stripTrailingZeros();
+        this.value = new BigDecimal(d, MathContext.DECIMAL64);
     }
 }

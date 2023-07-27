@@ -1,12 +1,12 @@
 grammar Calculations;
 
 prog
-    :   expr+
+    :  SPACE* expr (NL SPACE* expr)* NL?
     ;
 
 expr
-	// general expression structure
-    :   left=expr SPACE* op=POW SPACE* right=expr                                         	# PowerExpr
+    :   MINUS SPACE* expr                                                					# SignedExpr
+    |	left=expr SPACE* op=POW SPACE* right=expr                                         	# PowerExpr
     |   left=expr SPACE* op=( TIMES | DIV ) SPACE* right=expr                             	# MulDivExpr
     |   left=expr SPACE* op=( PLUS | MINUS ) SPACE* right=expr                            	# AddSubExpr
     |   left=expr SPACE* op=( GT | GTE | LT | LTE | DEQ | NEQ ) SPACE* right=expr      		# PredicateExpr
@@ -29,10 +29,9 @@ expr
     |   UPPERCASE LPAREN value=expr RPAREN    										# UppercaseFunctionExpr
     |   function=CUSTOM_FUNCTION LPAREN exprList (optionalCustomParams)* RPAREN		# CustomFunctionExpr
 
-	// misc expressions
     |   SET SPACE* name=TOKEN SPACE* EQ SPACE* value=expr 					# SetVariableExpr
-    |   op=MINUS SPACE* expr                                                # SignedExpr
     |   atom                                                                # AtomsExpr
+
     ;
 
 // optional parameter definitions
@@ -248,6 +247,12 @@ COLON    : ':';
 US       : '_';
 SPACE    : ' ';
 
-WS       : [ \r\n\t]+ -> skip ;
+NL
+   : SPACE* '\n'
+   | SPACE* '\r' '\n'?
+   ;
+
+WS       : [ \t]+ -> skip ;
+
 ANY      : . ;
 
