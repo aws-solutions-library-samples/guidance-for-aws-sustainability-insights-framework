@@ -75,7 +75,7 @@ export class VerifyTask {
 
 		const securityContext = await this.getSecurityContext(executionId);
 
-		const { groupContextId, pipelineVersion, actionType } = await this.pipelineProcessorsService.get(securityContext, pipelineId, executionId);
+		const { groupContextId, pipelineVersion, actionType } = await this.pipelineProcessorsService.get(securityContext, executionId);
 
 		let pipelineConfiguration: Pipeline;
 

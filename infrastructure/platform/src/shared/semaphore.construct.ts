@@ -25,6 +25,7 @@ import { fileURLToPath } from 'url';
 import { EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 export interface SemaphoreConstructProperties {
 	environment: string;
@@ -211,7 +212,8 @@ export class Semaphore extends Construct {
 				RELEASE_LOCK_QUEUE_URL: releaseLockQueue.queueUrl,
 				RDS_CONCURRENCY_LIMIT: props.rdsConcurrencyLimit.toString(),
 				ENVIRONMENT_EVENT_BUS: semaphoreEventBus.eventBusName
-			}
+			},
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		semaphoreEventBus.grantPutEventsTo(lockGarbageCollectorLambda);
@@ -271,7 +273,8 @@ export class Semaphore extends Construct {
 				RDS_CONCURRENCY_LIMIT: props.rdsConcurrencyLimit.toString(),
 				RELEASE_LOCK_QUEUE_URL: releaseLockQueue.queueUrl,
 				ACQUIRE_LOCK_QUEUE_URL: acquireLockQueue.queueUrl,
-			}
+			},
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		semaphoreTable.grantReadWriteData(queueManagerLambda);

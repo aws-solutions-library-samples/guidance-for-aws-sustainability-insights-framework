@@ -93,7 +93,7 @@ export class EventProcessor {
 
 		// then, we get the pipeline and execution, we need the pipeline object, execution object and the connector object (execution and connectors happens a further down) to publish the event integration event
 		// this will throw an error if the execution is not found
-		const execution = await this.pipelineProcessorsService.get(securityContext, pipelineId, executionId);
+		const execution = await this.pipelineProcessorsService.get(securityContext, executionId);
 
 		//  we check the status of the execution, if it was anything other than 'waiting' we are going to simply ignore this, and log this as en error
 		if (execution.status !== 'waiting') {

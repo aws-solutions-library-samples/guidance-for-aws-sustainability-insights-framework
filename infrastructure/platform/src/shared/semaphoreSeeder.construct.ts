@@ -13,7 +13,7 @@
 
 import { Construct } from 'constructs';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
-import { DynamoDBSeeder, Seeds } from '@sif/dynamodb-seeder';
+import { DynamoDBSeeder, Seeds } from '@sif/cdk-common';
 import { createDelimitedAttribute } from '@sif/dynamodb-utils';
 
 export interface SemaphoreSeederConstructProperties {

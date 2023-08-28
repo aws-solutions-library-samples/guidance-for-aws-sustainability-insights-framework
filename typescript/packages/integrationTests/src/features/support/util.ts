@@ -121,7 +121,7 @@ export async function getAuthToken(username: string, password?: string, sharedTe
 
 export const createApi = async (environment: string, url: string, headers: { [key: string]: string }): Promise<any> => {
 	if (!url) {
-		throw new Error('<module>_BASE_URL not defined');
+		throw new Error(`<module>_BASE_URL not defined for ${environment} environment`);
 	}
 	const protocol = url.startsWith('https://') ? 'https' : 'http';
 	const api = new apickli.Apickli(protocol, url.split(`${protocol}://`)[1]);

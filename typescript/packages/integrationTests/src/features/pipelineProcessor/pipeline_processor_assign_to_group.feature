@@ -1,4 +1,4 @@
-@setup_endToEnd
+@setup_endToEnd @pipelineProcessor
 Feature:
 	Assign to Group Integration Test
 
@@ -11,11 +11,25 @@ Feature:
 		And group /assign-to-group/downtown exists
 		And group /assign-to-group has user assign_to_group_admin@amazon.com with role admin and password p@ssword1
 
+	Scenario: Teardown: Pipelines with tag testSource:assign-to-group
+	Cleans up any pipelines remaining from a previous test run associated with this test.
+		Given I'm using the pipelines api
+		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /assign-to-group
+		And no pipeline exists with tags testSource:assign-to-group
+
+	Scenario: Teardown: Metrics with tag testSource:assignToGroup
+	Cleans up any tags remaining from a previous test run associated with this test.
+		Given I'm using the pipelines api
+		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /assign-to-group
+		And no metric exists with tags testSource:assign-to-group
+
 	Scenario: Create Metrics
 		Given I'm using the pipelines api
 		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /assign-to-group
-		And I set body to {"name": "assign-to-group:kwh:total","summary": "Total of kWh","aggregationType": "sum"}
+		And I set body to {"name": "assign-to-group:kwh:total","summary": "Total of kWh","aggregationType": "sum","tags":{"testSource":"assign-to-group"}}
 		When I POST to /metrics
 		Then response code should be 201
 		And response body should contain id
@@ -23,7 +37,7 @@ Feature:
 		And response body path $.name should be assign-to-group:kwh:total
 		And response body path $.summary should be Total of kWh
 		And response body path $.aggregationType should be sum
-		Given I set body to {"name": "assign-to-group:kwh:household","summary": "Total of kWh for household sources","aggregationType": "sum","outputMetrics": ["assign-to-group:kwh:total"]}
+		Given I set body to {"name": "assign-to-group:kwh:household","summary": "Total of kWh for household sources","aggregationType": "sum","outputMetrics": ["assign-to-group:kwh:total"],"tags":{"testSource":"assign-to-group"}}
 		When I POST to /metrics
 		Then response code should be 201
 		And response body should contain id
@@ -37,7 +51,7 @@ Feature:
 		Given I'm using the pipelines api
 		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /assign-to-group
-		And I set body to {"name": "Assign to Groups Integration Test - Metrics Aggregation","description": "Test pipeline for Assign to Groups","processorOptions": {"chunkSize": 1},"connectorConfig": {"input": [{"name": "sif-csv-pipeline-input-connector"}]},"transformer": {"transforms": [{"index": 0,"formula": "AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')","outputs": [{"description": "Time of electricity consumption","index": 0,"key": "timestamp","label": "Timestamp","type": "timestamp"}]},{"index": 1,"formula": "ASSIGN_TO_GROUP(CONCAT('/assign-to-group/',:city))","outputs": [{"description": "Output group for activity","index": 0,"key": "output_group","label": "Output Group","type": "string"}]},{"index": 2,"formula": ":kwh","outputs": [{"description": "kWh of electricity consumption in the month","index": 0,"key": "kwh","label": "kWh","type": "number","metrics": ["assign-to-group:kwh:household"]}]}],"parameters": [{"index": 0,"key": "timestamp","label": "Timestamp","description": "Timestamp of electicity consumption","type": "string"},{"index": 1,"key": "city","label": "City","description": "City where electricity was consumed","type": "string"},{"index": 2,"key": "kwh","label": "kWh","description": "kWh of electricity consumed","type": "number"}]}}
+		And I set body to {"name": "Assign to Groups Integration Test - Metrics Aggregation","tags":{"testSource":"assign-to-group"},"description": "Test pipeline for Assign to Groups","processorOptions": {"chunkSize": 1},"connectorConfig": {"input": [{"name": "sif-csv-pipeline-input-connector"}]},"transformer": {"transforms": [{"index": 0,"formula": "AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')","outputs": [{"description": "Time of electricity consumption","index": 0,"key": "timestamp","label": "Timestamp","type": "timestamp"}]},{"index": 1,"formula": "ASSIGN_TO_GROUP(CONCAT('/assign-to-group/',:city))","outputs": [{"description": "Output group for activity","index": 0,"key": "output_group","label": "Output Group","type": "string"}]},{"index": 2,"formula": ":kwh","outputs": [{"description": "kWh of electricity consumption in the month","index": 0,"key": "kwh","label": "kWh","type": "number","metrics": ["assign-to-group:kwh:household"]}]}],"parameters": [{"index": 0,"key": "timestamp","label": "Timestamp","description": "Timestamp of electicity consumption","type": "string"},{"index": 1,"key": "city","label": "City","description": "City where electricity was consumed","type": "string"},{"index": 2,"key": "kwh","label": "kWh","description": "kWh of electricity consumed","type": "number"}]}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -230,7 +244,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /assign-to-group
-		And I set body to {"actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"timestamp":"2023-01-02T18:01:31.000+00:00","city":"Downtown","kwh":100},{"timestamp":"2023-02-03T17:13:54.000+00:00","city":"Downtown","kwh":200},{"timestamp":"2023-03-03T03:22:19.000+00:00","city":"Downtown","kwh":300}]}}
+		And I set body to {"actionType":"create","mode":"inline","tags":{"testSource":"assign-to-group"},"inlineExecutionOptions":{"inputs":[{"timestamp":"2023-01-02T18:01:31.000+00:00","city":"Downtown","kwh":100},{"timestamp":"2023-02-03T17:13:54.000+00:00","city":"Downtown","kwh":200},{"timestamp":"2023-03-03T03:22:19.000+00:00","city":"Downtown","kwh":300}]}}
 		When I POST to /pipelines/`pipeline_kwh_household_id`/executions
 		Then response code should be 201
 		# Activities are returned as part of inline execution response
@@ -280,7 +294,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /assign-to-group
-		And I set body to {"actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"timestamp":"2023-01-02T18:01:31.000+00:00","city":"notacityname","kwh":100}]}}
+		And I set body to {"actionType":"create","mode":"inline","tags":{"testSource":"assign-to-group"},"inlineExecutionOptions":{"inputs":[{"timestamp":"2023-01-02T18:01:31.000+00:00","city":"notacityname","kwh":100}]}}
 		When I POST to /pipelines/`pipeline_kwh_household_id`/executions
 		Then response code should be 201
 		And response body path $.status should be failed
@@ -290,7 +304,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /assign-to-group/downtown
-		And I set body to {"actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"timestamp":"2023-01-02T18:01:31.000+00:00","city":"anytown","kwh":5}]}}
+		And I set body to {"actionType":"create","mode":"inline","tags":{"testSource":"assign-to-group"},"inlineExecutionOptions":{"inputs":[{"timestamp":"2023-01-02T18:01:31.000+00:00","city":"anytown","kwh":5}]}}
 		When I POST to /pipelines/`pipeline_kwh_household_id`/executions
 		Then response code should be 201
 		And response body path $.status should be failed
@@ -300,7 +314,7 @@ Feature:
 		Given I'm using the pipelines api
 		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /assign-to-group
-		And I set body to {"name":"Assign to Groups - Pipeline Aggregation","description":"Test pipeline for Assign to Groups - Pipeline Aggregation","processorOptions":{"chunkSize":1},"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')","outputs":[{"description":"Time of electricity consumption","index":0,"key":"timestamp","label":"Timestamp","type":"timestamp"}]},{"index":1,"formula":"ASSIGN_TO_GROUP(CONCAT('/assign-to-group/',:city))","outputs":[{"description":"Output group for activity","index":0,"key":"outputGroup","label":"Output Group","type":"string"}]},{"index":2,"formula":":city","outputs":[{"description":"City of activity","index":0,"key":"city","label":"City","type":"string"}]},{"index":3,"formula":"AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX', roundDownTo='month')","outputs":[{"description":"Time of electricity consumption","index":0,"key":"month","label":"Month","type":"timestamp","aggregate":"groupBy"}]},{"index":4,"formula":":kwh","outputs":[{"description":"kWh of electricity consumption in the month","index":0,"key":"kwh","label":"kWh","type":"number","aggregate":"sum"}]}],"parameters":[{"index":0,"key":"timestamp","label":"Timestamp","description":"Timestamp of electicity consumption","type":"string"},{"index":1,"key":"city","label":"City","description":"City where electricity was consumed","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity consumed","type":"number"}]}}
+		And I set body to {"name":"Assign to Groups - Pipeline Aggregation","tags":{"testSource":"assign-to-group"},"description":"Test pipeline for Assign to Groups - Pipeline Aggregation","processorOptions":{"chunkSize":1},"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')","outputs":[{"description":"Time of electricity consumption","index":0,"key":"timestamp","label":"Timestamp","type":"timestamp"}]},{"index":1,"formula":"ASSIGN_TO_GROUP(CONCAT('/assign-to-group/',:city))","outputs":[{"description":"Output group for activity","index":0,"key":"outputGroup","label":"Output Group","type":"string"}]},{"index":2,"formula":":city","outputs":[{"description":"City of activity","index":0,"key":"city","label":"City","type":"string"}]},{"index":3,"formula":"AS_TIMESTAMP(:timestamp, 'yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX', roundDownTo='month')","outputs":[{"description":"Time of electricity consumption","index":0,"key":"month","label":"Month","type":"timestamp","aggregate":"groupBy"}]},{"index":4,"formula":":kwh","outputs":[{"description":"kWh of electricity consumption in the month","index":0,"key":"kwh","label":"kWh","type":"number","aggregate":"sum"}]}],"parameters":[{"index":0,"key":"timestamp","label":"Timestamp","description":"Timestamp of electicity consumption","type":"string"},{"index":1,"key":"city","label":"City","description":"City where electricity was consumed","type":"string"},{"index":2,"key":"kwh","label":"kWh","description":"kWh of electricity consumed","type":"number"}]}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -400,31 +414,19 @@ Feature:
 		And response body path $.activities[?(@.date=='2022-02-01T00:00:00.000Z')]['kwh'] should be 15
 		And response body path $.activities[?(@.date=='2022-03-01T00:00:00.000Z')]['kwh'] should be 12
 
-	Scenario: Teardown - Pipeline
-		When I'm using the pipelines api
+	Scenario: Teardown: Pipelines with tag testSource:assign-to-group
+	Cleans up any pipelines remaining from a previous test run associated with this test.
+		Given I'm using the pipelines api
 		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /assign-to-group
-		When I remove header Content-Type
-		When I DELETE /pipelines/`pipeline_kwh_household_id`
-		Then response code should be 204
-		When I DELETE /pipelines/`pipeline_kwh_household_pipeline_aggregation_id`
-		Then response code should be 204
-		When I GET /pipelines
-		Then response code should be 200
-		And response body path $.pipelines.length should be 0
+		And no pipeline exists with tags testSource:assign-to-group
 
-	Scenario: Teardown - Metrics
-		When I'm using the pipelines api
+	Scenario: Teardown: Metrics with tag testSource:assignToGroup
+	Cleans up any tags remaining from a previous test run associated with this test.
+		Given I'm using the pipelines api
 		And I authenticate using email assign_to_group_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /assign-to-group
-		When I remove header Content-Type
-		When I DELETE /metrics/`metric_kwh_household_id`
-		Then response code should be 204
-		When I DELETE /metrics/`metric_kwh_total_id`
-		Then response code should be 204
-		When I GET /metrics
-		Then response code should be 200
-		And response body path $.metrics.length should be 0
+		And no metric exists with tags testSource:assign-to-group
 
 	Scenario: Teardown - Cleanup user and groups
 		When I'm using the accessManagement api

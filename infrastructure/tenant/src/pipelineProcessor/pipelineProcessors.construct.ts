@@ -35,6 +35,7 @@ import { Key } from 'aws-cdk-lib/aws-kms';
 import { NagSuppressions } from 'cdk-nag';
 import { PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT } from '@sif/events';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -74,6 +75,8 @@ export interface PipelineProcessorsConstructProperties {
 	releaseLockSqsQueueArn: string;
 	environmentEventBusName: string;
 	auditVersion: string;
+	tableName: string;
+	workerQueueArn: string;
 }
 
 export const pipelineProcessorApiUrlParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiUrl`;
@@ -155,10 +158,29 @@ export class PipelineProcessors extends Construct {
 			resources: [`arn:aws:rds-db:${region}:${accountId}:dbuser:${Fn.select(6, Fn.split(':', props.rdsProxyArn))}/${props.tenantDatabaseUsername}`],
 		});
 
+
+		const cloudWatchPublishMetricsPolicy = new PolicyStatement({
+			actions: ['cloudwatch:PutMetricData'],
+			resources: ['*']
+		});
+
+		const SFNGetExecutionHistoryPolicy = new PolicyStatement({
+			actions: ['states:GetExecutionHistory'],
+			resources: [`arn:aws:states:${region}:${accountId}:execution:sif-${props.tenantId}-${props.environment}-activityPipeline:*`]
+		});
+
+
 		/**
 		 * Define the DynamoDB config table
 		 */
-		const table = new Table(this, 'Table', {
+
+		const tableV2 = Table.fromTableAttributes(this, 'TableV2', {
+			tableName: props.tableName,
+			globalIndexes: ['siKey1-pk-index', 'siKey2-pk-index'],
+		});
+		const workerQueue = Queue.fromQueueArn(this, 'WorkerQueue', props.workerQueueArn);
+
+		const tableV1 = new Table(this, 'Table', {
 			tableName: `${namePrefix}-pipelineProcessors`,
 			partitionKey: {
 				name: 'pk',
@@ -176,7 +198,7 @@ export class PipelineProcessors extends Construct {
 			timeToLiveAttribute: 'ttl',
 		});
 
-		table.addGlobalSecondaryIndex({
+		tableV1.addGlobalSecondaryIndex({
 			indexName: 'sk-pk-index',
 			partitionKey: {
 				name: 'sk',
@@ -191,7 +213,7 @@ export class PipelineProcessors extends Construct {
 
 		new StringParameter(this, 'pipelineProcessorTableNameParameter', {
 			parameterName: pipelineProcessorTableNameParameter(props.tenantId, props.environment),
-			stringValue: table.tableName,
+			stringValue: tableV2.tableName,
 		});
 
 		/**
@@ -240,7 +262,7 @@ export class PipelineProcessors extends Construct {
 				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				CHUNK_SIZE: '1',
 				BUCKET_NAME: props.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
@@ -262,9 +284,10 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
-		table.grantReadWriteData(verificationLambda);
+		tableV2.grantReadWriteData(verificationLambda);
 		bucket.grantReadWrite(verificationLambda);
 		pipelineLambda.grantInvoke(verificationLambda);
 
@@ -286,7 +309,7 @@ export class PipelineProcessors extends Construct {
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 			},
@@ -300,11 +323,12 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		bucket.grantReadWrite(calculationLambda);
 		calculatorLambda.grantInvoke(calculationLambda);
-		table.grantReadWriteData(calculationLambda);
+		tableV2.grantReadWriteData(calculationLambda);
 		pipelineLambda.grantInvoke(calculationLambda);
 
 		const resultProcessorLambda = new NodejsFunction(this, 'ProcessorResultProcessorLambda', {
@@ -318,9 +342,10 @@ export class PipelineProcessors extends Construct {
 			timeout: Duration.minutes(5),
 			environment: {
 				INLINE_PROCESSING_ROWS_LIMIT,
+				TENANT_ID: props.tenantId,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
@@ -339,10 +364,14 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
-		table.grantReadWriteData(resultProcessorLambda);
+		tableV2.grantReadWriteData(resultProcessorLambda);
 		bucket.grantReadWrite(resultProcessorLambda);
+		pipelineLambda.grantInvoke(resultProcessorLambda);
+		resultProcessorLambda.addToRolePolicy(SFNGetExecutionHistoryPolicy);
+		resultProcessorLambda.addToRolePolicy(cloudWatchPublishMetricsPolicy);
 
 		const pipelineAggregationLambda = new NodejsFunction(this, 'ProcessorPipelineAggregationLambda', {
 			description: `Pipeline Output Aggregation Task Handler: Tenant ${props.tenantId}`,
@@ -357,7 +386,7 @@ export class PipelineProcessors extends Construct {
 				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
@@ -382,10 +411,11 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		bucket.grantReadWrite(pipelineAggregationLambda);
-		table.grantReadData(pipelineAggregationLambda);
+		tableV2.grantReadData(pipelineAggregationLambda);
 		pipelineLambda.grantInvoke(pipelineAggregationLambda);
 		pipelineAggregationLambda.addToRolePolicy(rdsProxyPolicy);
 
@@ -402,7 +432,7 @@ export class PipelineProcessors extends Construct {
 				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				METRIC_STORAGE: props.metricStorage,
@@ -428,10 +458,11 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		bucket.grantReadWrite(metricAggregationLambda);
-		table.grantReadData(metricAggregationLambda);
+		tableV2.grantReadData(metricAggregationLambda);
 		metricsTable.grantReadWriteData(metricAggregationLambda);
 		pipelineLambda.grantInvoke(metricAggregationLambda);
 
@@ -450,7 +481,7 @@ export class PipelineProcessors extends Construct {
 				INLINE_PROCESSING_ROWS_LIMIT,
 				NODE_ENV: props.environment,
 				EVENT_BUS_NAME: props.eventBusName,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				METRIC_STORAGE: props.metricStorage,
@@ -476,6 +507,7 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		insertLatestValuesLambda.addToRolePolicy(rdsProxyPolicy);
@@ -493,7 +525,7 @@ export class PipelineProcessors extends Construct {
 				NODE_ENV: props.environment,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				EVENT_BUS_NAME: props.eventBusName,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
@@ -509,9 +541,10 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
-		table.grantReadWriteData(impactCreationLambda);
+		tableV2.grantReadWriteData(impactCreationLambda);
 		bucket.grantRead(impactCreationLambda);
 		bucket.grantDelete(impactCreationLambda);
 		bucket.grantPut(impactCreationLambda);
@@ -531,7 +564,7 @@ export class PipelineProcessors extends Construct {
 				NODE_ENV: props.environment,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				EVENT_BUS_NAME: props.eventBusName,
 			},
 			bundling: {
@@ -544,9 +577,10 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
-		table.grantReadWriteData(rawResultProcessorLambda);
+		tableV2.grantReadWriteData(rawResultProcessorLambda);
 		bucket.grantRead(rawResultProcessorLambda);
 		bucket.grantReadWrite(rawResultProcessorLambda);
 		eventBus.grantPutEventsTo(rawResultProcessorLambda);
@@ -564,7 +598,7 @@ export class PipelineProcessors extends Construct {
 				NODE_ENV: props.environment,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				EVENT_BUS_NAME: props.eventBusName,
 				...auroraEnvironmentVariables,
 			},
@@ -584,10 +618,11 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		sqlResultProcessorLambda.addToRolePolicy(rdsProxyPolicy);
-		table.grantReadWriteData(sqlResultProcessorLambda);
+		tableV2.grantReadWriteData(sqlResultProcessorLambda);
 		bucket.grantRead(sqlResultProcessorLambda);
 		bucket.grantDelete(sqlResultProcessorLambda);
 
@@ -602,14 +637,19 @@ export class PipelineProcessors extends Construct {
 
 		const rawResultProcessorTask = new LambdaInvoke(this, 'RawResultProcessorTask', {
 				lambdaFunction: rawResultProcessorLambda,
-				inputPath: '$',
+				payload: TaskInput.fromObject({
+					'inputs.$': '$',
+					'executionStartTime.$': '$$.Execution.StartTime',
+					'executionArn.$': '$$.Execution.Id'
+				}),
 				outputPath: '$.Payload',
 			}
 		);
 
+
 		const impactCreationTask = new LambdaInvoke(this, 'ImpactCreationTask', {
 				lambdaFunction: impactCreationLambda,
-				inputPath: '$'
+				inputPath: '$.inputs'
 			}
 		);
 
@@ -668,7 +708,7 @@ export class PipelineProcessors extends Construct {
 				.next(rawResultProcessorTask)
 				.next(new Choice(this, 'Is Pipeline Type Equal To Impact?')
 					.otherwise(new Succeed(this, 'Pipeline Succeeded'))
-					.when(Condition.stringEquals('$[0].pipelineType', 'impacts'), impactCreationTask)),
+					.when(Condition.stringEquals('$.inputs[0].pipelineType', 'impacts'), impactCreationTask)),
 			logs: { destination: dataPipelineStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
 			stateMachineName: `${namePrefix}-dataPipeline`,
 			tracingEnabled: true
@@ -692,15 +732,19 @@ export class PipelineProcessors extends Construct {
 
 		const resultProcessorTask = new LambdaInvoke(this, 'ResultProcessorTask', {
 				lambdaFunction: resultProcessorLambda,
-				inputPath: '$'
+				payload: TaskInput.fromObject({
+					'inputs.$': '$',
+					'executionStartTime.$': '$$.Execution.StartTime',
+					'executionArn.$': '$$.Execution.Id'
+				})
 			}
 		);
 
 		const jobInsertLatestValuesTask = new LambdaInvoke(this, 'JobInsertLatestValuesTask', {
-				lambdaFunction: insertLatestValuesLambda,
-				inputPath: '$',
-				outputPath: '$.Payload',
-			}
+			lambdaFunction: insertLatestValuesLambda,
+			inputPath: '$',
+			outputPath: '$.Payload',
+		}
 		);
 
 		const jobMetricAggregationTask = new LambdaInvoke(this, 'JobMetricAggregationTask', {
@@ -852,8 +896,8 @@ export class PipelineProcessors extends Construct {
 		const sqlResultProcessorTask = new LambdaInvoke(this, 'Process SQL Insert Result', {
 			lambdaFunction: sqlResultProcessorLambda,
 			payload: TaskInput.fromObject({
-				'input.$': '$',
-				'startTime.$': '$$.Execution.StartTime'
+				'inputs.$': '$',
+				'executionStartTime.$': '$$.Execution.StartTime'
 			})
 			, outputPath: '$.Payload',
 		});
@@ -899,18 +943,18 @@ export class PipelineProcessors extends Construct {
 		const inlineSqlResultProcessorTask = new LambdaInvoke(this, 'Process SQL Insert Result (Inline)', {
 			lambdaFunction: sqlResultProcessorLambda,
 			payload: TaskInput.fromObject({
-				'input.$': '$',
-				'startTime.$': '$$.Execution.StartTime'
+				'inputs.$': '$',
+				'executionStartTime.$': '$$.Execution.StartTime'
 			}), outputPath: '$.Payload',
 		});
 
 		const inlineStateMachineLogGroup = new LogGroup(this, 'InlineStateMachineLogGroup', { logGroupName: `/aws/stepfunctions/${namePrefix}-inlinePipeline`, removalPolicy: RemovalPolicy.DESTROY });
 
 		const inlineInsertLatestValuesTask = new LambdaInvoke(this, 'InsertLatestValuesTask', {
-				lambdaFunction: insertLatestValuesLambda,
-				inputPath: '$',
-				outputPath: '$.Payload',
-			}
+			lambdaFunction: insertLatestValuesLambda,
+			inputPath: '$',
+			outputPath: '$.Payload',
+		}
 		);
 
 		const inlineMetricAggregationTask = new LambdaInvoke(this, 'InlineMetricAggregationTask', {
@@ -971,7 +1015,7 @@ export class PipelineProcessors extends Construct {
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				EVENT_BUS_NAME: props.eventBusName,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
@@ -988,12 +1032,13 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		pipelineLambda.grantInvoke(eventIntegrationLambda);
 		activityPipelineStateMachine.grantStartExecution(eventIntegrationLambda);
 		dataPipelineStateMachine.grantStartExecution(eventIntegrationLambda);
-		table.grantReadWriteData(eventIntegrationLambda);
+		tableV2.grantReadWriteData(eventIntegrationLambda);
 		bucket.grantReadWrite(eventIntegrationLambda);
 		eventBus.grantPutEventsTo(eventIntegrationLambda);
 		environmentEventBus.grantPutEventsTo(activityPipelineStateMachine);
@@ -1119,8 +1164,8 @@ export class PipelineProcessors extends Construct {
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
-				ACTIVITY_QUEUE_URL:insertActivityQueue.queueUrl,
-				TABLE_NAME: table.tableName,
+				ACTIVITY_QUEUE_URL: insertActivityQueue.queueUrl,
+				TABLE_NAME: tableV2.tableName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				AUDIT_VERSION: props.auditVersion,
 				...auroraEnvironmentVariables,
@@ -1140,17 +1185,18 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 		insertActivityBulkLambda.node.addDependency(insertActivityQueue);
 
-		table.grantReadData(insertActivityBulkLambda);
+		tableV2.grantReadData(insertActivityBulkLambda);
 		bucket.grantReadWrite(insertActivityBulkLambda);
 		bucket.grantDelete(insertActivityBulkLambda);
 		insertActivityBulkLambda.addToRolePolicy(rdsProxyPolicy);
 		insertActivityBulkLambda.addEventSource(new SqsEventSource(insertActivityQueue, {
-				batchSize: 1,
-				reportBatchItemFailures: true,
-			})
+			batchSize: 1,
+			reportBatchItemFailures: true,
+		})
 		);
 
 		/**
@@ -1168,7 +1214,8 @@ export class PipelineProcessors extends Construct {
 				INLINE_PROCESSING_ROWS_LIMIT,
 				ACCESS_MANAGEMENT_FUNCTION_NAME: props.accessManagementApiFunctionName,
 				NODE_ENV: props.environment,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
+				WORKER_QUEUE_URL: workerQueue.queueUrl,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				EVENT_BUS_NAME: eventBus.eventBusName,
@@ -1205,12 +1252,15 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		apiLambda.node.addDependency(taskQueue);
+		apiLambda.node.addDependency(workerQueue);
 		apiLambda.addToRolePolicy(rdsProxyPolicy);
 		// grant the lambda functions access to the table
-		table.grantReadWriteData(apiLambda);
+		tableV2.grantReadWriteData(apiLambda);
+		workerQueue.grantSendMessages(apiLambda);
 		kmsKey.grantDecrypt(apiLambda);
 		bucket.grantReadWrite(apiLambda);
 		bucket.grantDelete(apiLambda);
@@ -1257,12 +1307,12 @@ export class PipelineProcessors extends Construct {
 			environment: {
 				ACCESS_MANAGEMENT_FUNCTION_NAME: props.accessManagementApiFunctionName,
 				NODE_ENV: props.environment,
-				TABLE_NAME: table.tableName,
+				TABLE_NAME: tableV2.tableName,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				TENANT_ID: props.tenantId,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
-				PIPELINE_PROCESSOR_FUNCTION_NAME:props.pipelineProcessorApiFunctionName,
+				PIPELINE_PROCESSOR_FUNCTION_NAME: props.pipelineProcessorApiFunctionName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				TASK_QUEUE_URL: taskQueue.queueUrl,
 				METRICS_TABLE_NAME: metricsTable.tableName,
@@ -1292,11 +1342,12 @@ export class PipelineProcessors extends Construct {
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		kmsKey.grantDecrypt(taskQueueLambda);
 		taskQueueLambda.node.addDependency(taskQueue);
-		table.grantReadData(taskQueueLambda);
+		tableV2.grantReadData(taskQueueLambda);
 		bucket.grantReadWrite(taskQueueLambda);
 		bucket.grantDelete(taskQueueLambda);
 		pipelineLambda.grantInvoke(taskQueueLambda);
@@ -1376,7 +1427,7 @@ export class PipelineProcessors extends Construct {
 		accessManagementLambda.grantInvoke(apiLambda);
 
 
-		NagSuppressions.addResourceSuppressions([apiLambda, eventIntegrationLambda, taskQueueLambda],
+		NagSuppressions.addResourceSuppressions([apiLambda, eventIntegrationLambda, taskQueueLambda, resultProcessorLambda],
 			[
 				{
 					id: 'AwsSolutions-IAM4',
@@ -1389,7 +1440,7 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
-						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<pipelineApiFunctionNameParameter>:*`
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
@@ -1425,7 +1476,7 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
-						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<pipelineApiFunctionNameParameter>:*`
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
@@ -1456,7 +1507,7 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
-						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<pipelineApiFunctionNameParameter>:*`,
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:*`,
 					],
@@ -1487,7 +1538,7 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
-						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
 
@@ -1514,7 +1565,7 @@ export class PipelineProcessors extends Construct {
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
 						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
-						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
 						'Resource::<PipelineProcessorsMetricsTable944ED8FD.Arn>/index/*',
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<pipelineApiFunctionNameParameter>:*`,
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<impactApiFunctionNameParameter>:*`],
@@ -1557,7 +1608,7 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
-						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:*`,
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
@@ -1593,7 +1644,7 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
-						'Resource::<PipelineProcessorsTable94FB7C09.Arn>/index/*',
+						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:*`,
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
@@ -1720,12 +1771,23 @@ export class PipelineProcessors extends Construct {
 			],
 			true);
 
-		NagSuppressions.addResourceSuppressions([apiLambda,taskQueueLambda],
+		NagSuppressions.addResourceSuppressions([apiLambda, taskQueueLambda],
 			[
 				{
 					id: 'AwsSolutions-IAM5',
 					reason: 'Given access to versioned glue tables',
 					appliesTo: [`Resource::arn:aws:glue:${region}:${accountId}:table/<AuditLogsDatabaseNameParameter>/<AuditLogsTableNameParameter>*`],
+
+				},
+			],
+			true);
+
+		NagSuppressions.addResourceSuppressions([resultProcessorLambda],
+			[
+				{
+					id: 'AwsSolutions-IAM5',
+					reason: 'Given access to versioned glue tables',
+					appliesTo: [`Resource::arn:aws:states:${region}:${accountId}:execution:sif-${props.tenantId}-${props.environment}-activityPipeline:*`],
 
 				},
 			],

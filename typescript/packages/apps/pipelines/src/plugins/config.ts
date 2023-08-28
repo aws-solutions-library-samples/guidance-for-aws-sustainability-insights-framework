@@ -12,13 +12,10 @@
  */
 
 import fp from 'fastify-plugin';
-
-import fastifyEnv from '@fastify/env';
+import fastifyEnv, { FastifyEnvOptions } from '@fastify/env';
 import { Static, Type } from '@sinclair/typebox';
-
-import type { fastifyEnvOpt } from '@fastify/env';
 import type { FastifyInstance } from 'fastify';
-import { baseConfigSchema } from '@sif/resource-api-base';
+import { baseConfigSchema, convertFromTypeBoxIntersectToJSONSchema } from '@sif/resource-api-base';
 
 // eslint-disable-next-line @rushstack/typedef-var
 const moduleConfigSchema = Type.Object({
@@ -32,10 +29,10 @@ export const configSchema = Type.Intersect([moduleConfigSchema, baseConfigSchema
 
 export type ConfigSchemaType = Static<typeof configSchema>;
 
-export default fp<fastifyEnvOpt>(async (app: FastifyInstance): Promise<void> => {
+export default fp<FastifyEnvOptions>(async (app: FastifyInstance): Promise<void> => {
 	await app.register(fastifyEnv, {
 		confKey: 'config',
-		schema: configSchema,
+		schema: convertFromTypeBoxIntersectToJSONSchema(configSchema),
 		dotenv: true,
 	});
 	app.log.info(`config: ${JSON.stringify(app.config)}`);

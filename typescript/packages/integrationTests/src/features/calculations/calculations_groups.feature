@@ -1,4 +1,4 @@
-@setup_calculations
+@setup_calculations @calculations
 Feature:
 
 	This feature tests the granting/revocation of access to calculations between groups, therefore only focuses on testing

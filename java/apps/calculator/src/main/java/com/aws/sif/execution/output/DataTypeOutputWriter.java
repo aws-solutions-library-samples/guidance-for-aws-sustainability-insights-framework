@@ -15,6 +15,7 @@ package com.aws.sif.execution.output;
 import com.aws.sif.DataTypeRecord;
 import com.aws.sif.S3Location;
 import com.aws.sif.S3Utils;
+import com.aws.sif.execution.StringTypeValue;
 import com.typesafe.config.Config;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.Validate;
@@ -75,9 +76,14 @@ public class DataTypeOutputWriter implements OutputWriter<DataTypeRecord> {
 
         var sortedValues = new ArrayList<String>();
         for (Map.Entry<String, String> entry : this.outputMap.entrySet()) {
-            sortedValues.add(record.getValues().get(entry.getKey()).getValue().toString());
+            var value = record.getValues().get(entry.getKey()).getValue();
+            var outputValue = value.toString();
+            // append start and end double quote to handle string value that contains comma
+            if (record.getValues().get(entry.getKey()) instanceof StringTypeValue) {
+                outputValue = String.format("\"%s\"", value);
+            }
+            sortedValues.add(outputValue);
         }
-
         this.activityValueWriter.append(String.join(",", sortedValues)).append("\n");
         return null;
     }

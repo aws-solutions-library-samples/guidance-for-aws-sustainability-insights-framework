@@ -1,4 +1,4 @@
-@setup_accessManagement
+@setup_accessManagement @accessManagement
 Feature: Access Management API - groups pagination feature
 
 	Scenario: Setup groups

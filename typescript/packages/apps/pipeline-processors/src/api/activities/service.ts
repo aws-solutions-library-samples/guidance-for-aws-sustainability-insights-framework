@@ -105,7 +105,7 @@ export class ActivityService {
 	private async getPipelineExecution(executionId: string, sc: SecurityContext): Promise<PipelineExecution> {
 		this.log.debug(`ActivitiesRepository> getPipelineExecution executionId:${executionId}`);
 
-		let execution = await this.pipelineProcessorService.getById(sc, executionId);
+		let execution = await this.pipelineProcessorService.get(sc, executionId);
 
 		this.log.debug(`ActivitiesRepository> getPipelineExecution out> execution:${JSON.stringify(execution)}`);
 

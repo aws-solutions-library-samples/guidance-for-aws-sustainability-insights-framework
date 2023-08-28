@@ -47,6 +47,7 @@ import {
 } from '../shared/ssm.construct.js';
 import { kmsKeyArnParameter } from '../shared/kms.construct.js';
 import { calculatorActivityInsertQueueArnParameter } from '../calculator/calculator.construct.js';
+import { ResourceApiBase } from '../shared/resourceApiBase.construct.js';
 
 export type PipelineProcessorsStackProperties = StackProps & {
 	tenantId: string;
@@ -192,7 +193,21 @@ export class PipelineProcessorsApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
-		new PipelineProcessors(this, 'PipelineProcessors', {
+		const base = new ResourceApiBase(this, 'ResourceApiBase', {
+			tenantId: props.tenantId,
+			environment: props.environment,
+			moduleName: 'pipelineProcessorsV2',
+			eventBusName,
+			auth: {
+				accessManagementApiFunctionName,
+			},
+			queue: {
+				moduleSqsLambdaLocation: '../../../../typescript/packages/apps/pipeline-processors/src/lambda_messaging_service_sqs.ts',
+				pnpmLockFileLocation: '../../../../common/config/rush/pnpm-lock.yaml',
+			},
+		});
+
+		const module = new PipelineProcessors(this, 'PipelineProcessors', {
 			...props,
 			acquireLockSqsQueueArn,
 			releaseLockSqsQueueArn,
@@ -223,8 +238,12 @@ export class PipelineProcessorsApiStack extends Stack {
 			metricStorage: props.metricStorage,
 			auditLogsTableName,
 			auditLogsDatabaseName,
-			activityInsertQueueArn
+			activityInsertQueueArn,
+			tableName: base.tableName,
+			workerQueueArn: base.workerQueueArn,
 		});
+
+		module.node.addDependency(base);
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [
 				'/PipelineProcessors/LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a/ServiceRole/Resource'

@@ -14,7 +14,7 @@
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from '../../app.light';
-import type { ProcessedTaskEvent, RawResultProcessorTaskHandler } from '../tasks/model.js';
+import type { ProcessedTaskEventWithExecutionDetails, RawResultProcessorTaskHandler } from '../tasks/model.js';
 import type { RawResultProcessorTask } from '../tasks/rawResultProcessorTask.js';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
 import type { GetSecurityContext } from '../../plugins/module.awilix.js';
@@ -27,12 +27,13 @@ const task = di.resolve<RawResultProcessorTask>('rawResultProcessorTask');
 const service = di.resolve<PipelineProcessorsService>('pipelineProcessorsService');
 const getSecurityContext = di.resolve<GetSecurityContext>('getSecurityContext');
 
-export const handler: RawResultProcessorTaskHandler = async (event, _context, _callback): Promise<ProcessedTaskEvent[]> => {
+export const handler: RawResultProcessorTaskHandler = async (event, _context, _callback): Promise<ProcessedTaskEventWithExecutionDetails> => {
 	app.log.debug(`rawResultProcessorLambda > handler > event:${JSON.stringify(event)}`);
 	validateNotEmpty(event, 'event');
-	validateNotEmpty(event[0].executionId, 'executionId');
-	validateNotEmpty(event[0].pipelineId, 'pipelineId');
-	const { executionId, pipelineId } = event[0];
+	validateNotEmpty(event.inputs, 'inputs');
+	validateNotEmpty(event.inputs[0].executionId, 'executionId');
+	validateNotEmpty(event.inputs[0].pipelineId, 'pipelineId');
+	const { executionId, pipelineId } = event.inputs[0];
 	// process the result
 	const [status, statusMessage] = await task.process(event);
 	// set the status

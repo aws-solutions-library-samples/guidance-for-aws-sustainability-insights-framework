@@ -1,4 +1,4 @@
-@setup_endToEnd
+@setup_endToEnd @pipelineProcessor
 Feature:
 	Pipeline Processor Data Type Integration Test
 
@@ -81,11 +81,11 @@ Feature:
 		Then response code should be 201
 		And I store the value of body path $.url as success_download_url in global scope
 		When I download the output CSV file from the url stored at global variable success_download_url it will match rows
-			| a | z      | b*c |
-			| A | first  | 10  |
-			| B | second | 40  |
-			| C | third  | 90  |
-			| D | fourth | 160 |
+			| a   | z        | b*c |
+			| "A" | "first"  | 10  |
+			| "B" | "second" | 40  |
+			| "C" | "third"  | 90  |
+			| "D" | "fourth" | 160 |
 
 	Scenario: Revoke access to connector from group /pipelineProcessorDataTest
 		When I'm using the pipelines api

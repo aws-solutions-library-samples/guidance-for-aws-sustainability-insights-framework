@@ -11,6 +11,7 @@
 		"declarationMap": true,
 		"sourceMap": true,
 		"esModuleInterop": true,
+		"ignoreDeprecations": "5.0",
 		"experimentalDecorators": true,
 
 		// overrides of extends

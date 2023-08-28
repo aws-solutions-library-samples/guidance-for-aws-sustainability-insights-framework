@@ -17,7 +17,6 @@ import { writeFile } from 'fs';
 
 export default fp<FastifySwaggerOptions>(async (app) => {
 	await app.register(FastifySwagger, {
-		routePrefix: '/swagger-docs',
 		openapi: {
 			info: {
 				title: 'SIF SaaS: Pipeline Executions Management',
@@ -46,20 +45,7 @@ export default fp<FastifySwaggerOptions>(async (app) => {
 				},
 			},
 			security: [],
-		},
-		hideUntagged: true,
-		exposeRoute: true,
-
-		uiConfig: {
-			docExpansion: 'list',
-			deepLinking: true,
-		},
-
-		refResolver: {
-			buildLocalReference(json, _baseUri, _fragment, _i) {
-				return `${json['$id']}`;
-			},
-		},
+		}
 	});
 
 	if (process.env['NODE_ENV'] === 'local') {

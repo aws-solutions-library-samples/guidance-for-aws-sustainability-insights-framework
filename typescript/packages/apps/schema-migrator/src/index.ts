@@ -58,7 +58,7 @@ async function getSqlClient(databaseName: string, hostEndpoint: string, platform
 		host: hostEndpoint,
 		database: databaseName,
 		ssl: {
-			rejectUnauthorized: false,
+			rejectUnauthorized: true,
 			ca: caCert,
 		},
 		password: token,

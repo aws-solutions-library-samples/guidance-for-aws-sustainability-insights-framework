@@ -12,32 +12,22 @@
  */
 
 import type { FastifyBaseLogger } from 'fastify';
-import type { PipelineExecution, PipelineExecutionListPaginationKey } from './schemas.js';
-import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { createDelimitedAttribute, expandDelimitedAttribute, createDelimitedAttributePrefix } from '@sif/dynamodb-utils';
-import { NotFoundError } from '@sif/resource-api-base';
-
+import type { PipelineExecution } from './schemas.js';
+import { BatchGetCommandInput, DynamoDBDocumentClient, GetCommand, GetCommandInput, TransactWriteCommand, TransactWriteCommandInput } from '@aws-sdk/lib-dynamodb';
+import { createDelimitedAttribute, DynamoDbUtils, expandDelimitedAttribute } from '@sif/dynamodb-utils';
+import { DatabaseTransactionError, GroupRepository, TagRepository, Tags, TransactionCancellationReason } from '@sif/resource-api-base';
 import { PkType } from '../../common/pkUtils.js';
-
-import type { GetCommandInput, PutCommandInput, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
+import type { TransactionCanceledException } from '@aws-sdk/client-dynamodb';
 
 export class PipelineProcessorsRepository {
-	private readonly GSI1 = 'sk-pk-index';
-	private readonly log: FastifyBaseLogger;
-	private readonly dc: DynamoDBDocumentClient;
-	private readonly tableName: string;
-
-	public constructor(log: FastifyBaseLogger, dc: DynamoDBDocumentClient, tableName: string) {
-		this.log = log;
-		this.dc = dc;
-		this.tableName = tableName;
+	public constructor(private log: FastifyBaseLogger, private dc: DynamoDBDocumentClient, private tableName: string,
+					   private tagRepository: TagRepository, private groupRepository: GroupRepository, private dynamoDbUtils: DynamoDbUtils) {
 	}
 
-	private assemblePipelineExecution(i: Record<string, any>): PipelineExecution {
+	private assemble(i: Record<string, any>): PipelineExecution {
 		const pk = expandDelimitedAttribute(i['pk']);
-		const sk = expandDelimitedAttribute(i['sk']);
 		return {
-			id: sk?.[1] as string,
+			id: pk?.[1] as string,
 			createdAt: i['createdAt'],
 			createdBy: i['createdBy'],
 			pipelineVersion: i['pipelineVersion'],
@@ -46,134 +36,156 @@ export class PipelineProcessorsRepository {
 			status: i['status'],
 			statusMessage: i['statusMessage'],
 			actionType: i['actionType'],
+			tags: i['tags'],
 			connectorOverrides: i['connectorOverrides'],
-			// we should populate groupContextId from previous version where we store the value in securityContextId
-			groupContextId: i.hasOwnProperty('groupContextId') ? i['groupContextId'] : i['securityContextId'],
-			pipelineId: pk?.[1] as string,
+			groupContextId: i['groupContextId'],
+			groups: i['groups'],
+			pipelineId: i['pipelineId'],
 			auditVersion: (i['auditVersion'] as number) ?? 0,
-			// ttl: i['ttl'],
 		};
 	}
 
-	private assemblePipelineExecutionList(itemList: Record<string, any>[]): PipelineExecution[] {
-		const pipelineExecutions = [];
-		for (const item of itemList) {
-			pipelineExecutions.push(this.assemblePipelineExecution(item));
-		}
+	public async get(id: string): Promise<PipelineExecution> {
+		this.log.debug(`PipelineProcessorsRepository> get> id:${id}`);
 
-		return pipelineExecutions;
-	}
-
-	public async get(pipelineId: string, executionId: string): Promise<PipelineExecution> {
-		this.log.info(`PipelineProcessorsRepository> get> pipelineId:${pipelineId}, executionId: ${executionId}`);
-
+		const pipelineExecutionId = createDelimitedAttribute(PkType.PipelineExecution, id);
 		const params: GetCommandInput = {
 			TableName: this.tableName,
 			Key: {
-				pk: createDelimitedAttribute(PkType.Pipeline, pipelineId),
-				sk: createDelimitedAttribute(PkType.PipelineExecution, executionId),
+				pk: pipelineExecutionId,
+				sk: pipelineExecutionId,
 			},
 		};
-
-		const result = await this.dc.send(new GetCommand(params));
-
-		if (!result.Item) {
-			throw new NotFoundError(`could not retrieve pipeline execution id : ${executionId}`);
-		}
-
-		this.log.info(`PipelineProcessorsRepository> put> exit`);
-		return this.assemblePipelineExecution(result.Item);
-	}
-
-	public async getById(executionId: string): Promise<PipelineExecution> {
-		this.log.info(`PipelineProcessorsRepository> getById> executionId:${executionId}`);
-
-		const params: QueryCommandInput = {
-			TableName: this.tableName,
-			IndexName: this.GSI1,
-			KeyConditionExpression: `#hash=:hash AND begins_with(#sort,:sort)`,
-			ExpressionAttributeNames: {
-				'#hash': 'sk',
-				'#sort': 'pk',
-			},
-			ExpressionAttributeValues: {
-				':hash': createDelimitedAttribute(PkType.PipelineExecution, executionId),
-				':sort': createDelimitedAttributePrefix(PkType.Pipeline),
-			},
-		};
-
-		const result = await this.dc.send(new QueryCommand(params));
-		if (result.Items === undefined || result.Items.length === 0) {
-			this.log.debug('PipelineProcessorsRepository> getById: exit: undefined');
+		this.log.debug(`PipelineProcessorsRepository> get> params: ${JSON.stringify(params)}`);
+		const response = await this.dc.send(new GetCommand(params));
+		this.log.debug(`PipelineProcessorsRepository> get> response: ${JSON.stringify(response)}`);
+		if (response.Item === undefined) {
+			this.log.debug(`PipelineProcessorsRepository> get> early exit: undefined`);
 			return undefined;
 		}
 
-		const execution = this.assemblePipelineExecution(result.Items[0]);
+		// assemble before returning
+		const activity = this.assemble(response.Item);
 
-		this.log.info(`PipelineProcessorsRepository> getById> exit: ${JSON.stringify(execution)}`);
-
-		return execution;
+		this.log.debug(`PipelineProcessorsRepository> get> exit:${JSON.stringify(activity)}`);
+		return activity;
 	}
 
-	public async list(pipelineId: string, exclusiveStart?: PipelineExecutionListPaginationKey, count = 10): Promise<[PipelineExecution[], PipelineExecutionListPaginationKey | undefined]> {
-		this.log.info(`PipelineProcessorsRepository> list> pipelineId:${pipelineId}`);
+	public async listByIds(executionIds: string[]): Promise<PipelineExecution[]> {
+		this.log.debug(`PipelineProcessorsRepository> listByIds> in> activityIds:${JSON.stringify(executionIds)}`);
 
-		const params: QueryCommandInput = {
-			TableName: this.tableName,
-			KeyConditionExpression: `#hash=:hash  AND begins_with(#sortKey,:sortKey)`,
-			ExpressionAttributeNames: {
-				'#hash': 'pk',
-				'#sortKey': 'sk',
-				'#status': 'status',
-			},
-			ExpressionAttributeValues: {
-				':hash': createDelimitedAttribute(PkType.Pipeline, pipelineId),
-				':sortKey': createDelimitedAttribute(PkType.PipelineExecution),
-				':status': 'waiting',
-			},
-			Limit: count,
-			FilterExpression: '#status <> :status',
-			ExclusiveStartKey: exclusiveStart
-				? {
-					pk: createDelimitedAttribute(PkType.Pipeline, pipelineId),
-					sk: createDelimitedAttribute(PkType.PipelineExecution, exclusiveStart.id),
-				}
-				: undefined,
-			ScanIndexForward: false,
+		if ((executionIds?.length ?? 0) === 0) {
+			this.log.debug(`PipelineProcessorsRepository> listByIds> early exit:[]`);
+			return [];
+		}
+
+		const originalExecutionIds = [...executionIds];
+		const executionIdSet = new Set(executionIds);
+		executionIds = Array.from(executionIdSet);
+
+		// retrieve the execution items
+		const params: BatchGetCommandInput = {
+			RequestItems: {},
+		};
+		params.RequestItems[this.tableName] = {
+			Keys: executionIds.map((i) => ({
+				pk: createDelimitedAttribute(PkType.PipelineExecution, i),
+				sk: createDelimitedAttribute(PkType.PipelineExecution, i),
+			})),
 		};
 
-		const result = await this.dc.send(new QueryCommand(params));
+		this.log.debug(`PipelineProcessorsRepository> listByIds> params:${JSON.stringify(params)}`);
+		const items = await this.dynamoDbUtils.batchGetAll(params);
+		this.log.debug(`PipelineProcessorsRepository> listByIds> items:${JSON.stringify(items)}`);
 
-		this.log.info(`PipelineProcessorsRepository> list> exit`);
-
-		let paginationKey: PipelineExecutionListPaginationKey | undefined;
-
-		if (result.LastEvaluatedKey) {
-			const sk = expandDelimitedAttribute(result.LastEvaluatedKey['sk']);
-			paginationKey = {
-				id: sk?.[1] as string,
-			};
+		if (items?.Responses?.[this.tableName] === undefined) {
+			this.log.debug('PipelineProcessorsRepository> listByIds> exit: commands:undefined');
+			return [];
 		}
-		return [this.assemblePipelineExecutionList(result.Items as Record<any, any>[]), paginationKey];
+
+		const executionMap = items.Responses[this.tableName]
+			.sort((a, b) => (a['pk'] as string).localeCompare(b['pk']) || (a['sk'] as string).localeCompare(b['sk']))
+			.map((i) => this.assemble(i))
+			.reduce((prev, curr) => {
+				prev[curr.id] = curr;
+				return prev;
+			}, {});
+
+		const executions = originalExecutionIds.map((id) => executionMap[id]);
+
+		this.log.debug(`PipelineProcessorsRepository> listByIds> exit:${JSON.stringify(executions)}`);
+		return executions;
 	}
 
-	public async put(pipelineExecution: PipelineExecution): Promise<void> {
-		this.log.info(`PipelineProcessorsRepository> put> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
+	private getPutResourceTransactionWriteCommandInput(p: PipelineExecution): TransactWriteCommandInput {
+		this.log.trace(`PipelineProcessorsRepository> getPutResourceTransactionWriteCommandInput> p:${JSON.stringify(p)}`);
+		const pipelineExecutionId = createDelimitedAttribute(PkType.PipelineExecution, p.id);
+		const transaction = {
+			TransactItems: [
+				{
+					Put: {
+						TableName: this.tableName,
+						Item: {
+							pk: pipelineExecutionId,
+							sk: pipelineExecutionId,
+							...p,
+						},
+					},
+				},
+			],
+		};
+		this.log.trace(`PipelineProcessorsRepository> getPutResourceTransactionWriteCommandInput> exit> transaction:${JSON.stringify(transaction)}`);
+		return transaction;
+	}
+
+	public async create(pipelineExecution: PipelineExecution): Promise<void> {
+		this.log.info(`PipelineProcessorsRepository> create> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
 
 		const { pipelineId, id, ...rest } = pipelineExecution;
 
-		const params: PutCommandInput = {
-			TableName: this.tableName,
-			Item: {
-				pk: createDelimitedAttribute(PkType.Pipeline, pipelineId),
-				sk: createDelimitedAttribute(PkType.PipelineExecution, id),
-				siKey1: createDelimitedAttribute(PkType.PipelineExecution, id),
-				...rest,
-			},
-		};
+		const transaction = this.getPutResourceTransactionWriteCommandInput(pipelineExecution);
 
-		await this.dc.send(new PutCommand(params));
+		// create tag items
+		transaction.TransactItems.push(...this.tagRepository.getTagTransactWriteCommandInput(id, PkType.PipelineExecution, rest.groups, pipelineExecution.tags, {}).TransactItems);
 
-		this.log.info(`PipelineProcessorsRepository> put> exit`);
+		// group membership
+		transaction.TransactItems.push(
+			...this.groupRepository.getGrantGroupTransactWriteCommandInput(
+				{
+					id,
+					keyPrefix: PkType.PipelineExecution,
+				},
+				// for other type of resources, the groups field contains the list of security group that can access the resouces
+				// so we can query all resources based on a group id (the implementation logic in @sif/resource-api-base module)
+				// but for pipeline execution, the group will point to the pipeline to allow us to query executions based on a pipeline id
+				{ id: pipelineId }
+			).TransactItems
+		);
+
+		try {
+			const response = await this.dc.send(new TransactWriteCommand(transaction));
+			this.log.debug(`PipelineProcessorsRepository> create> response:${JSON.stringify(response)}`);
+		} catch (err) {
+			if (err instanceof Error) {
+				if (err.name === 'TransactionCanceledException') {
+					this.log.error(`PipelineProcessorsRepository> create> err> ${JSON.stringify((err as TransactionCanceledException).CancellationReasons)}`);
+					throw new DatabaseTransactionError((err as TransactionCanceledException).CancellationReasons as TransactionCancellationReason[]);
+				} else {
+					this.log.error(err);
+					throw err;
+				}
+			}
+		}
+		this.log.info(`PipelineProcessorsRepository> create> exit`);
 	}
+}
+
+export interface PipelineExecutionListOptions {
+	count?: number;
+	exclusiveStart?: PipelineExecutionListPaginationKey;
+	tags?: Tags;
+}
+
+export interface PipelineExecutionListPaginationKey {
+	paginationToken: string;
 }

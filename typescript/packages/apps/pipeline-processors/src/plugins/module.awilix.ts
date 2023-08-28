@@ -16,6 +16,7 @@ import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { S3Client } from '@aws-sdk/client-s3';
 import { SQSClient } from '@aws-sdk/client-sqs';
 import { SFNClient } from '@aws-sdk/client-sfn';
+import { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Client, Command } from '@aws-sdk/smithy-client';
 import type { MetadataBearer, RequestPresigningArguments } from '@aws-sdk/types';
@@ -96,6 +97,7 @@ declare module '@fastify/awilix' {
 		pipelineProcessorsRepository: PipelineProcessorsRepository;
 		pipelineProcessorsService: PipelineProcessorsService;
 		s3Client: S3Client;
+		cloudWatchClient: CloudWatchClient;
 		stepFunctionClient: SFNClient;
 		sqsClient: SQSClient;
 		eventProcessor: EventProcessor;
@@ -104,7 +106,7 @@ declare module '@fastify/awilix' {
 		activitiesRepository: ActivitiesRepository;
 		metricsService: MetricsService;
 		metricRepoV2: MetricsRepositoryV2;
-		activityAuditRepository:ActivityAuditRepository;
+		activityAuditRepository: ActivityAuditRepository;
 		activityAuditService: ActivityAuditService;
 		baseRepositoryClient: BaseRepositoryClient;
 		getSecurityContext: GetSecurityContext;
@@ -159,6 +161,13 @@ class AthenaClientFactory {
 	public static create(region: string | undefined): AthenaClient {
 		const athena = captureAWSv3Client(new AthenaClient({ region }));
 		return athena;
+	}
+}
+
+class CloudWatchClientFactory {
+	public static create(region: string | undefined): CloudWatchClient {
+		const cloudwatch = captureAWSv3Client(new CloudWatchClient({ region }));
+		return cloudwatch;
 	}
 }
 
@@ -222,6 +231,9 @@ const registerContainer = (app?: FastifyInstance) => {
 		sqsClient: asFunction(() => SQSClientFactory.create(awsRegion), {
 			...commonInjectionOptions,
 		}),
+		cloudWatchClient: asFunction(() => CloudWatchClientFactory.create(awsRegion), {
+			...commonInjectionOptions,
+		}),
 		baseRepositoryClient: asFunction(() => new BaseRepositoryClient(app.log, rdsDBHost, rdsTenantUsername, rdsTenantDatabase, nodeEnv, caCert), {
 			...commonInjectionOptions,
 		}),
@@ -230,7 +242,8 @@ const registerContainer = (app?: FastifyInstance) => {
 		eventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, eventBusName, PIPELINE_PROCESSOR_EVENT_SOURCE), {
 			...commonInjectionOptions,
 		}),
-		pipelineProcessorsRepository: asFunction((container: Cradle) => new PipelineProcessorsRepository(app.log, container.dynamoDBDocumentClient, tableName), {
+		pipelineProcessorsRepository: asFunction((container: Cradle) => new PipelineProcessorsRepository(app.log, container.dynamoDBDocumentClient, tableName, container.tagRepository,
+			container.groupRepository, container.dynamoDbUtils), {
 			...commonInjectionOptions,
 		}),
 		pipelineClient: asFunction((container: Cradle) => new PipelineClient(app.log, container.invoker, pipelineFunctionName), {
@@ -281,7 +294,9 @@ const registerContainer = (app?: FastifyInstance) => {
 					container.getLambdaRequestContext,
 					container.pipelineExecutionUtils,
 					container.inlineExecutionService,
-					Number(AUDIT_VERSION)
+					Number(AUDIT_VERSION),
+					container.resourceService,
+					container.tagService
 				),
 			{
 				...commonInjectionOptions,
@@ -323,13 +338,13 @@ const registerContainer = (app?: FastifyInstance) => {
 		verifyTask: asFunction((container: Cradle) => new VerifyTask(app.log, container.pipelineClient, container.pipelineProcessorsService, container.s3Client, container.getSecurityContext, chunkSize, container.getLambdaRequestContext), {
 			...commonInjectionOptions,
 		}),
-		resultProcessorTask: asFunction((container: Cradle) => new ResultProcessorTask(app.log, container.s3Client, sourceDataBucket, sourceDataBucketPrefix), {
+		resultProcessorTask: asFunction((container: Cradle) => new ResultProcessorTask(app.log, container.s3Client, container.stepFunctionClient, container.cloudWatchClient, container.pipelineClient, sourceDataBucket, sourceDataBucketPrefix, container.getSecurityContext, container.getLambdaRequestContext, container.pipelineProcessorsService), {
 			...commonInjectionOptions,
 		}),
 		sqlResultProcessorTask: asFunction((container: Cradle) => new SqlResultProcessorTask(app.log, container.getSecurityContext, container.pipelineProcessorsService, container.s3Client, sourceDataBucket, container.activitiesRepository), {
 			...commonInjectionOptions,
 		}),
-		rawResultProcessorTask: asFunction((container: Cradle) => new RawResultProcessorTask(app.log, container.s3Client, sourceDataBucket, sourceDataBucketPrefix), {
+		rawResultProcessorTask: asFunction((container: Cradle) => new RawResultProcessorTask(app.log, container.s3Client, container.stepFunctionClient, container.cloudWatchClient, container.pipelineClient, sourceDataBucket, sourceDataBucketPrefix, container.getSecurityContext, container.getLambdaRequestContext, container.pipelineProcessorsService), {
 			...commonInjectionOptions,
 		}),
 		impactCreationTask: asFunction((container: Cradle) => new ImpactCreationTask(app.log, container.s3Client, sourceDataBucket, container.impactClient, container.getLambdaRequestContext, container.getSecurityContext), {
@@ -353,7 +368,7 @@ const registerContainer = (app?: FastifyInstance) => {
 		activityService: asFunction((container: Cradle) => new ActivityService(app.log, container.activitiesRepository, container.authChecker, container.pipelineClient, container.pipelineProcessorsService), {
 			...commonInjectionOptions,
 		}),
-		activityAuditRepository: asFunction((container: Cradle) => new ActivityAuditRepository(app.log, container.athenaClient,sourceDataBucket, sourceDataBucketPrefix, athenaDatabaseName, athenaAuditLogsTableName, container.auditExportUtil), {
+		activityAuditRepository: asFunction((container: Cradle) => new ActivityAuditRepository(app.log, container.athenaClient, sourceDataBucket, sourceDataBucketPrefix, athenaDatabaseName, athenaAuditLogsTableName, container.auditExportUtil), {
 			...commonInjectionOptions,
 		}),
 		activityAuditService: asFunction((container: Cradle) => new ActivityAuditService(app.log, container.s3Client, sourceDataBucket, container.activityAuditRepository, container.activitiesRepository, container.authChecker, taskParallelLimit), {
@@ -405,7 +420,7 @@ const registerContainer = (app?: FastifyInstance) => {
 			(container: Cradle) => {
 				const getContext = async (executionId: string, role?: SecurityScope, groupContextId?: string) => {
 					if (!groupContextId) {
-						const pipelineExecution = await container.pipelineProcessorsRepository.getById(executionId);
+						const pipelineExecution = await container.pipelineProcessorsRepository.get(executionId);
 						groupContextId = pipelineExecution.groupContextId;
 					}
 

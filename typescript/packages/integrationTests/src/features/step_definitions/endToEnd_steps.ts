@@ -11,8 +11,8 @@
  *  and limitations under the License.
  */
 
-import { When, Given, Then, DataTable } from '@cucumber/cucumber';
-import { getAuthToken } from '../support/util';
+import { Given, Then, DataTable } from '@cucumber/cucumber';
+import { getAuthToken } from '../support/util.js';
 import axios from 'axios';
 import FormData from 'form-data';
 import assert from 'assert';

@@ -1,4 +1,4 @@
-@setup_accessManagement
+@setup_accessManagement @accessManagement
 Feature:
 	Access Management API - Group Tags
 
@@ -38,7 +38,7 @@ Feature:
         And response body path $.groups[?(@.id=='/group-tag-test-group/group-tag-test-subgroup')].id should be /group-tag-test-group/group-tag-test-subgroup
 		And response body path $.groups[?(@.id=='/group-tag-test-group/group-tag-test-subgroup')].tags.type should be integration test
 		And response body path $.groups[?(@.id=='/group-tag-test-group/group-tag-test-subgroup')].tags.level should be 2
-        
+
 	Scenario: Admin can view tags via get
 		Given I authenticate using email group_tag_test_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /
@@ -67,7 +67,7 @@ Feature:
         And response body path $.groups[?(@.id=='/group-tag-test-group/group-tag-test-subgroup')].id should be /group-tag-test-group/group-tag-test-subgroup
 		And response body path $.groups[?(@.id=='/group-tag-test-group/group-tag-test-subgroup')].tags.type should be integration test
 		And response body path $.groups[?(@.id=='/group-tag-test-group/group-tag-test-subgroup')].tags.level should be 2
-        
+
 	Scenario: Reader can view tags via get
 		Given I authenticate using email group_tag_test_reader@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /

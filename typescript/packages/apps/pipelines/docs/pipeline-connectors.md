@@ -43,7 +43,7 @@ When defining a new pipeline a connector configuration should be specified withi
 
 To crete a custom connector is fairly easy to do so. The connector integration mechanism involves consuming a connector integration EventBridge request event, uploading the transformed file to a pre-signed url provided in the request event and publishing a connector integration response event from the connector back to SIF.
 
-To develop a new connector you can follow the sample input connector sample implementation at (`sif-core/samples/typescript/connectors/sample-pipeline-input-connector`).
+To develop a new connector you can follow the sample input connector sample implementation at (`guidance-for-aws-sustainability-insights-framework/samples/typescript/connectors/sample-pipeline-input-connector`).
 
 ## Walkthrough
 

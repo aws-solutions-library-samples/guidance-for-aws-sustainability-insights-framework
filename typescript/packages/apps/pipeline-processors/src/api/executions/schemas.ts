@@ -12,7 +12,7 @@
  */
 
 import { Static, TNumber, TString, Type } from '@sinclair/typebox';
-import { id } from '@sif/resource-api-base';
+import { id, tags, count, paginationToken } from '@sif/resource-api-base';
 
 export const executionArn: TString = Type.String({ description: 'Step Function execution arn.' });
 
@@ -82,6 +82,7 @@ const inlineExecutionOutputs = Type.Object({
 	}))),
 });
 
+
 export const pipelineExecutionFull = Type.Object(
 	{
 		actionType,
@@ -98,11 +99,10 @@ export const pipelineExecutionFull = Type.Object(
 		status,
 		statusMessage: Type.Optional(statusMessage),
 		groupContextId: Type.String({ description: 'security context id of the creator of this execution' }),
-		// TODO: need to rethink ttl on the executions, if a ttl is added, then it should be removed if the status has changed,
-		// ttl: Type.Optional(Type.Number({ description: 'expiration of execution if it stays in waiting state for 5 minutes (default) or specified expiresIn timeout' })),
 		updatedAt: Type.Optional(updatedAt),
 		updatedBy: Type.Optional(updatedBy),
-		inlineExecutionOutputs: Type.Optional(inlineExecutionOutputs)
+		inlineExecutionOutputs: Type.Optional(inlineExecutionOutputs),
+		tags: Type.Optional(Type.Ref(tags)),
 	},
 	{ $id: 'pipelineExecution_full' }
 );
@@ -112,11 +112,8 @@ export const pipelineExecutionList = Type.Object(
 		executions: Type.Array(Type.Ref(pipelineExecutionFull)),
 		pagination: Type.Optional(
 			Type.Object({
-				lastEvaluated: Type.Optional(
-					Type.Object({
-						executionId: fromExecutionIdPaginationParam,
-					})
-				),
+				count: Type.Optional(count),
+				lastEvaluatedToken: Type.Optional(paginationToken),
 			})
 		),
 	},
@@ -163,7 +160,6 @@ export const auditExportResponse = Type.Object(
 			{
 				description: 'Autdit export generation status',
 			},
-
 		),
 		url: Type.Optional(Type.String({ description: 'requested signed url' })),
 	},
@@ -203,6 +199,7 @@ export const pipelineExecutionRequest = Type.Object({
 	inlineExecutionOptions: Type.Optional(inlineExecutionOptions),
 	mode: executionMode,
 	actionType,
+	tags: Type.Optional(Type.Ref(tags)),
 	expiration: Type.Number({ description: 'The number of seconds before file upload url expires in, default to 5 minutes', default: 300 }),
 	connectorOverrides
 }, {
@@ -210,7 +207,7 @@ export const pipelineExecutionRequest = Type.Object({
 });
 
 export type InlineExecutionOutputs = Static<typeof inlineExecutionOutputs>;
-export type PipelineExecution = Static<typeof pipelineExecutionFull>;
+export type PipelineExecution = Static<typeof pipelineExecutionFull> & { groups: string[] };
 export type PipelineExecutionRequest = Static<typeof pipelineExecutionRequest>;
 export type PipelineExecutionList = Static<typeof pipelineExecutionList>;
 export type SignedUrlRequest = Static<typeof signedUrlRequest>;

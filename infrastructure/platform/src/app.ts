@@ -17,6 +17,7 @@ import { AwsSolutionsChecks } from 'cdk-nag';
 import { getOrThrow } from './shared/stack.utils.js';
 import { Aspects } from 'aws-cdk-lib';
 import { InstanceType } from '@aws-cdk/aws-sagemaker-alpha';
+import { registerAllFacts } from '@sif/cdk-common';
 
 const app = new cdk.App();
 
@@ -62,11 +63,13 @@ Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
 const stackNamePrefix = `sif-shared-${environment}`;
 
 const stackName = (suffix: string) => `${stackNamePrefix}-${suffix}`;
-const tenantStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module -- Guidance for Sustainability Insights Framework on AWS (SO9161)`;
+const platformStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module`;
+
+registerAllFacts();
 
 new SharedPlatformInfrastructureStack(app, 'SharedPlatform', {
 	stackName: stackName('platform'),
-	description: tenantStackDescription('SharedPlatform'),
+	description: platformStackDescription('SharedPlatform'),
 	environment,
 	minClusterCapacity: minClusterCapacity,
 	maxClusterCapacity: maxClusterCapacity,

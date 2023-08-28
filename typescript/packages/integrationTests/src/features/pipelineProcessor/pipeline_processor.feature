@@ -1,4 +1,4 @@
-@setup_endToEnd
+@setup_endToEnd @pipelineProcessor
 Feature:
 	Pipeline Processor Integration Test
 
@@ -56,7 +56,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
-		And I set body to {"actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"reading date":"1/4/22","a":"A","b":10,"c":1},{"reading date":"1/4/22","a":"A","b":10,"c":1},{"reading date":"1/4/22","a":"C","b":30,"c":3},{"reading date":"1/4/22","a":"D","b":40,"c":4},{"reading date":"1/4/22","a":"E","b":50,"c":5},{"reading date":"1/4/22","a":"F","b":60,"c":6}]}}
+		And I set body to { "tags": { "source":"pipelineProcessorsTest", "sequence":"1" }, "actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"reading date":"1/4/22","a":"A","b":10,"c":1},{"reading date":"1/4/22","a":"A","b":10,"c":1},{"reading date":"1/4/22","a":"C","b":30,"c":3},{"reading date":"1/4/22","a":"D","b":40,"c":4},{"reading date":"1/4/22","a":"E","b":50,"c":5},{"reading date":"1/4/22","a":"F","b":60,"c":6}]}}
 		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 201
 		And response body should contain id
@@ -95,7 +95,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
-		And I set body to {"actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"reading date":"1/4/22","a":"A","b":"WRONG_TYPE","c":1},{"reading date":"1/4/22","a":"A","b":10,"c":"WRONG_TYPE"}]}}
+		And I set body to {"tags": { "source":"pipelineProcessorsTest", "sequence":"2" }, "actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"reading date":"1/4/22","a":"A","b":"WRONG_TYPE","c":1},{"reading date":"1/4/22","a":"A","b":10,"c":"WRONG_TYPE"}]}}
 		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 201
 		And response body should contain id
@@ -160,7 +160,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
-		And I set body to { "expiration" : 300 ,"actionType":"delete"}
+		And I set body to {"tags": { "source":"pipelineProcessorsTest", "sequence":"3" },  "expiration" : 300 ,"actionType":"delete"}
 		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 201
 		And I store the value of body path $.inputUploadUrl as delete_upload_url in global scope
@@ -193,7 +193,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
-		And I set body to { "expiration" : 300}
+		And I set body to { "tags": { "source":"pipelineProcessorsTest", "sequence":"4" }, "expiration" : 300}
 		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 201
 		And I store the value of body path $.inputUploadUrl as all_errors_upload_url in global scope
@@ -232,12 +232,11 @@ Feature:
 			| Failed processing row {reading date=1/4/22, a=F, b=60, c=Six}, err: Character S is neither a decimal digit number, decimal point, nor "e" notation exponential mark.   |
 
 
-
 	Scenario: Upload Input File with Some Success and Some Errors for Pipeline Processing
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
-		And I set body to { "expiration" : 300}
+		And I set body to { "tags": { "source":"pipelineProcessorsTest", "sequence":"5" }, "expiration" : 300}
 		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 201
 		And I store the value of body path $.inputUploadUrl as some_success_some_errors_upload_url in global scope
@@ -301,7 +300,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
-		And I set body to { "expiration" : 300}
+		And I set body to { "tags": { "source":"pipelineProcessorsTest", "sequence":"6" }, "expiration" : 300}
 		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 201
 		And I store the value of body path $.inputUploadUrl as updated_success_upload_url in global scope
@@ -319,6 +318,56 @@ Feature:
 		And response body path $.executions should be of type array with length 6
 		And the latest execution status should be success
 		And I store the id of the latest execution in variable updated_success_execution_id in global scope
+
+	Scenario: Retrieve pipeline executions filtered by tag(s)
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /pipelineProcessorTest
+		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions?tags=source:pipelineProcessorsTest
+		And response body path $.executions.length should be 6
+		And I set query parameters to
+			| parameter | value                         |
+			| tags      | source:pipelineProcessorsTest |
+			| tags      | sequence:1                    |
+		Then I pause for 1000ms
+		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
+		And response body path $.executions.length should be 1
+		And response body path $.executions[0].id should be `success_execution_id`
+		And I set query parameters to
+			| parameter | value                         |
+			| tags      | source:pipelineProcessorsTest |
+			| tags      | sequence:2                    |
+		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
+		And response body path $.executions.length should be 1
+		And response body path $.executions[0].id should be `inline_failed_execution_id`
+		And I set query parameters to
+			| parameter | value                         |
+			| tags      | source:pipelineProcessorsTest |
+			| tags      | sequence:3                    |
+		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
+		And response body path $.executions.length should be 1
+		And response body path $.executions[0].id should be `delete_execution_id`
+		And I set query parameters to
+			| parameter | value                         |
+			| tags      | source:pipelineProcessorsTest |
+			| tags      | sequence:4                    |
+		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
+		And response body path $.executions.length should be 1
+		And response body path $.executions[0].id should be `all_errors_execution_id`
+		And I set query parameters to
+			| parameter | value                         |
+			| tags      | source:pipelineProcessorsTest |
+			| tags      | sequence:5                    |
+		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
+		And response body path $.executions.length should be 1
+		And response body path $.executions[0].id should be `some_success_some_errors_execution_id`
+		And I set query parameters to
+			| parameter | value                         |
+			| tags      | source:pipelineProcessorsTest |
+			| tags      | sequence:6                    |
+		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
+		And response body path $.executions.length should be 1
+		And response body path $.executions[0].id should be `updated_success_execution_id`
 
 	Scenario:Retrieve raw and aggregated history of activities of modified pipeline configuration
 		Given I'm using the pipelineProcessor api
@@ -396,7 +445,7 @@ Feature:
 		And response body path $[0].audits[0].outputs[3]['evaluated'][':b'] should be 10
 		And response body path $[0].audits[0].outputs[3]['evaluated'][':c'] should be 1
 
-Scenario: Retrieve Audit 2 for Activity 1
+	Scenario: Retrieve Audit 2 for Activity 1
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest

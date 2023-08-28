@@ -25,6 +25,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -251,6 +252,7 @@ export class ResourceApiBase extends Construct {
 				 * Ignore reason: there is no risk of path traversal in this context
 				*/
 				depsLockFilePath: path.join(__dirname, props.queue.pnpmLockFileLocation), // nosemgrep
+				architecture: getLambdaArchitecture(scope),
 			});
 
 			sqsLambda.node.addDependency(workerQueue);

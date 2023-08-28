@@ -28,10 +28,10 @@ To obtain a token:
 
 ```shell
 # The script is part of the integration tests module
-sif-core> cd typescript/packages/integrationTests
+guidance-for-aws-sustainability-insights-framework> cd typescript/packages/integrationTests
 
 # Replace the tokens with your values (only provide <newPassword> if changing password)
-sif-core/typescript/packages/integrationTests> npm run generate:token -- <tenantId> <environment> <administratorEmail> <password> <newPassword>
+guidance-for-aws-sustainability-insights-framework/typescript/packages/integrationTests> npm run generate:token -- <tenantId> <environment> <administratorEmail> <password> <newPassword>
 ```
 
 The output of the command will be `token: <token>`. Save the value of `<token>` to be used to authenticate with the SIF REST API.

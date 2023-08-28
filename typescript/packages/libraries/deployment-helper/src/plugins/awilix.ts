@@ -171,7 +171,7 @@ const getPostgresqlClient: GetSqlClient = async (databaseName = 'postgres'): Pro
 		host: host,
 		database: databaseName,
 		ssl: {
-			rejectUnauthorized: false,
+			rejectUnauthorized: true,
 			ca: caCert,
 		},
 	});

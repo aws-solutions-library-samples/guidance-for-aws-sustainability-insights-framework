@@ -1,6 +1,20 @@
 # Change Log - @sif/clients
 
-This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+
+## 1.7.2
+Thu, 17 Aug 2023 02:44:14 GMT
+
+### Patches
+
+- added pipeline name to the attributes returned via the api
+
+## 1.7.1
+Fri, 28 Jul 2023 00:50:20 GMT
+
+### Patches
+
+- fix an issue the algorithm that checks for circular dependencies fail where 2 output parameter aggregate to 2 metrics that aggregate to the same metric
 
 ## 1.7.0
 Thu, 20 Jul 2023 00:30:14 GMT

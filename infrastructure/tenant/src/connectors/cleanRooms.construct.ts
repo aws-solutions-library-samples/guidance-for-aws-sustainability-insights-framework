@@ -27,6 +27,7 @@ import { AttributeType, BillingMode, Table, TableEncryption } from 'aws-cdk-lib/
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { fileURLToPath } from 'url';
 import { NagSuppressions } from 'cdk-nag';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,6 +96,7 @@ export class CleanRoomsConnector extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		const cleanRoomsPolicy = new Policy(this, 'clean-rooms-policy', {
@@ -181,6 +183,7 @@ export class CleanRoomsConnector extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		eventBus.grantPutEventsTo(resultProcessorLambda);

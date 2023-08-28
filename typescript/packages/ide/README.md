@@ -45,12 +45,12 @@ npm run cdk -- bootstrap -c environment=? --all
 
 More details on the context that you can provide when deploying the cdk application can be found below:
 
-| Context Name  | Detail                                                                                                                                                                                          | Required |                                                  Default                                                  |
-|---------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------|:---------------------------------------------------------------------------------------------------------:|
-| environment   | The value will be used as prefix when creating Cloud9 resources.                                                                                                                                | &#9989;  |                                                                                                           |
-| ownerArn      | The owner of the `Cloud9` instance. This ARN can be the ARN of any AWS Identity and Access Management principal.                                                                                | &#9989;  |                                                                                                           |
-| repositoryUrl | Url of your repository, if your repository is private, the username and password has to be included in the curl, e.g. <br /> `git clone https://username:password@github.com/aws/sif-core.git`. | &#10060; | `https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git` |
-| instanceType  | The type of instance to connect to the environment (if none specified, default is `t2.large`).                                                                                                  | &#10060; |                                                `t2.large`                                                 |
+| Context Name  | Detail                                                                                                                                                                                                                                                              | Required |                                                  Default                                                  |
+|---------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------|:---------------------------------------------------------------------------------------------------------:|
+| environment   | The value will be used as prefix when creating Cloud9 resources.                                                                                                                                                                                                    | &#9989;  |                                                                                                           |
+| ownerArn      | The owner of the `Cloud9` instance. This ARN can be the ARN of any AWS Identity and Access Management principal.                                                                                                                                                    | &#9989;  |                                                                                                           |
+| repositoryUrl | Url of your repository, if your repository is private, the username and password has to be included in the curl, e.g. <br /> `git clone https://username:password@github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git`. | &#10060; | `https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git` |
+| instanceType  | The type of instance to connect to the environment (if none specified, default is `t2.large`).                                                                                                                                                                      | &#10060; |                                                `t2.large`                                                 |
 
 ### Making the deployment
 
@@ -69,6 +69,6 @@ Once the deployment finish, you can go to cloud9 console and click on `Open IDE`
 
 The repository that you had specified in the context argument can be located under the `sif` folder under the home directory.
 
-![location for sif-core repository](../ide/images/sif-core-folder.png)
+![location for guidance-for-aws-sustainability-insights-framework repository](../ide/images/sif-core-folder.png)
 
-All the pre-requisites mentioned in [here](../../../docs/development/prereqs.md) are installed in your Cloud9 environment, go to the [deployment section](../../../infrastructure/README.md) to deploy sif-core into your AWS account.
+All the pre-requisites mentioned in [here](../../../docs/development/prereqs.md) are installed in your Cloud9 environment, go to the [deployment section](../../../infrastructure/README.md) to deploy guidance-for-aws-sustainability-insights-framework into your AWS account.

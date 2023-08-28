@@ -2,6 +2,30 @@
   "name": "@sif/clients",
   "entries": [
     {
+      "version": "1.7.2",
+      "tag": "@sif/clients_v1.7.2",
+      "date": "Thu, 17 Aug 2023 02:44:14 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "added pipeline name to the attributes returned via the api"
+          }
+        ]
+      }
+    },
+    {
+      "version": "1.7.1",
+      "tag": "@sif/clients_v1.7.1",
+      "date": "Fri, 28 Jul 2023 00:50:20 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "fix an issue the algorithm that checks for circular dependencies fail where 2 output parameter aggregate to 2 metrics that aggregate to the same metric"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.7.0",
       "tag": "@sif/clients_v1.7.0",
       "date": "Thu, 20 Jul 2023 00:30:14 GMT",

@@ -60,6 +60,22 @@ export const activityResource = Type.Object(
 	}
 );
 
+export const activityRequestBody = Type.Object(
+	{
+		name: Type.Optional(name),
+		id: Type.Optional(id),
+		description: Type.Optional(description),
+		attributes: Type.Optional(attributes),
+		state: Type.Optional(state),
+		impacts: Type.Optional(impactMap),
+		tags: Type.Optional(Type.Ref(tags)),
+		activeAt: Type.Optional(activeAt)
+	},
+	{
+		$id: 'activityRequestBody',
+	}
+);
+
 export const newActivityRequestBody = Type.Object(
 	{
 		name,

@@ -26,6 +26,7 @@ export function handleError(error, _request, reply) {
 			case 'AliasInUseError':
 			case 'InvalidStateError':
 				return reply.conflict(error.message);
+			case 'InvalidRequest':
 			case 'InvalidNameError':
 				return reply.badRequest(error.message);
 			case 'NotFoundError':

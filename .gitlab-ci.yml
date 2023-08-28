@@ -17,14 +17,21 @@ variables:
   ENVIRONMENT: staging
   AWS_REGION: us-east-2
 
+.load-test-variables: &load-test-variables
+  ENVIRONMENT: staging
+  AWS_REGION: us-east-2
+
 .main-run-condition: &main-run-condition
   - if: ($CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE != /.*\[skip ci\].*/)
 
 .milestone-run-condition: &milestone-run-condition
-  - if: ($CI_COMMIT_BRANCH == $MILESTONE_BRANCH && $CI_COMMIT_MESSAGE != /.*\[skip ci\].*/)
+  - if: ($CI_COMMIT_BRANCH =~ /milestone.*/ && $CI_COMMIT_MESSAGE != /.*\[skip ci\].*/)
+
+.load-test-run-condition: &load-test-run-condition
+  - if: ($CI_COMMIT_BRANCH == "main" && $PIPELINE_TYPE=="load-test")
 
 .branch-run-condition: &branch-run-condition
-  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH != "main" && $CI_COMMIT_BRANCH != $MILESTONE_BRANCH)
+  - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_BRANCH != "main" && $CI_COMMIT_BRANCH !~ /milestone.*/)
 
 .branch-run-integration-condition: &branch-run-integration-condition
   - if: ($CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH != "main" && $ENVIRONMENT != null && $AWS_REGION != null && $CLEANUP == null)
@@ -38,6 +45,19 @@ variables:
   - rush build
   - popd
 
+.sif-mock-build-steps: &sif-mock-build-steps # install sif-mock dependencies
+  - pushd ../../
+  - git config --global user.name "gitlab-ci-token"
+  - git config --global user.email "gitlab-ci-token"
+  - git clone https://gitlab-ci-token:$CI_JOB_TOKEN@gitlab.aws.dev/wwso-cross-industry-prototyping/sif/sif-mock-data.git
+  - pushd sif-mock-data
+  - npm install
+  - npm run build
+  - node dist/referenceDataSetInput/index.js  -r 1000000 -o ${CI_PROJECT_DIR}/mock-samples # create the mock referenceDataSets
+  - node dist/loadTestInput/index.js -o ${CI_PROJECT_DIR}/mock-samples -s "load_test_single" --rc 1000000 --rr 10 --er 0 # create mock pipeline input
+  - popd
+  - popd
+
 .common-git-steps: &common-git-steps # set up the git credentials
   - git config --global user.name "gitlab-ci-token"
   - git config --global user.email "gitlab-ci-token"
@@ -45,13 +65,20 @@ variables:
 
 .common-install-deployment-dependencies: &common-install-deployment-dependencies
   - yum update -y
-  - yum install -y git tar openssl zip unzip jq
+  - yum install -y git tar openssl zip unzip jq python3 python3-pip
   - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip -qq awscliv2.zip
   - ./aws/install && rm -rf ./aws && rm awscliv2.zip
   - curl -s -qL -o /usr/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64
   - chmod +x /usr/bin/jq
   - npm install -g @microsoft/rush esbuild@0.14 aws-cdk
   - cdk --version
+  - python3 -m pip install semgrep
+
+.common-install-gitlfs: &common-install-gitlfs
+  - yum install -y amazon-linux-extras
+  - amazon-linux-extras install epel -y
+  - yum update -y
+  - yum install -y git-lfs
 
 .common-install-gitlfs: &common-install-gitlfs
   - yum install -y amazon-linux-extras
@@ -88,6 +115,7 @@ stages:
   - test
   - deployStage
   - integrationTest
+  - release
   - deployProd
   # stages below will only be executed in branch and not main
   - deployBranch
@@ -95,6 +123,9 @@ stages:
   - destroyBranch
 
 default:
+  tags:
+    - arch:amd64
+    - size:large
   image:
     name: public.ecr.aws/lambda/nodejs:18
     entrypoint: [ '' ]
@@ -132,7 +163,9 @@ test-milestone:
   script:
     - *common-git-steps
     - *common-build-steps
+    - rush check
     - rush test
+    - semgrep scan --config auto --error
 
 deploy-platform-milestone:
   image:
@@ -174,13 +207,48 @@ deploy-tenant-milestone:
     - cdk deploy --app cdk.out -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
     - popd
 
-integrationTest-milestone:
+integrationTest-milestone-accessManagement:
   rules:
     - *milestone-run-condition
   stage: integrationTest
   variables:
     <<: *milestone-variables
   needs: [ 'deploy-tenant-milestone' ]
+  script:
+    - *common-build-steps
+    - pushd infrastructure/tenant
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - popd
+    - pushd typescript/packages/integrationTests
+    - npm run build && npx cucumber-js dist/features/* --tags @accessManagement
+    - popd
+
+integrationTest-milestone-worker-1:
+  rules:
+    - *milestone-run-condition
+  stage: integrationTest
+  variables:
+    <<: *milestone-variables
+  needs: [ 'integrationTest-milestone-accessManagement' ]
+  script:
+    - *common-build-steps
+    - pushd infrastructure/tenant
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - popd
+    - pushd typescript/packages/integrationTests
+    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @calculations" "npx cucumber-js dist/features/* --tags @impacts" "npx cucumber-js dist/features/* --tags @referenceDataSets" "npx cucumber-js dist/features/* --tags @pipelines"
+    - popd
+
+
+integrationTest-milestone-worker-2:
+  rules:
+    - *milestone-run-condition
+  stage: integrationTest
+  variables:
+    <<: *milestone-variables
+  needs: [ 'integrationTest-milestone-accessManagement' ]
   script:
     - *common-build-steps
     # set up the correct cleanrooms membership id
@@ -190,9 +258,8 @@ integrationTest-milestone:
     - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
     - popd
     - pushd typescript/packages/integrationTests
-    - rushx test:integration
+    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @pipelineProcessor" "npx cucumber-js dist/features/* --tags @endToEnd"
     - popd
-    - *common-git-steps
 
 # Below is deployment step for main branch
 build-run-docker-image:
@@ -225,7 +292,9 @@ test:
     - *common-git-steps
     - bash -c cicd/increment_version.bash
     - *common-build-steps
+    - rush check
     - rush test
+    - semgrep scan --config auto --error
 
 deploy-platform:
   image:
@@ -239,7 +308,6 @@ deploy-platform:
   stage: deployStage
   variables:
     <<: *staging-variables
-  needs: [ 'test' ]
   script:
     - *common-build-steps
     - pushd infrastructure/platform
@@ -267,8 +335,7 @@ deploy-tenant:
     - cdk deploy --app cdk.out -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
     - popd
 
-
-integrationTest:
+integrationTest-main-accessManagement:
   rules:
     - *main-run-condition
   stage: integrationTest
@@ -282,10 +349,103 @@ integrationTest:
     - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
     - popd
     - pushd typescript/packages/integrationTests
-    - rushx test:integration
+    - npm run build && npx cucumber-js dist/features/* --tags @accessManagement
     - popd
+
+integrationTest-main-worker-1:
+  rules:
+    - *main-run-condition
+  stage: integrationTest
+  variables:
+    <<: *staging-variables
+  needs: [ 'integrationTest-main-accessManagement' ]
+  script:
+    - *common-build-steps
+    - pushd infrastructure/tenant
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - popd
+    - pushd typescript/packages/integrationTests
+    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @calculations" "npx cucumber-js dist/features/* --tags @impacts" "npx cucumber-js dist/features/* --tags @referenceDataSets" "npx cucumber-js dist/features/* --tags @pipelines"
+    - popd
+
+integrationTest-main-worker-2:
+  rules:
+    - *main-run-condition
+  stage: integrationTest
+  variables:
+    <<: *staging-variables
+  needs: [ 'integrationTest-main-accessManagement' ]
+  script:
+    - *common-build-steps
+    - pushd infrastructure/tenant
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - popd
+    - pushd typescript/packages/integrationTests
+    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @pipelineProcessor" "npx cucumber-js dist/features/* --tags @endToEnd"
+    - popd
+
+release_typescript:
+  rules:
+    - *main-run-condition
+  stage: release
+  needs: [ 'integrationTest-main-worker-1','integrationTest-main-worker-2' ]
+  script:
+    - *common-build-steps
     - *common-git-steps
+    - pwd
     - bash -c cicd/tag_repository.bash
+
+release_java:
+  before_script:
+    - *common-install-java-dependencies
+  rules:
+    - *main-run-condition
+  stage: release
+  needs: [ 'integrationTest-main-worker-1','integrationTest-main-worker-2' ]
+  script:
+    - *common-git-steps
+    - pwd
+    - echo "$CI_COMMIT_BRANCH"
+    - git checkout -B "$CI_COMMIT_BRANCH"
+    - 'export CONNECTION_URL="scm:git:https://gitlab-ci-token:$PROJECT_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"'
+    - echo "CONNECTION_URL:$CONNECTION_URL"
+    - pushd java/apps/calculator
+    - 'export CALCULATOR_MESSAGE="release(calculator): [skip ci]"'
+    - 'mvn -e se.bjurr.gitchangelog:git-changelog-maven-plugin:1.97.1:semantic-version org.apache.maven.plugins:maven-release-plugin:3.0.1:prepare --batch-mode -DdeveloperConnectionUrl="$CONNECTION_URL" -DskipTests=true -DscmCommitPrefix="$CALCULATOR_MESSAGE" -DscmDevelopmentCommitComment="$CALCULATOR_MESSAGE" -DscmReleaseCommitComment="$CALCULATOR_MESSAGE" org.apache.maven.plugins:maven-release-plugin:3.0.1:perform'
+    - mvn generate-resources
+    - popd
+    - pushd java/apps/referencedatasets-indexer
+    - 'INDEXER_MESSAGE="release(indexer): [skip ci]"'
+    - 'mvn -e se.bjurr.gitchangelog:git-changelog-maven-plugin:1.97.1:semantic-version org.apache.maven.plugins:maven-release-plugin:3.0.1:prepare --batch-mode -DdeveloperConnectionUrl="$CONNECTION_URL" -DskipTests=true -DscmCommitPrefix="$INDEXER_MESSAGE"  -DscmDevelopmentCommitComment="$INDEXER_MESSAGE" -DscmReleaseCommitComment="$INDEXER_MESSAGE" org.apache.maven.plugins:maven-release-plugin:3.0.1:perform'
+    - mvn generate-resources
+    - popd
+    - git branch --set-upstream-to=origin/$CI_COMMIT_BRANCH
+    - git pull
+    - git add java/apps/*
+    - 'git commit -m "release: [skip ci]"'
+    - git push
+
+integrationTest-loadTest:
+  rules:
+    - *load-test-run-condition
+  stage: integrationTest
+  variables:
+    <<: *load-test-variables
+  script:
+    - *common-build-steps
+    - *sif-mock-build-steps
+    - pushd infrastructure/tenant
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - pwd
+    - popd
+    - pushd typescript/packages/integrationTests
+    - export LOAD_TEST_DIRECTORY=${CI_PROJECT_DIR}/mock-samples
+    - ls -lht $LOAD_TEST_DIRECTORY
+    - rushx test:load
+    - popd
 
 deployCoreProd:
   image:
@@ -298,7 +458,7 @@ deployCoreProd:
   stage: deployProd
   variables:
     <<: *prod-variables
-  needs: [ 'integrationTest' ]
+  needs: [ 'release_typescript','release_java' ]
   script:
     - *common-build-steps
     - pushd infrastructure/platform
@@ -317,10 +477,12 @@ branchTest:
     - *branch-run-condition
   stage: test
   script:
-    # only run rush change for non dependabot PR
-    - if [[ "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" != dependabot* ]] ; then rush change --verify; fi;
+    # do not run rush change if the target is not main or if its dependabot related change
+    - if [[ "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" != dependabot* &&  "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" == "main" ]] ; then rush change --verify; fi;
     - *common-build-steps
+    - rush check
     - rush test
+    - semgrep scan --config auto --error
 
 branchTestCalculator:
   image:

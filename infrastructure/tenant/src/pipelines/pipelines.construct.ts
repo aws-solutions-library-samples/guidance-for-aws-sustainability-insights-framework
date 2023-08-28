@@ -25,6 +25,7 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { EventBus } from 'aws-cdk-lib/aws-events';
 import { NagSuppressions } from 'cdk-nag';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,6 +92,7 @@ export class PipelinesModule extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		apiLambda.node.addDependency(table);

@@ -25,6 +25,7 @@ import { Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import type { DatabaseSecret } from 'aws-cdk-lib/aws-rds';
 import { NagSuppressions } from 'cdk-nag';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -133,7 +134,8 @@ export class DeploymentHelper extends Construct {
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
 				externalModules: ['aws-sdk', 'pg-native'],
 			},
-			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml')
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		taskRole.grantPassRole(deploymentHelperLambda.role);

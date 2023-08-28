@@ -68,10 +68,11 @@ Before starting, the following decisions need to be made. Replace the referenced
 | If using CaML, an optional deep learning model container tag for [Hugging Face](https://docs.aws.amazon.com/sagemaker/latest/dg-ecr-paths/ecr-us-east-2.html#huggingface-us-east-2.title)          | N          | By default, Hugging Face container tag is set to `1.13.1-transformers4.26.0-gpu-py39-cu117-ubuntu20.04`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `<camlContainerTag>`          |
 | If using CaML, an optional version (using commit hash) used for checking out `sentence-transformers/all-mpnet-base-v2` repository to pull the pre-trained model                                    | N          | By default, the hash for the repository `sentence-transformer/all-mpnet-base-v2 repository` is set to `bd44305fd6a1b43c16baf96765e2ecb20bca8e1d`                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `<camlRepositoryHash>`        |
 | If using CaML, an optional sagemaker instance type used to host the real time inference endpoint                                                                                                   | N          | By default, the instance type is set to `ml.g4dn.xlarge`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | `<camlInstanceType>`          |
+| If you want to define the decimal precision                                                                                                                                                        | N          | By default, the decimal precision is set to 16 digits.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `<decimalPrecision>`          |
 ## Step 1 - Cloning the repository
 
 ```shell
-> git clone git@github.com:aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git
+> git clone https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git
 ```
 
 ## Step 2 - Deploy the typescript modules
@@ -79,10 +80,10 @@ Before starting, the following decisions need to be made. Replace the referenced
 ### Initialize and build the code
 
 ```shell
->  cd sif-core/typescript
+>  cd guidance-for-aws-sustainability-insights-framework/typescript
 
-sif-core/typescript>  rush update --bypass-policy
-sif-core/typescript>  rush build
+guidance-for-aws-sustainability-insights-framework/typescript>  rush update --bypass-policy
+guidance-for-aws-sustainability-insights-framework/typescript>  rush build
 ```
 
 ### First time setup
@@ -91,7 +92,7 @@ First time installers will need to bootstrap their AWS accounts (a requirement o
 
 ```shell
 # move to the platform infrastructure folder
-sif-core/typescript>  cd ../infrastructure/platform
+guidance-for-aws-sustainability-insights-framework/typescript>  cd ../infrastructure/platform
 
 # bootstrap
 infrastructure/platform>  npm run cdk -- bootstrap \
@@ -106,11 +107,11 @@ infrastructure/platform>  npm run cdk -- bootstrap \
 The platform components represent infrastructure that is created and shared across a specific environment, e.g. a shared Aurora cluster. An environment can compose of many SIF deployments such as to represent individual siloed tenants.
 Multiple environments may be created per each AWS account / region.
 
-If the _First time setup_ step was skipped, make sure are you running the commands from the `sif-core/infrastructure/platform` directory:
+If the _First time setup_ step was skipped, make sure are you running the commands from the `guidance-for-aws-sustainability-insights-framework/infrastructure/platform` directory:
 
 ```shell
 # deploy
-sif-core/infrastructure/platform>  npm run cdk -- deploy \
+guidance-for-aws-sustainability-insights-framework/infrastructure/platform>  npm run cdk -- deploy \
     -c environment=<environment> \
 
 	# [OPTIONAL] if using AWS Client VPN then set the following:
@@ -139,10 +140,10 @@ Note that the `deploy` command following has some optional arguments as describe
 
 ```shell
 # move to the tenant infrastructure folder
-sif-core/infrastructure/platform>  cd ../tenant
+guidance-for-aws-sustainability-insights-framework/infrastructure/platform>  cd ../tenant
 
 # deploy
-sif-core/infrastructure/tenant> npm run cdk -- deploy \
+guidance-for-aws-sustainability-insights-framework/infrastructure/tenant> npm run cdk -- deploy \
  -c tenantId=<tenantId> \
  -c environment=<environment> \
  -c administratorEmail=<administratorEmail> \
@@ -179,16 +180,16 @@ As part of the deployment a Cognito user is created with their temporary passwor
 
 ```shell
 # move to the core integration tests project where helper scripts are available
-sif-core/infrastructure/platform>  cd ../../typescript/packages/integrationTests
+guidance-for-aws-sustainability-insights-framework/infrastructure/platform>  cd ../../typescript/packages/integrationTests
 
 # change the password
-sif-core/typescript/packages/integrationTests>   npm run generate:token -- <tenantId> <environment> <administratorEmail> <temporaryPassword> <newPassword>
+guidance-for-aws-sustainability-insights-framework/typescript/packages/integrationTests>   npm run generate:token -- <tenantId> <environment> <administratorEmail> <temporaryPassword> <newPassword>
 ```
 
 **Note:** If the temporary password generated by Cognito contains characters other than letters or numbers (e.g. `<`), then the temporary password will need to be enclosed in quotes:
 
 ```
-sif-core/typescript/packages/integrationTests>   npm run generate:token -- <tenantId> <environment> <administratorEmail> '<temporaryPassword>' <newPassword>
+guidance-for-aws-sustainability-insights-framework/typescript/packages/integrationTests>   npm run generate:token -- <tenantId> <environment> <administratorEmail> '<temporaryPassword>' <newPassword>
 ```
 
 ## Finished

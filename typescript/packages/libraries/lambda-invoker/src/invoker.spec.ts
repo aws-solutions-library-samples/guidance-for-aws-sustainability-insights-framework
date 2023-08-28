@@ -55,7 +55,7 @@ describe('Invoker', () => {
 				'{"statusCode":201,"body":"{\\"certificatePem\\":\\"-----BEGIN CERTIFICATE---\\",\\"resourceArns\\":{\\"certificate\\":\\"arn:aws:iot:us-west-2:xxxxxxxxxxxx:cert/f9d865017f3ae942728d29333759c8e6a5299bb16d2d7dfa789cc175f5dd8412\\",\\"thing\\":\\"arn:aws:iot:us-west-2:xxxxxxxxxxxx:thing/test-core-150\\"}}","headers":{"x-powered-by":"Express","access-control-allow-origin":"*"}}'
 			),
 			ExecutedVersion: '$LATEST',
-		});
+		} as any);
 
 		const actual = await instance.invoke(functionName, lambdaApiGatewayEvent);
 

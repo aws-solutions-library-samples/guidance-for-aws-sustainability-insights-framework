@@ -1,4 +1,4 @@
-@setup_referenceDatasets
+@setup_referenceDatasets @referenceDatasets
 Feature:
 	Scenario: Setup users
 		Given group /paginationReferenceDatasetTests exists

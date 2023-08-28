@@ -2,6 +2,38 @@
   "name": "@sif/infrastructure-tenant",
   "entries": [
     {
+      "version": "7.17.0",
+      "tag": "@sif/infrastructure-tenant_v7.17.0",
+      "date": "Thu, 17 Aug 2023 02:44:14 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Add use of ARM Lambda architecture"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/access-management\" to `4.1.1`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.8.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.16.2",
+      "tag": "@sif/infrastructure-tenant_v7.16.2",
+      "date": "Fri, 28 Jul 2023 00:50:20 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.8.1`"
+          }
+        ]
+      }
+    },
+    {
       "version": "7.16.1",
       "tag": "@sif/infrastructure-tenant_v7.16.1",
       "date": "Fri, 21 Jul 2023 23:58:18 GMT",

@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.math.RoundingMode;
 
 @Slf4j
 @Data
@@ -52,5 +53,9 @@ public class NumberTypeValue extends DynamicTypeValue<BigDecimal> {
 
     public NumberTypeValue(double d) {
         this.value = new BigDecimal(d, MathContext.DECIMAL64);
+    }
+
+    public BigDecimal Scale(int precision){
+        return value.setScale(precision ,RoundingMode.FLOOR).stripTrailingZeros();
     }
 }

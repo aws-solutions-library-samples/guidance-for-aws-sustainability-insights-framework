@@ -21,6 +21,7 @@ describe('csvService', () => {
 		},
 		// ignore the rest below
 		id: 'pipeId',
+		name: "pipelineName",
 		version: 1,
 		transformer: {
 			transforms: [],

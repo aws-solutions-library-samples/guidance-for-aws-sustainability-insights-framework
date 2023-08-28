@@ -28,6 +28,7 @@ import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { NagSuppressions } from 'cdk-nag';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -143,6 +144,7 @@ export class ImpactsModule extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		apiLambda.node.addDependency(table);
@@ -236,6 +238,7 @@ export class ImpactsModule extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		sqsLambdaImpactsTask.node.addDependency(table);

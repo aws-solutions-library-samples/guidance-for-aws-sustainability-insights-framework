@@ -348,7 +348,7 @@ ORDER BY  v."activityId", v.name, v."createdAt" desc`);
 
 	private async executeQueriesInsideTransaction(queries: string[]): Promise<void> {
 		this.log.debug(`ActivitiesRepository> executeQueriesInsideTransaction> in: `);
-
+		this.log.trace(`ActivitiesRepository> executeQueriesInsideTransaction> queries: ${JSON.stringify(queries)}`);
 		const dbConnection = await this.baseRepositoryClient.getConnection();
 
 		try {
@@ -441,8 +441,12 @@ ORDER BY  v."activityId", v.name, v."createdAt" desc`);
 			const insertActivityReference = ulid();
 			const insertActivityStatement = this.buildInsertActivityStatement(activity, insertActivityReference, groupId, pipelineId, pipelineMetadata.aggregate);
 			const insertMultipleActivityValueStatements = this.buildInsertActivityValuesStatements(activity, insertActivityReference, executionId, fieldToTypeMap, pipelineMetadata.aggregate.timestampField);
-			const query = [insertActivityStatement, ...insertMultipleActivityValueStatements].join('');
-			insertStatements.push(query);
+
+			// Validate ActivityValues is not empty
+			if (insertMultipleActivityValueStatements.length){
+				const query = [insertActivityStatement, ...insertMultipleActivityValueStatements].join('');
+				insertStatements.push(query);
+			}
 		}
 
 		this.log.debug(`ActivitiesRepository> buildInsertAggregatedActivityQuery> out: ${insertStatements}`);

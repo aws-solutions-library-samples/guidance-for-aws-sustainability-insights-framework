@@ -1,4 +1,4 @@
-@setup_endToEnd
+@setup_endToEnd @pipelineProcessor
 Feature: Pipeline Processors API - aggregation feature
 
 	Scenario: Setup groups

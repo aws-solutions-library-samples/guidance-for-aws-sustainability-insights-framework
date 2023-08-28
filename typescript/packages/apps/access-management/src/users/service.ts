@@ -31,8 +31,7 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { atLeastAdmin, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
 
-import { InvalidStateError, NotFoundError, TagRepository, TagService, UnauthorizedError, ResourceService, Tags, type MergeUtils } from '@sif/resource-api-base';
-
+import { InvalidRequestError, InvalidStateError, NotFoundError, TagRepository, TagService, UnauthorizedError, ResourceService, Tags, type MergeUtils } from '@sif/resource-api-base';
 import type { UserRepository } from './repository.js';
 import type { GroupModuleService } from '../groups/service.js';
 import type { EventPublisher } from '@sif/events';
@@ -81,8 +80,11 @@ export class UserService {
 	public async update(securityContext: SecurityContext, email: string, updated: EditUser): Promise<User> {
 		this.log.debug(`UserService> update> email:${email}, updated:${JSON.stringify(updated)}`);
 
-		email = email.toLowerCase();
+		if (!updated?.password && !updated?.defaultGroup && !updated?.state && !updated?.tags) {
+			throw new InvalidRequestError('Request body should contains one or more of these parameters: password, defaultGroup, state, tags');
+		}
 
+		email = email.toLowerCase();
 		// Authz check 1 - `reader` and above may update their own password
 		if (updated.password !== undefined) {
 			if (email !== securityContext.email) {
@@ -92,6 +94,9 @@ export class UserService {
 
 		// Authz check 2: `admin` roles may update any user status where they are themselves an \`admin\` of all the groups the user is a member of
 		if (updated.state !== undefined) {
+			if (email === securityContext.email) {
+				throw new UnauthorizedError(`User's may only update the state of other user.`);
+			}
 			const existingUser = await this.get(securityContext, email);
 			const isAuthorized = this.authChecker.isAuthorized(Object.keys(existingUser.groups), securityContext.groupRoles, atLeastAdmin, 'all');
 			if (!isAuthorized) {
@@ -145,6 +150,16 @@ export class UserService {
 				this.log.debug(`UserService> update> AdminEnableUserCommand params:${JSON.stringify(params)}`);
 				await this.cognito.send(new AdminEnableUserCommand(params));
 			} else {
+				let paginationToken = undefined, keepGoing = true;
+				while (keepGoing) {
+					const [result, responseToken] = await this.list(securityContext, { exclusiveStart: paginationToken, includeParentGroups: true, includeChildGroups: true });
+					paginationToken = responseToken;
+					// find any admin (except for the user resource) on root that is not disabled
+					if (result.filter(o => ['invited', 'active'].includes(o.state) && o.groups?.['/'] === 'admin' && o.email !== email).length < 1) {
+						throw new InvalidRequestError(`user ${email} is the last remaining admin in the root group`);
+					}
+					keepGoing = responseToken !== undefined;
+				}
 				const params: AdminDisableUserCommandInput = {
 					UserPoolId: this.userPoolId,
 					Username: email,

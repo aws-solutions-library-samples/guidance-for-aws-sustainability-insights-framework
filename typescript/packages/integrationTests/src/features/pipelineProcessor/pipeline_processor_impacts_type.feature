@@ -1,4 +1,4 @@
-@setup_endToEnd
+@setup_endToEnd @pipelineProcessor
 Feature:
 	Pipeline Processor Impact Type Integration Test
 
@@ -88,8 +88,8 @@ Feature:
 		Then response code should be 201
 		And I store the value of body path $.url as success_download_url in global scope
 		When I download the output CSV file from the url stored at global variable success_download_url it will match rows
-			| componentType | componentValue | activityName | activity_tag_testSource       | impactName | componentKey |
-			| carbon        | 2              | testActivity | pipelineProcessorsImpactsType | testImpact | co2e         |
+			| componentType | componentValue | activityName   | activity_tag_testSource         | impactName   | componentKey |
+			| "carbon"      | 2              | "testActivity" | "pipelineProcessorsImpactsType" | "testImpact" | "co2e"       |
 
 	Scenario: Retrieve created activity using pipeline id as tag value
 		Given I'm using the impacts api

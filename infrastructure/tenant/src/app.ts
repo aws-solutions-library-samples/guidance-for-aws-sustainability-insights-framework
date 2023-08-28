@@ -29,6 +29,7 @@ import { ReferenceDatasetsApiStack } from './referenceDatasets/referenceDatasets
 import { SharedTenantInfrastructureStack } from './shared/sharedTenant.stack.js';
 import { CleanRoomsConnectorStack } from './connectors/cleanRooms.stack.js';
 import { getOrThrow } from './shared/stack.utils.js';
+import { registerAllFacts } from '@sif/cdk-common';
 
 const tenantApp = new cdk.App();
 
@@ -67,6 +68,9 @@ const auditVersion = '1';
 const minScaling = (tenantApp.node.tryGetContext('minScaling') as number) ?? 1;
 const maxScaling = (tenantApp.node.tryGetContext('maxScaling') as number) ?? 10;
 
+//optional requirements for calculator precision of decimal number
+const decimalPrecision = (tenantApp.node.tryGetContext('decimalPrecision') as number) ?? 16;
+
 //Validate parameters
 let tenantPathRegex = /([a-z1-9_-]*):\/([a-z1-9_-]*)/g;
 let sharedGroupRegex = /\/([a-z1-9_-]*)/g;
@@ -96,7 +100,8 @@ const sifConnectorName = 'sif-activity-pipeline-input-connector';
 const cleanRoomsConnectorName = 'sif-cleanRooms-pipeline-input-connector';
 
 const tenantStackName = (suffix: string) => `${tenantStackNamePrefix}-${suffix}`;
-const tenantStackDescription = (moduleName: string) => `Infrastructure for ${moduleName} module -- Guidance for Sustainability Insights Framework on AWS (SO9161)`;
+const tenantStackDescription = (moduleName: string, includeGuidanceCode: boolean) => `Infrastructure for ${moduleName} module${includeGuidanceCode ? ' -- Guidance for Sustainability Insights Framework on AWS (SO9161).': '.'}`;
+
 
 
 const getCaCertResponse = await axios.get('https://www.amazontrust.com/repository/AmazonRootCA1.pem');
@@ -111,9 +116,11 @@ const env: cdk.Environment = {
 	region: process.env['CDK_DEPLOY_REGION'] || process.env['CDK_DEFAULT_REGION'],
 };
 
+registerAllFacts();
+
 const sharedInfrastructureStack = new SharedTenantInfrastructureStack(tenantApp, 'SharedTenant', {
 	stackName: tenantStackName('shared'),
-	description: tenantStackDescription('SharedTenant'),
+	description: tenantStackDescription('SharedTenant', true),
 	env,
 	tenantId,
 	environment,
@@ -133,7 +140,7 @@ const sharedInfrastructureStack = new SharedTenantInfrastructureStack(tenantApp,
 
 const accessManagementStack = new AccessManagementStack(tenantApp, 'AccessManagement', {
 	stackName: tenantStackName('accessManagement'),
-	description: tenantStackDescription('AccessManagement'),
+	description: tenantStackDescription('AccessManagement', false),
 	env,
 	tenantId,
 	environment,
@@ -143,7 +150,7 @@ accessManagementStack.node.addDependency(sharedInfrastructureStack);
 
 const auditLogDepositorStack = new AuditLogDepositorStack(tenantApp, 'AuditLogDepositor', {
 	stackName: tenantStackName('auditLogDepositor'),
-	description: tenantStackDescription('AuditLogDepositor'),
+	description: tenantStackDescription('AuditLogDepositor', false),
 	env,
 	tenantId,
 	environment,
@@ -152,20 +159,21 @@ auditLogDepositorStack.node.addDependency(sharedInfrastructureStack);
 
 const calculatorStack = new CalculatorApiStack(tenantApp, 'Calculator', {
 	stackName: tenantStackName('calculator'),
-	description: tenantStackDescription('Calculator'),
+	description: tenantStackDescription('Calculator', false),
 	env,
 	tenantId,
 	environment,
 	caCert: getCaCertResponse.data,
 	minScaling,
 	maxScaling,
-	includeCaml
+	includeCaml,
+	decimalPrecision
 });
-calculatorStack.node.addDependency(sharedInfrastructureStack,auditLogDepositorStack);
+calculatorStack.node.addDependency(sharedInfrastructureStack, auditLogDepositorStack);
 
 const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'PipelineProcessors', {
 	stackName: tenantStackName('pipelineProcessors'),
-	description: tenantStackDescription('PipelineProcessors'),
+	description: tenantStackDescription('PipelineProcessors', false),
 	env,
 	tenantId,
 	environment,
@@ -180,7 +188,7 @@ pipelineProcessorsStack.node.addDependency(calculatorStack);
 
 const referenceDatasetsApiStack = new ReferenceDatasetsApiStack(tenantApp, 'ReferenceDatasets', {
 	stackName: tenantStackName('referenceDatasets'),
-	description: tenantStackDescription('ReferenceDatasets'),
+	description: tenantStackDescription('ReferenceDatasets', false),
 	env,
 	tenantId,
 	environment,
@@ -192,7 +200,7 @@ referenceDatasetsApiStack.node.addDependency(sharedInfrastructureStack);
 
 const impactsApiStack = new ImpactsApiStack(tenantApp, 'Impacts', {
 	stackName: tenantStackName('impacts'),
-	description: tenantStackDescription('Impacts'),
+	description: tenantStackDescription('Impacts', false),
 	env,
 	tenantId,
 	environment,
@@ -204,7 +212,7 @@ impactsApiStack.node.addDependency(sharedInfrastructureStack);
 
 const pipelineApiStack = new PipelineApiStack(tenantApp, 'Pipelines', {
 	stackName: tenantStackName('pipelines'),
-	description: tenantStackDescription('Pipelines'),
+	description: tenantStackDescription('Pipelines', false),
 	env,
 	tenantId,
 	environment,
@@ -214,7 +222,7 @@ pipelineApiStack.node.addDependency(sharedInfrastructureStack);
 
 const calculationApiStack = new CalculationApiStack(tenantApp, 'Calculations', {
 	stackName: tenantStackName('calculations'),
-	description: tenantStackDescription('Calculations'),
+	description: tenantStackDescription('Calculations', false),
 	env,
 	tenantId,
 	environment,
@@ -228,7 +236,7 @@ calculationApiStack.node.addDependency(sharedInfrastructureStack);
 
 const sifConnectorStack = new SifConnectorStack(tenantApp, 'sifConnector', {
 	stackName: tenantStackName('sifConnector'),
-	description: tenantStackDescription('sifConnector'),
+	description: tenantStackDescription('sifConnector', false),
 	env,
 	tenantId,
 	environment,
@@ -238,7 +246,7 @@ sifConnectorStack.node.addDependency(pipelineApiStack);
 
 const csvConnectorStack = new CsvConnectorStack(tenantApp, 'csvConnector', {
 	stackName: tenantStackName('csvConnector'),
-	description: tenantStackDescription('csvConnector'),
+	description: tenantStackDescription('csvConnector', false),
 	env,
 	tenantId,
 	environment,
@@ -248,7 +256,7 @@ csvConnectorStack.node.addDependency(pipelineApiStack);
 
 const cleanRoomsConnectorStack = new CleanRoomsConnectorStack(tenantApp, 'cleanRoomsConnector', {
 	stackName: tenantStackName('cleanRoomsConnector'),
-	description: tenantStackDescription('cleanRoomsConnector'),
+	description: tenantStackDescription('cleanRoomsConnector', false),
 	env,
 	tenantId,
 	environment,

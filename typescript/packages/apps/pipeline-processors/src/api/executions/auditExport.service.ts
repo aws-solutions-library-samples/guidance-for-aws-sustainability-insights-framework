@@ -40,7 +40,7 @@ export class ExecutionAuditExportService {
 	}
 
 
-	public async createAuditExportUrl(sc: SecurityContext, pipelineId: string, executionId: string): Promise<{url?: string, state?: 'inProgress' | 'success'}> {
+	public async createAuditExportUrl(sc: SecurityContext, pipelineId: string, executionId: string): Promise<{ url?: string, state?: 'inProgress' | 'success' }> {
 		this.log.info(`ExecutionAuditExportService> export> pipelineId: ${pipelineId}, executionId: ${executionId}`);
 
 		// authorization role check
@@ -50,45 +50,40 @@ export class ExecutionAuditExportService {
 		}
 
 		// ensure execution exists
-		const execution = await this.pipelineProcessorsService.get(sc, pipelineId, executionId);
-
-		if(!execution) {
-			throw new Error('Not Found')
-		}
-
+		const execution = await this.pipelineProcessorsService.get(sc, executionId);
 		// ensure user has access to the pipeline execution
-		this.utils.validatePipelineExecutionAccess([execution.groupContextId], sc.groupId, executionId);
+		this.utils.validatePipelineExecutionAccess(execution, sc.groupId);
 
 		// check to see if an export archive has already been previously generated
 		const auditExportFileKey = await this.exportUtility.getAuditExportFileKey(pipelineId, executionId);
 		let archiveUrl;
-		if(auditExportFileKey) {
+		if (auditExportFileKey) {
 			// if one exists, return 200 with presigned url
 			archiveUrl = await this.exportUtility.generateExportUrl(auditExportFileKey);
 		}
 
 		// if not, see if lock file exists which means one is in progress
-		if(!auditExportFileKey) {
+		if (!auditExportFileKey) {
 			const lockFileExists = await this.exportUtility.lockFileExists(pipelineId, executionId);
 			// if lock file does exist, return 204
-			if(lockFileExists) {
+			if (lockFileExists) {
 				return {
 					state: 'inProgress'
-				}
+				};
 			}
 
-			if(!lockFileExists) {
+			if (!lockFileExists) {
 				// if no lock file then async publish to sqs where a listener (in this same project) will receive, build the athena query, execute, then store metadata file linking containing athena filename. but in meantime return a 204
 				await this.exportUtility.publishAuditGenerationRequest(sc, pipelineId, executionId);
 				return {
 					state: 'inProgress'
-				}
+				};
 			}
 		}
 		this.log.info(`ExecutionAuditExportService> export> url: ${archiveUrl}`);
 		return {
 			url: archiveUrl
-		}
+		};
 
 	}
 

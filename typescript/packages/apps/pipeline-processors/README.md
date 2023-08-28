@@ -320,6 +320,54 @@ Response includes processed pipeline activities:
 	}
 }
 ```
+### Viewing Pipeline Performance
+
+We capture a set of custom cloudwatch metrics that enable us to monitor the performance of the pipeline execution.
+
+Note: Currently this feature is only enabled for pipelines that have a type of `activities`.
+
+The table bellow provides a description of the Logical tasks in the pipeline execution we monitor
+
+| Task Name                              | PipeLine Type | Description                                                                                          |
+|----------------------------------------|---------------|------------------------------------------------------------------------------------------------------|
+| Calculation                            | `activities`  | processes the data according to the pipeline definition and provides the outputs to subsequent steps |
+| AcquireLockInsertActivityValues        | `activities`  | Acquires a DB lock for the `ActivityInsertValues` task                                               |
+| ActivityInsertValues                   | `activities`  | Inserts activity values into the DB                                                                  |
+| ReleaseLockInsertActivityValuesSuccess | `activities`  | When successful, release the DB lock for the `ActivityInsertValues` task                             |
+| ReleaseLockInsertActivityValuesFail    | `activities`  | When fail, release the DB lock for the `ActivityInsertValues` task                                   |
+| AcquireLockInsertLatestActivityValues  | `activities`  | Acquires a DB lock for the `JobInsertLatestValuesTask` task                                          |
+| JobInsertLatestValuesTask              | `activities`  | Inserts latest activity values into the DB                                                           |
+| ReleaseLockInsertLatestActivityValues  | `activities`  | Release the DB lock for the `JobInsertLatestValuesTask` task                                         |
+| Post Processing Tasks                  | `activities`  | Overall parallel task that encompasses both pipeline and metric aggregation                          |
+| AcquireLockMetricAggregation           | `activities`  | Acquires a DB lock for the `MetricAggregation` task                                                  |
+| MetricAggregation                      | `activities`  | Aggregates metrics and inserts them into the DB                                                      |
+| ReleaseLockMetricAggregation           | `activities`  | Release the DB lock for the `MetricAggregation` task                                                 |
+| AcquireLockPipelineAggregation         | `activities`  | Acquires a DB lock for the `PipelineAggregation` task                                                |
+| PipelineAggregation                    | `activities`  | Aggregates the pipeline metrics and inserts them into the DB                                         |
+| ReleaseLockPipelineAggregation         | `activities`  | Release the DB lock for the `PipelineAggregation` task                                               |
+
+For each of the tasks we capture 3 metrics, that can be seen in the table bellow:
+
+| Metric Name | Description                                                   |
+|-------------|---------------------------------------------------------------|
+| Runtime     | The overall execution time of the task in seconds             |
+| Success     | the Success status of the task `1 => success` and `0 => fail` |
+| Failure     | the Failure status of the task `1 => fail` and `0 => success` |
+
+Each metric will have additional dimension data that can be used to query it from CloudWatch.
+
+| Dimension Name | Description                                            |
+|----------------|--------------------------------------------------------|
+| tenant         | The tenant the execution belongs to                    |
+| environment    | The environment the execution belongs to               |
+| task           | The task the metric is collected for                   |
+| pipelineName   | The name of the pipeline configuration of the metric   |
+| executionId    | The execution Id                                       |
+| module         | The core module that is used for execution of the task |
+
+#### How to Use
+You can use these custom metrics to gauge the performance of your pipeline executions via the CloudWatch dashboard or APIs.
+Further details on how to construct queries via metrics insights can be found [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-metrics-insights-querylanguage.html) .
 
 ## Things to Note
 

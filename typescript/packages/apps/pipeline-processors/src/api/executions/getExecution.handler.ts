@@ -56,7 +56,7 @@ export default function getPipelineExecutionRoute(fastify: FastifyTypebox, _opti
 
 		handler: async (request, reply) => {
 			const svc = fastify.diContainer.resolve('pipelineProcessorsService');
-			const pipelineExecution = await svc.get(request.authz, request.params.pipelineId, request.params.executionId);
+			const pipelineExecution = await svc.get(request.authz, request.params.executionId);
 			await reply.status(200).send(pipelineExecution); // nosemgrep
 		},
 	});

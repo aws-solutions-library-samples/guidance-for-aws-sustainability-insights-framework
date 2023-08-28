@@ -16,16 +16,14 @@ import { Type, Static } from '@sinclair/typebox';
 import { id, createdBy, createdAt, updatedBy, updatedAt, stringEnum, groups } from '@sif/resource-api-base';
 import type { SecurityContext } from '@sif/authz';
 
-import { editActivityRequestBody } from '../activities/schemas.js';
+import { activityRequestBody } from '../activities/schemas.js';
 
 const taskStatus = stringEnum(['waiting', 'inProgress', 'success', 'failure'], 'Task execution status');
 const taskType = stringEnum(['create', 'update'], 'Task type');
 
 export const fromTaskIdPaginationParam = Type.Optional(Type.String({ description: 'Task Id to paginate from (exclusive).' }));
 
-export const activityTaskItems = Type.Array(Type.Intersect([editActivityRequestBody, Type.Object({ id: Type.Optional(id), name: Type.Optional(Type.String()) })]), {
-	description: 'array of items, for create type task, these should include names, for update type task, the items should include ids',
-});
+export const activityTaskItems = Type.Array(activityRequestBody)
 
 export const activityTaskNew = Type.Object(
 	{

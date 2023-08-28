@@ -14,13 +14,13 @@
 import pino from 'pino';
 import { LambdaClient } from '@aws-sdk/client-lambda';
 import { DataTable, Given, Then, When } from '@cucumber/cucumber';
-import { Invoker, LambdaApiGatewayEventBuilder } from '@sif/lambda-invoker';
 import { getAuthToken } from '../support/util.js';
 import assert, { fail } from 'assert';
 import axios from 'axios';
 import fs from 'fs';
-import FormData from 'form-data';
+import FormData, { AppendOptions } from 'form-data';
 import { JSONPath } from 'jsonpath-plus';
+import { Invoker, LambdaApiGatewayEventBuilder } from '@sif/lambda-invoker';
 
 global.jwts = {};
 global.localUserClaims = {
@@ -45,7 +45,7 @@ Given(/^Using tenant (.*) I authenticate with email (.*) and password (.*)$/, as
 
 Given(/^(.*) should be unauthorized in group (.*)$/, async function(email: string, group: string) {
 	const token = global.jwts[email.toLowerCase()];
-	assert.equal(token, 'NotAuthorizedException');
+	assert.equal(token, 'NotAuthorizedException', `user ${email} still have access to group ${group}`);
 });
 
 Given(/^I store the environment variable (.*) as (.*) in global scope$/, async function(variableName, variable) {
@@ -70,10 +70,58 @@ Given(/^I set form data to$/, async function(table: DataTable) {
 				formValue = o['value'];
 				break;
 		}
+		const appendOptions = type ? { contentType: type } : undefined as unknown as AppendOptions;
+		formData.append(name, formValue, appendOptions);
+	});
+	this.apickli.httpRequestOptions.formData = formData;
+});
+
+Given(/^Using directory stored at global variable (.*) I set form data to$/, async function(directoryVariable:string, table: DataTable) {
+	const directory = this['apickli'].getGlobalVariable(directoryVariable);
+	this.apickli.removeRequestHeader('Content-Type');
+	this.apickli.addRequestHeader('Content-Type', 'multipart/form-data');
+	const formData = new FormData();
+	table.hashes().forEach((o) => {
+		let formValue;
+		const { name, value, type } = o;
+		switch (type) {
+			case 'text/csv':
+				formValue = fs.readFileSync(`${directory}/${value}`);
+				break;
+			case 'application/json':
+				formValue = JSON.stringify(JSON.parse(o['value']));
+				break;
+			default:
+				formValue = o['value'];
+				break;
+		}
 		formData.append(name, formValue, type ? { contentType: type } : undefined);
 	});
 	this.apickli.httpRequestOptions.formData = formData;
 });
+
+Given(/^Using directory stored at global variable (.*) I upload (.*) as an input CSV file to url stored at global variable (.*)$/, async function(directoryVariable:string, fileName:string, urlVariable:string) {
+	const directory = this['apickli'].getGlobalVariable(directoryVariable);
+	const url = this['apickli'].getGlobalVariable(urlVariable);
+	const fileLocation =`${directory}/${fileName}`
+	console.log(`\n ******* Uploading ReferenceDataSet file ${fileLocation}`);
+
+
+	try {
+		const buffer = await fs.readFileSync(fileLocation, 'utf-8');
+		const response = await axios.put(url, buffer, {
+			headers: {
+				'Content-Type': 'text/csv',
+			},
+		});
+		assert.equal(response.status, 200);
+		console.log(`\n ******* Finished uploading`);
+	} catch (e) {
+		console.error(e);
+		throw new Error('Failed uploading input file to S3');
+	}
+});
+
 
 Given(/^I clear authorization token for email (.*)$/, async function(email: string) {
 	delete global.jwts[email.toLowerCase()];
@@ -241,7 +289,8 @@ Then(/^response body path (.*) should match stringified json (.*)$/, function(pa
 function getAccessManagementInvoker(): Invoker {
 	if (global.accessManagementInvoker === undefined) {
 		const lamdbaClient = new LambdaClient({ region: process.env.AWS_REGION as string });
-		global.accessManagementInvoker = new Invoker(pino(), lamdbaClient);
+		const logger = pino();
+		global.accessManagementInvoker = new Invoker(logger, lamdbaClient);
 	}
 	return global.accessManagementInvoker;
 }

@@ -1,4 +1,4 @@
-@setup_referenceDatasets
+@setup_referenceDatasets @referenceDatasets
 Feature:
 
 	This feature tests the granting/revocation of access to referenceDatasets between groups, therefore only focuses on testing

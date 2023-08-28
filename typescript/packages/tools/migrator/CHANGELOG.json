@@ -1,0 +1,17 @@
+{
+  "name": "@sif/migrator",
+  "entries": [
+    {
+      "version": "0.1.0",
+      "tag": "@sif/migrator_v0.1.0",
+      "date": "Thu, 17 Aug 2023 02:44:14 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Added capability to migrate executions"
+          }
+        ]
+      }
+    }
+  ]
+}

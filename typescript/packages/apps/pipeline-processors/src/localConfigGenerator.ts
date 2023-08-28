@@ -76,6 +76,7 @@ const getTenantValues = async (tenantId: string, module: string, mapping: Record
 };
 
 let outputFile = `NODE_ENV=local\r\n`;
+outputFile += 'AUDIT_VERSION=1\r\n';
 outputFile += 'ENABLE_DELETE_RESOURCE=true\r\n';
 outputFile += 'TASK_PARALLEL_LIMIT=10\r\n';
 
@@ -110,7 +111,11 @@ await getTenantValues(TENANT_ID, 'pipeline-processor', {
 	DATA_PIPELINE_JOB_STATE_MACHINE_ARN: 'dataPipelineStateMachineArn',
 	INLINE_PIPELINE_STATE_MACHINE_ARN: 'inlinePipelineStateMachineArn',
 	METRICS_TABLE_NAME: 'metricsTableName',
-	TASK_QUEUE_URL: 'taskQueueUrl'
+	TASK_QUEUE_URL: 'taskQueueUrl',
+});
+
+await getTenantValues(TENANT_ID, 'pipelineProcessorsV2', {
+	WORKER_QUEUE_URL: 'workerQueueUrl',
 });
 
 fs.writeFileSync('.env', outputFile);

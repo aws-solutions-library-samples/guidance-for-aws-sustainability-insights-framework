@@ -15,16 +15,17 @@ import type { FastifyBaseLogger } from 'fastify';
 import { ulid } from 'ulid';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { atLeastContributor, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
-import { InvalidRequestError, NotImplementedError, UnauthorizedError } from '@sif/resource-api-base';
+import { InvalidRequestError, NotImplementedError, ResourceService, UnauthorizedError, TagService } from '@sif/resource-api-base';
 import type { EventPublisher } from '@sif/events';
 import { getPipelineErrorKey, getPipelineInputKey, getPipelineOutputKey } from '../../utils/helper.utils.js';
 import type { PipelineExecution, PipelineExecutionList, PipelineExecutionRequest, PipelineExecutionUpdateParams, SignedUrlResponse } from './schemas.js';
-import type { PipelineProcessorsRepository } from './repository.js';
+import type { PipelineExecutionListOptions, PipelineExecutionListPaginationKey, PipelineProcessorsRepository } from './repository.js';
 import type { ConnectorUtility } from '../../utils/connectorUtility';
 import type { GetLambdaRequestContext, GetSignedUrl } from '../../plugins/module.awilix';
 import type { Pipeline, PipelineClient } from '@sif/clients';
 import type { PipelineExecutionUtils } from './utils.js';
 import type { InlineExecutionService } from './inlineExecution.service.js';
+import { PkType } from '../../common/pkUtils.js';
 
 const FIVE_MINUTES = 5 * 60;
 
@@ -43,7 +44,9 @@ export class PipelineProcessorsService {
 		private getLambdaRequestContext: GetLambdaRequestContext,
 		private utils: PipelineExecutionUtils,
 		private inlineExecutionService: InlineExecutionService,
-		private auditVersion: number
+		private auditVersion: number,
+		private resourceService: ResourceService,
+		private tagService: TagService
 	) {
 	}
 
@@ -56,7 +59,7 @@ export class PipelineProcessorsService {
 		const connector = await this.connectorUtility.resolveConnectorFromPipeline(sc, pipeline);
 		await this.connectorUtility.validateConnectorParameters(connector, pipeline, newExecution);
 
-		await this.pipelineProcessorsRepository.put(newExecution);
+		await this.pipelineProcessorsRepository.create(newExecution);
 		// publish pipeline execution created event
 		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'pipelineExecution',
@@ -88,7 +91,6 @@ export class PipelineProcessorsService {
 		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(sc));
 
 		// create pipeline execution object
-		// ensure that execution id is always lower case
 		const executionId = ulid().toLowerCase();
 		const execution: PipelineExecution = {
 			actionType: executionParams.actionType,
@@ -99,12 +101,13 @@ export class PipelineProcessorsService {
 			pipelineVersion: pipeline.version,
 			auditVersion: this.auditVersion,
 			connectorOverrides: executionParams.connectorOverrides,
+			// for other type of resources, the groups field contains the list of security group that can access the resouces
+			// so we can query all resources based on a group id (the implementation logic in @sif/resource-api-base module)
+			// but for pipeline execution, the group will point to the pipeline to allow us to query executions based on a pipeline id
+			groups: [pipelineId],
 			groupContextId: sc.groupId,
 			status: 'waiting',
-			// If no file is uploaded against this execution resource, the data will be removed automatically by DynamoDB
-			// TODO: Ticket(349) need to rethink the ttl part here, does the user need to know there is a ttl on this ? if this is being removed by dynamodb, we might have to consume the stream and update the status of a an expired
-			// TODO: execution to show its failed with a message that "expired because no file uploaded etc"
-			// ttl: expirationTime,
+			tags: executionParams.tags
 		};
 
 		let updatedExecution;
@@ -118,11 +121,11 @@ export class PipelineProcessorsService {
 			default:
 				throw new NotImplementedError(`Execution mode ${executionParams.mode} is not supported.`);
 		}
-
+		await this.tagService.submitGroupSummariesProcess(sc.groupId, PkType.PipelineExecution, execution.tags, {});
 		return updatedExecution;
 	}
 
-	public async get(securityContext: SecurityContext, pipelineId: string, id: string): Promise<PipelineExecution | undefined> {
+	public async get(securityContext: SecurityContext, id: string): Promise<PipelineExecution | undefined> {
 		this.log.info(`PipelineProcessorsService>  get> id:${id}`);
 
 		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastReader, 'all');
@@ -130,25 +133,10 @@ export class PipelineProcessorsService {
 			throw new UnauthorizedError(`The caller's role should be at least a \`reader\` of the group in context \`${JSON.stringify(securityContext.groupId)}`);
 		}
 
-		const pipelineExecution = await this.pipelineProcessorsRepository.get(pipelineId, id);
-		this.utils.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
+		const pipelineExecution = await this.pipelineProcessorsRepository.get(id);
+		this.utils.validatePipelineExecutionAccess(pipelineExecution, securityContext.groupId);
 
 		this.log.info(`PipelineProcessorsService> get> exit> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
-		return pipelineExecution;
-	}
-
-	public async getById(securityContext: SecurityContext, executionId: string): Promise<PipelineExecution> {
-		this.log.info(`PipelineProcessorService>  getById> id:${executionId}`);
-
-		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastReader, 'all');
-		if (!isAuthorized) {
-			throw new UnauthorizedError(`The caller's role should be at least a \`reader\` of the group in context \`${JSON.stringify(securityContext.groupId)}`);
-		}
-
-		const pipelineExecution = await this.pipelineProcessorsRepository.getById(executionId);
-		this.utils.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
-
-		this.log.info(`PipelineProcessorsService> getById> exit> pipelineExecution:${JSON.stringify(pipelineExecution)}`);
 		return pipelineExecution;
 	}
 
@@ -164,9 +152,8 @@ export class PipelineProcessorsService {
 			throw new InvalidRequestError(`Pipeline ${pipeline.id} does not generate raw output file.`);
 		}
 
-		// check to see if pipeline execution exists (will throw NotFoundError if not)
-		const pipelineExecution = await this.pipelineProcessorsRepository.get(pipelineId, executionId);
-		this.utils.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
+		const pipelineExecution = await this.pipelineProcessorsRepository.get(executionId);
+		this.utils.validatePipelineExecutionAccess(pipelineExecution, securityContext.groupId);
 
 		const params: GetObjectCommand = new GetObjectCommand({
 			Bucket: this.bucketName,
@@ -186,8 +173,8 @@ export class PipelineProcessorsService {
 		}
 
 		// check to see if pipeline execution exists (will throw NotFoundError if not)
-		const pipelineExecution = await this.pipelineProcessorsRepository.get(pipelineId, executionId);
-		this.utils.validatePipelineExecutionAccess([pipelineExecution.groupContextId], securityContext.groupId, pipelineExecution.id);
+		const pipelineExecution = await this.pipelineProcessorsRepository.get(executionId);
+		this.utils.validatePipelineExecutionAccess(pipelineExecution, securityContext.groupId);
 
 		const params: GetObjectCommand = new GetObjectCommand({
 			Bucket: this.bucketName,
@@ -216,8 +203,8 @@ export class PipelineProcessorsService {
 		return url;
 	}
 
-	public async list(securityContext: SecurityContext, pipelineId: string, fromId?: string, count?: number): Promise<PipelineExecutionList> {
-		this.log.info(`PipelineProcessorsService> list> pipelineId: ${JSON.stringify(pipelineId)}, count: ${count}, fromId: ${fromId}`);
+	public async list(securityContext: SecurityContext, pipelineId: string, options: PipelineExecutionListOptions): Promise<[PipelineExecution[], PipelineExecutionListPaginationKey]> {
+		this.log.info(`PipelineProcessorsService> list> pipelineId: ${JSON.stringify(pipelineId)}, options: ${options}`);
 
 		const isAuthorized = this.authChecker.isAuthorized([securityContext.groupId], securityContext.groupRoles, atLeastReader, 'all');
 		if (!isAuthorized) {
@@ -229,21 +216,25 @@ export class PipelineProcessorsService {
 
 		let pipelineExecutionList: PipelineExecutionList;
 
-		const [pipelineExecutions, paginationKey] = await this.pipelineProcessorsRepository.list(pipeline.id, fromId ? { id: fromId } : undefined, count);
+		const executions: PipelineExecution[] = [];
+		let executionIds, paginationKey: PipelineExecutionListPaginationKey;
 
-		pipelineExecutionList = {
-			executions: pipelineExecutions,
-		};
-
-		if (paginationKey) {
-			pipelineExecutionList.pagination = {
-				lastEvaluated: {
-					executionId: paginationKey?.id,
+		[executionIds, paginationKey] = await this.resourceService.listIds(pipeline.id, PkType.PipelineExecution, {
+			tagFilter: options?.tags,
+			pagination: {
+				count: options?.count,
+				from: {
+					paginationToken: options?.exclusiveStart?.paginationToken,
 				},
-			};
-		}
+			},
+			includeParentGroups: false,
+			includeChildGroups: false,
+		});
+
+		executions.push(...(await this.pipelineProcessorsRepository.listByIds(executionIds)));
+
 		this.log.info(`PipelineProcessorsService> list>  pipelineExecutionList: ${JSON.stringify(pipelineExecutionList)}`);
-		return pipelineExecutionList;
+		return [executions, paginationKey];
 	}
 
 	public async update(sc: SecurityContext, pipelineId: string, id: string, params: PipelineExecutionUpdateParams): Promise<void> {
@@ -255,11 +246,10 @@ export class PipelineProcessorsService {
 			throw new UnauthorizedError(`The caller is not an \`contributor\` of the group in context \`${JSON.stringify(sc.groupId)}`);
 		}
 
-		const execution = await this.get(sc, pipelineId, id);
+		const execution = await this.get(sc, id);
+		this.utils.validatePipelineExecutionAccess(execution, sc.groupId);
 
-		this.utils.validatePipelineExecutionAccess([execution.groupContextId], sc.groupId, id);
-
-		await this.pipelineProcessorsRepository.put({
+		await this.pipelineProcessorsRepository.create({
 			...execution,
 			...params,
 			updatedBy: sc.email,

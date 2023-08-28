@@ -51,7 +51,7 @@ Refer to the [Swagger](./docs/swagger.json) for a detailed list of the available
 
 ### Pre-requisite
 
-As part of the `sif-core` deployment, a root (`/`) group and a user assigned to the group will be created by
+As part of the `guidance-for-aws-sustainability-insights-framework` deployment, a root (`/`) group and a user assigned to the group will be created by
 the [seed construct](../../../../infrastructure/tenant/src/accessManagement/accessManagementSeed.construct.ts).
 
 You will need to log on as this admin user under the context of the root group to run the following examples.

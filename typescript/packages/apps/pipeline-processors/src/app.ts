@@ -31,6 +31,7 @@ import { activitiesList, activityResource } from './api/activities/schemas.js';
 import listActivitiesRoute from './api/activities/list.handler.js';
 import { metricResource, metricsList } from './api/metrics/schemas.js';
 import listMetricsRoute from './api/metrics/list.handler.js';
+import { tags } from '@sif/resource-api-base';
 import createExecution from './api/executions/createExecution.js';
 import getPipelineAuditExecutionExportRoute from './api/executions/getAuditExecutionExport.handler.js';
 import cors from '@fastify/cors';
@@ -84,6 +85,8 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	await app.register(authzPlugin);
 	await app.register(fastifySensible);
 
+	// register all schemas
+	app.addSchema(tags);
 	app.addSchema(pipelineExecutionRequest);
 	app.addSchema(pipelineExecutionFull);
 	app.addSchema(pipelineExecutionList);
@@ -93,6 +96,8 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	app.addSchema(signedUrlListResponse);
 	app.addSchema(auditResource);
 	app.addSchema(auditList);
+
+	// register all routes
 	await app.register(createExecutionErrorDownloadUrlRoute);
 	await app.register(createExecutionOutputDownloadUrlRoute);
 	await app.register(getPipelineExecutionRoute);

@@ -15,7 +15,7 @@ import { DataTable, Then, When } from '@cucumber/cucumber';
 import assert, { fail } from 'assert';
 import axios from 'axios';
 import fs from 'fs';
-import { createApi } from '../support/util';
+import { createApi } from '../support/util.js';
 
 global.localUserClaims = {
 	integrationtests: '/|||admin',
@@ -106,6 +106,18 @@ When(/^I upload pipeline execution concurrently using this urls$/, async functio
 	console.log(`\n***** finished uploading\n`);
 });
 
+When(/^Using directory stored at global variable (.*), I upload pipeline execution concurrently using this urls$/, async function(directoryVariable:string, table: DataTable) {
+	const directory = this['apickli'].getGlobalVariable(directoryVariable);
+	const uploadFutures = table.rows().map((r) => {
+		console.log(`\n***** uploading ${r[1]}\n`);
+		const url = this['apickli'].replaceVariables(r[0]);
+		const location = `${directory}/${r[1]}`;
+		return uploadFileToUrl(url, location);
+	});
+	await Promise.all(uploadFutures);
+	console.log(`\n***** finished uploading\n`);
+});
+
 Then(/^I wait until pipeline executions are complete with (.*)s timeout$/, { timeout: -1 }, async function(timeout: number, table: DataTable) {
 
 	const checkStatus = async (): Promise<boolean> => {
@@ -139,7 +151,6 @@ Then(/^I wait until pipeline executions are complete with (.*)s timeout$/, { tim
 				fail(response?.body?.status?.statusMessage);
 			}
 			console.log(`\n***** pipelineId:${pipelineId}, executionId:${executionId}, status: ${body.status}`);
-			console.log(`\n***** response: ${JSON.stringify(response)}`);
 			return body.status === 'success';
 		});
 		const allComplete = await Promise.all(futures).then((results) => results.every((r) => r));

@@ -51,6 +51,6 @@ Given(/^I create a reference dataset in tenant(.*) with group context (.*) with 
 		});
 		assert.equal(response.status, 201);
 	} catch (e) {
-		throw new Error('Failed creating reference dataset');
+		throw new Error(`Failed creating reference dataset in tenant ${tenantId}`);
 	}
 });

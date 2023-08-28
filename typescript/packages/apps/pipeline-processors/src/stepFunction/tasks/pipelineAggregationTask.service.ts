@@ -50,7 +50,7 @@ export class PipelineAggregationTaskService {
 		if (requiresAggregation) {
 			this.log.info(`PipelineAggregationTaskService> process> pipeline ${pipelineId} has aggregation specified`);
 
-			const execution = await this.pipelineProcessorRepository.get(pipelineId, executionId);
+			const execution = await this.pipelineProcessorRepository.get(executionId);
 			const requestContext: LambdaRequestContext = {
 				authorizer: {
 					claims: {

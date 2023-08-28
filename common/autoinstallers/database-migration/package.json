@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"dependencies": {
-		"pg": "8.8.0",
+		"pg": "8.11.1",
 		"node-pg-migrate": "6.2.2"
 	}
 }

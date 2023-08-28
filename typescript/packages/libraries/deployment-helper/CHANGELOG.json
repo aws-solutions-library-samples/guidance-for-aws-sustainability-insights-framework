@@ -2,6 +2,40 @@
   "name": "@sif/deployment-helper",
   "entries": [
     {
+      "version": "0.5.2",
+      "tag": "@sif/deployment-helper_v0.5.2",
+      "date": "Thu, 17 Aug 2023 02:44:14 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "changed numeric table fields to unconstrained"
+          }
+        ],
+        "patch": [
+          {
+            "comment": "semgrep fix"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.7.2`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "0.5.1",
+      "tag": "@sif/deployment-helper_v0.5.1",
+      "date": "Fri, 28 Jul 2023 00:50:20 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.7.1`"
+          }
+        ]
+      }
+    },
+    {
       "version": "0.5.0",
       "tag": "@sif/deployment-helper_v0.5.0",
       "date": "Thu, 20 Jul 2023 00:30:14 GMT",

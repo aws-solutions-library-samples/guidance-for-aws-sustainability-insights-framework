@@ -44,6 +44,7 @@ public class ActivityTypeOutputWriter implements OutputWriter<ActivityTypeRecord
     private int chunkNo;
     private Map<String, String> outputMap;
     private final ActivitySqsWriter sqsWriter;
+    protected int precision;
 
 
     public ActivityTypeOutputWriter(Config config, S3Utils s3, ActivitySqsWriter sqsWriter) {
@@ -59,6 +60,7 @@ public class ActivityTypeOutputWriter implements OutputWriter<ActivityTypeRecord
         this.chunkNo = chunkNo;
         this.outputMap = outputMap;
         this.initLocalFiles(chunkNo);
+        this.precision = config.getInt("calculator.decimal.precision");
     }
 
     private void initLocalFiles(int chunkNo) throws IOException {
@@ -177,7 +179,7 @@ public class ActivityTypeOutputWriter implements OutputWriter<ActivityTypeRecord
                 case "number":
                     typeFragments = numberValueFragments;
                     valueString = (value instanceof NullValue || value instanceof ErrorValue) ? ""
-                            : String.format("%.8f", ((NumberTypeValue) value).getValue());
+                            : String.format("%.8f", ((NumberTypeValue) value).Scale(this.precision));
                     dataType = "Number";
                     break;
                 case "boolean":

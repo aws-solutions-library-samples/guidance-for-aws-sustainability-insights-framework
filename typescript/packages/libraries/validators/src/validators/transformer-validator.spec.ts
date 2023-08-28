@@ -1399,4 +1399,90 @@ describe('transformer validator', () => {
 		}).toThrow('Missing mandatory output columns. For data pipeline type the following columns are mandatory \'activityName\', \'impactName\', \'componentKey\', \'componentValue\', \'componentType\'');
 	});
 
+
+	it('activities pipeline should throw an error if no number fields are being aggregated', () => {
+		const transformer: Transformer = {
+			transforms: [
+				{
+					index: 0,
+					formula: ':time',
+					outputs: [
+						{
+							description: 'time stamp',
+							index: 0,
+							key: 'time',
+							type: 'timestamp'
+						},
+					],
+				},
+				{
+					index: 1,
+					formula: 'AS_TIMESTAMP(:time,\'M/d/yy\', roundDownTo=\'month\')',
+					outputs: [
+						{
+							description: 'time stamp',
+							index: 0,
+							key: 'month',
+							type: 'timestamp',
+							aggregate: 'groupBy'
+						},
+					],
+				},
+				{
+					index: 2,
+					formula: 'if(:one==\'ok\',50,1)',
+					outputs: [
+						{
+							description: 'some description about pin24',
+							index: 0,
+							key: 'sum',
+							label: 'Vehicle',
+							type: 'number',
+							includeAsUnique: true,
+						},
+					],
+				},
+				{
+					index: 3,
+					formula: ':one',
+					outputs: [
+						{
+							description: 'some description about pin24',
+							index: 0,
+							key: 'one',
+							label: 'Vehicle',
+							type: 'string',
+						},
+					],
+				}
+			],
+			parameters: [
+				{
+					index: 0,
+					key: 'time',
+					type: 'timestamp',
+				},
+				{
+					index: 1,
+					key: 'one',
+					label: 'pin 24',
+					description: 'some description about pin24',
+					type: 'string',
+				},
+				{
+					index: 2,
+					key: 'two',
+					label: 'Distance',
+					description: 'distance traveled',
+					type: 'number',
+				},
+			],
+		};
+
+		expect(() => {
+			validator.validateActivitiesPipelineTransformer(transformer);
+		}).toThrow('There should be at least 1 number field that is being aggregated using aggregation functions.');
+
+	});
+
 });

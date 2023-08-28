@@ -67,7 +67,7 @@ export class MetricClient extends ClientServiceBase {
 			};
 		}));
 
-		let parentMetricNames = Object.values(metrics).flatMap((k) => k.outputMetrics);
+		let parentMetricNames = Array.from(new Set<string>(Object.values(metrics).flatMap((k) => k.outputMetrics)));
 		while ((parentMetricNames?.length ?? 0) > 0) {
 			const parentMetrics: Metric[] = [];
 			for (const name of parentMetricNames) {
@@ -88,9 +88,9 @@ export class MetricClient extends ClientServiceBase {
 			}
 
 			// let see if the parent metrics have any parents of their own
-			parentMetricNames = Object.values(parentMetrics)
+			parentMetricNames = Array.from(new Set<string>(Object.values(parentMetrics)
 				?.filter((k) => k !== null)
-				?.flatMap((k) => k.outputMetrics);
+				?.flatMap((k) => k.outputMetrics)));
 		}
 		this.log.trace(`MetricClient> sortMetricsByDependencyOrder> exit>  metricQueue: ${metricQueue}`);
 		return metricQueue;

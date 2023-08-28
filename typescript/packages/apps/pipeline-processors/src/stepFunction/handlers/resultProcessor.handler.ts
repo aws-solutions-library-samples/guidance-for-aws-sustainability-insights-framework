@@ -30,12 +30,14 @@ export const handler: ResultProcessorTaskHandler = async (event, _context, _call
 	app.log.info(`resultProcessorLambda > handler > event: ${JSON.stringify(event)}`);
 
 	validateNotEmpty(event, 'event');
-	validateNotEmpty(event[0].executionId, 'executionId');
-	validateNotEmpty(event[0].pipelineId, 'pipelineId');
+	validateNotEmpty(event.inputs, 'inputs');
+	const inputs = event.inputs;
+	validateNotEmpty(inputs[0].executionId, 'executionId');
+	validateNotEmpty(inputs[0].pipelineId, 'pipelineId');
 
 	const [status, statusMessage] = await task.process(event);
 	// set the status
-	const { executionId, pipelineId } = event[0];
+	const { executionId, pipelineId } = inputs[0];
 	await service.update(await getSecurityContext(executionId), pipelineId, executionId, { status, statusMessage });
 	app.log.info(`resultProcessorLambda > handler > exit:`);
 };

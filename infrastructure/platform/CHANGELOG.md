@@ -1,6 +1,13 @@
 # Change Log - @sif/infrastructure-platform
 
-This log was last generated on Fri, 21 Jul 2023 23:58:18 GMT and should not be manually modified.
+This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+
+## 2.6.0
+Thu, 17 Aug 2023 02:44:14 GMT
+
+### Minor changes
+
+- Add use of ARM Lambda architecture
 
 ## 2.5.2
 Fri, 21 Jul 2023 23:58:18 GMT

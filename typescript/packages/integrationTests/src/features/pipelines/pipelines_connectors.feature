@@ -1,4 +1,4 @@
-@setup_pipelines
+@setup_pipelines @pipelines
 Feature:
 	This feature tests the general usage of the pipelines connectors api within the context of a single group.
 

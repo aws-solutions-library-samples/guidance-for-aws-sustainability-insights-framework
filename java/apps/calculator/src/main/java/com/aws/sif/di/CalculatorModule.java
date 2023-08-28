@@ -37,6 +37,7 @@ import com.aws.sif.resources.impacts.ActivitiesList;
 import com.aws.sif.resources.impacts.Activity;
 import com.aws.sif.resources.impacts.ImpactsClient;
 import com.aws.sif.resources.referenceDatasets.DataDownload;
+import com.aws.sif.resources.referenceDatasets.Dataset;
 import com.aws.sif.resources.referenceDatasets.DatasetsClient;
 import com.aws.sif.resources.referenceDatasets.DatasetsList;
 import com.aws.sif.resources.users.User;
@@ -153,9 +154,9 @@ public class CalculatorModule {
 
 	@Provides
 	@Singleton
-	public DatasetsClient provideDatasetsClient(LambdaInvoker<DatasetsList> datasetsListInvoker, LambdaInvoker<DataDownload> dataDownloadInvoker,
+	public DatasetsClient provideDatasetsClient(LambdaInvoker<DatasetsList> datasetsListInvoker, LambdaInvoker<Dataset> datasetsInvoker, LambdaInvoker<DataDownload> dataDownloadInvoker,
 												Config config, ResourcesRepository repository) {
-		return new DatasetsClient(datasetsListInvoker, dataDownloadInvoker, config, repository);
+		return new DatasetsClient(datasetsListInvoker, datasetsInvoker, dataDownloadInvoker, config, repository);
 	}
 	@Provides
 	@Singleton

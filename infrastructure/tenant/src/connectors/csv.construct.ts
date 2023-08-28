@@ -24,6 +24,7 @@ import { NagSuppressions } from 'cdk-nag';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { PIPELINE_PROCESSOR_EVENT_SOURCE } from '@sif/events';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -72,6 +73,7 @@ export class CsvConnector extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		// create dead letter queue

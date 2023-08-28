@@ -1,12 +1,12 @@
-@setup_accessManagement
+@setup_accessManagement @accessManagement
 Feature:
 	Access Management API - user tests.
 
 	Scenario: Setup users
-		Given  group / has user accessManagement_admin@amazon.com with role admin and password p@ssword1
+		Given  group / has user accessManagement_user_admin@amazon.com with role admin and password p@ssword1
 
 	Scenario: Setup
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set body to {"name": "accessManagementUserTests"}
 		When I POST to /groups
 		And I pause for 1000ms
@@ -20,7 +20,7 @@ Feature:
 		And response body path $.id should be /accessmanagementusertests/childgroup
 
 	Scenario: Admin can invite new user (contributor)
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		And I set body to {"email": "accessManagementUserTestsContributor@amazon.com", "defaultGroup": "/accessmanagementusertests", "role": "contributor", "password": "p@ssword1" }
 		When I POST to /users
@@ -34,7 +34,7 @@ Feature:
 		And I save cognito group /accessmanagementusertests|||contributor for user accessmanagementusertestscontributor@amazon.com
 
 	Scenario: Admin can invite new user (contributor) to child of current group context
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		And I set body to {"email": "accessManagementTestsContributorChild@amazon.com", "defaultGroup": "/accessmanagementusertests/childgroup", "role": "contributor", "password": "p@ssword1" }
 		When I POST to /users
@@ -48,13 +48,13 @@ Feature:
 		And I save cognito group /accessmanagementusertests|||contributor for user accessmanagementtestscontributorchild@amazon.com
 
 	Scenario: Admin cannot create user in a non-existent child of current group context
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set body to {"email": "accessManagementUserTestsInvalid@amazon.com", "defaultGroup": "/invalidGroup", "role": "contributor", "password": "p@ssword1" }
 		When I POST to /users
 		Then response code should be 404
 
 	Scenario: Granting access to existing users appends existing rather than creating a new duplicate one
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		And I set body to {"email": "accessManagementUserTestsContributor@amazon.com", "role": "contributor"}
 		When I POST to /users
@@ -63,7 +63,7 @@ Feature:
 		Then response code should be 200
 
 	Scenario: Create another user (reader) to use for testing
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		And I set body to {"email": "accessManagementUserTestsReader@amazon.com", "defaultGroup": "/accessmanagementusertests", "role": "reader", "password": "p@ssword1" }
 		When I POST to /users
@@ -78,14 +78,14 @@ Feature:
 		Then response code should be 403
 
 	Scenario: Admin cannot create user in a non-existent child group
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /something_that_does_not_exist
 		And I set body to {"email": "this_should_fail@amazon.com", "role": "contributor", "password": "p@ssword1" }
 		When I POST to /users
 		Then response code should be 404
 
 	Scenario: Admin can update state
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		And I set body to {"state": "disabled"}
 		When I PATCH /users/accessManagementUserTestsReader%40amazon.com
@@ -93,6 +93,20 @@ Feature:
 		And I GET /users/accessManagementUserTestsReader%40amazon.com
 		Then response code should be 200
 		And response body path $.state should be disabled
+
+	Scenario: Admin has to specify one or more of the optional parameters (state, password, tags or defaultGroup) when updating user
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /accessmanagementusertests
+		# Empty body
+		And I set body to {}
+		When I PATCH /users/accessManagementUserTestsReader%40amazon.com
+		Then response code should be 400
+		And response body path $.message should be Request body should contains one or more of these parameters: password, defaultGroup, state, tags
+		# Invalid Body
+		And I set body to { "params": { "state": "disabled" }}
+		When I PATCH /users/accessManagementUserTestsReader%40amazon.com
+		Then response code should be 400
+		And response body path $.message should be Request body should contains one or more of these parameters: password, defaultGroup, state, tags
 
 	Scenario: Users cannot access groups they don't belong to
 		Given I authenticate using email accessManagementUserTestsContributor@amazon.com and password p@ssword1
@@ -112,7 +126,7 @@ Feature:
 		Then accessManagementUserTestsReader@amazon.com should be unauthorized in group /accessmanagementusertests
 
 	Scenario: Reactivated users can log in
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		And I set body to {"state": "active"}
 		When I PATCH /users/accessManagementUserTestsReader%40amazon.com
@@ -140,6 +154,13 @@ Feature:
 		When I PATCH /users/accessManagementUserTestsReader%40amazon.com
 		Then response code should be 403
 
+	Scenario: Users cannot change their own state
+		Given I authenticate using email accessManagementUserTestsReader@amazon.com and password myn3wp@ssw0rd
+		And I set body to {"state": "disabled"}
+		When I PATCH /users/accessManagementUserTestsReader%40amazon.com
+		Then response code should be 403
+		And response body path $.message should be User's may only update the state of other user.
+
 	Scenario: Users can be listed for a group
 		Given I authenticate using email accessManagementUserTestsReader@amazon.com and password myn3wp@ssw0rd
 		When I GET /users
@@ -147,7 +168,7 @@ Feature:
 		And response body path $.users.length should be 3
 
 	Scenario: Admin can revoke users
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		When I remove header Content-Type
 		And I DELETE /users/accessManagementUserTestsContributor%40amazon.com
@@ -161,7 +182,7 @@ Feature:
 		Then response code should be 404
 
 	Scenario: Admin can revoke users in child group
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		When I remove header Content-Type
 		When I DELETE /users/accessManagementTestsContributorChild%40amazon.com
@@ -171,7 +192,7 @@ Feature:
 		Then response code should be 404
 
 	Scenario: Teardown /accessmanagementusertests/childgroup group used for testing
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /accessmanagementusertests
 		And I set body to {"state": "disabled"}
 		And I PATCH /groups/%2faccessmanagementusertests%2fchildgroup
@@ -185,7 +206,7 @@ Feature:
 		Then response code should be 404
 
 	Scenario: Teardown /accessmanagementusertests group used for testing
-		Given I authenticate using email accessManagement_admin@amazon.com and password p@ssword1
+		Given I authenticate using email accessManagement_user_admin@amazon.com and password p@ssword1
 		And I set body to {"state": "disabled"}
 		And I PATCH /groups/%2faccessmanagementusertests
 		Then response code should be 200
@@ -198,5 +219,5 @@ Feature:
 		Then response code should be 404
 
 	Scenario: Teardown - delete user
-		Given group / has user accessManagement_admin@amazon.com revoked
+		Given group / has user accessManagement_user_admin@amazon.com revoked
 

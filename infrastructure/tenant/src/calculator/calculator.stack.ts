@@ -40,6 +40,7 @@ export type CalculatorStackProperties = StackProps & {
 	minScaling: number;
 	maxScaling: number;
 	includeCaml: boolean;
+	decimalPrecision: number;
 };
 
 export const camlInferenceEndpointNameParameter = (environment: string) => `/sif/shared/${environment}/caml/inferenceEndpointName`;
@@ -142,6 +143,7 @@ export class CalculatorApiStack extends Stack {
 			camlInferenceEndpointName,
 			auditDataStreamArn,
 			auditDataStreamName,
+			decimalPrecision:props.decimalPrecision
 		});
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [

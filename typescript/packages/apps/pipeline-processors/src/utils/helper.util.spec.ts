@@ -21,6 +21,7 @@ describe('HelperUtil', () => {
 		updatedAt: new Date(),
 		type: 'activities',
 		'id' : '123',
+		'name' : 'pipelineName',
 		'createdBy': 'e2e_tests_admin@amazon.com',
 		'transformer': {
 			'transforms': [

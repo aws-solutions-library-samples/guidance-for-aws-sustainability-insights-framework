@@ -1,4 +1,4 @@
-@setup_pipelines
+@setup_pipelines @pipelines
 Feature:
 
 	This feature tests the tagging of resources, therefore only focuses on testing responses and attributes specific to it.

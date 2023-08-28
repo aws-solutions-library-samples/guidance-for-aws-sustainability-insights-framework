@@ -9,7 +9,7 @@ This project is a sample (AWS CDK) project to develop an external input connecto
 initialize the project dependencies:
 
 ```shell
-> cd sif-core/samples/typescript/connectors/sample-pipeline-input-connector
+> cd guidance-for-aws-sustainability-insights-framework/samples/typescript/connectors/sample-pipeline-input-connector
 > npm install
 > npm run build
 ```
@@ -29,7 +29,7 @@ NOTE: First time installers will need to bootstrap their AWS accounts (a require
 
 ### Making Code changes
 
-The starting point for code changes `sif-core/typescript/samples/connectors/sample-pipeline-input-connector/src/handler.ts` The handler.ts has stubs and comments which walks through how the workflow needs to be implemented.
+The starting point for code changes `guidance-for-aws-sustainability-insights-framework/typescript/samples/connectors/sample-pipeline-input-connector/src/handler.ts` The handler.ts has stubs and comments which walks through how the workflow needs to be implemented.
 
 ## High level overview
 
@@ -41,9 +41,9 @@ If you are on a journey to develop an input connector for SIF you follow the fol
 
 The "sample-pipeline-input-connector" implementation can be utilized as a starting point for your custom connector. This sample is independent of SIF and can be forked for easy customization. The sample comes with its own infrastructure layer which has all the necessary integration components from a deployment perspective. It has a base implementation of a connector as well with commented out parts where you can add your custom implementation based on your use-case. There are 2 SIF managed connectors which can referenced for actual implementations.
 
-- sif-csv-pipeline-input-connector (`sif-core/typescript/packages/connectors/csv`)
+- sif-csv-pipeline-input-connector (`guidance-for-aws-sustainability-insights-framework/typescript/packages/connectors/csv`)
   - this connector is a csv pre-processor. If this connector is configured on the pipeline, a csv input file will be processed into sif compatible format before the execution of the pipeline
-- sif-connector (`sif-core/typescript/packages/connectors/sif`)
+- sif-connector (`guidance-for-aws-sustainability-insights-framework/typescript/packages/connectors/sif`)
   - this connector is a pipeline integration connector. This connector can be used in a cascade type situation where 2 or more pipelines are interconnected together in a cascade
 
 Once your connector implementation is ready. We can move on to the next step

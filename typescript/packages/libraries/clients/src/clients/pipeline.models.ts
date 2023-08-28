@@ -44,6 +44,7 @@ export interface Transformer {
 
 export interface Pipeline {
 	id: string;
+	name: string;
 	createdAt: Date;
 	updatedAt: Date;
 	connectorConfig?: PipelineConnectorConfig;

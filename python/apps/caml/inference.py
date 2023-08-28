@@ -6,6 +6,9 @@ from sentence_transformers import util, SentenceTransformer
 num_of_matches = int(os.getenv("NUM_OF_MATCHES", 5))
 naics_file = os.getenv("NAICS_CODES_FILE_PATH")
 # Pickle file contains product and NAICS code mapping
+# Semgrep issue: https://sg.run/bXQW
+# Ignore reason: Pickle file provided in repo and not from untrusted source
+# nosemgrep
 naics_df = pd.read_pickle(naics_file)
 
 

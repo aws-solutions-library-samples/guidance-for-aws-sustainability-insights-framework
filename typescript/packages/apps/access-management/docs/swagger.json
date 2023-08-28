@@ -14,9 +14,10 @@
       }
     },
     "schemas": {
-      "tags": {
+      "def-0": {
         "description": "User-defined searchable tags",
         "type": "object",
+        "title": "tags",
         "additionalProperties": {
           "anyOf": [
             {
@@ -28,7 +29,7 @@
           ]
         }
       },
-      "newUserRequestBody": {
+      "def-1": {
         "type": "object",
         "properties": {
           "email": {
@@ -50,7 +51,7 @@
             "type": "string"
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "defaultGroup": {
             "description": "The default group the user will be logged into, if this is not specified it will be set to the current group context",
@@ -60,9 +61,10 @@
         "required": [
           "email",
           "role"
-        ]
+        ],
+        "title": "newUserRequestBody"
       },
-      "editUserRequestBody": {
+      "def-2": {
         "type": "object",
         "properties": {
           "password": {
@@ -79,15 +81,16 @@
             "description": "User state"
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "defaultGroup": {
             "description": "The default group the user will be logged into, if this is not specified it will be set to the current group context",
             "type": "string"
           }
-        }
+        },
+        "title": "editUserRequestBody"
       },
-      "userResource": {
+      "def-3": {
         "type": "object",
         "properties": {
           "email": {
@@ -118,7 +121,7 @@
             }
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "defaultGroup": {
             "description": "The default group the user will be logged into, if this is not specified it will be set to the current group context",
@@ -145,15 +148,16 @@
         },
         "required": [
           "email"
-        ]
+        ],
+        "title": "userResource"
       },
-      "usersList": {
+      "def-4": {
         "type": "object",
         "properties": {
           "users": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/userResource"
+              "$ref": "#/components/schemas/def-3"
             }
           },
           "pagination": {
@@ -168,9 +172,10 @@
         },
         "required": [
           "users"
-        ]
+        ],
+        "title": "usersList"
       },
-      "newGroupRequestBody": {
+      "def-5": {
         "type": "object",
         "properties": {
           "name": {
@@ -182,17 +187,18 @@
             "type": "string"
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "configuration": {
-            "$ref": "#/components/schemas/configuration"
+            "$ref": "#/components/schemas/def-9"
           }
         },
         "required": [
           "name"
-        ]
+        ],
+        "title": "newGroupRequestBody"
       },
-      "editGroupRequestBody": {
+      "def-6": {
         "type": "object",
         "properties": {
           "description": {
@@ -208,14 +214,15 @@
             "description": "Group state"
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "configuration": {
-            "$ref": "#/components/schemas/configuration"
+            "$ref": "#/components/schemas/def-9"
           }
-        }
+        },
+        "title": "editGroupRequestBody"
       },
-      "groupResource": {
+      "def-7": {
         "type": "object",
         "properties": {
           "id": {
@@ -239,7 +246,7 @@
             "description": "Group state"
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "createdBy": {
             "description": "ID of owner.",
@@ -260,11 +267,12 @@
             "type": "string"
           },
           "configuration": {
-            "$ref": "#/components/schemas/configuration"
+            "$ref": "#/components/schemas/def-9"
           },
           "configurationSource": {
             "description": "application configuration specified on the group",
             "type": "object",
+            "title": "configurationSource",
             "additionalProperties": {
               "type": "object",
               "properties": {
@@ -292,17 +300,20 @@
                     }
                   }
                 }
-              }
+              },
+              "title": "configuration"
             }
           }
         },
         "required": [
           "id"
-        ]
+        ],
+        "title": "groupResource"
       },
-      "configurationSource": {
+      "def-8": {
         "description": "application configuration specified on the group",
         "type": "object",
+        "title": "configurationSource",
         "additionalProperties": {
           "type": "object",
           "properties": {
@@ -330,10 +341,11 @@
                 }
               }
             }
-          }
+          },
+          "title": "configuration"
         }
       },
-      "configuration": {
+      "def-9": {
         "type": "object",
         "properties": {
           "preferredGroup": {
@@ -360,15 +372,16 @@
               }
             }
           }
-        }
+        },
+        "title": "configuration"
       },
-      "groupsList": {
+      "def-10": {
         "type": "object",
         "properties": {
           "groups": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/groupResource"
+              "$ref": "#/components/schemas/def-7"
             }
           },
           "pagination": {
@@ -383,9 +396,10 @@
         },
         "required": [
           "groups"
-        ]
+        ],
+        "title": "groupsList"
       },
-      "groupRole": {
+      "def-11": {
         "type": "object",
         "properties": {
           "role": {
@@ -400,7 +414,8 @@
         },
         "required": [
           "role"
-        ]
+        ],
+        "title": "groupRole"
       }
     }
   },
@@ -415,7 +430,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/newUserRequestBody"
+                "$ref": "#/components/schemas/def-1"
               },
               "examples": {
                 "New user": {
@@ -440,22 +455,22 @@
         },
         "parameters": [
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -499,7 +514,7 @@
                       }
                     },
                     "tags": {
-                      "$ref": "#/components/schemas/tags"
+                      "$ref": "#/components/schemas/def-0"
                     },
                     "defaultGroup": {
                       "description": "The default group the user will be logged into, if this is not specified it will be set to the current group context",
@@ -681,22 +696,22 @@
             "description": "Include all children groups result."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -717,7 +732,7 @@
                     "users": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/userResource"
+                        "$ref": "#/components/schemas/def-3"
                       }
                     },
                     "pagination": {
@@ -792,22 +807,22 @@
             "description": "URL encoded email address of user."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -871,12 +886,12 @@
         "tags": [
           "Users"
         ],
-        "description": "Updates an existing user.\n\nPermissions:\n- `reader` and above may update their own password\n- `admin` roles may update any user status where they are themselves an `admin` of all the groups the user is a member of\n\n",
+        "description": "Updates an existing user.\n\nPermissions:\n- `reader` and above may update their own password\n- `admin` roles may update any user (but their own) status where they are themselves an `admin` of all the groups the user is a member of\n\n",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/editUserRequestBody"
+                "$ref": "#/components/schemas/def-2"
               },
               "examples": {
                 "User deactivated": {
@@ -907,22 +922,22 @@
             "description": "URL encoded email address of user."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -968,7 +983,7 @@
                       }
                     },
                     "tags": {
-                      "$ref": "#/components/schemas/tags"
+                      "$ref": "#/components/schemas/def-0"
                     },
                     "defaultGroup": {
                       "description": "The default group the user will be logged into, if this is not specified it will be set to the current group context",
@@ -1095,22 +1110,22 @@
             "description": "URL encoded email address of user."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1156,7 +1171,7 @@
                       }
                     },
                     "tags": {
-                      "$ref": "#/components/schemas/tags"
+                      "$ref": "#/components/schemas/def-0"
                     },
                     "defaultGroup": {
                       "description": "The default group the user will be logged into, if this is not specified it will be set to the current group context",
@@ -1235,7 +1250,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/newGroupRequestBody"
+                "$ref": "#/components/schemas/def-5"
               },
               "examples": {
                 "New top level group": {
@@ -1255,22 +1270,22 @@
         },
         "parameters": [
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1307,7 +1322,7 @@
                       "description": "Group state"
                     },
                     "tags": {
-                      "$ref": "#/components/schemas/tags"
+                      "$ref": "#/components/schemas/def-0"
                     },
                     "createdBy": {
                       "description": "ID of owner.",
@@ -1328,7 +1343,7 @@
                       "type": "string"
                     },
                     "configuration": {
-                      "$ref": "#/components/schemas/configuration"
+                      "$ref": "#/components/schemas/def-9"
                     },
                     "configurationSource": {
                       "description": "application configuration specified on the group",
@@ -1523,22 +1538,22 @@
             "description": "Include all children groups result."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1559,7 +1574,7 @@
                     "groups": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/groupResource"
+                        "$ref": "#/components/schemas/def-7"
                       }
                     },
                     "pagination": {
@@ -1644,7 +1659,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/editGroupRequestBody"
+                "$ref": "#/components/schemas/def-6"
               },
               "examples": {
                 "Update group": {
@@ -1673,22 +1688,22 @@
             "description": "URL encoded id of group."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1725,7 +1740,7 @@
                       "description": "Group state"
                     },
                     "tags": {
-                      "$ref": "#/components/schemas/tags"
+                      "$ref": "#/components/schemas/def-0"
                     },
                     "createdBy": {
                       "description": "ID of owner.",
@@ -1746,7 +1761,7 @@
                       "type": "string"
                     },
                     "configuration": {
-                      "$ref": "#/components/schemas/configuration"
+                      "$ref": "#/components/schemas/def-9"
                     },
                     "configurationSource": {
                       "description": "application configuration specified on the group",
@@ -1856,22 +1871,22 @@
             "description": "URL encoded id of group."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1910,7 +1925,7 @@
                       "description": "Group state"
                     },
                     "tags": {
-                      "$ref": "#/components/schemas/tags"
+                      "$ref": "#/components/schemas/def-0"
                     },
                     "createdBy": {
                       "description": "ID of owner.",
@@ -1931,7 +1946,7 @@
                       "type": "string"
                     },
                     "configuration": {
-                      "$ref": "#/components/schemas/configuration"
+                      "$ref": "#/components/schemas/def-9"
                     },
                     "configurationSource": {
                       "description": "application configuration specified on the group",
@@ -2051,22 +2066,22 @@
             "description": "URL encoded id of group."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -2224,22 +2239,22 @@
             "description": "Tag key."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [

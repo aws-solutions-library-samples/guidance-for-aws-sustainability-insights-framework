@@ -1,4 +1,4 @@
-@setup_endToEnd
+@setup_endToEnd @endToEnd
 Feature:
 	End to End Integration Test
 

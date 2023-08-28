@@ -10,9 +10,20 @@
 	},
 	"private": true,
 	"devDependencies": {
-		"@rushstack/eslint-config": "^3.0.0",
-		"esbuild": "0.15.1",
-		"eslint": "8.22.0",
-		"vite": "^4.2.3"
+		"@commitlint/cli": "^17.7.1",
+		"@commitlint/config-conventional": "^17.7.0",
+		"@rushstack/eslint-config": "^3.3.2",
+		"commitlint": "17.7.1",
+		"esbuild": "0.18.14",
+		"eslint": "8.45.0",
+		"husky": "8.0.3",
+		"vite": "^4.4.4"
+	},
+	"husky": {
+		"hooks": {
+			"pre-commit": "rush lint",
+			"prepare-commit-msg": "exec < /dev/tty && git cz --hook || true",
+			"commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+		}
 	}
 }

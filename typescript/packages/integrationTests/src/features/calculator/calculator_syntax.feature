@@ -1,4 +1,4 @@
-@setup_endToEnd
+@setup_endToEnd @calculator
 Feature:
 	This feature tests the different expressions that are supported by the calculator
 	Scenario: Setup users

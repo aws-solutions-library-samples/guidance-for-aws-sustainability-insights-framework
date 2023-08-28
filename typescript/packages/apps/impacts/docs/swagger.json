@@ -14,9 +14,10 @@
       }
     },
     "schemas": {
-      "tags": {
+      "def-0": {
         "description": "User-defined searchable tags",
         "type": "object",
+        "title": "tags",
         "additionalProperties": {
           "anyOf": [
             {
@@ -28,13 +29,14 @@
           ]
         }
       },
-      "componentMap": {
+      "def-1": {
         "type": "object",
+        "title": "componentMap",
         "additionalProperties": {
-          "$ref": "#/components/schemas/componentResource"
+          "$ref": "#/components/schemas/def-2"
         }
       },
-      "componentResource": {
+      "def-2": {
         "type": "object",
         "properties": {
           "key": {
@@ -62,9 +64,10 @@
           "key",
           "value",
           "type"
-        ]
+        ],
+        "title": "componentResource"
       },
-      "editComponentRequestBody": {
+      "def-3": {
         "type": "object",
         "properties": {
           "value": {
@@ -83,9 +86,10 @@
             "description": "Label for display",
             "type": "string"
           }
-        }
+        },
+        "title": "editComponentRequestBody"
       },
-      "newComponentRequestBody": {
+      "def-4": {
         "type": "object",
         "properties": {
           "key": {
@@ -113,15 +117,17 @@
           "key",
           "value",
           "type"
-        ]
+        ],
+        "title": "newComponentRequestBody"
       },
-      "impactMap": {
+      "def-5": {
         "type": "object",
+        "title": "impactMap",
         "additionalProperties": {
-          "$ref": "#/components/schemas/impactResource"
+          "$ref": "#/components/schemas/def-8"
         }
       },
-      "editImpactRequestBody": {
+      "def-6": {
         "type": "object",
         "properties": {
           "attributes": {
@@ -132,12 +138,13 @@
           "components": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/componentResource"
+              "$ref": "#/components/schemas/def-2"
             }
           }
-        }
+        },
+        "title": "editImpactRequestBody"
       },
-      "newImpactRequestBody": {
+      "def-7": {
         "type": "object",
         "properties": {
           "name": {
@@ -152,15 +159,16 @@
           "components": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/componentResource"
+              "$ref": "#/components/schemas/def-2"
             }
           }
         },
         "required": [
           "name"
-        ]
+        ],
+        "title": "newImpactRequestBody"
       },
-      "impactResource": {
+      "def-8": {
         "type": "object",
         "properties": {
           "name": {
@@ -175,15 +183,16 @@
           "components": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/componentResource"
+              "$ref": "#/components/schemas/def-2"
             }
           }
         },
         "required": [
           "name"
-        ]
+        ],
+        "title": "impactResource"
       },
-      "activityResource": {
+      "def-9": {
         "type": "object",
         "properties": {
           "id": {
@@ -219,7 +228,7 @@
           "impacts": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/impactResource"
+              "$ref": "#/components/schemas/def-8"
             }
           },
           "groups": {
@@ -231,7 +240,7 @@
             }
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "createdBy": {
             "description": "ID of owner.",
@@ -265,15 +274,16 @@
           "groups",
           "createdBy",
           "createdAt"
-        ]
+        ],
+        "title": "activityResource"
       },
-      "activityList": {
+      "def-10": {
         "type": "object",
         "properties": {
           "activities": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/activityResource"
+              "$ref": "#/components/schemas/def-9"
             }
           },
           "pagination": {
@@ -292,9 +302,56 @@
         },
         "required": [
           "activities"
-        ]
+        ],
+        "title": "activityList"
       },
-      "editActivityRequestBody": {
+      "def-11": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "name of the entity",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "description": {
+            "description": "description of the entity",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "any non-searchable or filterable key:val attributes to specify metadata such as label, description etc.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "frozen",
+              "disabled"
+            ],
+            "description": "State of the resource. `enabled` allows use of this version of the resource within transforms. `disabled` allows this version of the resource to be used within existing transforms but not allowed to be used as part of new transforms. `frozen` prevents any version of the resource from use within any transforms including pre-existing."
+          },
+          "impacts": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/def-8"
+            }
+          },
+          "tags": {
+            "$ref": "#/components/schemas/def-0"
+          },
+          "activeAt": {
+            "description": "Date/time resource is active",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "title": "activityRequestBody"
+      },
+      "def-12": {
         "type": "object",
         "properties": {
           "description": {
@@ -318,20 +375,21 @@
           "impacts": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/impactResource"
+              "$ref": "#/components/schemas/def-8"
             }
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "activeAt": {
             "description": "Date/time resource is active",
             "format": "date-time",
             "type": "string"
           }
-        }
+        },
+        "title": "editActivityRequestBody"
       },
-      "newActivityRequestBody": {
+      "def-13": {
         "type": "object",
         "properties": {
           "name": {
@@ -359,11 +417,11 @@
           "impacts": {
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/impactResource"
+              "$ref": "#/components/schemas/def-8"
             }
           },
           "tags": {
-            "$ref": "#/components/schemas/tags"
+            "$ref": "#/components/schemas/def-0"
           },
           "activeAt": {
             "description": "Date/time resource is active",
@@ -373,15 +431,16 @@
         },
         "required": [
           "name"
-        ]
+        ],
+        "title": "newActivityRequestBody"
       },
-      "activityVersion_List": {
+      "def-14": {
         "type": "object",
         "properties": {
           "activities": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/activityResource"
+              "$ref": "#/components/schemas/def-9"
             }
           },
           "pagination": {
@@ -396,9 +455,10 @@
         },
         "required": [
           "activities"
-        ]
+        ],
+        "title": "activityVersion_List"
       },
-      "Task_resource": {
+      "def-15": {
         "type": "object",
         "properties": {
           "type": {
@@ -488,15 +548,16 @@
           "groups",
           "createdAt",
           "createdBy"
-        ]
+        ],
+        "title": "Task_resource"
       },
-      "activityTasks_list": {
+      "def-16": {
         "type": "object",
         "properties": {
           "tasks": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Task_resource"
+              "$ref": "#/components/schemas/def-15"
             }
           },
           "pagination": {
@@ -511,9 +572,10 @@
         },
         "required": [
           "tasks"
-        ]
+        ],
+        "title": "activityTasks_list"
       },
-      "activityTask_new": {
+      "def-17": {
         "type": "object",
         "properties": {
           "type": {
@@ -525,11 +587,18 @@
             "description": "Task type"
           },
           "activities": {
-            "description": "array of items, for create type task, these should include names, for update type task, the items should include ids",
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
+                "name": {
+                  "description": "name of the entity",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Unique id.",
+                  "type": "string"
+                },
                 "description": {
                   "description": "description of the entity",
                   "type": "string"
@@ -551,22 +620,15 @@
                 "impacts": {
                   "type": "object",
                   "additionalProperties": {
-                    "$ref": "#/components/schemas/impactResource"
+                    "$ref": "#/components/schemas/def-8"
                   }
                 },
                 "tags": {
-                  "$ref": "#/components/schemas/tags"
+                  "$ref": "#/components/schemas/def-0"
                 },
                 "activeAt": {
                   "description": "Date/time resource is active",
                   "format": "date-time",
-                  "type": "string"
-                },
-                "id": {
-                  "description": "Unique id.",
-                  "type": "string"
-                },
-                "name": {
                   "type": "string"
                 }
               }
@@ -576,9 +638,10 @@
         "required": [
           "type",
           "activities"
-        ]
+        ],
+        "title": "activityTask_new"
       },
-      "taskItem_resource": {
+      "def-18": {
         "type": "object",
         "properties": {
           "name": {
@@ -608,15 +671,16 @@
         },
         "required": [
           "name"
-        ]
+        ],
+        "title": "taskItem_resource"
       },
-      "taskItem_List": {
+      "def-19": {
         "type": "object",
         "properties": {
           "taskItems": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/taskItem_resource"
+              "$ref": "#/components/schemas/def-18"
             }
           },
           "pagination": {
@@ -635,7 +699,8 @@
         },
         "required": [
           "taskItems"
-        ]
+        ],
+        "title": "taskItem_List"
       }
     }
   },
@@ -651,7 +716,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/newActivityRequestBody"
+                "$ref": "#/components/schemas/def-13"
               },
               "examples": {
                 "New Acitivity": {
@@ -718,22 +783,22 @@
         },
         "parameters": [
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -748,7 +813,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/activityResource"
+                  "$ref": "#/components/schemas/def-9"
                 },
                 "examples": {
                   "New Activity": {
@@ -967,22 +1032,22 @@
             "description": "Include all children groups result."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -998,7 +1063,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/activityList"
+                  "$ref": "#/components/schemas/def-10"
                 },
                 "examples": {
                   "List of Activities": {
@@ -1166,22 +1231,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1197,7 +1262,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/activityResource"
+                  "$ref": "#/components/schemas/def-9"
                 },
                 "examples": {
                   "Existing activity": {
@@ -1302,7 +1367,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/editActivityRequestBody"
+                "$ref": "#/components/schemas/def-12"
               },
               "examples": {
                 "Update existing ": {
@@ -1326,22 +1391,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1356,7 +1421,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/activityResource"
+                  "$ref": "#/components/schemas/def-9"
                 }
               }
             }
@@ -1429,22 +1494,22 @@
             "description": "specify the version number"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1460,7 +1525,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/activityResource"
+                  "$ref": "#/components/schemas/def-9"
                 },
                 "examples": {
                   "Existing activity by version": {
@@ -1603,22 +1668,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1634,7 +1699,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/activityVersion_List"
+                  "$ref": "#/components/schemas/def-14"
                 },
                 "examples": {
                   "List activity versions": {
@@ -1812,22 +1877,22 @@
             "description": "Group id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1914,22 +1979,22 @@
             "description": "Group id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -2001,7 +2066,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/newImpactRequestBody"
+                "$ref": "#/components/schemas/def-7"
               },
               "examples": {
                 "New Impact": {
@@ -2073,22 +2138,22 @@
             "description": "name of the impact"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -2103,7 +2168,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/impactResource"
+                  "$ref": "#/components/schemas/def-8"
                 },
                 "examples": {
                   "New Impact": {
@@ -2240,22 +2305,22 @@
             "description": "name of the impact"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -2271,7 +2336,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/impactResource"
+                  "$ref": "#/components/schemas/def-8"
                 },
                 "examples": {
                   "Impact details for a particular Activity": {
@@ -2355,7 +2420,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/editImpactRequestBody"
+                "$ref": "#/components/schemas/def-6"
               },
               "examples": {
                 "Update impact value": {
@@ -2388,22 +2453,22 @@
             "description": "name of the impact"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -2418,7 +2483,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/impactResource"
+                  "$ref": "#/components/schemas/def-8"
                 }
               }
             }
@@ -2500,22 +2565,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -2531,7 +2596,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/impactMap"
+                  "$ref": "#/components/schemas/def-5"
                 },
                 "examples": {
                   "List of Impacts": {
@@ -2642,7 +2707,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/newComponentRequestBody"
+                "$ref": "#/components/schemas/def-4"
               },
               "examples": {
                 "Add new component to the impact": {
@@ -2698,7 +2763,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/componentResource"
+                  "$ref": "#/components/schemas/def-2"
                 }
               }
             }
@@ -2790,7 +2855,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/editComponentRequestBody"
+                "$ref": "#/components/schemas/def-3"
               },
               "examples": {
                 "Update component value": {
@@ -2844,7 +2909,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/componentResource"
+                  "$ref": "#/components/schemas/def-2"
                 }
               }
             }
@@ -2936,7 +3001,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/componentResource"
+                  "$ref": "#/components/schemas/def-2"
                 },
                 "examples": {
                   "Component": {
@@ -3060,7 +3125,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/componentMap"
+                  "$ref": "#/components/schemas/def-1"
                 },
                 "examples": {
                   "List of components": {
@@ -3120,7 +3185,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/activityTask_new"
+                "$ref": "#/components/schemas/def-17"
               },
               "examples": {
                 "list of activities": {
@@ -3258,7 +3323,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/Task_resource"
+                  "$ref": "#/components/schemas/def-15"
                 },
                 "examples": {
                   "Activities creation task": {
@@ -3342,7 +3407,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/activityTasks_list"
+                  "$ref": "#/components/schemas/def-16"
                 },
                 "examples": {
                   "List of Activities": {
@@ -3422,7 +3487,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/Task_resource"
+                  "$ref": "#/components/schemas/def-15"
                 },
                 "examples": {
                   "Existing Activity Task": {
@@ -3443,6 +3508,99 @@
                       "createdBy": "someone@somewhere"
                     }
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteActivityTask",
+        "summary": "Deletes an activity task",
+        "tags": [
+          "Activity Tasks"
+        ],
+        "description": "Deletes an activity task.\n\nPermissions:\n- Only `admin` and above may delete activity tasks.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
                 }
               }
             }
@@ -3527,7 +3685,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/taskItem_resource"
+                  "$ref": "#/components/schemas/def-18"
                 },
                 "examples": {
                   "Existing Activity Task Item": {
@@ -3630,22 +3788,22 @@
             "description": "activity Task id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -3661,7 +3819,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/taskItem_List"
+                  "$ref": "#/components/schemas/def-19"
                 },
                 "examples": {
                   "List of task items": {
@@ -3740,22 +3898,22 @@
             "description": "Tag key."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -3843,6 +4001,318 @@
               "application/json": {
                 "schema": {
                   "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{activityId}": {
+      "delete": {
+        "operationId": "deleteActivity",
+        "summary": "Deletes an activity.",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Deletes an activity.\n\nPermissions:\n- Only `admin` and above may delete activities.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "activityId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{activityId}/impacts/{impactName}": {
+      "delete": {
+        "operationId": "deleteimpact",
+        "summary": "Deletes an impact.",
+        "tags": [
+          "Impacts"
+        ],
+        "description": "Deletes an impact.\n\nPermissions:\n- Only `admin` and above may delete impacts.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "activityId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "name of the impact"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{activityId}/impacts/{impactName}/components/{componentKey}": {
+      "delete": {
+        "operationId": "delete",
+        "summary": "Deletes a component.",
+        "tags": [
+          "Components"
+        ],
+        "description": "Deletes a component.\n\nPermissions:\n- Only `admin` and above may delete components.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "activityId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "impactName",
+            "required": true,
+            "description": "name of the impact"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "componentKey",
+            "required": true,
+            "description": "key of the component"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
                   "type": "object",
                   "properties": {
                     "message": {

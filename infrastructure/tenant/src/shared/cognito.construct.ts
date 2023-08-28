@@ -38,6 +38,7 @@ import { fileURLToPath } from 'url';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { Policy, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { NagSuppressions } from 'cdk-nag';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,7 +100,8 @@ export class Cognito extends Construct {
 				NODE_ENV: props.environment,
 				TENANT_ID: props.tenantId
 			},
-			depsLockFilePath
+			depsLockFilePath,
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		const invokeLambdaPolicy = new PolicyStatement({

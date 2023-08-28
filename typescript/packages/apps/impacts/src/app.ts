@@ -26,7 +26,7 @@ import getActivityRoute from './activities/get.handler.js';
 import revokeActivityToGroupRoute from './activities/groups/delete.handler.js';
 import grantActivityToGroupRoute from './activities/groups/put.handler.js';
 import listActivitiesRoute from './activities/list.handler.js';
-import { activityList, activityResource, activityVersionsList, editActivityRequestBody, newActivityRequestBody } from './activities/schemas.js';
+import { activityList, activityResource, activityVersionsList, editActivityRequestBody, newActivityRequestBody, activityRequestBody } from './activities/schemas.js';
 import updateActivityRoute from './activities/update.handler.js';
 import getActivityByVersionRoute from './activities/versions/get.handler.js';
 import listActivityVersionsRoute from './activities/versions/list.handler.js';
@@ -89,7 +89,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 			plugins: [
 				// eslint-disable-next-line @typescript-eslint/typedef
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				function (ajv: any) {
+				function(ajv: any) {
 					ajv.addKeyword({ keyword: 'x-examples' });
 				},
 			],
@@ -122,6 +122,7 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
 	app.addSchema(activityResource);
 	app.addSchema(activityList);
+	app.addSchema(activityRequestBody);
 	app.addSchema(editActivityRequestBody);
 	app.addSchema(newActivityRequestBody);
 	app.addSchema(activityVersionsList);

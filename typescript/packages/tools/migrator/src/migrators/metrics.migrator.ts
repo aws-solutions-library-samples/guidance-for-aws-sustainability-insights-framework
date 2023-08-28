@@ -120,7 +120,13 @@ const exportFromDynamoDB = async (tenantId: string, environment: string, items: 
 			await exportFromDynamoDB(tenantId, environment, items, response.LastEvaluatedKey);
 		}
 	} catch (e) {
+		/*
+		* Semgrep issue https://sg.run/7Y5R
+		* Ignore reason: Migrator tool is run by end user - there is no risk of command injection in this context
+		*/
+		// nosemgrep
 		console.error(`Error scanning dynamodb table: ${tableName}`, e);
+		throw e;
 	}
 };
 

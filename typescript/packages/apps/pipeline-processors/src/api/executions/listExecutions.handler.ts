@@ -12,11 +12,10 @@
  */
 
 import { atLeastReader } from '@sif/authz';
-import { apiVersion100, commonHeaders, FastifyTypebox, id } from '@sif/resource-api-base';
+import { apiVersion100, commonHeaders, fromTokenPaginationQS, tagFilterQS, FastifyTypebox, id } from '@sif/resource-api-base';
 import { Type } from '@sinclair/typebox';
-
 import { pipelineExecutionListExample } from './examples.js';
-import { countPaginationParam, fromExecutionIdPaginationParam, pipelineExecutionList } from './schemas.js';
+import { countPaginationParam, PipelineExecutionList, pipelineExecutionList } from './schemas.js';
 
 export default function listPipelineExecutionsRoute(fastify: FastifyTypebox, _options: unknown, done: () => void): void {
 	fastify.route({
@@ -31,7 +30,8 @@ export default function listPipelineExecutionsRoute(fastify: FastifyTypebox, _op
 			}),
 			querystring: Type.Object({
 				count: countPaginationParam,
-				fromExecutionId: fromExecutionIdPaginationParam,
+				fromToken: fromTokenPaginationQS,
+				tags: tagFilterQS,
 			}),
 			response: {
 				200: {
@@ -53,8 +53,19 @@ export default function listPipelineExecutionsRoute(fastify: FastifyTypebox, _op
 
 		handler: async (request, reply) => {
 			const svc = fastify.diContainer.resolve('pipelineProcessorsService');
-			const pipelineExecutionList = await svc.list(request.authz, request.params.pipelineId, request.query.fromExecutionId, request.query.count);
-			await reply.status(200).send(pipelineExecutionList); // nosemgrep
+			const tagService = fastify.diContainer.resolve('tagService');
+			const { count, fromToken, tags } = request.query;
+
+			const [executions, lastEvaluatedToken] = await svc.list(request.authz, request.params.pipelineId, { count, exclusiveStart: { paginationToken: fromToken }, tags: tagService.expandTagsQS(tags) });
+			const response: PipelineExecutionList = { executions };
+
+			if (count || lastEvaluatedToken) {
+				response.pagination = {};
+				if (lastEvaluatedToken) {
+					response.pagination.lastEvaluatedToken = lastEvaluatedToken.paginationToken;
+				}
+			}
+			await reply.status(200).send(response); // nosemgrep
 		},
 	});
 

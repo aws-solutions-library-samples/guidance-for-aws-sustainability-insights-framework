@@ -441,7 +441,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
         DynamicTypeValue result = null;
         for(var expr : ctx.exprList().expr()) {
             result = super.visit(expr);
-            if (result!=null) {
+            if (result!=null && !(result instanceof NullValue)) {
                 break;
             }
         }
@@ -996,7 +996,7 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
                     localDateTime =  dateTime.toLocalDate().atStartOfDay();
                     break;
                 case "week":
-                    localDateTime =  dateTime.toLocalDate().atStartOfDay().with(WeekFields.of(Locale.getDefault()).dayOfWeek(), 1);
+                    localDateTime =  dateTime.toLocalDate().atStartOfDay().with(WeekFields.of(locale).dayOfWeek(), 1);
                     break;
                 case "quarter":
                     localDateTime =  this.getCalendarQuarterDayFromDateTime(dateTime);

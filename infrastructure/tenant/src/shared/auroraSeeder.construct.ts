@@ -24,6 +24,7 @@ import * as cdk from 'aws-cdk-lib';
 import { DatabaseSecret } from 'aws-cdk-lib/aws-rds';
 import { HostedRotation } from 'aws-cdk-lib/aws-secretsmanager';
 import { NagSuppressions } from 'cdk-nag';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,7 +95,8 @@ export class AuroraSeeder extends Construct {
 				externalModules: ['aws-sdk', 'pg-native']
 			},
 			environment: {},
-			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml')
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {

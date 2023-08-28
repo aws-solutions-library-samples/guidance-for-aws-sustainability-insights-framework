@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><!--
   ~  Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
   ~
   ~  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance
@@ -10,22 +9,27 @@
   ~  or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES
   ~  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
   ~  and limitations under the License.
-  -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  --><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.aws.sif.calculator</groupId>
-    <artifactId>application</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <artifactId>sif-calculator</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <distributionManagement>
+        <repository>
+            <uniqueVersion>false</uniqueVersion>
+            <id>temp.repo</id>
+           <name>Temp Repo</name>
+	       <url>file://${user.home}/.m2/temp-repository</url>
+           <layout>default</layout>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
         <antlr4.version>4.11.1</antlr4.version>
         <awssdk.version>2.18.11</awssdk.version>
         <dagger.version>2.44.2</dagger.version>
@@ -39,8 +43,111 @@
 		<qudtlib.version>4.3.0</qudtlib.version>
 	</properties>
 
+    <scm>
+        <developerConnection>${developerConnectionUrl}</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <useReleaseProfile>false</useReleaseProfile>
+                    <checkModificationExcludes>
+                        <checkModificationExclude>pom.xml</checkModificationExclude>
+                    </checkModificationExcludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>perform</goal>
+                        </goals>
+                        <configuration>
+                            <pomFileName>java/calculator/pom.xml</pomFileName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+           <plugin>
+               <groupId>se.bjurr.gitchangelog</groupId>
+               <artifactId>git-changelog-maven-plugin</artifactId>
+               <version>1.97.1</version>
+               <executions>
+                   <execution>
+                        <id>GenerateGitChangelog</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                           <goal>git-changelog</goal>
+						   <goal>semantic-version</goal>
+                        </goals>
+                        <configuration>
+                            <templateContent>
+							    <![CDATA[
+# Changelog
+
+{{#tags}}
+{{#ifReleaseTag .}}
+{{#ifMatches name "sif-calculator-(\d+\.)?(\d+\.)?(\*|\d+)$"}}
+## [{{name}}]
+{{tagDate .}}
+
+
+  {{#ifContainsType commits type='breaking'}}
+### Major changes
+
+    {{#commits}}
+      {{#ifCommitType . type='breaking'}}
+        {{#ifCommitScope . scope="calculator"}}
+ - {{{commitDescription .}}}
+        {{/ifCommitScope}}
+      {{/ifCommitType}}
+    {{/commits}}
+  {{/ifContainsType}}
+
+  {{#ifContainsType commits type='feat'}}
+### Minor changes
+
+    {{#commits}}
+      {{#ifCommitType . type='feat'}}
+        {{#ifCommitScope . scope="calculator"}}
+ - {{{commitDescription .}}}
+        {{/ifCommitScope}}
+      {{/ifCommitType}}
+    {{/commits}}
+  {{/ifContainsType}}
+
+  {{#ifContainsType commits type='fix'}}
+### Patches
+
+    {{#commits}}
+      {{#ifCommitType . type='fix'}}
+        {{#ifCommitScope . scope="calculator"}}
+ - {{{commitDescription .}}}
+        {{/ifCommitScope}}
+      {{/ifCommitType}}
+    {{/commits}}
+  {{/ifContainsType}}
+  {{/ifMatches}}
+{{/ifReleaseTag}}
+{{/tags}}
+                                ]]>
+                            </templateContent>
+                            <!-- Suffix version with -SNAPSHOT //-->
+                           <updatePomWithNextSemanticVersionSuffixSnapshot>true</updatePomWithNextSemanticVersionSuffixSnapshot>
+
+                           <!-- Regexp patterns used to identify next version can optionally be adjusted //-->
+                           <semanticMajorVersionPattern>breaking(calculator)</semanticMajorVersionPattern>
+                           <semanticMinorVersionPattern>feat(calculator)</semanticMinorVersionPattern>
+                           <semanticPatchVersionPattern>fix(calculator)</semanticPatchVersionPattern>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>    <!-- generate source files from the antlr4 grammar -->
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>

@@ -38,6 +38,7 @@ const pipeline: Pipeline = {
 	},
 	// ignore the rest below
 	id: '01h03evc0mjceh3qa4cyd5zzrx',
+	name: 'pipelineName',
 	version: 1,
 		'transformer': {
 			'transforms': [

@@ -34,6 +34,14 @@ async function cloneImpactsApi() {
 	return (await cloneExistingApi('impacts', process.env.IMPACTS_BASE_URL as string));
 }
 
+async function cloneReferenceDatasetsApi() {
+	return (await cloneExistingApi('referenceDatasets', process.env.REFERENCE_DATASETS_BASE_URL as string));
+}
+
+async function cloneCalculationsApi() {
+	return (await cloneExistingApi('calculations', process.env.CALCULATIONS_BASE_URL as string));
+}
+
 When(/^I create (.*) metrics with prefix (.*) and tags (.*)$/, async function(numOfMetrics: string, prefix: string, tags: string) {
 
 	const [tagKey, tagValue] = tags.split(':');
@@ -67,23 +75,29 @@ When(/^I create (.*) metrics with prefix (.*) and tags (.*)$/, async function(nu
 	}));
 });
 
-Then(/^no metric exists with tags (.*)$/, async function(tags: string) {
+Then(/^no metric exists with tags (.*)$/, async function (tags: string) {
 
 	const getMetrics = async (): Promise<void> => {
-		const url = `metrics?tags=${encodeURIComponent(tags)}&count=50&includeParentGroups=true&includeChildGroups=true`;
-		await this['apickli'].sendWithAxios('GET', url);
-		const { metrics } = JSON.parse(this['apickli'].httpResponse.body);
-		return metrics;
+		const metricUrl = `metrics?tags=${encodeURIComponent(tags)}&count=50&includeParentGroups=true&includeChildGroups=true`;
+		await this['apickli'].sendWithAxios('GET', metricUrl);
+		if (this['apickli'].httpResponse?.statusCode !== 404) {
+			const { metrics } = JSON.parse(this['apickli'].httpResponse.body);
+			return metrics;
+		} else {
+			return;
+		}
 	};
 
 	const deleteFunction = async (metrics: any): Promise<void> => {
+		if (metrics) {
+			const deleteMetricsFutures = metrics?.map(async (m: any) => {
+				const endpoint = await clonePipelineApi();
+				endpoint.removeRequestHeader('Content-Type');
+				await endpoint.sendWithAxios('DELETE', `metrics/${m.id}`);
+			});
+			await Promise.all(deleteMetricsFutures);
+		}
 
-		const deleteMetricsFutures = metrics?.map(async (m: any) => {
-			const endpoint = await clonePipelineApi();
-			endpoint.removeRequestHeader('Content-Type');
-			await endpoint.sendWithAxios('DELETE', `metrics/${m.id}`);
-		});
-		await Promise.all(deleteMetricsFutures);
 	};
 
 	// may need to loop a few times as metrics with dependencies on other metrics cannot be deleted without dependencies removed
@@ -93,8 +107,8 @@ Then(/^no metric exists with tags (.*)$/, async function(tags: string) {
 });
 
 Then(/^no activities exists with tags (.*)$/, async function(tags: string) {
-	const url = `activities?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
-	await this['apickli'].sendWithAxios('GET', url);
+	const activityUrl = `activities?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
+	await this['apickli'].sendWithAxios('GET', activityUrl);
 	const { activities } = JSON.parse(this['apickli'].httpResponse.body);
 	for (const { id } of activities) {
 		const endpoint = await cloneImpactsApi();
@@ -102,27 +116,61 @@ Then(/^no activities exists with tags (.*)$/, async function(tags: string) {
 		await endpoint.sendWithAxios('DELETE', `activities/${id}`);
 		const statusCode = endpoint?.httpResponse?.statusCode ?? 0;
 		if (statusCode !== 204 && statusCode !== 404) {
-			fail(`Invalid response code ${statusCode} for ${url}`);
+			fail(`Invalid response code ${statusCode} for ${activityUrl}`);
 		}
 	}
 });
 
-Then(/^no pipeline exists with tags (.*)$/, async function(tags: string) {
-	const url = `pipelines?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
-	await this['apickli'].sendWithAxios('GET', url);
-	const { pipelines } = JSON.parse(this['apickli'].httpResponse.body);
-	for (const { id } of pipelines) {
-		const endpoint = await clonePipelineApi();
+Then(/^no pipeline exists with tags (.*)$/, async function (tags: string) {
+	const pipelineUrl = `pipelines?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
+	await this['apickli'].sendWithAxios('GET', pipelineUrl);
+	if (this['apickli'].httpResponse?.statusCode !== 404) {
+		const { pipelines } = JSON.parse(this['apickli'].httpResponse.body);
+		for (const { id } of pipelines) {
+			const endpoint = await clonePipelineApi();
+			endpoint.removeRequestHeader('Content-Type');
+			await endpoint.sendWithAxios('DELETE', `pipelines/${id}`);
+			const statusCode = endpoint?.httpResponse?.statusCode ?? 0;
+			if (statusCode !== 204 && statusCode !== 404) {
+				fail(`Invalid response code ${statusCode} for ${pipelineUrl}`);
+			}
+		}
+	}
+});
+
+
+Then(/^no referenceDatasets exists with tags (.*)$/, async function(tags: string) {
+	const referenceDatasetUrl = `referenceDatasets?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
+	await this['apickli'].sendWithAxios('GET', referenceDatasetUrl);
+	const { referenceDatasets } = JSON.parse(this['apickli'].httpResponse.body);
+	for (const { id } of referenceDatasets) {
+		const endpoint = await cloneReferenceDatasetsApi();
 		endpoint.removeRequestHeader('Content-Type');
-		await endpoint.sendWithAxios('DELETE', `pipelines/${id}`);
+		await endpoint.sendWithAxios('DELETE', `referenceDatasets/${id}`);
 		const statusCode = endpoint?.httpResponse?.statusCode ?? 0;
 		if (statusCode !== 204 && statusCode !== 404) {
-			fail(`Invalid response code ${statusCode} for ${url}`);
+			console.log(`Invalid response code ${statusCode} for ${referenceDatasetUrl}`);
+			fail(`Invalid response code ${statusCode} for ${referenceDatasetUrl}`);
 		}
 	}
 });
 
-When(/^I create (.*) pipelines with prefix (.*) and definition (.*) and tags (.*)$/, async function(numOfPipelines: string, prefix: string, createPipelineRequest: string, tags: string) {
+Then(/^no calculations exists with tags (.*)$/, async function(tags: string) {
+	const calculationUrl = `calculations?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
+	await this['apickli'].sendWithAxios('GET', calculationUrl);
+	const { calculations } = JSON.parse(this['apickli'].httpResponse.body);
+	for (const { id } of calculations) {
+		const endpoint = await cloneCalculationsApi();
+		endpoint.removeRequestHeader('Content-Type');
+		await endpoint.sendWithAxios('DELETE', `calculations/${id}`);
+		const statusCode = endpoint?.httpResponse?.statusCode ?? 0;
+		if (statusCode !== 204 && statusCode !== 404) {
+			fail(`Invalid response code ${statusCode} for ${calculationUrl}`);
+		}
+	}
+});
+
+When(/^I create (.*) pipelines with prefix (.*) and definition (.*) and tags (.*)$/, async function (numOfPipelines: string, prefix: string, createPipelineRequest: string, tags: string) {
 
 	const [tagKey, tagValue] = tags.split(':');
 	const url = `pipelines`;
@@ -152,7 +200,7 @@ When(/^I create (.*) pipelines with prefix (.*) and definition (.*) and tags (.*
 });
 
 
-Then(/^pipelines response should contain pipeline (.*)$/, async function(pipelineIdVariable: string) {
+Then(/^pipelines response should contain pipeline (.*)$/, async function (pipelineIdVariable: string) {
 	const pipelinesResponse = JSON.parse(this['apickli'].getResponseObject().body);
 	const pipelineId = this['apickli'].getGlobalVariable(pipelineIdVariable);
 

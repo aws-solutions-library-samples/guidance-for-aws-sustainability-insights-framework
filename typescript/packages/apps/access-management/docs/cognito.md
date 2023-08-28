@@ -16,7 +16,7 @@ All API requests made against any modules are carried out within the context of 
 
 ### Cognito challenge flow to set group context
 
-The Cognito that is deployed as part of `sif-core` is configured to use [Secure Remote Password (SRP) protocol](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#Built-in-authentication-flow-and-challenges). The user's default group is inserted into the JWT claims as part of the [pre token generation](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-token-generation.html) trigger. After successful authentication the id token can be used to authenticate API calls.
+The Cognito that is deployed as part of `guidance-for-aws-sustainability-insights-framework` is configured to use [Secure Remote Password (SRP) protocol](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#Built-in-authentication-flow-and-challenges). The user's default group is inserted into the JWT claims as part of the [pre token generation](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-token-generation.html) trigger. After successful authentication the id token can be used to authenticate API calls.
 
 ### Manually verifying a user's email
 

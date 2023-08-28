@@ -1,4 +1,4 @@
-@setup_impacts
+@setup_impacts @impacts
 Feature:
 
   	This feature tests the tagging of resources, therefore only focuses on testing responses and attributes specific to it.

@@ -2,6 +2,18 @@
   "name": "@sif/integration-tests",
   "entries": [
     {
+      "version": "3.15.0",
+      "tag": "@sif/integration-tests_v3.15.0",
+      "date": "Thu, 17 Aug 2023 02:44:14 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "added enhanced load tests and parallelised the other tests"
+          }
+        ]
+      }
+    },
+    {
       "version": "3.14.0",
       "tag": "@sif/integration-tests_v3.14.0",
       "date": "Thu, 20 Jul 2023 00:30:14 GMT",

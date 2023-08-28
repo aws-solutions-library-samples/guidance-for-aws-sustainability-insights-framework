@@ -63,6 +63,7 @@ describe('ConnectorUtility', () => {
 			},
 			// ignore the rest below
 			id: 'pipeId',
+			name: 'pipelineName',
 			version: 1,
 			transformer: {
 				transforms: [],
@@ -89,6 +90,7 @@ describe('ConnectorUtility', () => {
 			createdAt: 'timestamp',
 			pipelineVersion: 1,
 			status: 'success',
+			groups: ['pipeId'],
 			groupContextId: '/'
 		};
 
@@ -138,6 +140,7 @@ describe('ConnectorUtility', () => {
 			},
 			// ignore the rest below
 			id: 'pipeId',
+			name: 'pipelineName',
 			version: 1,
 			transformer: {
 				transforms: [],
@@ -155,6 +158,7 @@ describe('ConnectorUtility', () => {
 			createdAt: 'timestamp',
 			pipelineVersion: 1,
 			status: 'success',
+			groups: ['pipeId'],
 			groupContextId: '/'
 		};
 
@@ -204,6 +208,7 @@ describe('ConnectorUtility', () => {
 			},
 			// ignore the rest below
 			id: 'pipeId',
+			name: 'pipelineName',
 			version: 1,
 			transformer: {
 				transforms: [],
@@ -221,6 +226,7 @@ describe('ConnectorUtility', () => {
 			createdAt: 'timestamp',
 			pipelineVersion: 1,
 			status: 'success',
+			groups: ['pipeId'],
 			groupContextId: '/'
 		};
 
@@ -272,6 +278,7 @@ describe('ConnectorUtility', () => {
 			},
 			// ignore the rest below
 			id: 'pipeId',
+			name: 'pipelineName',
 			version: 1,
 			transformer: {
 				transforms: [],
@@ -297,6 +304,7 @@ describe('ConnectorUtility', () => {
 			createdAt: 'timestamp',
 			pipelineVersion: 1,
 			status: 'success',
+			groups: ['pipeId'],
 			groupContextId: '/'
 		};
 

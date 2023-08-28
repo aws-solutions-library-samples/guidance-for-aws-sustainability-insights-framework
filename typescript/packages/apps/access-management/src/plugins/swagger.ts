@@ -14,11 +14,11 @@
 import fp from 'fastify-plugin';
 
 import FastifySwagger, { FastifySwaggerOptions } from '@fastify/swagger';
+
 import { writeFile } from 'fs';
 
 export default fp<FastifySwaggerOptions>(async (app) => {
 	await app.register(FastifySwagger, {
-		routePrefix: '/swagger-docs',
 		openapi: {
 			info: {
 				title: 'SIF SaaS: Access Management',
@@ -67,19 +67,6 @@ It is recommended that a group structure be created beneath the built-in global 
 				},
 			},
 			security: [],
-		},
-		hideUntagged: true,
-		exposeRoute: true,
-
-		uiConfig: {
-			docExpansion: 'list',
-			deepLinking: true,
-		},
-
-		refResolver: {
-			buildLocalReference(json, _baseUri, _fragment, _i) {
-				return `${json['$id']}`;
-			},
 		},
 	});
 

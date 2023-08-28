@@ -15,31 +15,31 @@ The following is a one-time setup to configure the development environment:
 + clone the project:****
 
 ```shell
-> git clone git@github.com:aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git
+> git clone https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git
 ```
 
 + initialize the project dependencies:
 
 ```shell
-> cd sif-core/typescript
-sif-core/typescript> rush install
-sif-core/typescript> rush update
+> cd guidance-for-aws-sustainability-insights-framework/typescript
+guidance-for-aws-sustainability-insights-framework/typescript> rush install
+guidance-for-aws-sustainability-insights-framework/typescript> rush update
 ```
 
 ## Build
 
-The sif-core Typescript monorepo is managed by [rush](https://rushjs.io) which under the covers is configured to use [pnpm](http://pnpm.js.org) as its package manager. The following is a brief introduction of how to use _rush_:
+The guidance-for-aws-sustainability-insights-framework Typescript monorepo is managed by [rush](https://rushjs.io) which under the covers is configured to use [pnpm](http://pnpm.js.org) as its package manager. The following is a brief introduction of how to use _rush_:
 
 ```sh
 # If this is your first time at using Rush for this project, remove any node_modules
 # that may have been installed as part of a non-Rush (npm/pnpm) release:
-sif-core/typescript> rm -rf node_modules
+guidance-for-aws-sustainability-insights-framework/typescript> rm -rf node_modules
 
 # One time setup only, initialize the project after cloning from git
-sif-core/typescript> rush install
+guidance-for-aws-sustainability-insights-framework/typescript> rush install
 
 # Install/refresh the dependencies
-sif-core/typescript> rush update
+guidance-for-aws-sustainability-insights-framework/typescript> rush update
 
 # When running the `clean`, `build`, `lint` or `test` commands you have the option to
 # run globally (for all packages), or for a specific package. To run for all packages
@@ -59,29 +59,29 @@ sif-core/typescript> rush update
 
 # Taking the above comments into consideration, to build run the following. Note that the first build
 # may take time, but subsequent builds will be quicker delta builds:
-sif-core/typescript> rush build
+guidance-for-aws-sustainability-insights-framework/typescript> rush build
 
 # To lint:
-sif-core/typescript> rush lint
+guidance-for-aws-sustainability-insights-framework/typescript> rush lint
 
 # And to run unit tests:
-sif-core/typescript> rush test
+guidance-for-aws-sustainability-insights-framework/typescript> rush test
 
 # If you experience issues and need to reset everything you have the following 2 commands available:
 #   To remove all build artifacts:
-sif-core/typescript> rush purge        # to purge all node_modules:
-sif-core/typescript> rush update       # refresh dependencies
-sif-core/typescript> rush clean        # perform a deep clean
-sif-core/typescript> rush update       # refresh dependencies again
+guidance-for-aws-sustainability-insights-framework/typescript> rush purge        # to purge all node_modules:
+guidance-for-aws-sustainability-insights-framework/typescript> rush update       # refresh dependencies
+guidance-for-aws-sustainability-insights-framework/typescript> rush clean        # perform a deep clean
+guidance-for-aws-sustainability-insights-framework/typescript> rush update       # refresh dependencies again
 
 ```
 
 ## Understanding the directory structure
 
-| Directory                 | Description                                               |
-|---------------------------|-----------------------------------------------------------|
-| docs/                     | Project documentation                                     |
-| infrastructure   | Infrastructure and deployment related source              |
+| Directory                            | Description                                               |
+|--------------------------------------|-----------------------------------------------------------|
+| docs/                                | Project documentation                                     |
+| infrastructure                       | Infrastructure and deployment related source              |
 | typescript/common/                   | all build and bundling, monorepo management related files |
 | typescript/packages/                 | All modules are located within packages                   |
 | typescript/packages/apps             | Houses the individual microservice module                 |
@@ -91,8 +91,8 @@ sif-core/typescript> rush update       # refresh dependencies again
 ## Running a module locally
 
 ```shell
-sif-core/typescript> cd packages/apps/<module_name>
-sif-core/typescript/packages/apps/<module_name> > npm run start
+guidance-for-aws-sustainability-insights-framework/typescript> cd packages/apps/<module_name>
+guidance-for-aws-sustainability-insights-framework/typescript/packages/apps/<module_name> > npm run start
 ```
 
 ## Manually Testing API(s)
@@ -116,7 +116,7 @@ We adhere to what is known as a [GitHub flow](https://guides.github.com/introduc
 + When starting a new feature or fixing a bug, create a new branch from `main`. Name the branch `feat_***` for new features or `fix_***` for hotfixes:
 
 ```sh
-sif-core> git switch -c <new_branch_name>
+guidance-for-aws-sustainability-insights-framework> git switch -c <new_branch_name>
 
 Switched to a new branch '<new_branch_name>'
 ```
@@ -124,9 +124,9 @@ Switched to a new branch '<new_branch_name>'
 + At suitable points, commit your work by running the following, and following the prompts to describe your commit. Note that you must run `rush commit` inside the `source/` directory whereas you can run the `git` commands anywhere within the repo.
 
 ```sh
-sif-core> git add -A
-sif-core> cd source
-sif-core> rush commit
+guidance-for-aws-sustainability-insights-framework> git add -A
+guidance-for-aws-sustainability-insights-framework> cd source
+guidance-for-aws-sustainability-insights-framework> rush commit
 ```
 
 + When you have finished with your implementation, and ensured that all existing unit tests pass as well as creating any new tests, the following steps are required:
@@ -135,15 +135,15 @@ sif-core> rush commit
 
 ```sh
 # pull in main into your branch
-sif-core> git merge origin/main
+guidance-for-aws-sustainability-insights-framework> git merge origin/main
 
 # once any conflicts have been resolved, test
-sif-core> cd typescript
-sif-core/typescript> rush test
+guidance-for-aws-sustainability-insights-framework> cd typescript
+guidance-for-aws-sustainability-insights-framework/typescript> rush test
 
 # commit changes
-sif-core/typescript> git add -A
-sif-core/typescript> rush commit
+guidance-for-aws-sustainability-insights-framework/typescript> git add -A
+guidance-for-aws-sustainability-insights-framework/typescript> rush commit
 ```
 
 +
@@ -151,18 +151,18 @@ sif-core/typescript> rush commit
 
 ```sh
 # generate release notes
-sif-core/typescript> rush change
+guidance-for-aws-sustainability-insights-framework/typescript> rush change
 
 # commit release notes
-sif-core/typescript> git add -A
-sif-core/typescript> rush commit
+guidance-for-aws-sustainability-insights-framework/typescript> git add -A
+guidance-for-aws-sustainability-insights-framework/typescript> rush commit
 ```
 
 +
 	+ Push the branch to the git repo
 
 ```sh
-sif-core/typescript> git push
+guidance-for-aws-sustainability-insights-framework/typescript> git push
 ```
 +
 	+ Create a pull request

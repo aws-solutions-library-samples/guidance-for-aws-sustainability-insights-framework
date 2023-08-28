@@ -15,6 +15,7 @@ import type { Handler } from 'aws-lambda/handler';
 import type { Transformer, ActionType, PipelineType } from '@sif/clients';
 import type { Output } from '../../api/activities/models';
 import type { AffectedTimeRange } from '../../api/metrics/models';
+import type { HistoryEvent } from '@aws-sdk/client-sfn';
 
 export interface VerificationTaskEvent {
 	source: {
@@ -88,9 +89,10 @@ export type GroupsQueue = { order: number, group: string }[]
 
 export type Status = 'FAILED' | 'SUCCEEDED' | 'IN_PROGRESS';
 
-export interface ProcessedTaskEventWithStartTime {
-	startTime: string;
-	input: ProcessedTaskEvent[];
+export interface ProcessedTaskEventWithExecutionDetails {
+	executionStartTime: string;
+	executionArn: string;
+	inputs: ProcessedTaskEvent[];
 }
 
 export interface ProcessedTaskEvent {
@@ -131,15 +133,42 @@ export interface InsertActivityBulkEvent {
 	activityValuesKey: string;
 };
 
+export interface StepFunctionEvent extends HistoryEvent{
+	name?: string;
+}
+
+export interface Dimension {
+    Name: string | undefined;
+    Value: string | undefined;
+}
+
+export interface StatisticSet {
+    SampleCount: number | undefined;
+    Sum: number | undefined;
+    Minimum: number | undefined;
+    Maximum: number | undefined;
+}
+export interface Metric {
+    MetricName: string | undefined;
+    Dimensions?: Dimension[];
+    Timestamp?: Date;
+    Value?: number;
+    StatisticValues?: StatisticSet;
+    Values?: number[];
+    Counts?: number[];
+    Unit?: string;
+    StorageResolution?: number;
+}
+
 export type VerificationTaskHandler = Handler<VerificationTaskEvent, VerificationTaskOutput>;
 
 export type CalculationTaskHandler = Handler<CalculationTaskEvent, CalculationTaskResult>;
 
-export type SqlResultProcessorTaskHandler = Handler<ProcessedTaskEventWithStartTime, ProcessedTaskEvent[]>;
+export type SqlResultProcessorTaskHandler = Handler<ProcessedTaskEventWithExecutionDetails, ProcessedTaskEvent[]>;
 
-export type RawResultProcessorTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent[]>;
+export type RawResultProcessorTaskHandler = Handler<ProcessedTaskEventWithExecutionDetails, ProcessedTaskEventWithExecutionDetails>;
 
-export type ResultProcessorTaskHandler = Handler<ProcessedTaskEvent[], void>;
+export type ResultProcessorTaskHandler = Handler<ProcessedTaskEventWithExecutionDetails, void>;
 
 export type MetricAggregationTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent[]>;
 

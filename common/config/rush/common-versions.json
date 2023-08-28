@@ -3,60 +3,168 @@
  * in a Rush repo.  More documentation is available on the Rush website: https://rushjs.io
  */
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/rush/v5/common-versions.schema.json",
+	"$schema": "https://developer.microsoft.com/json-schemas/rush/v5/common-versions.schema.json",
+	/**
+	 * A table that specifies a "preferred version" for a given NPM package.  This feature is typically used
+	 * to hold back an indirect dependency to a specific older version, or to reduce duplication of indirect dependencies.
+	 *
+	 * The "preferredVersions" value can be any SemVer range specifier (e.g. "~1.2.3").  Rush injects these values into
+	 * the "dependencies" field of the top-level common/temp/package.json, which influences how the package manager
+	 * will calculate versions.  The specific effect depends on your package manager.  Generally it will have no
+	 * effect on an incompatible or already constrained SemVer range.  If you are using PNPM, similar effects can be
+	 * achieved using the pnpmfile.js hook.  See the Rush documentation for more details.
+	 *
+	 * After modifying this field, it's recommended to run "rush update --full" so that the package manager
+	 * will recalculate all version selections.
+	 */
+	"preferredVersions": {
+		"@aws-amplify/auth": "5.5.4",
+		"@aws-cdk/aws-sagemaker-alpha": "2.87.0-alpha.0",
+		"@aws-sdk/client-athena": "3.370.0",
+		"@aws-sdk/client-cleanrooms": "3.370.0",
+		"@aws-sdk/client-cloudformation": "3.370.0",
+		"@aws-sdk/client-cognito-identity-provider": "3.370.0",
+		"@aws-sdk/client-dynamodb": "3.370.0",
+		"@aws-sdk/client-ec2": "3.370.0",
+		"@aws-sdk/client-ecs": "3.370.0",
+		"@aws-sdk/client-eventbridge": "3.370.0",
+		"@aws-sdk/client-glue": "3.370.0",
+		"@aws-sdk/client-iam": "3.370.0",
+		"@aws-sdk/client-lambda": "3.370.0",
+		"@aws-sdk/client-rds": "3.370.0",
+		"@aws-sdk/client-s3": "3.370.0",
+		"@aws-sdk/client-secrets-manager": "3.370.0",
+		"@aws-sdk/client-sfn": "3.370.0",
+		"@aws-sdk/client-sqs": "3.370.0",
+		"@aws-sdk/client-ssm": "3.370.0",
+		"@aws-sdk/lib-dynamodb": "3.370.0",
+		"@aws-sdk/rds-signer": "3.370.0",
+		"@aws-sdk/s3-request-presigner": "3.370.0",
+		"@aws-sdk/smithy-client": "3.370.0",
+		"@aws-sdk/types": "3.370.0",
+		"@aws-sdk/util-dynamodb": "3.370.0",
+		"@aws-sdk/util-stream-node": "3.370.0",
+		"@aws-sdk/util-utf8-node": "3.259.0",
+		"@cucumber/cucumber": "9.3.0",
+		"@esbuild-plugins/node-globals-polyfill": "0.2.3",
+		"@esbuild-plugins/node-modules-polyfill": "0.2.2",
+		"@fastify/awilix": "3.1.0",
+		"@fastify/aws-lambda": "3.3.0",
+		"@fastify/cors": "8.3.0",
+		"@fastify/env": "4.2.0",
+		"@fastify/multipart": "7.7.1",
+		"@fastify/sensible": "5.2.0",
+		"@fastify/swagger": "8.8.0",
+		"@fastify/type-provider-typebox": "3.3.0",
+		"@rushstack/eslint-config": "3.3.2",
+		"@sinclair/typebox": "0.29.4",
+		"@tsconfig/node16-strictest-esm": "1.0.3",
+		"@types/antlr4": "4.11.2",
+		"@types/antlr4-autosuggest": "0.0.1",
+		"@types/aws-lambda": "8.10.119",
+		"@types/convert-array-to-csv": "2.0.0",
+		"@types/http-errors": "2.0.1",
+		"@types/jwt-encode": "1.0.0",
+		"@types/lodash.chunk": "4.2.7",
+		"@types/node": "20.4.2",
+		"@types/pg": "8.10.2",
+		"@types/prettier": "2.7.3",
+		"@types/uuid": "9.0.2",
+		"@types/validator": "13.7.17",
+		"@typescript-eslint/eslint-plugin": "6.1.0",
+		"@typescript-eslint/parser": "6.1.0",
+		"antlr4ts-cli": "0.5.0-alpha.4",
+		"apickli": "3.0.2",
+		"awilix": "8.0.1",
+		"aws-cdk": "2.87.0",
+		"aws-cdk-lib": "2.87.0",
+		"aws-lambda": "1.0.7",
+		"aws-sdk-client-mock": "3.0.0",
+		"aws-xray-sdk": "3.5.0",
+		"axios": "1.4.0",
+		"cdk-nag": "2.27.73",
+		"clipanion": "3.2.1",
+		"constructs": "10.2.69",
+		"convert-array-to-csv": "2.0.0",
+		"convert-csv-to-array": "1.0.3",
+		"csv": "6.3.1",
+		"csv-parse": "5.4.0",
+		"cucumber-tsflow": "4.0.6",
+		"custom-resource-helper": "1.0.15",
+		"dayjs": "1.11.9",
+		"decimal.js": "10.4.3",
+		"deep-object-diff": "1.1.9",
+		"deepmerge": "4.3.1",
+		"dotenv": "16.3.1",
+		"esbuild": "0.18.14",
+		"eslint": "8.45.0",
+		"fast-glob": "3.3.0",
+		"fastify": "4.20.0",
+		"fastify-plugin": "4.5.0",
+		"form-data": "4.0.0",
+		"http-errors": "2.0.0",
+		"js-yaml": "4.1.0",
+		"jsonpath-plus": "7.2.0",
+		"just-clone": "6.2.0",
+		"jwt-decode": "3.1.2",
+		"jwt-encode": "1.0.1",
+		"lodash.chunk": "4.2.0",
+		"merge-anything": "5.1.7",
+		"node-cache": "5.1.2",
+		"node-pg-migrate": "6.2.2",
+		"node-stream-zip": "1.15.0",
+		"nodemon": "3.0.1",
+		"ow": "1.1.1",
+		"p-limit": "4.0.0",
+		"pactum": "3.4.1",
+		"pg": "8.11.1",
+		"pino": "8.14.1",
+		"pino-pretty": "10.0.1",
+		"pnpm": "8.6.8",
+		"readable-stream": "4.4.2",
+		"short-unique-id": "4.4.4",
+		"shx": "0.3.4",
+		"source-map-support": "0.5.21",
+		"ts-node": "10.9.1",
+		"typescript": "5.1.6",
+		"ulid": "2.3.0",
+		"validator": "13.9.0",
+		"vite": "4.4.4",
+		"vitest": "0.33.0",
+		"vitest-mock-extended": "1.1.4",
+		"yaml": "2.3.1"
+	},
+	/**
+	 * When set to true, for all projects in the repo, all dependencies will be automatically added as preferredVersions,
+	 * except in cases where different projects specify different version ranges for a given dependency.  For older
+	 * package managers, this tended to reduce duplication of indirect dependencies.  However, it can sometimes cause
+	 * trouble for indirect dependencies with incompatible peerDependencies ranges.
+	 *
+	 * The default value is true.  If you're encountering installation errors related to peer dependencies,
+	 * it's recommended to set this to false.
+	 *
+	 * After modifying this field, it's recommended to run "rush update --full" so that the package manager
+	 * will recalculate all version selections.
+	 */
+	// "implicitlyPreferredVersions": false,
 
-  /**
-   * A table that specifies a "preferred version" for a given NPM package.  This feature is typically used
-   * to hold back an indirect dependency to a specific older version, or to reduce duplication of indirect dependencies.
-   *
-   * The "preferredVersions" value can be any SemVer range specifier (e.g. "~1.2.3").  Rush injects these values into
-   * the "dependencies" field of the top-level common/temp/package.json, which influences how the package manager
-   * will calculate versions.  The specific effect depends on your package manager.  Generally it will have no
-   * effect on an incompatible or already constrained SemVer range.  If you are using PNPM, similar effects can be
-   * achieved using the pnpmfile.js hook.  See the Rush documentation for more details.
-   *
-   * After modifying this field, it's recommended to run "rush update --full" so that the package manager
-   * will recalculate all version selections.
-   */
-  "preferredVersions": {
-    /**
-     * When someone asks for "^1.0.0" make sure they get "1.2.3" when working in this repo,
-     * instead of the latest version.
-     */
-    // "ajv-compiler": "3.1.2"
-  },
-
-  /**
-   * When set to true, for all projects in the repo, all dependencies will be automatically added as preferredVersions,
-   * except in cases where different projects specify different version ranges for a given dependency.  For older
-   * package managers, this tended to reduce duplication of indirect dependencies.  However, it can sometimes cause
-   * trouble for indirect dependencies with incompatible peerDependencies ranges.
-   *
-   * The default value is true.  If you're encountering installation errors related to peer dependencies,
-   * it's recommended to set this to false.
-   *
-   * After modifying this field, it's recommended to run "rush update --full" so that the package manager
-   * will recalculate all version selections.
-   */
-  // "implicitlyPreferredVersions": false,
-
-  /**
-   * The "rush check" command can be used to enforce that every project in the repo must specify
-   * the same SemVer range for a given dependency.  However, sometimes exceptions are needed.
-   * The allowedAlternativeVersions table allows you to list other SemVer ranges that will be
-   * accepted by "rush check" for a given dependency.
-   *
-   * IMPORTANT: THIS TABLE IS FOR *ADDITIONAL* VERSION RANGES THAT ARE ALTERNATIVES TO THE
-   * USUAL VERSION (WHICH IS INFERRED BY LOOKING AT ALL PROJECTS IN THE REPO).
-   * This design avoids unnecessary churn in this file.
-   */
-  "allowedAlternativeVersions": {
-    /**
-     * For example, allow some projects to use an older TypeScript compiler
-     * (in addition to whatever "usual" version is being used by other projects in the repo):
-     */
-    // "typescript": [
-    //   "~2.4.0"
-    // ]
-  }
+	/**
+	 * The "rush check" command can be used to enforce that every project in the repo must specify
+	 * the same SemVer range for a given dependency.  However, sometimes exceptions are needed.
+	 * The allowedAlternativeVersions table allows you to list other SemVer ranges that will be
+	 * accepted by "rush check" for a given dependency.
+	 *
+	 * IMPORTANT: THIS TABLE IS FOR *ADDITIONAL* VERSION RANGES THAT ARE ALTERNATIVES TO THE
+	 * USUAL VERSION (WHICH IS INFERRED BY LOOKING AT ALL PROJECTS IN THE REPO).
+	 * This design avoids unnecessary churn in this file.
+	 */
+	"allowedAlternativeVersions": {
+		/**
+		 * For example, allow some projects to use an older TypeScript compiler
+		 * (in addition to whatever "usual" version is being used by other projects in the repo):
+		 */
+		// "typescript": [
+		//   "~2.4.0"
+		// ]
+	}
 }

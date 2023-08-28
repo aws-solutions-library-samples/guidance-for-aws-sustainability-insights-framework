@@ -13,21 +13,21 @@
 		"cdk": "cdk"
 	},
 	"devDependencies": {
-		"@esbuild-plugins/node-globals-polyfill": "0.1.1",
-		"@esbuild-plugins/node-modules-polyfill": "0.1.4",
+		"@esbuild-plugins/node-globals-polyfill": "0.2.3",
+		"@esbuild-plugins/node-modules-polyfill": "0.2.2",
 		"@tsconfig/node16-strictest-esm": "1.0.3",
-		"@types/aws-lambda": "8.10.102",
-		"@types/node": "18.16.19",
-		"@types/prettier": "2.6.0",
+		"@types/aws-lambda": "8.10.119",
+		"@types/node": "20.4.2",
+		"@types/prettier": "2.7.3",
 		"aws-cdk": "2.87.0",
 		"ts-node": "10.9.1",
-		"typescript": "4.8.4"
+		"typescript": "5.1.6"
 	},
 	"dependencies": {
-		"@aws-sdk/client-eventbridge": "3.229.0",
+		"@aws-sdk/client-eventbridge": "3.370.0",
 		"aws-cdk-lib": "2.87.0",
 		"aws-lambda": "1.0.7",
-		"constructs": "^10.0.0",
+		"constructs": "^10.2.69",
 		"source-map-support": "^0.5.21"
 	}
 }

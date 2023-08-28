@@ -1,6 +1,18 @@
 # Change Log - @sif/deployment-helper
 
-This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+
+## 0.5.2
+Thu, 17 Aug 2023 02:44:14 GMT
+
+### Patches
+
+- semgrep fix
+
+## 0.5.1
+Fri, 28 Jul 2023 00:50:20 GMT
+
+_Version update only_
 
 ## 0.5.0
 Thu, 20 Jul 2023 00:30:14 GMT

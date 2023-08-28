@@ -28,7 +28,9 @@ export const handler: S3NotificationEventBridgeHandler = async (event: S3Notific
 	logger.info(`connectors > cleanRooms > eventsLambda > handler > event: ${JSON.stringify(event)}`);
 
 	const { object, bucket } = event.detail;
-	const [bucketPrefix, queryId, _] = object.key.split('/');
+	// this is how AWS Clean Rooms generate the object key
+	// cleanRooms/collaboration=24f684bb-d782-40aa-8395-61353a618d2e/4117abec-776f-4727-bbf9-6c4ec418cbf5/000
+	const [bucketPrefix, _collaborationDetail, queryId, _] = object.key.split('/');
 
 	if (bucket.name === cleanRoomsBucketName && bucketPrefix === cleanRoomsBucketPrefix) {
 		await cleanRoomsService.processQueryExecutionResult(queryId, bucket.name, object.key);

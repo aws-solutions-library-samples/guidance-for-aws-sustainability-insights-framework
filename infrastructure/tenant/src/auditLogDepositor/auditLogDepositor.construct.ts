@@ -25,6 +25,7 @@ import { fileURLToPath } from 'url';
 import { CfnStream } from 'aws-cdk-lib/aws-kinesis';
 import { Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { CfnDeliveryStream } from 'aws-cdk-lib/aws-kinesisfirehose';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,6 +94,7 @@ export class AuditLogDepositorModule extends Construct {
 			 * Ignore reason: there is no risk of path traversal in this context
 			 */
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'), // nosemgrep
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		NagSuppressions.addResourceSuppressions(sqsLambda, [

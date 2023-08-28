@@ -25,6 +25,7 @@ import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { Provider } from 'aws-cdk-lib/custom-resources';
 import { fileURLToPath } from 'url';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,7 +83,8 @@ export class AuroraDatabase extends Construct {
 			timeout: Duration.minutes(2),
 			bundling: commonBundlingOptions,
 			environment: {},
-			depsLockFilePath
+			depsLockFilePath,
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		const iamPolicy = new Policy(this, 'iam-policy', {

@@ -57,6 +57,7 @@ export const pipelineExecutionFullSuccess: PipelineExecution = {
 	status: 'in_progress',
 	pipelineVersion: 1,
 	actionType: 'create',
+	groups: [pipelineId],
 	groupContextId: '/'
 };
 
@@ -71,6 +72,7 @@ export const pipelineExecutionFullFail: PipelineExecution = {
 	pipelineVersion: 1,
 	statusMessage: 'some validation error related to input file',
 	actionType: 'create',
+	groups: [pipelineId],
 	groupContextId: '/'
 };
 
@@ -78,9 +80,8 @@ export const pipelineExecutionListExample = () => {
 	let list: PipelineExecutionList = {
 		executions: [],
 		pagination: {
-			lastEvaluated: {
-				executionId: id,
-			},
+			lastEvaluatedToken: id,
+			count: 10
 		},
 	};
 

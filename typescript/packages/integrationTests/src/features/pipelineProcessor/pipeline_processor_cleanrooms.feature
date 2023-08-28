@@ -1,4 +1,4 @@
-@setup_endToEnd
+@setup_endToEnd @pipelineProcessor
 Feature:
 	Pipeline Processor AWS CleanRooms Integration Test
 

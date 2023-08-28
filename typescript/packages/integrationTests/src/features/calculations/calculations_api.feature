@@ -1,4 +1,4 @@
-@setup_calculations
+@setup_calculations @calculations
 Feature:
 	This feature tests the general usage of the api within the context of a single group.
 

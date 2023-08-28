@@ -1,6 +1,13 @@
 # Change Log - @sif/access-management
 
-This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+
+## 4.1.1
+Thu, 17 Aug 2023 02:44:14 GMT
+
+### Patches
+
+- Add more validation on patching user operation
 
 ## 4.1.0
 Thu, 20 Jul 2023 00:30:14 GMT

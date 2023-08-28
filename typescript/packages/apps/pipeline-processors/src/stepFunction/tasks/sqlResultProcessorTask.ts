@@ -18,12 +18,11 @@ import pLimit from 'p-limit';
 import type { BaseLogger } from 'pino';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
 import type { GetSecurityContext } from '../../plugins/module.awilix.js';
-import type { InsertActivityResult, ProcessedTaskEvent, ProcessedTaskEventWithStartTime } from './model.js';
+import type { InsertActivityResult, ProcessedTaskEvent, ProcessedTaskEventWithExecutionDetails } from './model.js';
 import type { Client } from 'pg';
 import dayjs from 'dayjs';
 import { TimeoutError } from '../../common/errors.js';
 
-// TODO: make configurable
 const concurrencyLimit = 10;
 
 export class SqlResultProcessorTask {
@@ -48,10 +47,10 @@ export class SqlResultProcessorTask {
 
 	}
 
-	public async process(taskEvent: ProcessedTaskEventWithStartTime): Promise<ProcessedTaskEvent[]> {
+	public async process(taskEvent: ProcessedTaskEventWithExecutionDetails): Promise<ProcessedTaskEvent[]> {
 		this.log.debug(`SqlResultProcessorTask > process > event: ${JSON.stringify(taskEvent)}`);
 
-		const event = taskEvent.input;
+		const event = taskEvent.inputs;
 
 
 		const sortedResults = event.sort((a, b) => {
@@ -67,11 +66,10 @@ export class SqlResultProcessorTask {
 		try {
 
 			//Check the total execution time of the step function exceeds our timeout of 2 hours
-			const startTime = dayjs(taskEvent.startTime,'YYYY-MM-ddTHH:mm:ss.SSSZ');
+			const startTime = dayjs(taskEvent.executionStartTime,'YYYY-MM-ddTHH:mm:ss.SSSZ');
 			const now = dayjs();
-			const runtime = now.diff(startTime,'seconds');
-			this.log.error(`SqlResultProcessorTask > process >step function execution execution has been running for ${runtime} seconds`);
-			if( runtime >= this.timeout){
+			const runTime = now.diff(startTime,'seconds');
+			if( runTime >= this.timeout){
 				this.log.error(`SqlResultProcessorTask > process > step function execution exceeded timeout: ${this.timeout} seconds`);
 				throw new TimeoutError(`step function execution exceeded timeout: ${this.timeout} seconds`)
 
@@ -110,7 +108,6 @@ export class SqlResultProcessorTask {
 		} catch (Exception) {
 			if(Exception.name === 'TimeoutError'){
 				status = 'FAILED';
-
 			} else{
 				this.log.error(`sqlResultProcessor > handler > result not available : ${JSON.stringify(Exception)}`);
 				status = 'IN_PROGRESS';
@@ -118,7 +115,7 @@ export class SqlResultProcessorTask {
 
 		} finally{
 			// close the db connection if established
-			if (sharedDbConnection !== null){
+			if (sharedDbConnection !== undefined){
 				sharedDbConnection.end();
 			}
 			// cleanup on success or failure
@@ -145,7 +142,7 @@ export class SqlResultProcessorTask {
 
 	// This function will truncate and drop all temp resources related to the events and will act as a garbage collector
 	private async cleanup(events: ProcessedTaskEvent[]){
-		this.log.info(`sqlResultProcessor> cleanup> events: ${JSON.stringify(events)}, cleanupFiles:${JSON.stringify(this.cleanupFiles)}`);
+		this.log.debug(`sqlResultProcessor> cleanup> events: ${JSON.stringify(events)}, cleanupFiles:${JSON.stringify(this.cleanupFiles)}`);
 
 		let sharedDbConnection :Client;
 
@@ -159,7 +156,6 @@ export class SqlResultProcessorTask {
 			await this.activitiesRepository.cleanupTempTables(events,sharedDbConnection, true);
 
 			// cleanup S3 files
-
 			const input = { // DeleteObjectsRequest
 				Bucket: this.bucket,
 				Delete: {
@@ -177,6 +173,8 @@ export class SqlResultProcessorTask {
 		} catch( Exception) {
 			this.log.error(`sqlResultProcessor> cleanup> error: ${JSON.stringify(Exception)}`);
 		}
+		this.log.debug(`sqlResultProcessor> cleanup> exit`);
 
 	}
+
 }

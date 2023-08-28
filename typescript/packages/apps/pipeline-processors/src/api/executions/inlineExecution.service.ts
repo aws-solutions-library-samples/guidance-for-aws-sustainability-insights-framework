@@ -108,11 +108,23 @@ export class InlineExecutionService {
 			pipelineType: pipeline.type
 		};
 		const calculatorResponse = await this.calculatorClient.process(calculatorRequest) as CalculatorInlineTransformResponse;
+
+		// create map to get the type of output given the key
+		const outputTypeMapping: { [key: string]: string } = transformer.transforms.reduce((prev, curr) => {
+			prev[curr.outputs[0].key] = curr.outputs[0].type;
+			return prev;
+		}, {});
+
 		// store the output
 		await this.s3Client.send(
 			new PutObjectCommand({
-				Body: [calculatorResponse.headers.join(','), ...calculatorResponse.data.map(o => Object.values(JSON.parse(o))
-					.join(','))].join('\n')
+				Body: [calculatorResponse.headers.join(','), ...calculatorResponse.data
+					// for string output insert double quote at the beginning and end of value
+					// so value that contains comma is treated as single value
+					.map(o => Object.entries(JSON.parse(o)).map(([key, value]) => {
+						return outputTypeMapping[key] === 'string' ? `"${value}"` : value;
+					}).join(','))]
+					.join('\n')
 					.concat(`\n`),
 				Bucket: this.bucketName,
 				Key: getPipelineOutputKey(this.bucketPrefix, pipelineId, executionId),
@@ -141,7 +153,7 @@ export class InlineExecutionService {
 
 		validateNotEmpty(options.inputs, 'inputs');
 		// create the initial pipeline execution in waiting state
-		await this.pipelineProcessorsRepository.put(newExecution);
+		await this.pipelineProcessorsRepository.create(newExecution);
 		try {
 			const calculatorResponse = await this.processCalculation(pipeline, executionId, sc, options.inputs);
 			if (calculatorResponse.errors.length > 0) {
@@ -180,7 +192,7 @@ export class InlineExecutionService {
 			// we will not store the inlineExecutionOutputs because DynamoDB limit issue
 			const { inlineExecutionOutputs, ...executionWithoutInlineExecutionOutputs } = newExecution;
 			// update the pipeline execution status
-			await this.pipelineProcessorsRepository.put(executionWithoutInlineExecutionOutputs);
+			await this.pipelineProcessorsRepository.create(executionWithoutInlineExecutionOutputs);
 		}
 		this.log.trace(`InlineExecutionService> run> exit> newExecution: ${newExecution}`);
 		return newExecution;

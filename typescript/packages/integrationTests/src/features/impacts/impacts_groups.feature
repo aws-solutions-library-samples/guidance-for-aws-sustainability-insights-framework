@@ -1,4 +1,4 @@
-@setup_impacts
+@setup_impacts @impacts
 Feature:
 
 	This feature tests the granting/revocation of access to activities between groups, therefore only focuses on testing

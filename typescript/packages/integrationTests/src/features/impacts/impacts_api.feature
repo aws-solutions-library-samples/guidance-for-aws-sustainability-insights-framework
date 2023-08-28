@@ -1,4 +1,4 @@
-@setup_impacts
+@setup_impacts @impacts
 Feature:
 	impacts features.
 

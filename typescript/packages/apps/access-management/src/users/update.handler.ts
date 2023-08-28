@@ -27,7 +27,7 @@ export default function updateUserRoute(fastify: FastifyTypebox, _options: unkno
 
 Permissions:
 - \`reader\` and above may update their own password
-- \`admin\` roles may update any user status where they are themselves an \`admin\` of all the groups the user is a member of
+- \`admin\` roles may update any user (but their own) status where they are themselves an \`admin\` of all the groups the user is a member of
 
 `,
 			tags: ['Users'],

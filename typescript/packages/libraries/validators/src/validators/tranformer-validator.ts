@@ -101,10 +101,12 @@ export class TransformerValidator {
 	}
 
 	private validateTransformAggregations(transformer: Transformer) {
+		this.log.debug(`TransformerValidator> validateTransformAggregations> in: transformer :${transformer}`);
 		// as of now we only allow 5 outputs (not including first output) to be key outputs
 		let timestampAggregatedField = 0;
 		let hasAggregateConfiguration = false;
 		let invalidAggregateType = 0;
+		let numberAggregatedField = 0;
 
 		transformer.transforms.forEach((t) => {
 			t.outputs?.forEach((o) => {
@@ -122,6 +124,12 @@ export class TransformerValidator {
 						// it only makes sense to aggregate field with number type
 						invalidAggregateType += 1;
 					}
+
+					// check if the aggregate function has be applied to number
+					if (!['groupBy', 'count'].includes(o.aggregate) && o.type === 'number') {
+						// there should be 1 or more number aggregations
+						numberAggregatedField += 1;
+					}
 				}
 			});
 		});
@@ -132,6 +140,9 @@ export class TransformerValidator {
 			}
 			if (invalidAggregateType > 0) {
 				throw new TransformerDefinitionError(`Only fields with number type can be aggregated using aggregation functions other than groupBy.`);
+			}
+			if(numberAggregatedField === 0){
+				throw new TransformerDefinitionError(`There should be at least 1 number field that is being aggregated using aggregation functions.`);
 			}
 		}
 	}

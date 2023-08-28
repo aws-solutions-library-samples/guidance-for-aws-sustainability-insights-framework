@@ -12,13 +12,12 @@
  */
 
 import fp from 'fastify-plugin';
-
 import fastifyEnv from '@fastify/env';
 import { Static, Type } from '@sinclair/typebox';
 import { baseConfigSchema } from '@sif/resource-api-base';
+import type { FastifyEnvOptions } from '@fastify/env';
+import { convertFromTypeBoxIntersectToJSONSchema } from '@sif/resource-api-base';
 
-import type { fastifyEnvOpt } from '@fastify/env';
-// eslint-disable-next-line @rushstack/typedef-var
 export const moduleConfigSchema = Type.Object({
 	PORT: Type.Number({ default: 30001 }),
 	USER_POOL_ID: Type.String(),
@@ -27,11 +26,11 @@ export const configSchema = Type.Intersect([moduleConfigSchema, baseConfigSchema
 
 export type ConfigSchemaType = Static<typeof configSchema>;
 
-export default fp<fastifyEnvOpt>(async (app): Promise<void> => {
+export default fp<FastifyEnvOptions>(async (app): Promise<void> => {
 	await app.register(fastifyEnv, {
 		confKey: 'config',
-		schema: configSchema,
-		dotenv: true,
+		schema: convertFromTypeBoxIntersectToJSONSchema(configSchema),
+		dotenv: true
 	});
 	app.log.info(`config: ${JSON.stringify(app.config)}`);
 });

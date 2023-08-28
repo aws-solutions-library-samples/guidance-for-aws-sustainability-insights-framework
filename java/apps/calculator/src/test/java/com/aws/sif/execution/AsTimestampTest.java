@@ -19,6 +19,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,19 +32,29 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class AsTimestampTest extends CalculatorBaseTest {
+    private static NumberTypeValue getBeginningOfWeekOfLocaleRegion(String value, String pattern) {
+        var formatter = DateTimeFormatter.ofPattern(pattern, Locale.getDefault());
+        var dateTime = LocalDateTime.parse(value, formatter).atZone(ZoneId.systemDefault());
+        var beginningOfWeek = dateTime.toLocalDate().atStartOfDay().with(WeekFields.of(Locale.getDefault()).dayOfWeek(), 1);
+        return new NumberTypeValue(beginningOfWeek.toEpochSecond(dateTime.getOffset()) * 1000);
+    }
 
     private static Stream<Arguments> providerForSuccess() {
+
+        var value = "1/21/22 13:40:13";
+        var pattern = "M/d/yy HH:mm:ss";
+
         return Stream.of(
                 Arguments.of("AS_TIMESTAMP('1/21/22','M/d/yy',timezone='America/Denver')", new NumberTypeValue(1642748400000L)),   // "2022-01-21 07:00:00.000000000"
                 Arguments.of("AS_TIMESTAMP('1/21/22 13:40:13','M/d/yy HH:mm:ss',timezone='UTC')", new NumberTypeValue(1642772413000L)),    // "2022-01-21 13:40:13.000000000"
-                // Arguments.of("AS_TIMESTAMP('1/21/22 3:40:13 PM','M/d/yy h:mm:ss a',timezone='America/Los_Angeles')", new NumberTypeValue(1642808413000L)), // "2022-01-21 23:40:13.000000000"
                 Arguments.of("AS_TIMESTAMP('1/21/22 13:40:13 PST','M/d/yy HH:mm:ss zzz',timezone='America/Denver')", new NumberTypeValue(1642797613000L)),    // "2022-01-21 20:40:13.000000000"
                 Arguments.of("AS_TIMESTAMP('2022-03-12T13:12:11','yyyy-MM-dd\\'T\\'HH:mm:ss',timezone='America/Denver')", new NumberTypeValue(1647115931000L)),
                 Arguments.of("AS_TIMESTAMP('2022-07-25T12:53:54.097+00:00','yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')", new NumberTypeValue(1658753634000L)),    // "2023-07-25 12:53:54.097 UTC"
                 Arguments.of("AS_TIMESTAMP('2022-07-25T18:23:54.097+05:30','yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')", new NumberTypeValue(1658753634000L)),    // "2023-07-25 18:23:54.097 UTC+5:30 (India)"
                 Arguments.of("AS_TIMESTAMP('2022-07-25T05:53:54.097-07:00','yyyy-MM-dd\\'T\\'HH:mm:ss.SSSXXX')", new NumberTypeValue(1658753634000L)),    // "2023-07-25 05:53:54.097 UTC-7 (MST)"
                 Arguments.of("AS_TIMESTAMP('1/21/22 13:40:13 PST','M/d/yy HH:mm:ss zzz',timezone='America/Denver',roundDownTo='day')", new NumberTypeValue(1642748400000L)),   // "2022-01-21 00:00:00.000000000 UTC-7 (MST)"
-                // Arguments.of("AS_TIMESTAMP('1/21/22 13:40:13 PST','M/d/yy HH:mm:ss zzz',timezone='America/Denver',roundDownTo='week')", new NumberTypeValue(1642316400000L)),  // "2022-01-16 00:00:00.000000000 UTC-7 (MST)"
+                Arguments.of(String.format("AS_TIMESTAMP('%s','%s',roundDownTo='week')", value, pattern), AsTimestampTest.getBeginningOfWeekOfLocaleRegion(value, pattern)),  // Match to beginning of week of locale timezone/region
+                Arguments.of("AS_TIMESTAMP('1/21/22 13:40:13 PST','M/d/yy HH:mm:ss zzz',timezone='America/Denver',locale='en-US',roundDownTo='week')", new NumberTypeValue(1642316400000L)),  // "2022-01-16 00:00:00.000000000 UTC-7 (MST)"
                 Arguments.of("AS_TIMESTAMP('2/21/22 13:40:13 PST','M/d/yy HH:mm:ss zzz',timezone='America/Denver',roundDownTo='month')", new NumberTypeValue(1643698800000L)),   // "2022-02-01 00:00:00.000000000 UTC-7 (MST)"
                 Arguments.of("AS_TIMESTAMP('2/21/22 13:40:13 PST','M/d/yy HH:mm:ss zzz',timezone='America/Denver',roundDownTo='year')", new NumberTypeValue(1641020400000L)),    // "2022-01-01 00:00:00.000000000 UTC-7 (MST)"
                 Arguments.of("AS_TIMESTAMP('8/21/22 13:40:13 PST','M/d/yy HH:mm:ss zzz',timezone='America/Denver',roundDownTo='quarter')", new NumberTypeValue(1656655200000L)),   // "2022-07-01 00:00:00.000000000 UTC-7 (MST)"

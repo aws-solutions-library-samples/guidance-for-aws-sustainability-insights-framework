@@ -14,7 +14,22 @@
       }
     },
     "schemas": {
-      "pipelineExecution_request": {
+      "def-0": {
+        "description": "User-defined searchable tags",
+        "type": "object",
+        "title": "tags",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "def-1": {
         "type": "object",
         "properties": {
           "inlineExecutionOptions": {
@@ -72,6 +87,9 @@
               }
             ]
           },
+          "tags": {
+            "$ref": "#/components/schemas/def-0"
+          },
           "expiration": {
             "description": "The number of seconds before file upload url expires in, default to 5 minutes",
             "default": 300,
@@ -99,9 +117,10 @@
           "mode",
           "actionType",
           "expiration"
-        ]
+        ],
+        "title": "pipelineExecution_request"
       },
-      "pipelineExecution_full": {
+      "def-2": {
         "type": "object",
         "properties": {
           "actionType": {
@@ -245,6 +264,9 @@
                 }
               }
             }
+          },
+          "tags": {
+            "$ref": "#/components/schemas/def-0"
           }
         },
         "required": [
@@ -256,46 +278,48 @@
           "pipelineVersion",
           "status",
           "groupContextId"
-        ]
+        ],
+        "title": "pipelineExecution_full"
       },
-      "pipelineExecution_list": {
+      "def-3": {
         "type": "object",
         "properties": {
           "executions": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/pipelineExecution_full"
+              "$ref": "#/components/schemas/def-2"
             }
           },
           "pagination": {
             "type": "object",
             "properties": {
-              "lastEvaluated": {
-                "type": "object",
-                "properties": {
-                  "executionId": {
-                    "description": "Pipeline execution ID to paginate from (exclusive).",
-                    "type": "string"
-                  }
-                }
+              "count": {
+                "description": "No. of results returned when pagination requested.",
+                "type": "integer"
+              },
+              "lastEvaluatedToken": {
+                "description": "Token used to paginate to the next page of search result.",
+                "type": "string"
               }
             }
           }
         },
         "required": [
           "executions"
-        ]
+        ],
+        "title": "pipelineExecution_list"
       },
-      "signedUrl_request": {
+      "def-4": {
         "type": "object",
         "properties": {
           "expiration": {
             "description": "The number of seconds before presigned url expires, default to 5 minutes",
             "type": "number"
           }
-        }
+        },
+        "title": "signedUrl_request"
       },
-      "signedUrlUploadInput_request": {
+      "def-5": {
         "type": "object",
         "properties": {
           "actionType": {
@@ -323,9 +347,10 @@
         },
         "required": [
           "actionType"
-        ]
+        ],
+        "title": "signedUrlUploadInput_request"
       },
-      "signedUrl_response": {
+      "def-6": {
         "type": "object",
         "properties": {
           "url": {
@@ -335,9 +360,10 @@
         },
         "required": [
           "url"
-        ]
+        ],
+        "title": "signedUrl_response"
       },
-      "signedUrlList_response": {
+      "def-7": {
         "type": "object",
         "properties": {
           "urls": {
@@ -351,9 +377,10 @@
         },
         "required": [
           "urls"
-        ]
+        ],
+        "title": "signedUrlList_response"
       },
-      "auditResource": {
+      "def-8": {
         "type": "object",
         "properties": {
           "pipelineId": {
@@ -381,9 +408,10 @@
           "pipelineId",
           "executionId",
           "auditId"
-        ]
+        ],
+        "title": "auditResource"
       },
-      "auditList": {
+      "def-9": {
         "type": "object",
         "properties": {
           "status": {
@@ -395,17 +423,19 @@
           "audits": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/auditResource"
+              "$ref": "#/components/schemas/def-8"
             }
           }
         },
         "required": [
           "audits"
-        ]
+        ],
+        "title": "auditList"
       },
-      "activityResource": {
+      "def-10": {
         "description": "Processed activities.",
         "type": "object",
+        "title": "activityResource",
         "additionalProperties": {
           "description": "Value`.",
           "anyOf": [
@@ -424,13 +454,13 @@
           ]
         }
       },
-      "activitiesList": {
+      "def-11": {
         "type": "object",
         "properties": {
           "activities": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/activityResource"
+              "$ref": "#/components/schemas/def-10"
             }
           },
           "pagination": {
@@ -445,9 +475,10 @@
         },
         "required": [
           "activities"
-        ]
+        ],
+        "title": "activitiesList"
       },
-      "metricResource": {
+      "def-12": {
         "type": "object",
         "properties": {
           "date": {},
@@ -527,21 +558,23 @@
           "groupValue",
           "subGroupsValue",
           "version"
-        ]
+        ],
+        "title": "metricResource"
       },
-      "metricsList": {
+      "def-13": {
         "type": "object",
         "properties": {
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/metricResource"
+              "$ref": "#/components/schemas/def-12"
             }
           }
         },
         "required": [
           "metrics"
-        ]
+        ],
+        "title": "metricsList"
       }
     }
   },
@@ -556,7 +589,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/signedUrl_request"
+                "$ref": "#/components/schemas/def-4"
               },
               "examples": {
                 "New download error signedUrl request": {
@@ -586,22 +619,22 @@
             "description": "Identifier of a execution of the pipeline."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -616,7 +649,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/signedUrl_response"
+                  "$ref": "#/components/schemas/def-6"
                 },
                 "examples": {
                   "Pipeline Execution Error Download Url": {
@@ -661,7 +694,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/signedUrl_request"
+                "$ref": "#/components/schemas/def-4"
               },
               "examples": {
                 "New download output signedUrl request": {
@@ -691,22 +724,22 @@
             "description": "Identifier of a execution of the pipeline."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -721,7 +754,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/signedUrl_response"
+                  "$ref": "#/components/schemas/def-6"
                 },
                 "examples": {
                   "Pipeline Execution Output Download Url": {
@@ -782,22 +815,22 @@
             "description": "Identifier of a execution of the pipeline."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -813,7 +846,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/pipelineExecution_full"
+                  "$ref": "#/components/schemas/def-2"
                 },
                 "examples": {
                   "Existing pipeline successful execution details": {
@@ -828,6 +861,9 @@
                       "status": "in_progress",
                       "pipelineVersion": 1,
                       "actionType": "create",
+                      "groups": [
+                        "7777777"
+                      ],
                       "groupContextId": "/"
                     }
                   },
@@ -844,6 +880,9 @@
                       "pipelineVersion": 1,
                       "statusMessage": "some validation error related to input file",
                       "actionType": "create",
+                      "groups": [
+                        "7777777"
+                      ],
                       "groupContextId": "/"
                     }
                   }
@@ -894,9 +933,22 @@
               "type": "string"
             },
             "in": "query",
-            "name": "fromExecutionId",
+            "name": "fromToken",
             "required": false,
-            "description": "Pipeline execution ID to paginate from (exclusive)."
+            "description": "Token used to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "description": "Tag key and value in the format of `key:value`.",
+                "type": "string"
+              }
+            },
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "description": "Tag keys and values to filter by."
           },
           {
             "schema": {
@@ -908,22 +960,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -939,7 +991,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/pipelineExecution_list"
+                  "$ref": "#/components/schemas/def-3"
                 },
                 "examples": {
                   "List of pipeline executions": {
@@ -956,6 +1008,9 @@
                           "status": "in_progress",
                           "pipelineVersion": 1,
                           "actionType": "create",
+                          "groups": [
+                            "7777777"
+                          ],
                           "groupContextId": "/"
                         },
                         {
@@ -969,13 +1024,15 @@
                           "pipelineVersion": 1,
                           "statusMessage": "some validation error related to input file",
                           "actionType": "create",
+                          "groups": [
+                            "7777777"
+                          ],
                           "groupContextId": "/"
                         }
                       ],
                       "pagination": {
-                        "lastEvaluated": {
-                          "executionId": "ajcuhek13ks"
-                        }
+                        "lastEvaluatedToken": "ajcuhek13ks",
+                        "count": 10
                       }
                     }
                   }
@@ -994,7 +1051,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/pipelineExecution_request"
+                "$ref": "#/components/schemas/def-1"
               },
               "examples": {
                 "Pipeline Execution request example": {
@@ -1025,22 +1082,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1055,7 +1112,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/pipelineExecution_full"
+                  "$ref": "#/components/schemas/def-2"
                 },
                 "examples": {
                   "Pipeline Execution creation response": {
@@ -1070,6 +1127,9 @@
                       "status": "in_progress",
                       "pipelineVersion": 1,
                       "actionType": "create",
+                      "groups": [
+                        "7777777"
+                      ],
                       "groupContextId": "/"
                     }
                   }
@@ -1126,22 +1186,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1157,221 +1217,319 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string"
-                    },
-                    "exportUrl": {
-                      "type": "string"
-                    },
-                    "audits": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/auditResource"
-                      }
-                    }
-                  },
-                  "required": [
-                    "audits"
-                  ]
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/def-9"
+                  }
                 },
                 "examples": {
                   "List of audit versions for an activity": {
                     "summary": "Audit detail.",
                     "value": [
                       {
-                        "activityId": 1144,
-                        "date": "2022-01-03T16:00:00.000Z",
-                        "pipelineId": "01gwh2f5zwqryq789v42g1akrz",
-                        "executionId": "01gwh2hpz1dbpskw8vq531jg94",
-                        "auditId": "8e50a420-c138-406b-a794-4f1e973018f5",
-                        "createdAt": "2023-03-27T00:21:58.322Z",
-                        "executionNo": 0,
-                        "outputs": [
+                        "status": "SUCCEEDED",
+                        "exportUrl": "<S3 Export Url>",
+                        "audits": [
                           {
-                            "index": 0,
-                            "name": "time",
-                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-                            "evaluated": {
-                              "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
-                              ":reading date": "1/4/22"
-                            },
-                            "result": "1641254400000"
+                            "pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
+                            "executionId": "01h5ewn4wvsk1fx5rhjm682zjg",
+                            "auditId": "12b42b60-6198-44df-a075-167a6a740f1f",
+                            "inputs": [
+                              {
+                                "name": "___row_identifier___",
+                                "value": "1/4/22-A-10-1"
+                              },
+                              {
+                                "name": "reading date",
+                                "value": "1/4/22"
+                              },
+                              {
+                                "name": "a",
+                                "value": "A"
+                              },
+                              {
+                                "name": "b",
+                                "value": "10"
+                              },
+                              {
+                                "name": "c",
+                                "value": "1"
+                              }
+                            ],
+                            "outputs": [
+                              {
+                                "index": 0,
+                                "name": "time",
+                                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+                                "evaluated": {
+                                  ":reading date": "1/4/22",
+                                  "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
+                                },
+                                "result": "1641254400000",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 1,
+                                "name": "month",
+                                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+                                "evaluated": {
+                                  ":reading date": "1/4/22",
+                                  "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
+                                },
+                                "result": "1640995200000",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 2,
+                                "name": "a",
+                                "formula": ":a",
+                                "evaluated": {
+                                  ":a": "A"
+                                },
+                                "result": "A",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 3,
+                                "name": "b*c",
+                                "formula": ":b*:c",
+                                "evaluated": {
+                                  ":b": "10",
+                                  ":c": "1"
+                                },
+                                "result": "10",
+                                "errormessage": null,
+                                "resources": null
+                              }
+                            ]
                           },
                           {
-                            "index": 1,
-                            "name": "month",
-                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-                            "evaluated": {
-                              "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
-                              ":reading date": "1/4/22"
-                            },
-                            "result": "1640995200000"
+                            "pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
+                            "executionId": "01h5ewn4wvsk1fx5rhjm682zjg",
+                            "auditId": "f50357e1-d2ba-4351-bf28-d9281d74e150",
+                            "inputs": [
+                              {
+                                "name": "___row_identifier___",
+                                "value": "1/4/22-A-10-1"
+                              },
+                              {
+                                "name": "reading date",
+                                "value": "1/4/22"
+                              },
+                              {
+                                "name": "a",
+                                "value": "A"
+                              },
+                              {
+                                "name": "b",
+                                "value": "10"
+                              },
+                              {
+                                "name": "c",
+                                "value": "1"
+                              }
+                            ],
+                            "outputs": [
+                              {
+                                "index": 0,
+                                "name": "time",
+                                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+                                "evaluated": {
+                                  ":reading date": "1/4/22",
+                                  "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
+                                },
+                                "result": "1641254400000",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 1,
+                                "name": "month",
+                                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+                                "evaluated": {
+                                  ":reading date": "1/4/22",
+                                  "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
+                                },
+                                "result": "1640995200000",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 2,
+                                "name": "a",
+                                "formula": ":a",
+                                "evaluated": {
+                                  ":a": "A"
+                                },
+                                "result": "A",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 3,
+                                "name": "b*c",
+                                "formula": ":b*:c",
+                                "evaluated": {
+                                  ":b": "10",
+                                  ":c": "1"
+                                },
+                                "result": "10",
+                                "errormessage": null,
+                                "resources": null
+                              }
+                            ]
                           },
                           {
-                            "index": 2,
-                            "name": "a",
-                            "formula": ":a",
-                            "evaluated": {
-                              ":a": "A"
-                            },
-                            "result": "A"
+                            "pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
+                            "executionId": "01h5ewqm8x2ywd64s9b5p2b0fd",
+                            "auditId": "51aa61ea-936d-4e26-b610-9e15f3f6c43b",
+                            "inputs": [
+                              {
+                                "name": "___row_identifier___",
+                                "value": "1/4/22-A--"
+                              },
+                              {
+                                "name": "reading date",
+                                "value": "1/4/22"
+                              },
+                              {
+                                "name": "a",
+                                "value": "A"
+                              },
+                              {
+                                "name": "b",
+                                "value": ""
+                              },
+                              {
+                                "name": "c",
+                                "value": ""
+                              }
+                            ],
+                            "outputs": [
+                              {
+                                "index": 0,
+                                "name": "time",
+                                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+                                "evaluated": {
+                                  ":reading date": "1/4/22",
+                                  "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
+                                },
+                                "result": "1641254400000",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 1,
+                                "name": "month",
+                                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+                                "evaluated": {
+                                  ":reading date": "1/4/22",
+                                  "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
+                                },
+                                "result": "1640995200000",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 2,
+                                "name": "a",
+                                "formula": ":a",
+                                "evaluated": {
+                                  ":a": "A"
+                                },
+                                "result": "A",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 3,
+                                "name": "b*c",
+                                "formula": ":b*:c",
+                                "evaluated": null,
+                                "result": null,
+                                "errormessage": null,
+                                "resources": null
+                              }
+                            ]
                           },
                           {
-                            "index": 3,
-                            "name": "b*c",
-                            "formula": ":b*:c",
-                            "evaluated": {
-                              ":b": "10",
-                              ":c": "1"
-                            },
-                            "result": "10"
-                          }
-                        ]
-                      },
-                      {
-                        "activityId": 1144,
-                        "date": "2022-01-03T16:00:00.000Z",
-                        "pipelineId": "01gwh2f5zwqryq789v42g1akrz",
-                        "executionId": "01gwh2g8k79v4qfq4m9pvz05q1",
-                        "auditId": "5ca76cb8-bb74-4a7b-ac9c-31b1b594b1f7",
-                        "createdAt": "2023-03-27T00:21:11.104Z",
-                        "executionNo": 0,
-                        "outputs": [
-                          {
-                            "index": 0,
-                            "name": "time",
-                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-                            "evaluated": {
-                              "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
-                              ":reading date": "1/4/22"
-                            },
-                            "result": "1641254400000"
-                          },
-                          {
-                            "index": 1,
-                            "name": "month",
-                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-                            "evaluated": {
-                              "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
-                              ":reading date": "1/4/22"
-                            },
-                            "result": "1640995200000"
-                          },
-                          {
-                            "index": 2,
-                            "name": "a",
-                            "formula": ":a",
-                            "evaluated": {
-                              ":a": "A"
-                            },
-                            "result": "A"
-                          },
-                          {
-                            "index": 3,
-                            "name": "b*c",
-                            "formula": ":b*:c"
-                          }
-                        ]
-                      },
-                      {
-                        "activityId": 1144,
-                        "date": "2022-01-03T16:00:00.000Z",
-                        "pipelineId": "01gwh2f5zwqryq789v42g1akrz",
-                        "executionId": "01gwh2fb3g2e33ghb08pab5hma",
-                        "auditId": "80eda70e-cc36-480e-9b95-6c010cf951d0",
-                        "createdAt": "2023-03-27T00:20:52.759Z",
-                        "executionNo": 0,
-                        "outputs": [
-                          {
-                            "index": 0,
-                            "name": "time",
-                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-                            "evaluated": {
-                              "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
-                              ":reading date": "1/4/22"
-                            },
-                            "result": "1641254400000"
-                          },
-                          {
-                            "index": 1,
-                            "name": "month",
-                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-                            "evaluated": {
-                              "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
-                              ":reading date": "1/4/22"
-                            },
-                            "result": "1640995200000"
-                          },
-                          {
-                            "index": 2,
-                            "name": "a",
-                            "formula": ":a",
-                            "evaluated": {
-                              ":a": "A"
-                            },
-                            "result": "A"
-                          },
-                          {
-                            "index": 3,
-                            "name": "b*c",
-                            "formula": ":b*:c",
-                            "evaluated": {
-                              ":b": "10",
-                              ":c": "1"
-                            },
-                            "result": "10"
-                          }
-                        ]
-                      },
-                      {
-                        "activityId": 1144,
-                        "date": "2022-01-03T16:00:00.000Z",
-                        "pipelineId": "01gwh2f5zwqryq789v42g1akrz",
-                        "executionId": "01gwh2fb3g2e33ghb08pab5hma",
-                        "auditId": "ab633d60-c50c-424e-add1-e6810766b1b4",
-                        "createdAt": "2023-03-27T00:20:52.722Z",
-                        "executionNo": 0,
-                        "outputs": [
-                          {
-                            "index": 0,
-                            "name": "time",
-                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-                            "evaluated": {
-                              "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
-                              ":reading date": "1/4/22"
-                            },
-                            "result": "1641254400000"
-                          },
-                          {
-                            "index": 1,
-                            "name": "month",
-                            "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-                            "evaluated": {
-                              "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
-                              ":reading date": "1/4/22"
-                            },
-                            "result": "1640995200000"
-                          },
-                          {
-                            "index": 2,
-                            "name": "a",
-                            "formula": ":a",
-                            "evaluated": {
-                              ":a": "A"
-                            },
-                            "result": "A"
-                          },
-                          {
-                            "index": 3,
-                            "name": "b*c",
-                            "formula": ":b*:c",
-                            "evaluated": {
-                              ":b": "10",
-                              ":c": "1"
-                            },
-                            "result": "10"
+                            "pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
+                            "executionId": "01h5ewts1j6ef1d8n11zh0zdte",
+                            "auditId": "a8f2c849-4908-4b8a-a7c8-2359629bc9c3",
+                            "inputs": [
+                              {
+                                "name": "___row_identifier___",
+                                "value": "1/4/22-A-10-1"
+                              },
+                              {
+                                "name": "reading date",
+                                "value": "1/4/22"
+                              },
+                              {
+                                "name": "a",
+                                "value": "A"
+                              },
+                              {
+                                "name": "b",
+                                "value": "10"
+                              },
+                              {
+                                "name": "c",
+                                "value": "1"
+                              }
+                            ],
+                            "outputs": [
+                              {
+                                "index": 0,
+                                "name": "time",
+                                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
+                                "evaluated": {
+                                  ":reading date": "1/4/22",
+                                  "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
+                                },
+                                "result": "1641254400000",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 1,
+                                "name": "month",
+                                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
+                                "evaluated": {
+                                  ":reading date": "1/4/22",
+                                  "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
+                                },
+                                "result": "1640995200000",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 2,
+                                "name": "a",
+                                "formula": ":a",
+                                "evaluated": {
+                                  ":a": "A"
+                                },
+                                "result": "A",
+                                "errormessage": null,
+                                "resources": null
+                              },
+                              {
+                                "index": 3,
+                                "name": "b*c",
+                                "formula": ":b*:c",
+                                "evaluated": {
+                                  ":b": "10",
+                                  ":c": "1"
+                                },
+                                "result": "10",
+                                "errormessage": null,
+                                "resources": null
+                              }
+                            ]
                           }
                         ]
                       }
@@ -1521,22 +1679,22 @@
             "description": "Show the aggregated value of activities."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1557,7 +1715,7 @@
                     "activities": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/activityResource"
+                        "$ref": "#/components/schemas/def-10"
                       }
                     },
                     "pagination": {
@@ -1709,22 +1867,22 @@
             "description": "Token used to paginate from (exclusive)."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1745,7 +1903,7 @@
                     "metrics": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/metricResource"
+                        "$ref": "#/components/schemas/def-12"
                       }
                     }
                   },
@@ -1760,7 +1918,7 @@
                       "metrics": [
                         {
                           "date": "2021-12-31T16:00:00.000Z",
-                          "metricId": "01H5K9012BRJB0273380KJRXJ4",
+                          "metricId": "01H6TQ4SQNVE0FXCYAY6TJT14J",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 1,
@@ -1772,7 +1930,7 @@
                         },
                         {
                           "date": "2022-01-31T16:00:00.000Z",
-                          "metricId": "01H5K9012BRJB0273380KJRXJ4",
+                          "metricId": "01H6TQ4SQNVE0FXCYAY6TJT14J",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 2,
@@ -1784,7 +1942,7 @@
                         },
                         {
                           "date": "2022-02-28T16:00:00.000Z",
-                          "metricId": "01H5K9012BRJB0273380KJRXJ4",
+                          "metricId": "01H6TQ4SQNVE0FXCYAY6TJT14J",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 3,
@@ -1830,22 +1988,22 @@
             "description": "Identifier of a execution of the pipeline."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -1861,7 +2019,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/signedUrl_response"
+                  "$ref": "#/components/schemas/def-6"
                 },
                 "examples": {
                   "Pipeline execution export available for download": {

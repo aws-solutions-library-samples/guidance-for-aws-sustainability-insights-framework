@@ -1,15 +1,33 @@
 {
-	"extends": "@tsconfig/node16/tsconfig.json",
+	"extends": "@tsconfig/node16-strictest-esm/tsconfig.json",
 	"compilerOptions": {
+		"module": "CommonJS",
 		"outDir": "dist",
 		"rootDir": "src",
-		"types": ["node"],
-
+		"types": [
+			"node"
+		],
 		"declaration": true,
 		"declarationMap": true,
 		"sourceMap": true,
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"noPropertyAccessFromIndexSignature": false,
+		"ignoreDeprecations": "5.0",
+		"strict": false,
+		"exactOptionalPropertyTypes": false
 	},
-	"include": ["src/**/*.ts"],
-	"exclude": ["./**/__mocks__/*.ts", ".git", ".history", ".vscode", "cdk.out", "dist", "lib", "node_modules"]
+
+	"include": [
+		"src/**/*.ts"
+	],
+	"exclude": [
+		"./**/__mocks__/*.ts",
+		".git",
+		".history",
+		".vscode",
+		"cdk.out",
+		"dist",
+		"lib",
+		"node_modules"
+	]
 }

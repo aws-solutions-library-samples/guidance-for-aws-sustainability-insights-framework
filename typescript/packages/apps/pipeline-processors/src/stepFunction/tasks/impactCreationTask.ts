@@ -89,11 +89,19 @@ export class ImpactCreationTask {
 		this.log.debug(`ImpactCreationTask > createActivities > pipelineId: ${pipelineId}, executionId: ${executionId}`);
 
 		const readResponse = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: getPipelineOutputKey('pipelines', pipelineId, executionId) }));
-		const csvObjects = convertCSVToArray(await sdkStreamMixin(readResponse.Body).transformToString(), { header: false, separator: ',' });
+		const csvObjects: Record<string, any>[] = convertCSVToArray(await sdkStreamMixin(readResponse.Body).transformToString(), { header: false, separator: ',' }) as unknown as Record<string, any>[];
 
 		const errorList = [];
 		for (const csvObject of csvObjects) {
-			const newActivity = this.assembleActivityResource(csvObject as any as { [key: string]: any }, pipelineId, executionId);
+			for (let key in csvObject) {
+				// remove start and end double quote if any for property with string value
+				// this is appended by calculator to ensure that value that contains comma is
+				// treated as singled unit
+				if (typeof csvObject[key] === 'string') {
+					csvObject[key] = csvObject[key].toString().replace(/(^"|"$)/g, '');
+				}
+			}
+			const newActivity = this.assembleActivityResource(csvObject, pipelineId, executionId);
 			try {
 				this.log.info(`ImpactCreationTask > createActivities >  newActivityResource: ${JSON.stringify(newActivity)}`);
 				const existingActivity = await this.impactClient.getByAlias(newActivity.name, lambdaRequestContext);

@@ -1,4 +1,4 @@
-@setup_pipelines
+@setup_pipelines @pipelines
 Feature:
 
 	This feature tests the granting/revocation of access to connectors between groups, therefore only focuses on testing

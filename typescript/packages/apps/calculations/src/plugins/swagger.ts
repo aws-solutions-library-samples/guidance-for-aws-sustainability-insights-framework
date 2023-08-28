@@ -13,14 +13,13 @@
 
 import fp from 'fastify-plugin';
 
-import FastifySwagger, { FastifySwaggerOptions, JSONObject } from '@fastify/swagger';
+import FastifySwagger, { FastifySwaggerOptions } from '@fastify/swagger';
 
 import type { FastifyInstance } from 'fastify';
 import { writeFile } from 'fs';
 
 export default fp<FastifySwaggerOptions>(async (app: FastifyInstance) => {
 	await app.register(FastifySwagger, {
-		routePrefix: '/swagger-docs',
 		openapi: {
 			info: {
 				title: 'SIF SaaS: Calculations API',
@@ -51,21 +50,7 @@ Has accountability for:
 				},
 			},
 			security: [],
-		},
-		hideUntagged: true,
-		exposeRoute: true,
-
-		uiConfig: {
-			docExpansion: 'list',
-			deepLinking: true,
-		},
-
-		refResolver: {
-			buildLocalReference(json: JSONObject, _baseUri: unknown, _fragment: unknown, _i: unknown) {
-				// eslint-disable-next-line dot-notation
-				return `${json['$id']}`;
-			},
-		},
+		}
 	});
 
 	if (process.env['NODE_ENV'] === 'local') {

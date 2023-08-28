@@ -41,16 +41,18 @@ import java.util.*;
 @Slf4j
 public class DatasetsClient {
     private final LambdaInvoker<DatasetsList> datasetsListInvoker;
+    private final LambdaInvoker<Dataset> datasetsInvoker;
     private final LambdaInvoker<DataDownload> dataDownloadInvoker;
     private final Config config;
     private final ResourcesRepository repository;
+    private final Map<String, Dataset> referenceDatasetsCache;
     private final Map<String, IndexSearcher> indexCache;
     private final Map<String, ResourcesRepository.Mapping> mappingCache;
     private final Map<String, Integer> activationDateVersionCache;
 
     @Inject
-    public DatasetsClient(LambdaInvoker<DatasetsList> datasetsListInvoker, LambdaInvoker<DataDownload> dataDownloadInvoker,
-                          Config config, ResourcesRepository repository) {
+    public DatasetsClient(LambdaInvoker<DatasetsList> datasetsListInvoker, LambdaInvoker<Dataset> datasetsInvoker, LambdaInvoker<DataDownload> dataDownloadInvoker,
+            Config config, ResourcesRepository repository) {
         this.datasetsListInvoker = datasetsListInvoker;
         this.dataDownloadInvoker = dataDownloadInvoker;
         this.config = config;
@@ -58,11 +60,13 @@ public class DatasetsClient {
         this.indexCache = new HashMap<>();
         this.mappingCache = new HashMap<>();
         this.activationDateVersionCache = new HashMap<>();
+        this.datasetsInvoker = datasetsInvoker;
+        this.referenceDatasetsCache = new HashMap<>();
     }
 
     public GetValueResponse getValue(String pipelineId, String executionId, String groupContextId, Authorizer authorizer, String name, String value, String outputColumn, String keyColumn, Optional<String> tenantId, Optional<String> version, Optional<String> versionAsAt) throws ReferenceDatasetNotFoundException {
         log.debug("getValue> in> pipelineId:{}, executionId:{}, groupContextId:{}, name:{}, value:{}, columnName:{}, tenantId:{}, version:{}, versionAsAt:{}",
-            pipelineId, executionId, groupContextId, name, value, outputColumn, tenantId, version, versionAsAt);
+                pipelineId, executionId, groupContextId, name, value, outputColumn, tenantId, version, versionAsAt);
 
         Validate.notEmpty(pipelineId);
         Validate.notEmpty(executionId);
@@ -90,6 +94,10 @@ public class DatasetsClient {
         return response;
     }
 
+    private String referenceDatasetVersionCacheKey(String pipelineId, String executionId, String groupContextId, String id, int version, Optional<String> tenantId) {
+        return String.format("%s:%s:%s:%s:%s:%s", pipelineId, executionId, groupContextId, id, version, tenantId.orElse(""));
+    }
+
     private ResourcesRepository.Mapping getLatestByName(String pipelineId, String executionId, String groupContextId, Authorizer authorizer, String name, Optional<String> tenantId) throws ReferenceDatasetNotFoundException {
         log.debug("getLatestByName> in> pipelineId:{}, executionId:{}, groupContextId:{}, name:{}, tenantId:{}",
                 pipelineId, executionId, groupContextId, name, tenantId);
@@ -115,7 +123,7 @@ public class DatasetsClient {
         return mapping;
     }
 
-    private String getByIdVersionKey(String pipelineId, String executionId, String groupContextId, Authorizer authorizer, String id, String value, String outputColumn, String keyColumn, int version, Optional<String> tenantId ) throws ReferenceDatasetNotFoundException {
+    private String getByIdVersionKey(String pipelineId, String executionId, String groupContextId, Authorizer authorizer, String id, String value, String outputColumn, String keyColumn, int version, Optional<String> tenantId) throws ReferenceDatasetNotFoundException {
         log.debug("getByIdVersionKey> in> pipelineId:{}, executionId:{}, groupContextId:{}, id:{}, value:{}, outputColumn:{}, keyColumn: {}, version:{}, tenantId:{}",
                 pipelineId, executionId, groupContextId, id, value, outputColumn, keyColumn, version, tenantId);
 
@@ -125,6 +133,19 @@ public class DatasetsClient {
         Validate.notEmpty(value);
         Validate.notEmpty(outputColumn);
         Validate.notEmpty(keyColumn);
+
+        var referenceDatasetCacheKey = referenceDatasetVersionCacheKey(pipelineId, executionId, id, groupContextId, version, tenantId);
+        if (!referenceDatasetsCache.containsKey(referenceDatasetCacheKey)) {
+            var dataset = invokeGetDatasetByVersion(groupContextId, authorizer, id, version, tenantId);
+            referenceDatasetsCache.put(referenceDatasetCacheKey, dataset);
+        }
+        var dataset = referenceDatasetsCache.get(referenceDatasetCacheKey);
+
+        var headerList = Arrays.asList(dataset.getDatasetHeaders());
+        String columnNotFoundErrorStr = String.format("Requested column '%s' or '%s' not found in dataset '%s' (version %s)", outputColumn, keyColumn, id, version);
+        if (!headerList.contains(keyColumn) || !headerList.contains(outputColumn)) {
+            throw new ArithmeticException(columnNotFoundErrorStr);
+        }
 
         // do we already have the index initialized for the dataset
         var indexCacheKey = String.format("%s:%s:%s:%s:%d:%s", pipelineId, executionId, groupContextId, id, version, tenantId.orElse(""));
@@ -178,25 +199,16 @@ public class DatasetsClient {
             throw new RuntimeException("failed to parse lucene query", e);
         }
 
-        // if no docs found, that means the search didn't provide any results, we throw an "arithmetic" exception
-        String arithmeticErrorStr = String.format("Requested column '%s' and value '%s' not found in dataset '%s' (version %s)", outputColumn, value, id, version);
-        if(documents.size() == 0){
-            throw new ArithmeticException(arithmeticErrorStr);
+        if (documents.size() == 0) {
+            return null;
         }
-
         // let's get the output column the document has fields on it, we first get the first doc and then get the field we need.
         String result = documents.get(0).get(outputColumn);
-
-        // if let's say, you are asking for an output column which doesn't exist on the doc, throw an "arithmetic" exception
-        if(result == null) {
-            throw new ArithmeticException(arithmeticErrorStr);
-        }
 
         log.debug("getByIdVersionKey> out> result: {}", result);
 
         // at last, returning the search result value we were looking for
         return result;
-
     }
 
     private String getByIdVersionAsAtKey(String pipelineId, String executionId, String groupContextId, Authorizer authorizer, String id, String value, String outputColumn, String keyColumn, String versionAsAt, Optional<String> tenantId) throws ReferenceDatasetNotFoundException {
@@ -244,6 +256,23 @@ public class DatasetsClient {
         var dataset = list.getBody().getReferenceDatasets()[0];
 
         log.debug("invokeGetDatasetByName> exit:{}", dataset);
+        return dataset;
+    }
+
+    private Dataset invokeGetDatasetByVersion(String groupContextId, Authorizer authorizer, String id, int version, Optional<String> tenantId) throws ReferenceDatasetNotFoundException {
+        log.debug("invokeGetDatasetByVersion> in> groupContextId:{}, version:{}, tenantId:{}", groupContextId, version, tenantId);
+
+        Validate.notEmpty(groupContextId);
+        Validate.notEmpty(id);
+
+        var functionName = config.getString("calculator.referenceDatasets.functionName");
+        var path = String.format("/referenceDatasets/%s/versions/%s", id, version);
+
+        var datasetResponse = this.datasetsInvoker.invokeFunction(functionName, groupContextId, authorizer, "GET", path, Optional.empty(), Optional.empty(), tenantId, Dataset.class);
+
+        var dataset = datasetResponse.getBody();
+
+        log.debug("invokeGetDatasetByVersion> exit:{}", dataset);
         return dataset;
     }
 
@@ -308,7 +337,7 @@ public class DatasetsClient {
 
             return new IndexSearcher(reader);
 
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException("failed to initialize the lucene index", e);
         }
 

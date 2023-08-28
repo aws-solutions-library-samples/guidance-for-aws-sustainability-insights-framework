@@ -28,6 +28,7 @@ import { ExecSyncOptions, execSync } from 'child_process';
 import { Construct } from 'constructs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,7 @@ export interface CalculatorConstructProperties {
 	camlInferenceEndpointName?: string;
 	auditDataStreamArn: string;
 	auditDataStreamName:string;
+	decimalPrecision: number;
 }
 
 export const calculatorFunctionArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/calculator/functionArn`;
@@ -283,7 +285,8 @@ export class CalculatorModule extends Construct {
 				'ACTIVITY_QUEUE_URL': activityInsertQueue.queueUrl,
 				'AUDIT_QUEUE_URL': auditQueue.queueUrl,
 				'AUDIT_DATA_STREAM_NAME':props.auditDataStreamName,
-				'CAML_INFERENCE_ENDPOINT_NAME': props.camlInferenceEndpointName
+				'CAML_INFERENCE_ENDPOINT_NAME': props.camlInferenceEndpointName,
+				'CALCULATOR_DECIMAL_PRECISION': props.decimalPrecision.toString()
 			},
 			code: Code.fromAsset(calculatorPath, {
 				bundling: {
@@ -313,6 +316,7 @@ export class CalculatorModule extends Construct {
 					},
 				},
 			}),
+			architecture: getLambdaArchitecture(scope),
 		});
 		calculatorLambda.node.addDependency(auditQueue);
 		calculatorLambda.node.addDependency(activityInsertQueue);

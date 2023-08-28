@@ -32,6 +32,7 @@ import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { execSync, ExecSyncOptions } from 'child_process';
 import { NagSuppressions } from 'cdk-nag';
+import { getLambdaArchitecture } from '@sif/cdk-common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -123,6 +124,7 @@ export class ReferenceDatasetsModule extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		table.grantWriteData(stateMachineLambda);
@@ -175,6 +177,7 @@ export class ReferenceDatasetsModule extends Construct {
 					},
 				},
 			}),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		bucket.grantReadWrite(indexerLambda);
@@ -237,6 +240,7 @@ export class ReferenceDatasetsModule extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		apiLambda.node.addDependency(table);
@@ -380,6 +384,7 @@ export class ReferenceDatasetsModule extends Construct {
 				externalModules: ['aws-sdk'],
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope),
 		});
 
 		// Grant access to bucket, eventbus and dynamodb

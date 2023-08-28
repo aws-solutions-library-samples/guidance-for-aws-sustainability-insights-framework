@@ -1,4 +1,4 @@
-@setup_calculations
+@setup_calculations @calculations
 Feature:
 
   	This feature tests the tagging of resources, therefore only focuses on testing responses and attributes specific to it.
