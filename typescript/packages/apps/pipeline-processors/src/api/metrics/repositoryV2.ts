@@ -13,10 +13,12 @@
 
 import type { BaseLogger } from 'pino';
 import type { BaseRepositoryClient } from '../../data/base.repository.js';
-import type { TimeUnit, AffectedTimeRange, IMetricsRepository } from './models.js';
+import type { TimeUnit, AffectedTimeRange, IMetricsRepository, DownloadParams } from './models.js';
 import type { Metric } from './schemas.js';
 import dayjs from 'dayjs';
 import { DATE_PART_TO_TIME_UNIT } from './models.js';
+import { exportDataToS3Query,prepareS3ExportQuery } from '../../utils/s3Export.utils.js';
+
 
 export class MetricsRepositoryV2 implements IMetricsRepository {
 	private readonly log: BaseLogger;
@@ -68,7 +70,7 @@ export class MetricsRepositoryV2 implements IMetricsRepository {
 		return result.rows;
 	}
 
-	public async listMetrics({ name, id }: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, members = false, version: number | string = 'latest'): Promise<Metric[]> {
+	public async listMetrics({ name, id }: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, members = false, version: number | string = 'latest', downloadParams?:DownloadParams): Promise<Metric[]|void> {
 		this.log.debug(`MetricsRepositoryV2> listMetrics> in: name:${name}, groupId:${groupId}, timeUnit:${timeUnit}, timeRange:${JSON.stringify(timeRange)}, version: ${version}`);
 
 		const dateFromEpoch = dayjs(timeRange.from).unix();
@@ -76,6 +78,7 @@ export class MetricsRepositoryV2 implements IMetricsRepository {
 
 		const immediateChildSearchPattern = groupId === '/' ? `^\/((?!\/).)+$` : `^${groupId.replaceAll('/', `\/`)}\/((?!\/).)+$`;
 		const groupCondition = members ? `m."groupId" ~ '${immediateChildSearchPattern}'` : `m."groupId" = '${groupId}'`;
+		const limitClause = (downloadParams?.unlimited) ? '' : `LIMIT 100 OFFSET 0`
 
 		const query =
 `SELECT m.name,
@@ -98,9 +101,16 @@ AND 	m."timeUnit" = '${DATE_PART_TO_TIME_UNIT[timeUnit]}'
 AND 	m."name" = '${name}'
 AND 	"date" BETWEEN to_timestamp(${dateFromEpoch}) AND to_timestamp(${dateToEpoch})
 GROUP BY m.name, m.name, m."groupId", m.date, ls."createdAt", ls."groupValue", ls."subGroupsValue", "month", "year", "day"
-LIMIT 100 OFFSET 0 `;
+${limitClause} `;
 
 		this.log.debug(`MetricsRepositoryV2> listMetrics> in: query: ${JSON.stringify(query)}`);
+		if(downloadParams){
+			const preparedQuery = prepareS3ExportQuery(query);
+			const exportQuery = exportDataToS3Query(downloadParams.queryId, preparedQuery,downloadParams.bucket, downloadParams.bucketPrefix);
+			await this.executeQuery(exportQuery);
+			this.log.trace(`MetricsRepositoryV2> listMetrics> out: exportQuery: ${JSON.stringify(exportQuery)}`);
+			return;
+		}
 		const result = await this.executeQuery(query);
 		this.log.debug(`MetricsRepositoryV2> listMetrics> in: result: ${JSON.stringify(result)}`);
 
@@ -108,14 +118,14 @@ LIMIT 100 OFFSET 0 `;
 		return data as unknown as Metric[];
 	}
 
-	public async listCollectionMetrics({ name, id }: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string = 'latest'): Promise<Metric[]> {
-		this.log.info(`MetricsRepositoryV2> listCollectionMetrics> in: name:${name}, groupId:${groupId}, timeUnit:${timeUnit}, timeRange:${JSON.stringify(timeRange)}, version: ${version}`);
-		return await this.listMetrics({ name, id }, groupId, timeUnit, timeRange, false, version);
+	public async listCollectionMetrics({ name, id }: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string = 'latest', downloadParams?:DownloadParams): Promise<Metric[]|void> {
+		this.log.debug(`MetricsRepositoryV2> listCollectionMetrics> in: name:${name}, groupId:${groupId}, timeUnit:${timeUnit}, timeRange:${JSON.stringify(timeRange)}, version: ${version}`);
+		return await this.listMetrics({ name, id }, groupId, timeUnit, timeRange, false, version, downloadParams);
 	}
 
-	public async listMembersMetrics({ name, id }: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string = 'latest'): Promise<Metric[]> {
-		this.log.info(`MetricsRepositoryV2> listMembersMetrics> in: metricId:${name}, groupId:${groupId}, timeUnit:${timeUnit}, timeRange:${JSON.stringify(timeRange)}, version: ${version}`);
-		return await this.listMetrics({ name, id }, groupId, timeUnit, timeRange, true, version);
+	public async listMembersMetrics({ name, id }: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string = 'latest', downloadParams?:DownloadParams): Promise<Metric[]|void> {
+		this.log.debug(`MetricsRepositoryV2> listMembersMetrics> in: metricId:${name}, groupId:${groupId}, timeUnit:${timeUnit}, timeRange:${JSON.stringify(timeRange)}, version: ${version}`);
+		return await this.listMetrics({ name, id }, groupId, timeUnit, timeRange, true, version, downloadParams);
 	}
 
 }

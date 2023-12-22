@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/dynamodb-utils",
+      "comment": "Library update",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/dynamodb-utils"
+}

@@ -1,6 +1,21 @@
 # Change Log - @sif/infrastructure-platform
 
-This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+This log was last generated on Fri, 15 Dec 2023 02:32:26 GMT and should not be manually modified.
+
+## 2.7.1
+Fri, 15 Dec 2023 02:32:26 GMT
+
+### Patches
+
+- use aspect to ensure the cdk generated match the previous version of cdk
+
+## 2.7.0
+Wed, 13 Dec 2023 02:37:37 GMT
+
+### Minor changes
+
+- include version information in cloudformation tags
+- modify all subnets to be isolated subnets
 
 ## 2.6.0
 Thu, 17 Aug 2023 02:44:14 GMT

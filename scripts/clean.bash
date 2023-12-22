@@ -33,6 +33,6 @@ EOF
 }
 
 # clean all packages
-npx pnpm@7.13.3 recursive run clean:package
+npx pnpm@8.6.8 recursive run clean:package
 
 rush update --bypass-policy

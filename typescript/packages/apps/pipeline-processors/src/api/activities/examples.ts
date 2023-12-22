@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import type { ActivitiesList, Activity, ActivityVersionsList } from './schemas.js';
+import type { ActivitiesDownloadList, ActivitiesList, Activity, ActivityVersionsList, NewActivitiesDownload } from './schemas.js';
 
 const pipelineId = '01gmf43ak9r1ghhvfaqb2wbcxp';
 const executionId = '01gnb3v9nty57at170b7sfvdp0';
@@ -73,266 +73,279 @@ export const activityVersionsListExample: ActivityVersionsList = {
 };
 
 export const activityAuditListExample = [{
-	"status": "SUCCEEDED",
-	"exportUrl": "<S3 Export Url>",
-	"audits": [{
-			"pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
-			"executionId": "01h5ewn4wvsk1fx5rhjm682zjg",
-			"auditId": "12b42b60-6198-44df-a075-167a6a740f1f",
-			"inputs": [{
-				"name": "___row_identifier___",
-				"value": "1/4/22-A-10-1"
-			}, {
-				"name": "reading date",
-				"value": "1/4/22"
-			}, {
-				"name": "a",
-				"value": "A"
-			}, {
-				"name": "b",
-				"value": "10"
-			}, {
-				"name": "c",
-				"value": "1"
-			}],
-			"outputs": [{
-				"index": 0,
-				"name": "time",
-				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-				"evaluated": {
-					":reading date": "1/4/22",
-					"AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
-				},
-				"result": "1641254400000",
-				"errormessage": null,
-				"resources": null
-			}, {
-				"index": 1,
-				"name": "month",
-				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-				"evaluated": {
-					":reading date": "1/4/22",
-					"AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
-				},
-				"result": "1640995200000",
-				"errormessage": null,
-				"resources": null
-			}, {
-				"index": 2,
-				"name": "a",
-				"formula": ":a",
-				"evaluated": {
-					":a": "A"
-				},
-				"result": "A",
-				"errormessage": null,
-				"resources": null
-			}, {
-				"index": 3,
-				"name": "b*c",
-				"formula": ":b*:c",
-				"evaluated": {
-					":b": "10",
-					":c": "1"
-				},
-				"result": "10",
-				"errormessage": null,
-				"resources": null
-			}]
-		},
+	'status': 'SUCCEEDED',
+	'exportUrl': '<S3 Export Url>',
+	'audits': [{
+		'pipelineId': '01h5ewn29qjzx606f1z3ksd7dy',
+		'executionId': '01h5ewn4wvsk1fx5rhjm682zjg',
+		'auditId': '12b42b60-6198-44df-a075-167a6a740f1f',
+		'inputs': [{
+			'name': '___row_identifier___',
+			'value': '1/4/22-A-10-1'
+		}, {
+			'name': 'reading date',
+			'value': '1/4/22'
+		}, {
+			'name': 'a',
+			'value': 'A'
+		}, {
+			'name': 'b',
+			'value': '10'
+		}, {
+			'name': 'c',
+			'value': '1'
+		}],
+		'outputs': [{
+			'index': 0,
+			'name': 'time',
+			'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\')',
+			'evaluated': {
+				':reading date': '1/4/22',
+				'AS_TIMESTAMP(:reading date,\'M/d/yy\')': '1641254400000'
+			},
+			'result': '1641254400000',
+			'errormessage': null,
+			'resources': null
+		}, {
+			'index': 1,
+			'name': 'month',
+			'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')',
+			'evaluated': {
+				':reading date': '1/4/22',
+				'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')': '1640995200000'
+			},
+			'result': '1640995200000',
+			'errormessage': null,
+			'resources': null
+		}, {
+			'index': 2,
+			'name': 'a',
+			'formula': ':a',
+			'evaluated': {
+				':a': 'A'
+			},
+			'result': 'A',
+			'errormessage': null,
+			'resources': null
+		}, {
+			'index': 3,
+			'name': 'b*c',
+			'formula': ':b*:c',
+			'evaluated': {
+				':b': '10',
+				':c': '1'
+			},
+			'result': '10',
+			'errormessage': null,
+			'resources': null
+		}]
+	},
 		{
-			"pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
-			"executionId": "01h5ewn4wvsk1fx5rhjm682zjg",
-			"auditId": "f50357e1-d2ba-4351-bf28-d9281d74e150",
-			"inputs": [{
-				"name": "___row_identifier___",
-				"value": "1/4/22-A-10-1"
+			'pipelineId': '01h5ewn29qjzx606f1z3ksd7dy',
+			'executionId': '01h5ewn4wvsk1fx5rhjm682zjg',
+			'auditId': 'f50357e1-d2ba-4351-bf28-d9281d74e150',
+			'inputs': [{
+				'name': '___row_identifier___',
+				'value': '1/4/22-A-10-1'
 			}, {
-				"name": "reading date",
-				"value": "1/4/22"
+				'name': 'reading date',
+				'value': '1/4/22'
 			}, {
-				"name": "a",
-				"value": "A"
+				'name': 'a',
+				'value': 'A'
 			}, {
-				"name": "b",
-				"value": "10"
+				'name': 'b',
+				'value': '10'
 			}, {
-				"name": "c",
-				"value": "1"
+				'name': 'c',
+				'value': '1'
 			}],
-			"outputs": [{
-					"index": 0,
-					"name": "time",
-					"formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-					"evaluated": {
-						":reading date": "1/4/22",
-						"AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
-					},
-					"result": "1641254400000",
-					"errormessage": null,
-					"resources": null
+			'outputs': [{
+				'index': 0,
+				'name': 'time',
+				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\')',
+				'evaluated': {
+					':reading date': '1/4/22',
+					'AS_TIMESTAMP(:reading date,\'M/d/yy\')': '1641254400000'
 				},
+				'result': '1641254400000',
+				'errormessage': null,
+				'resources': null
+			},
 				{
-					"index": 1,
-					"name": "month",
-					"formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-					"evaluated": {
-						":reading date": "1/4/22",
-						"AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
+					'index': 1,
+					'name': 'month',
+					'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')',
+					'evaluated': {
+						':reading date': '1/4/22',
+						'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')': '1640995200000'
 					},
-					"result": "1640995200000",
-					"errormessage": null,
-					"resources": null
+					'result': '1640995200000',
+					'errormessage': null,
+					'resources': null
 				}, {
-					"index": 2,
-					"name": "a",
-					"formula": ":a",
-					"evaluated": {
-						":a": "A"
+					'index': 2,
+					'name': 'a',
+					'formula': ':a',
+					'evaluated': {
+						':a': 'A'
 					},
-					"result": "A",
-					"errormessage": null,
-					"resources": null
+					'result': 'A',
+					'errormessage': null,
+					'resources': null
 				}, {
-					"index": 3,
-					"name": "b*c",
-					"formula": ":b*:c",
-					"evaluated": {
-						":b": "10",
-						":c": "1"
+					'index': 3,
+					'name': 'b*c',
+					'formula': ':b*:c',
+					'evaluated': {
+						':b': '10',
+						':c': '1'
 					},
-					"result": "10",
-					"errormessage": null,
-					"resources": null
+					'result': '10',
+					'errormessage': null,
+					'resources': null
 				}
 			]
 		},
 		{
-			"pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
-			"executionId": "01h5ewqm8x2ywd64s9b5p2b0fd",
-			"auditId": "51aa61ea-936d-4e26-b610-9e15f3f6c43b",
-			"inputs": [{
-				"name": "___row_identifier___",
-				"value": "1/4/22-A--"
+			'pipelineId': '01h5ewn29qjzx606f1z3ksd7dy',
+			'executionId': '01h5ewqm8x2ywd64s9b5p2b0fd',
+			'auditId': '51aa61ea-936d-4e26-b610-9e15f3f6c43b',
+			'inputs': [{
+				'name': '___row_identifier___',
+				'value': '1/4/22-A--'
 			}, {
-				"name": "reading date",
-				"value": "1/4/22"
+				'name': 'reading date',
+				'value': '1/4/22'
 			}, {
-				"name": "a",
-				"value": "A"
+				'name': 'a',
+				'value': 'A'
 			}, {
-				"name": "b",
-				"value": ""
+				'name': 'b',
+				'value': ''
 			}, {
-				"name": "c",
-				"value": ""
+				'name': 'c',
+				'value': ''
 			}],
-			"outputs": [{
-				"index": 0,
-				"name": "time",
-				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-				"evaluated": {
-					":reading date": "1/4/22",
-					"AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
+			'outputs': [{
+				'index': 0,
+				'name': 'time',
+				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\')',
+				'evaluated': {
+					':reading date': '1/4/22',
+					'AS_TIMESTAMP(:reading date,\'M/d/yy\')': '1641254400000'
 				},
-				"result": "1641254400000",
-				"errormessage": null,
-				"resources": null
+				'result': '1641254400000',
+				'errormessage': null,
+				'resources': null
 			}, {
-				"index": 1,
-				"name": "month",
-				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-				"evaluated": {
-					":reading date": "1/4/22",
-					"AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
+				'index': 1,
+				'name': 'month',
+				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')',
+				'evaluated': {
+					':reading date': '1/4/22',
+					'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')': '1640995200000'
 				},
-				"result": "1640995200000",
-				"errormessage": null,
-				"resources": null
+				'result': '1640995200000',
+				'errormessage': null,
+				'resources': null
 			}, {
-				"index": 2,
-				"name": "a",
-				"formula": ":a",
-				"evaluated": {
-					":a": "A"
+				'index': 2,
+				'name': 'a',
+				'formula': ':a',
+				'evaluated': {
+					':a': 'A'
 				},
-				"result": "A",
-				"errormessage": null,
-				"resources": null
+				'result': 'A',
+				'errormessage': null,
+				'resources': null
 			}, {
-				"index": 3,
-				"name": "b*c",
-				"formula": ":b*:c",
-				"evaluated": null,
-				"result": null,
-				"errormessage": null,
-				"resources": null
+				'index': 3,
+				'name': 'b*c',
+				'formula': ':b*:c',
+				'evaluated': null,
+				'result': null,
+				'errormessage': null,
+				'resources': null
 			}]
 		},
 		{
-			"pipelineId": "01h5ewn29qjzx606f1z3ksd7dy",
-			"executionId": "01h5ewts1j6ef1d8n11zh0zdte",
-			"auditId": "a8f2c849-4908-4b8a-a7c8-2359629bc9c3",
-			"inputs": [{
-				"name": "___row_identifier___",
-				"value": "1/4/22-A-10-1"
+			'pipelineId': '01h5ewn29qjzx606f1z3ksd7dy',
+			'executionId': '01h5ewts1j6ef1d8n11zh0zdte',
+			'auditId': 'a8f2c849-4908-4b8a-a7c8-2359629bc9c3',
+			'inputs': [{
+				'name': '___row_identifier___',
+				'value': '1/4/22-A-10-1'
 			}, {
-				"name": "reading date",
-				"value": "1/4/22"
+				'name': 'reading date',
+				'value': '1/4/22'
 			}, {
-				"name": "a",
-				"value": "A"
+				'name': 'a',
+				'value': 'A'
 			}, {
-				"name": "b",
-				"value": "10"
+				'name': 'b',
+				'value': '10'
 			}, {
-				"name": "c",
-				"value": "1"
+				'name': 'c',
+				'value': '1'
 			}],
-			"outputs": [{
-				"index": 0,
-				"name": "time",
-				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-				"evaluated": {
-					":reading date": "1/4/22",
-					"AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000"
+			'outputs': [{
+				'index': 0,
+				'name': 'time',
+				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\')',
+				'evaluated': {
+					':reading date': '1/4/22',
+					'AS_TIMESTAMP(:reading date,\'M/d/yy\')': '1641254400000'
 				},
-				"result": "1641254400000",
-				"errormessage": null,
-				"resources": null
+				'result': '1641254400000',
+				'errormessage': null,
+				'resources': null
 			}, {
-				"index": 1,
-				"name": "month",
-				"formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-				"evaluated": {
-					":reading date": "1/4/22",
-					"AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000"
+				'index': 1,
+				'name': 'month',
+				'formula': 'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')',
+				'evaluated': {
+					':reading date': '1/4/22',
+					'AS_TIMESTAMP(:reading date,\'M/d/yy\', roundDownTo=\'month\')': '1640995200000'
 				},
-				"result": "1640995200000",
-				"errormessage": null,
-				"resources": null
+				'result': '1640995200000',
+				'errormessage': null,
+				'resources': null
 			}, {
-				"index": 2,
-				"name": "a",
-				"formula": ":a",
-				"evaluated": {
-					":a": "A"
+				'index': 2,
+				'name': 'a',
+				'formula': ':a',
+				'evaluated': {
+					':a': 'A'
 				},
-				"result": "A",
-				"errormessage": null,
-				"resources": null
+				'result': 'A',
+				'errormessage': null,
+				'resources': null
 			}, {
-				"index": 3,
-				"name": "b*c",
-				"formula": ":b*:c",
-				"evaluated": {
-					":b": "10",
-					":c": "1"
+				'index': 3,
+				'name': 'b*c',
+				'formula': ':b*:c',
+				'evaluated': {
+					':b': '10',
+					':c': '1'
 				},
-				"result": "10",
-				"errormessage": null,
-				"resources": null
+				'result': '10',
+				'errormessage': null,
+				'resources': null
 			}]
 		}
 	]
 }];
+
+export const newActivitiesDownloadExample: NewActivitiesDownload = {
+	id: '12345'
+};
+
+export const activitiesDownloadExample: ActivitiesDownloadList = {
+	downloads: [
+		{
+			url: 'https://<some-signed-url>'
+		}
+	]
+
+};

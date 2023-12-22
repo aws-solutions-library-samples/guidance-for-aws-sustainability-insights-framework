@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import { Aspects, aws_iam, Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { Aspects, aws_iam, BundlingFileAccess, Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import { AccessLogFormat, AuthorizationType, CfnMethod, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
 import { Code, Function, Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -46,7 +46,7 @@ export interface ReferenceDatasetsConstructProperties {
 	bucketName: string;
 	tableName: string;
 	workerQueueArn: string;
-	enableDeleteResource?: boolean;
+	enableDeleteResource: boolean;
 	permittedOutgoingTenantPaths: string;
 	externallySharedGroupIds: string;
 	referenceDatasetsApiFunctionName: string;
@@ -112,7 +112,7 @@ export class ReferenceDatasetsModule extends Construct {
 				ACCESS_MANAGEMENT_FUNCTION_NAME: props.accessManagementApiFunctionName,
 				EVENT_BUS_NAME: props.eventBusName,
 				WORKER_QUEUE_URL: workerQueue.queueUrl,
-				ENABLE_DELETE_RESOURCE: props.enableDeleteResource as unknown as string,
+				ENABLE_DELETE_RESOURCE: props.enableDeleteResource.toString(),
 			},
 			bundling: {
 				minify: true,
@@ -151,12 +151,21 @@ export class ReferenceDatasetsModule extends Construct {
 			},
 			code: Code.fromAsset(indexerLambdaPath, {
 				bundling: {
-					workingDirectory: indexerLambdaPath,
 					image: Runtime.JAVA_17.bundlingImage,
+					bundlingFileAccess: BundlingFileAccess.VOLUME_COPY,
+					command: [
+						'/bin/sh',
+						'-c',
+						[
+							`perl -pe 'BEGIN{undef $/;}s/<plugin>.*bjurr.*?<\\/plugin>//smg' -i pom.xml`,
+							'mvn clean install -X -DskipReleasePrepare=true',
+							`cp ./target/indexer.jar /asset-output/indexer.jar`
+						].join(' && ')
+					],
 					local: {
 						tryBundle(outputDir: string): boolean {
 							try {
-								execSync(`mvn clean install`, {
+								execSync(`mvn clean install  -DskipReleasePrepare=true`, {
 									...execOptions,
 									cwd: indexerLambdaPath,
 								});
@@ -182,7 +191,7 @@ export class ReferenceDatasetsModule extends Construct {
 
 		bucket.grantReadWrite(indexerLambda);
 
-		const stateMachineLogGroup = new LogGroup(this, 'StateMachineLogGroup', { logGroupName: `/aws/stepfunctions/${namePrefix}-referenceDatasets`, removalPolicy: RemovalPolicy.DESTROY });
+		const stateMachineLogGroup = new LogGroup(this, 'StateMachineLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-referenceDatasets`, removalPolicy: RemovalPolicy.DESTROY });
 
 		const referenceDatasetsStateMachine = new StateMachine(this, 'ReferenceDatasetsStateMachine', {
 			stateMachineName: `${namePrefix}-referenceDatasets`,
@@ -192,13 +201,13 @@ export class ReferenceDatasetsModule extends Construct {
 				lambdaFunction: indexerLambda,
 				outputPath: '$.Payload',
 			}).next(
-				new LambdaInvoke(this, 'updateReferenceDataset', {
-					lambdaFunction: stateMachineLambda,
-					payload: TaskInput.fromObject({
-						payload: JsonPath.entirePayload,
-						action: 'update',
-					}),
-				})
+			  new LambdaInvoke(this, 'updateReferenceDataset', {
+				  lambdaFunction: stateMachineLambda,
+				  payload: TaskInput.fromObject({
+					  payload: JsonPath.entirePayload,
+					  action: 'update',
+				  }),
+			  })
 			),
 		});
 
@@ -223,7 +232,7 @@ export class ReferenceDatasetsModule extends Construct {
 				NODE_ENV: props.environment,
 				TABLE_NAME: props.tableName,
 				WORKER_QUEUE_URL: workerQueue.queueUrl,
-				ENABLE_DELETE_RESOURCE: props.enableDeleteResource as unknown as string,
+				ENABLE_DELETE_RESOURCE: (typeof (props.enableDeleteResource) === 'boolean') ? props.enableDeleteResource.toString() : 'false',
 				TENANT_ID: props.tenantId,
 				PERMITTED_OUTGOING_TENANT_PATHS: props.permittedOutgoingTenantPaths,
 				EXTERNALLY_SHARED_GROUP_IDS: props.externallySharedGroupIds,
@@ -267,11 +276,12 @@ export class ReferenceDatasetsModule extends Construct {
 		 */
 
 		if (props.permittedOutgoingTenantPaths) {
+			const resources: string[] = [];
 			// 1- Allow Policy
 			const allowPolicy = {
 				effects: Effect.ALLOW,
 				actions: ['lambda:InvokeFunction'],
-				resources: [],
+				resources,
 			};
 			const paths = props.permittedOutgoingTenantPaths.split(';');
 			for (const tenantPath of paths) {
@@ -370,7 +380,7 @@ export class ReferenceDatasetsModule extends Construct {
 				BUCKET_PREFIX: bucketPrefix,
 				EVENT_BUS_NAME: props.eventBusName,
 				WORKER_QUEUE_URL: workerQueue.queueUrl,
-				ENABLE_DELETE_RESOURCE: props.enableDeleteResource as unknown as string,
+				ENABLE_DELETE_RESOURCE: props.enableDeleteResource.toString(),
 				TENANT_ID: props.tenantId,
 				REFERENCE_DATASETS_STATE_MACHINE_ARN: referenceDatasetsStateMachine.stateMachineArn,
 			},
@@ -412,11 +422,11 @@ export class ReferenceDatasetsModule extends Construct {
 		}));
 
 		dataSourcesUploadRule.addTarget(
-			new LambdaFunction(bucketEventsLambda, {
-				deadLetterQueue: deadLetterQueue,
-				maxEventAge: Duration.minutes(5),
-				retryAttempts: 2,
-			})
+		  new LambdaFunction(bucketEventsLambda, {
+			  deadLetterQueue: deadLetterQueue,
+			  maxEventAge: Duration.minutes(5),
+			  retryAttempts: 2,
+		  })
 		);
 
 		const accessManagementLambda = Function.fromFunctionName(this, 'accessManagementLambda', props.accessManagementApiFunctionName);
@@ -427,98 +437,98 @@ export class ReferenceDatasetsModule extends Construct {
 		const region = Stack.of(this).region;
 
 		NagSuppressions.addResourceSuppressions([bucketEventsLambda, apiLambda, stateMachineLambda, indexerLambda],
-			[
-				{
-					id: 'AwsSolutions-IAM4',
-					appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
-					reason: 'This policy is generated by CDK.'
+		  [
+			  {
+				  id: 'AwsSolutions-IAM4',
+				  appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'],
+				  reason: 'This policy is generated by CDK.'
 
-				},
-				{
-					id: 'AwsSolutions-IAM5',
-					appliesTo: [`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`],
-					reason: 'This policy is required for the lambda to access the resource api table.'
+			  },
+			  {
+				  id: 'AwsSolutions-IAM5',
+				  appliesTo: [`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`],
+				  reason: 'This policy is required for the lambda to access the resource api table.'
 
-				},
-				{
-					id: 'AwsSolutions-IAM5',
-					appliesTo: ['Action::s3:Abort*', 'Action::s3:DeleteObject*', 'Action::s3:GetBucket*', 'Action::s3:GetObject*', 'Action::s3:List*', 'Resource::arn:<AWS::Partition>:s3:::<bucketNameParameter>/*'],
-					reason: 'This policy is required for the lambda to access the s3 bucket that contains reference datasets file.'
-				},
-				{
-					id: 'AwsSolutions-IAM5',
-					appliesTo: ['Resource::*'],
-					reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments.'
-				}
-			],
-			true);
+			  },
+			  {
+				  id: 'AwsSolutions-IAM5',
+				  appliesTo: ['Action::s3:Abort*', 'Action::s3:DeleteObject*', 'Action::s3:GetBucket*', 'Action::s3:GetObject*', 'Action::s3:List*', 'Resource::arn:<AWS::Partition>:s3:::<bucketNameParameter>/*'],
+				  reason: 'This policy is required for the lambda to access the s3 bucket that contains reference datasets file.'
+			  },
+			  {
+				  id: 'AwsSolutions-IAM5',
+				  appliesTo: ['Resource::*'],
+				  reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments.'
+			  }
+		  ],
+		  true);
 
 		NagSuppressions.addResourceSuppressions([apiLambda, bucketEventsLambda],
-			[
-				{
-					id: 'AwsSolutions-IAM5',
-					appliesTo: [`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<accessManagementApiFunctionNameParameter>:*`],
-					reason: 'The API lambda needs to invoke access management lambda.'
+		  [
+			  {
+				  id: 'AwsSolutions-IAM5',
+				  appliesTo: [`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<accessManagementApiFunctionNameParameter>:*`],
+				  reason: 'The API lambda needs to invoke access management lambda.'
 
-				}
-			],
-			true);
+			  }
+		  ],
+		  true);
 
 		NagSuppressions.addResourceSuppressions([apigw],
-			[
-				{
-					id: 'AwsSolutions-APIG2',
-					reason: 'Request validation is being done by the Fastify module.'
+		  [
+			  {
+				  id: 'AwsSolutions-APIG2',
+				  reason: 'Request validation is being done by the Fastify module.'
 
-				},
-				{
-					id: 'AwsSolutions-IAM4',
-					appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs'],
-					reason: 'API GW needs this policy to push logs to cloudwatch.'
+			  },
+			  {
+				  id: 'AwsSolutions-IAM4',
+				  appliesTo: ['Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs'],
+				  reason: 'API GW needs this policy to push logs to cloudwatch.'
 
-				},
-				{
-					id: "AwsSolutions-APIG4",
-					reason: 'OPTIONS has no auth.'
-				},
-				{
-					id: "AwsSolutions-COG4",
-					reason: 'OPTIONS does not use Cognito auth.'
-				},
-			],
-			true);
+			  },
+			  {
+				  id: 'AwsSolutions-APIG4',
+				  reason: 'OPTIONS has no auth.'
+			  },
+			  {
+				  id: 'AwsSolutions-COG4',
+				  reason: 'OPTIONS does not use Cognito auth.'
+			  },
+		  ],
+		  true);
 
 		NagSuppressions.addResourceSuppressions([deadLetterQueue],
-			[
-				{
-					id: 'AwsSolutions-SQS3',
-					reason: 'This is the dead letter queue.'
+		  [
+			  {
+				  id: 'AwsSolutions-SQS3',
+				  reason: 'This is the dead letter queue.'
 
-				},
-			],
-			true);
+			  },
+		  ],
+		  true);
 
 		NagSuppressions.addResourceSuppressions([referenceDatasetsStateMachine],
-			[
-				{
-					id: 'AwsSolutions-IAM5',
-					appliesTo: [
-						'Resource::<ReferenceDatasetsReferenceDatasetsIndexerHandlerA98CD045.Arn>:*',
-						'Resource::<ReferenceDatasetsstateMachineLambda250495EF.Arn>:*'],
-					reason: 'This policy is required to invoke lambda specified in the state machine definition'
+		  [
+			  {
+				  id: 'AwsSolutions-IAM5',
+				  appliesTo: [
+					  'Resource::<ReferenceDatasetsReferenceDatasetsIndexerHandlerA98CD045.Arn>:*',
+					  'Resource::<ReferenceDatasetsstateMachineLambda250495EF.Arn>:*'],
+				  reason: 'This policy is required to invoke lambda specified in the state machine definition'
 
-				},
-				{
-					id: 'AwsSolutions-SF1',
-					reason: 'We only care about logging the error for now.'
+			  },
+			  {
+				  id: 'AwsSolutions-SF1',
+				  reason: 'We only care about logging the error for now.'
 
-				},
-				{
-					id: 'AwsSolutions-IAM5',
-					reason: 'This resource policy only applies to log.',
-					appliesTo: ['Resource::*']
+			  },
+			  {
+				  id: 'AwsSolutions-IAM5',
+				  reason: 'This resource policy only applies to log.',
+				  appliesTo: ['Resource::*']
 
-				}],
-			true);
+			  }],
+		  true);
 	}
 }

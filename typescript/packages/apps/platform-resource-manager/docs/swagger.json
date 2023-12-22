@@ -1,0 +1,396 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SIF SaaS: Reference Datasets Management",
+    "description": "\nHas accountability for:\n- TODO...\n",
+    "version": "0.0.1"
+  },
+  "components": {
+    "securitySchemes": {
+      "platformUserPool": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "def-0": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Status of the platform resource.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "resource"
+      },
+      "def-1": {
+        "type": "object",
+        "properties": {
+          "resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          }
+        },
+        "required": [
+          "resources"
+        ],
+        "title": "resource_list"
+      },
+      "def-2": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "action": {
+            "description": "action to be performed on the resource",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action"
+        ],
+        "title": "action_resource"
+      }
+    }
+  },
+  "paths": {
+    "/resources/{id}": {
+      "get": {
+        "operationId": "get",
+        "tags": [
+          "Platform Resource"
+        ],
+        "description": "Retrieve details of a resource\n\nPermissions:\n- Only platform administrator may retrieve details of a resource.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id.",
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "Status of the platform resource.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ]
+                },
+                "examples": {
+                  "Existing resource": {
+                    "summary": "Existing resource details.",
+                    "value": {
+                      "id": "aurora-cluster",
+                      "state": "RUNNING"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resources": {
+      "get": {
+        "operationId": "list",
+        "tags": [
+          "Platform Resource"
+        ],
+        "description": "Retrieve list of resource details.\n\nPermissions:\n- Only platform administrator may retrieve details of a resource.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "resources": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/def-0"
+                      }
+                    }
+                  },
+                  "required": [
+                    "resources"
+                  ]
+                },
+                "examples": {
+                  "Existing resource list": {
+                    "summary": "Existing resource details.",
+                    "value": [
+                      {
+                        "id": "aurora-cluster",
+                        "state": "RUNNING"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/actions": {
+      "post": {
+        "tags": [
+          "Platform Resource Action"
+        ],
+        "description": "Creates a new action to be applied to the platform resource.\n\nPermissions:\n- Only platform administrator may create new action for resource.\n",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-2"
+              },
+              "examples": {
+                "New action resource": {
+                  "summary": "Starts the aurora cluster.",
+                  "value": {
+                    "id": "aurora-cluster",
+                    "action": "START"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "Reference Datasets",
+      "description": "Reference Datasets management"
+    }
+  ]
+}

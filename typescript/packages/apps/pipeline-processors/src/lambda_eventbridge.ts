@@ -15,9 +15,9 @@ import type { EventBridgeHandler, Context, Callback, S3ObjectCreatedNotification
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
-import type { EventProcessor } from './events/event.processor.js';
 import type { ConnectorIntegrationResponseEvent } from '@sif/clients';
 import { PIPELINE_PROCESSOR_EVENT_SOURCE, PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT } from '@sif/events';
+import type { ConnectorIntegrationEventProcessor } from './events/connectorIntegration.eventProcessor.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
@@ -25,7 +25,7 @@ const di: AwilixContainer = app.diContainer;
 const dataBucket = process.env['BUCKET_NAME'];
 const dataBucketPrefix = process.env['BUCKET_PREFIX'];
 
-const eventProcessor = di.resolve<EventProcessor>('eventProcessor');
+const eventProcessor = di.resolve<ConnectorIntegrationEventProcessor>('connectorIntegrationEventProcessor');
 
 // these are stubbed out event names, rather than statically referencing them. Ideal place for these could be in the sif/events library.
 const S3ObjectCreatedEventName = 'Object Created';

@@ -15,7 +15,8 @@ import { DynamoDBDocumentClient, GetCommand, UpdateCommand, UpdateCommandInput }
 import { ReturnValue } from '@aws-sdk/client-dynamodb';
 import type { Logger } from 'pino';
 import { createDelimitedAttribute } from '@sif/dynamodb-utils';
-import { Lock, NotFoundError, PkType, StateMachineExecution } from './model';
+import { Lock, NotFoundError, PkType, StateMachineExecution } from './model.js';
+import { validateNotEmpty } from '@sif/validators';
 
 export class LockService {
 
@@ -29,7 +30,6 @@ export class LockService {
 
 	public async getLock(): Promise<Lock> {
 		this.log.trace(`SemaphoreLockAgent > getLock > in >`);
-
 		const response = await this.documentClient.send(new GetCommand({
 			TableName: this.lockTable,
 			Key: {
@@ -105,7 +105,24 @@ export class LockService {
 	public async acquireLock(execution: StateMachineExecution, tenantId: string, taskName: string): Promise<number> {
 		this.log.trace(`SemaphoreLockAgent > acquireLock > execution: ${execution}, tenantId: ${tenantId}, taskName: ${taskName}`);
 
+		validateNotEmpty(execution, 'execution');
+		validateNotEmpty(tenantId, 'tenantId');
+		validateNotEmpty(taskName, 'taskName');
+
 		const { pipelineId, executionId } = Array.isArray(execution.Input) ? execution.Input[0] : execution.Input;
+		const queryId =  execution.Id;
+		let metadata = {};
+		// if this is not a pipeline state machine then its a query state machine and we will use the execution Id as the queryId
+		if(!pipelineId){
+			metadata = {
+				queryId
+			}
+		} else {
+			metadata = {
+				pipelineId,
+				executionId
+			}
+		}
 
 		const request: UpdateCommandInput = {
 			TableName: this.lockTable,
@@ -119,10 +136,7 @@ export class LockService {
 					at: (new Date()).toISOString(),
 					tenantId: tenantId,
 					taskName: taskName,
-					metadata: {
-						pipelineId,
-						executionId
-					}
+					metadata
 				}
 			},
 			ExpressionAttributeNames: {

@@ -17,18 +17,20 @@ import type { AwilixContainer } from 'awilix';
 import type { AuditExportUtil } from './utils/auditExport.util.js';
 import type { MetricsMigrationUtil } from './utils/metricsMigration.util.js';
 import { buildApp } from './app.js';
+import type { ActivityDownloadUtil } from './utils/activityDownload.util';
 
 const app: FastifyInstance = await buildApp();
 const di: AwilixContainer = app.diContainer;
 
 const auditExportUtility: AuditExportUtil = di.resolve('auditExportUtil');
 const metricsMigrationUtility: MetricsMigrationUtil = di.resolve('metricsMigrationUtil');
+const activityDownloadUtil: ActivityDownloadUtil = di.resolve('activityDownloadUtil');
 
-export const handler = async(event:SQSEvent, _context: Context): Promise<SQSBatchResponse> => {
+export const handler = async (event: SQSEvent, _context: Context): Promise<SQSBatchResponse> => {
 	app.log.debug(`SQS> handler> in> ${JSON.stringify(event)}`);
-	const response: SQSBatchResponse = { batchItemFailures: []};
-	if(event?.Records) {
-		for(const r of event.Records) {
+	const response: SQSBatchResponse = { batchItemFailures: [] };
+	if (event?.Records) {
+		for (const r of event.Records) {
 			app.log.debug(`SQS> handler> start messageId: ${r.messageId} record: ${JSON.stringify(r)}`);
 			if (r.eventSource !== 'aws:sqs') {
 				app.log.warn(`SQS> handler> ignoring non-sqs events: ${JSON.stringify(r)}`);
@@ -39,14 +41,17 @@ export const handler = async(event:SQSEvent, _context: Context): Promise<SQSBatc
 
 			switch (messageType) {
 				case 'AuditArchiveExport:create':
-					await auditExportUtility.processAuditExportRequest(message)
+					await auditExportUtility.processAuditExportRequest(message);
 					break;
 				case 'Metrics:migrate':
 					await metricsMigrationUtility.process(message);
+					break;
+				case 'ActivitiesDownload':
+					await activityDownloadUtil.process(message);
 					break;
 			}
 		}
 	}
 	app.log.debug(`SQS> handler> exit response: ${JSON.stringify(response)}`);
 	return response;
-}
+};

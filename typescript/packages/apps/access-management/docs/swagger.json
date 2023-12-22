@@ -292,6 +292,10 @@
                 "pipelineProcessor": {
                   "type": "object",
                   "properties": {
+                    "triggerMetricAggregations": {
+                      "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                      "type": "boolean"
+                    },
                     "chunkSize": {
                       "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                       "minimum": 1,
@@ -333,6 +337,10 @@
             "pipelineProcessor": {
               "type": "object",
               "properties": {
+                "triggerMetricAggregations": {
+                  "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                  "type": "boolean"
+                },
                 "chunkSize": {
                   "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                   "minimum": 1,
@@ -364,6 +372,10 @@
           "pipelineProcessor": {
             "type": "object",
             "properties": {
+              "triggerMetricAggregations": {
+                "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                "type": "boolean"
+              },
               "chunkSize": {
                 "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                 "minimum": 1,
@@ -1367,6 +1379,10 @@
                           "pipelineProcessor": {
                             "type": "object",
                             "properties": {
+                              "triggerMetricAggregations": {
+                                "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                                "type": "boolean"
+                              },
                               "chunkSize": {
                                 "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                                 "minimum": 1,
@@ -1785,6 +1801,10 @@
                           "pipelineProcessor": {
                             "type": "object",
                             "properties": {
+                              "triggerMetricAggregations": {
+                                "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                                "type": "boolean"
+                              },
                               "chunkSize": {
                                 "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                                 "minimum": 1,
@@ -1970,6 +1990,10 @@
                           "pipelineProcessor": {
                             "type": "object",
                             "properties": {
+                              "triggerMetricAggregations": {
+                                "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                                "type": "boolean"
+                              },
                               "chunkSize": {
                                 "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                                 "minimum": 1,

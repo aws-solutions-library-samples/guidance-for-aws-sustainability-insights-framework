@@ -12,6 +12,7 @@
  */
 
 import type { Metric } from './schemas.js';
+import type { Metric as MetricResource } from '@sif/clients';
 
 export type AffectedTimeRange = {
 	from: Date;
@@ -48,10 +49,11 @@ export type QueryRequest = {
 	dateTo?: Date;
 	members?: boolean;
 	version?: number;
-
 	count?: number;
 	nextToken?: string;
 };
+
+export type DownloadQueryRequest = Omit<QueryRequest, 'count' | 'nextToken'>
 
 export interface TimeUnitMetrics {
 	day?: Metric[];
@@ -65,8 +67,28 @@ export interface GroupMetrics {
 	[groupId: string]: TimeUnitMetrics;
 }
 
-export interface IMetricsRepository {
-	listCollectionMetrics(metric: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string): Promise<Metric[]>;
+export interface DownloadParams {
+	queryId: string,
+	bucket: string,
+	bucketPrefix: string,
+	unlimited?:boolean
 
-	listMembersMetrics(metric: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string): Promise<Metric[]>;
+}
+
+export interface IMetricsRepository {
+	listCollectionMetrics(metric: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string, downloadParams?:DownloadParams): Promise<Metric[]|void>;
+
+	listMembersMetrics(metric: { id: string, name: string }, groupId: string, timeUnit: TimeUnit, timeRange: AffectedTimeRange, version: number | string, downloadParams?:DownloadParams): Promise<Metric[]|void>;
+}
+
+export interface MetricsDownloadPayload {
+	queryRequest: QueryRequest;
+	metric: MetricResource;
+}
+
+export type MetricsDownloadState = 'in_progress' | 'failed' | 'success';
+
+export type MetricsDownloadStatus = {
+	state: MetricsDownloadState,
+	errorMessage?: string
 }

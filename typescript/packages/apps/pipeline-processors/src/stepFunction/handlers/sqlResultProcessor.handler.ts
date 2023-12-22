@@ -20,7 +20,7 @@ import type { SqlResultProcessorTask } from '../tasks/sqlResultProcessorTask.js'
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
-export const handler: SqlResultProcessorTaskHandler = async (event, _context, _callback): Promise<ProcessedTaskEvent[]> => {
+export const handler: SqlResultProcessorTaskHandler = async (event, _context, _callback): Promise<ProcessedTaskEvent> => {
 	app.log.debug(`sqlResultProcessor > handler > event:${JSON.stringify(event)}`);
 	const task = di.resolve<SqlResultProcessorTask>('sqlResultProcessorTask');
 	const r = await task.process(event);

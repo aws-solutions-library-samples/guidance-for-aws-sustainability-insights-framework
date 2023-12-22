@@ -12,19 +12,19 @@ The following is a one-time setup to configure the development environment:
 
 + Ensure that you have all [development prerequisites](prereqs.md) installed.
 
-+ clone the project:****
++ Clone the project:
 
-```shell
-> git clone https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git
-```
+	```shell
+	> git clone https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework.git
+	```
 
 + initialize the project dependencies:
 
-```shell
-> cd guidance-for-aws-sustainability-insights-framework/typescript
-guidance-for-aws-sustainability-insights-framework/typescript> rush install
-guidance-for-aws-sustainability-insights-framework/typescript> rush update
-```
+	```shell
+	> cd guidance-for-aws-sustainability-insights-framework/typescript
+	guidance-for-aws-sustainability-insights-framework/typescript> rush install
+	guidance-for-aws-sustainability-insights-framework/typescript> rush update
+	```
 
 ## Build
 
@@ -115,57 +115,53 @@ We adhere to what is known as a [GitHub flow](https://guides.github.com/introduc
 + Under no circumstances ever commit directly to `main`!
 + When starting a new feature or fixing a bug, create a new branch from `main`. Name the branch `feat_***` for new features or `fix_***` for hotfixes:
 
-```sh
-guidance-for-aws-sustainability-insights-framework> git switch -c <new_branch_name>
+	```sh
+	guidance-for-aws-sustainability-insights-framework> git switch -c <new_branch_name>
 
-Switched to a new branch '<new_branch_name>'
-```
+	Switched to a new branch '<new_branch_name>'
+	```
 
 + At suitable points, commit your work by running the following, and following the prompts to describe your commit. Note that you must run `rush commit` inside the `source/` directory whereas you can run the `git` commands anywhere within the repo.
 
-```sh
-guidance-for-aws-sustainability-insights-framework> git add -A
-guidance-for-aws-sustainability-insights-framework> cd source
-guidance-for-aws-sustainability-insights-framework> rush commit
-```
+	```sh
+	guidance-for-aws-sustainability-insights-framework> git add -A
+	guidance-for-aws-sustainability-insights-framework> cd source
+	guidance-for-aws-sustainability-insights-framework> rush commit
+	```
 
 + When you have finished with your implementation, and ensured that all existing unit tests pass as well as creating any new tests, the following steps are required:
 
 	+ Merge changes with the `main` branch:
 
-```sh
-# pull in main into your branch
-guidance-for-aws-sustainability-insights-framework> git merge origin/main
+	```sh
+	# pull in main into your branch
+	guidance-for-aws-sustainability-insights-framework> git merge origin/main
 
-# once any conflicts have been resolved, test
-guidance-for-aws-sustainability-insights-framework> cd typescript
-guidance-for-aws-sustainability-insights-framework/typescript> rush test
+	# once any conflicts have been resolved, test
+	guidance-for-aws-sustainability-insights-framework> cd typescript
+	guidance-for-aws-sustainability-insights-framework/typescript> rush test
 
-# commit changes
-guidance-for-aws-sustainability-insights-framework/typescript> git add -A
-guidance-for-aws-sustainability-insights-framework/typescript> rush commit
-```
+	# commit changes
+	guidance-for-aws-sustainability-insights-framework/typescript> git add -A
+	guidance-for-aws-sustainability-insights-framework/typescript> rush commit
+	```
 
-+
 	+ Generate release notes. the `rush change` command will analyze all commits on the branch, filter out the projects that changed, then prompt you to enter release notes for the updated project:
 
-```sh
-# generate release notes
-guidance-for-aws-sustainability-insights-framework/typescript> rush change
+	```sh
+	# generate release notes
+	guidance-for-aws-sustainability-insights-framework/typescript> rush change
 
-# commit release notes
-guidance-for-aws-sustainability-insights-framework/typescript> git add -A
-guidance-for-aws-sustainability-insights-framework/typescript> rush commit
-```
+	# commit release notes
+	guidance-for-aws-sustainability-insights-framework/typescript> git add -A
+	guidance-for-aws-sustainability-insights-framework/typescript> rush commit
+	```
 
-+
 	+ Push the branch to the git repo
 
-```sh
-guidance-for-aws-sustainability-insights-framework/typescript> git push
-```
-+
+	```sh
+	guidance-for-aws-sustainability-insights-framework/typescript> git push
+	```
 	+ Create a pull request
-
 
 + Once your pull request has been reviewed, and any issues addressed, merge your implementation back into the main code branch.

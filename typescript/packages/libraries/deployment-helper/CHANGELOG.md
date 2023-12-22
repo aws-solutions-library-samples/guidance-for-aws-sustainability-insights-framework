@@ -1,6 +1,13 @@
 # Change Log - @sif/deployment-helper
 
-This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:36 GMT and should not be manually modified.
+
+## 0.6.0
+Wed, 13 Dec 2023 02:37:36 GMT
+
+### Minor changes
+
+- remove logic that utilise IAM to allow it to work inside vpc with no public subnet
 
 ## 0.5.2
 Thu, 17 Aug 2023 02:44:14 GMT

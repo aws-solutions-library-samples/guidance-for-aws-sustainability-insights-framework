@@ -1,802 +1,325 @@
-# Activities Overview
+# Impacts Overview
 
 ## Introduction
 
-This module allows the user to manage activities that can be used in when calculating emission. The activity resource
-can be referenced when users create
-the [calculation](../calculations/README.md) resource or [pipeline configuration](../pipelines/README.md) resource.
-
+The Impacts module allows users to manage a catalog of activity impact factors, such as greenhouse gas emission factors. These factors are used as part of [pipeline transformations](../pipelines/README.md) and custom [calculations](../calculations/README.md) to calculate the impact of activities.
 
 ## REST API
 
-Refer to the [Swagger](docs/swagger.json) for a detailed list of the available REST API endpoints.
+For a comprehensive list of available REST API endpoints, please refer to the [Swagger documentation](./docs/swagger.json).
 
-## Walkthrough
+## Best Practices
 
-### Pre-requisite
+As you may have many different impact factor datasets defined, a strategy of annotating them is required such that they are easily discoverable within the framework for use. An example strategy that could be followed is:
 
-For this walkthrough, we assume that user had been logged in, has the right permission and the group context is set to `/group1` in the id token generated
-by `Cognito`.
+- An `activity` represents a specific line item of a specific sourced dataset, e.g. impacts related to a 1973 gas powered on-road passenger car.
+- An `impact` represents the impact of the activity, e.g. `greenhouse emissions` in grams per mile.
+- `Components` represent the impact factor of the activity/impact, e.g. impact factor of `CH₄` and `N₂O`.
+- Activity `name` follows the convention `<provider>:<dataset>:<item>`, e.g. `usepa:mobile_ch4_n2o_on_road_gas:passenger_1973`.
+- For auditability purpose, `source` stored an `attribute`.
+- `provider`, `dataset`, `item`, and `version`, stored as `tags` to facilitate searching.
+## Examples
 
-For more details access controls and permissions, look at the [Access Management](../access-management/README.md) module.
+The following examples introduce the different features available via this module, following the best practices described above.
 
-### Example 1: Creating Activity
+- [Defining an Activity Impact](#defining-an-activity-impact)
+- [Retrieving an Activity](#retrieving-an-activity)
+- [Listing Activities](#listing-activities)
+- [Updating an Activity](#updating-an-activity)
+- [Listing Activity Versions](#listing-activity-versions)
+- [Listing Activities By Tags](#listing-activities-by-tags)
+- [Granting Group Access](#granting-group-access)
+- [Revoking Group Access](#revoking-group-access)
 
-#### Request
+### Defining an Activity Impact
 
-You can create the activity using as shown below:
+Below is an example that defines the CH₄ and N₂O GHG emission factors as provided by US EPA for a 1973 on-road gas passenger vehicle.
 
-```shell
-curl --location --request POST 'http://<ACTIVITIES_URL>/activities' \
-	--header 'Accept-Version: 1.0.0' \
-	--header 'Content-Type: multipart/form-data' \
-	--header 'Content-Type: application/json'
-	--header 'Authorization: <token>' \
-	----data-raw '{
-  "name": "emissions:something:Air",
-  "description": "excludes carbon sequestration",
-  "attributes": {
-        "ref_unit":"therm"
-  },
-  "tags": [
-    {
-      "key": "type",
-      "value": "material/metal/steel"
+**Request**
 
+```http
+POST /activities
+Accept: application/json
+Accept-Version: 1.0.0
+Content-Type: application/json
+Authorization: <TOKEN>
+
+{
+    "name": "usepa:mobile_ch4_n2o_on_road_gas:passenger_1973",
+    "description": "Mobile combustion based emission factors for gasoline 1973 passenger cars.",
+    "attributes": {
+        "source": "[ghg-emission-factors-hub.xslx](https://www.epa.gov/system/files/documents/2023-03/ghg-emission-factors-hub.xlsx) - table 3."
     },
-    {
-      "key": "source",
-      "value": "emissions",
-      "label": "EMISSIONS",
-      "description": ""
-    }
-  ],
-  "impacts": {
-    "co2e" : {
-      "name": "CO2e",
-      "attributes": {
-        "unit": "kg"
-      },
-      "components": {
-        "co2": {
-          "key": "co2",
-          "value": 5.304733389,
-          "type": "pollutant",
-          "description": "",
-          "label": ""
-        },
-        "ch4": {
-          "key": "ch4",
-          "value": 0.002799332,
-          "type": "pollutant",
-          "description": "",
-          "label": ""
-        },
-        "n2o": {
-          "key": "n2o",
-          "value": 0.002649367,
-          "type": "pollutant",
-          "description": "",
-          "label": ""
-        },
-        "IPCC 2013 AR5 GWP 100": {
-          "key": "IPCC 2013 AR5 GWP 100",
-          "value": 5.310182088,
-          "type": "impactFactor",
-          "description": "",
-          "label": ""
-        },
-        "IPCC 2016 AR4 GWP 100": {
-          "key": "IPCC 2016 AR4 GWP 100",
-          "value": 4.310182088,
-          "type": "impactFactor",
-          "description": "",
-          "label": ""
+    "tags": {
+        "provider": "US EPA",
+        "dataset": "Mobile Combustion CH4 and N2O for On-Road Gasoline Vehicles",
+        "item": "Passenger Car 1973",
+        "version": "2023"
+    },
+    "impacts": {
+        "ghg_emissions": {
+            "name": "GHG Emissions",
+            "attributes": {
+                "unit": "g / mile"
+            },
+            "components": {
+                "ch4": {
+                    "key": "CH4",
+                    "value": 0.1696,
+                    "type": "pollutant"
+                },
+                "n2o": {
+                    "key": "N2O",
+                    "value": 0.0197,
+                    "type": "pollutant"
+                }
+            }
         }
-      }
     }
+}
 ```
 
-#### Response
+**Response**
 
-```sh
+```http
 HTTP: 201 OK
 Content-Type: application/json
 
 {
     "id": "01gg3yg1gsq3ne5dzy3khxnstf",
-    "name": "emissions:something:air",
-    "description": "excludes carbon sequestration",
+	"name": "usepa:mobile_ch4_n2o_on_road_gas:passenger_1973",
+    "description": "Mobile combustion based emission factors for gasoline 1973 passenger cars.",
     "attributes": {
-        "ref_unit": "therm"
+        "source": "[ghg-emission-factors-hub.xslx](https://www.epa.gov/system/files/documents/2023-03/ghg-emission-factors-hub.xlsx) - table 3."
+    },
+    "tags": {
+        "provider": "US EPA",
+        "dataset": "Mobile Combustion CH4 and N2O for On-Road Gasoline Vehicles",
+        "item": "Passenger Car 1973",
+        "version": "2023"
+    },
+    "impacts": {
+        "ghg_emissions": {
+            "name": "GHG Emissions",
+            "attributes": {
+                "unit": "g / mile"
+            },
+            "components": {
+                "ch4": {
+                    "key": "CH4",
+                    "value": 0.1696,
+                    "type": "pollutant"
+                },
+                "n2o": {
+                    "key": "N2O",
+                    "value": 0.0197,
+                    "type": "pollutant"
+                }
+            }
+        }
     },
     "version": 1,
     "state": "enabled",
-    "impacts": {
-        "co2e": {
-            "name": "co2e",
-            "attributes": {
-                "unit": "kg"
-            },
-            "components": {
-                "co2": {
-                    "key": "co2",
-                    "value": 5.304733389,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "ch4": {
-                    "key": "ch4",
-                    "value": 0.002799332,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "n2o": {
-                    "key": "n2o",
-                    "value": 0.002649367,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "ipcc 2013 ar5 gwp 100": {
-                    "key": "ipcc 2013 ar5 gwp 100",
-                    "value": 5.310182088,
-                    "type": "impactFactor",
-                    "label": "",
-                    "description": ""
-                },
-                "ipcc 2016 ar4 gwp 100": {
-                    "key": "ipcc 2016 ar4 gwp 100",
-                    "value": 4.310182088,
-                    "type": "impactFactor",
-                    "label": "",
-                    "description": ""
-                }
-			}
-        }
-	},
     "groups": [
-        "/group1"
+        "/"
     ],
-    "tags": {
-        "type": "material/metal/steel",
-        "source": "emissions"
-    },
     "createdBy": "someone@example.com",
     "createdAt": "2022-10-24T02:52:37.274Z"
 }
 ```
 
-### Example 2: Retrieving The Newly Created Activity
+### Retrieving an Activity
 
-Using the activity id returned by the previous example, you can then retrieve the activity by issuing the following command:
+You can fetch an activity using its `id`:
 
-#### Request
+**Request**
 
-```shell
+```http
 GET /activities/<activityId>
 Accept: application/json
+Accept-Version: 1.0.0
+Authorization: <TOKEN>
 ```
 
-#### Response
+**Response**
 
-```shell
-Content-Type: application/application/json
-{
-    "id": "01gg3yg1gsq3ne5dzy3khxnstf",
-    "name": "emissions:something:air",
-    "description": "excludes carbon sequestration",
-    "attributes": {
-        "ref_unit": "therm"
-    },
-    "version": 1,
-    "state": "enabled",
-    "impacts": {
-        "co2e": {
-            "name": "co2e",
-            "attributes": {
-                "unit": "kg"
-            },
-            "components": {
-                "co2": {
-                    "key": "co2",
-                    "value": 5.304733389,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "ch4": {
-                    "key": "ch4",
-                    "value": 0.002799332,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "n2o": {
-                    "key": "n2o",
-                    "value": 0.002649367,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "ipcc 2013 ar5 gwp 100": {
-                    "key": "ipcc 2013 ar5 gwp 100",
-                    "value": 5.310182088,
-                    "type": "impactFactor",
-                    "label": "",
-                    "description": ""
-                },
-                "ipcc 2016 ar4 gwp 100": {
-                    "key": "ipcc 2016 ar4 gwp 100",
-                    "value": 4.310182088,
-                    "type": "impactFactor",
-                    "label": "",
-                    "description": ""
-                }
-			}
-        }
-	},
-    "groups": [
-        "/group1"
-    ],
-    "tags": {
-        "type": "material/metal/steel",
-        "source": "emissions"
-    },
-    "createdBy": "someone@example.com",
-    "createdAt": "2022-10-24T02:52:37.274Z"
-}
+> Same response body as [Defining an Activity Impact](#defining_an_activity_impact)
 
-```
+Or, if you know the activities `name` but not its `id`, you can search by `name`:
 
-### Example 3: Listing All Activities On Your Current Group Context
+**Request**
 
-If you create multiple activities, you can list all of them by issuing the following commands (this will return all activities in your **current
-group context**):
-
-#### Request
-
-```shell
-GET /activities
+```http
+GET /activities?name=<NAME>
 Accept: application/json
+Accept-Version: 1.0.0
+Authorization: <TOKEN>
 ```
 
-#### Response
+**Response**
 
-```shell
-Content-Type: application/application/json
+```http
 {
     "activities": [
-        {
-            "id": "01gg3yg1gsq3ne5dzy3khxnstf",
-            "name": "emissions:something:air",
-            "description": "excludes carbon sequestration",
-            "attributes": {
-                "ref_unit": "therm"
-            },
-            "version": 1,
-            "state": "enabled",
-            "impacts": {
-                "co2e": {
-                    "name": "co2e",
-                    "attributes": {
-                        "unit": "kg"
-                    },
-                    "components": {
-                "co2": {
-                    "key": "co2",
-                    "value": 5.304733389,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "ch4": {
-                    "key": "ch4",
-                    "value": 0.002799332,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "n2o": {
-                    "key": "n2o",
-                    "value": 0.002649367,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "ipcc 2013 ar5 gwp 100": {
-                    "key": "ipcc 2013 ar5 gwp 100",
-                    "value": 5.310182088,
-                    "type": "impactFactor",
-                    "label": "",
-                    "description": ""
-                },
-                "ipcc 2016 ar4 gwp 100": {
-                    "key": "ipcc 2016 ar4 gwp 100",
-                    "value": 4.310182088,
-                    "type": "impactFactor",
-                    "label": "",
-                    "description": ""
-                }
-			}
-                }
-			},
-            "groups": [
-                "/activitiestagtests/a"
-            ],
-            "tags": {
-                "type": "material/metal/steel",
-                "source": "emissions"
-            },
-            "createdBy": "someone@example.com",
-            "createdAt": "2022-10-24T02:52:37.274Z"
-        }
+        ...
+    ]
+}
+```
+
+### Listing Activities
+
+View all activities for your group in context as follows:
+
+**Request**
+
+```http
+GET /activities
+Accept: application/json
+Accept-Version: 1.0.0
+Authorization: <TOKEN>
+```
+
+**Response**
+
+```http
+Content-Type: application/json
+
+{
+    "activities": [
+        ...
     ]
 }
 
 ```
 
-### Example 4: Modifying Activity
+### Updating an Activity
 
-You can modify the activity as shown below:
+Activities are versioned. Any updates will create a new version:
 
-```shell
+```http
 PATCH /activities/<activityId>
 Accept: application/json
+Accept-Version: 1.0.0
 Content-Type: application/json
+Authorization: <TOKEN>
 
 {
-	"description": "updated description",
-	"attributes": {
-      "ref_unit": "therm"
-  	}
+	"description": "updated description"
 }
 ```
 
-#### Response
+**Response**
 
-```sh
+```http
 HTTP: 200
 Content-Type: application/json
 
 {
-    "id": "01gg3yg1gsq3ne5dzy3khxnstf",
-    "name": "emissions:something:air",
-    "description": "updated description",
-    "attributes": {
-        "ref_unit": "therm"
-    },
-    "impacts": {
-        "co2e" : {
-            "name": "co2e",
-            "attributes": {
-                "unit": "kg"
-            },
-            "components": {
-                "co2": {
-                    "key": "co2",
-                    "value": 5.304733389,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "ch4": {
-                    "key": "ch4",
-                    "value": 0.002799332,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "n2o": {
-                    "key": "n2o",
-                    "value": 0.002649367,
-                    "type": "pollutant",
-                    "label": "",
-                    "description": ""
-                },
-                "ipcc 2013 ar5 gwp 100": {
-                    "key": "ipcc 2013 ar5 gwp 100",
-                    "value": 5.310182088,
-                    "type": "impactFactor",
-                    "label": "",
-                    "description": ""
-                },
-                "ipcc 2016 ar4 gwp 100": {
-                    "key": "ipcc 2016 ar4 gwp 100",
-                    "value": 4.310182088,
-                    "type": "impactFactor",
-                    "label": "",
-                    "description": ""
-                }
-			}
-        }
-	},
+    "description":"updated description",
+    ...
     "version": 2,
-    "state": "enabled",
-    "groups": [
-        "/group1"
-    ],
-    "tags": {
-        "type": "material/metal/steel",
-        "source": "emissions"
-    },
-    "createdBy": "someone@example.com",
-    "createdAt": "2022-10-24T02:52:37.274Z",
     "updatedAt": "2022-10-24T02:59:38.746Z",
     "updatedBy": "someone@example.com"
 }
 ```
 
-### Example 5: Listing Multiple Versions Of Activity
+### Listing Activity Versions
 
-You can list all the versions of a particular activity by issuing the following command:
+To view all versions of a specific activity:
 
-#### Request
+**Request**
 
-```shell
-GET /activities/<id>/versions
+```http
+GET /activities/<activityId>/versions
 Accept: application/json
-
+Accept-Version: 1.0.0
+Authorization: <TOKEN>
 ```
 
-#### Response
+**Response**
 
-```shell
+```http
 Content-Type: application/json
+
 {
     "activities": [
-        {
-            "id": "01gg3yg1gsq3ne5dzy3khxnstf",
-            "name": "emissions:something:air",
-            "description": "excludes carbon sequestration",
-            "attributes": {
-                "ref_unit": "therm"
-            },
-            "version": 1,
-            "state": "active",
-            "impacts": {
-                "co2e": {
-                    "name": "co2e",
-                    "attributes": {
-                        "unit": "kg"
-                    },
-                    "components": {
-						"co2": {
-							"key": "co2",
-							"value": 5.304733389,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"ch4": {
-							"key": "ch4",
-							"value": 0.002799332,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"n2o": {
-							"key": "n2o",
-							"value": 0.002649367,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"ipcc 2013 ar5 gwp 100": {
-							"key": "ipcc 2013 ar5 gwp 100",
-							"value": 5.310182088,
-							"type": "impactFactor",
-							"label": "",
-							"description": ""
-						},
-						"ipcc 2016 ar4 gwp 100": {
-							"key": "ipcc 2016 ar4 gwp 100",
-							"value": 4.310182088,
-							"type": "impactFactor",
-							"label": "",
-							"description": ""
-						}
-					}
-                }
-            },
-            "groups": [
-                "/group1"
-            ],
-            "tags": {
-                "type": "material/metal/steel",
-                "source": "emissions"
-            },
-            "createdBy": "soneone@amazon.com",
-            "createdAt": "2022-10-24T02:52:37.274Z"
-        },
-        {
-            "id": "01gg3yg1gsq3ne5dzy3khxnstf",
-            "name": "emissions:something:air",
-            "description": "updated description",
-            "attributes": {
-                "ref_unit": "therm"
-            },
-            "version": 2,
-            "state": "active",
-            "impacts": {
-                "co2e": {
-                    "name": "co2e",
-                    "attributes": {
-                        "unit": "kg"
-                    },
-                    "components": {
-						"co2": {
-							"key": "co2",
-							"value": 5.304733389,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"ch4": {
-							"key": "ch4",
-							"value": 0.002799332,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"n2o": {
-							"key": "n2o",
-							"value": 0.002649367,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"ipcc 2013 ar5 gwp 100": {
-							"key": "ipcc 2013 ar5 gwp 100",
-							"value": 5.310182088,
-							"type": "impactFactor",
-							"label": "",
-							"description": ""
-						},
-						"ipcc 2016 ar4 gwp 100": {
-							"key": "ipcc 2016 ar4 gwp 100",
-							"value": 4.310182088,
-							"type": "impactFactor",
-							"label": "",
-							"description": ""
-						}
-					}
-                }
-			},
-            "groups": [
-                "/group1"
-            ],
-            "tags": {
-                "type": "material/metal/steel",
-                "source": "emissions"
-            },
-            "createdBy": "soneone@amazon.com",
-            "createdAt": "2022-10-24T02:52:37.274Z",
-            "updatedBy": "soneone@amazon.com",
-            "updatedAt": "2022-10-24T02:59:38.746Z"
-        }
+        ... all versions of the activity
     ]
 }
 ```
 
-### Example 8: Listing Activities By Tags
+### Listing Activities By Tags
 
-You can retrieve all activities using its tag value (and its parent). In the sample above we're creating activities with
-tags `Material/Metal/Steel`, this allows user to list the activities by passing that tag value and all its parents (`Material/Metal/Steel`
-,`Material/Metal`,`Material`)
+To find all activities that were tagged with `provider` of `US EPA` (note the encoded `tags` attribute, which if unencoded would read `tags=provider=US EPA`):
 
-#### Request
+**Request**
 
-```shell
-GET /activities?tags=type=Material/Metal/Steel
+```http
+GET /activities?tags=provider%3DUS$20EPA
 Accept: application/json
 ```
 
-#### Response
+**Response**
 
-```shell
+```http
 Content-Type: application/json
 {
     "activities": [
-        {
-            "id": "01gg3yg1gsq3ne5dzy3khxnstf",
-            "name": "emissions:something:air",
-            "description": "updated description",
-            "attributes": {
-                "ref_unit": "therm"
-            },
-            "version": 2,
-            "state": "active",
-            "impacts": {
-                "co2e": {
-                    "name": "co2e",
-                    "attributes": {
-                        "unit": "kg"
-                    },
-                    "components": {
-						"co2": {
-							"key": "co2",
-							"value": 5.304733389,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"ch4": {
-							"key": "ch4",
-							"value": 0.002799332,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"n2o": {
-							"key": "n2o",
-							"value": 0.002649367,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"ipcc 2013 ar5 gwp 100": {
-							"key": "ipcc 2013 ar5 gwp 100",
-							"value": 5.310182088,
-							"type": "impactFactor",
-							"label": "",
-							"description": ""
-						},
-						"ipcc 2016 ar4 gwp 100": {
-							"key": "ipcc 2016 ar4 gwp 100",
-							"value": 4.310182088,
-							"type": "impactFactor",
-							"label": "",
-							"description": ""
-						}
-					}
-                }
-			},
-            "groups": [
-                "/group1"
-            ],
-            "tags": {
-                "type": "material/metal/steel",
-                "source": "emissions"
-            },
-            "createdBy": "soneone@amazon.com",
-            "createdAt": "2022-10-24T02:52:37.274Z",
-            "updatedBy": "soneone@amazon.com",
-            "updatedAt": "2022-10-24T02:59:38.746Z"
-        }
+        ... all activities with matching tags
     ]
 }
 ```
 
-### Example 9: Listing Activity By Its Alias (Name)
 
-You can retrieve all activities using its alias (`name` is the alias used by Activities module)
 
-#### Request
+### Granting Group Access
 
-```shell
-GET /activities?name=emissions:something:air
+By default, a new Impact Activity is only accessible to users within the same group hierarchy. To grant access to other groups:
+
+**Request**
+
+```http
+PUT /activities/<ID>/groups<ENCODED_GROUP_ID>
 Accept: application/json
+Accept-Version: 1.0.0
+Authorization: <TOKEN>
+
 ```
 
-#### Response
+**Response**
 
-```shell
+```http
 Content-Type: application/json
-{
-    "activities": [
-        {
-            "id": "01gg3yg1gsq3ne5dzy3khxnstf",
-            "name": "emissions:something:air",
-            "description": "updated description",
-            "attributes": {
-                "ref_unit": "therm"
-            },
-            "version": 2,
-            "state": "active",
-            "impacts": {
-                "co2e": {
-                    "name": "co2e",
-                    "attributes": {
-                        "unit": "kg"
-                    },
-                    "components": {
-						"co2": {
-							"key": "co2",
-							"value": 5.304733389,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"ch4": {
-							"key": "ch4",
-							"value": 0.002799332,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"n2o": {
-							"key": "n2o",
-							"value": 0.002649367,
-							"type": "pollutant",
-							"label": "",
-							"description": ""
-						},
-						"ipcc 2013 ar5 gwp 100": {
-							"key": "ipcc 2013 ar5 gwp 100",
-							"value": 5.310182088,
-							"type": "impactFactor",
-							"label": "",
-							"description": ""
-						},
-						"ipcc 2016 ar4 gwp 100": {
-							"key": "ipcc 2016 ar4 gwp 100",
-							"value": 4.310182088,
-							"type": "impactFactor",
-							"label": "",
-							"description": ""
-						}
-					}
-                }
-			},
-            "groups": [
-                "/group1"
-            ],
-            "tags": {
-                "type": "material/metal/steel",
-                "source": "emissions"
-            },
-            "createdBy": "soneone@amazon.com",
-            "createdAt": "2022-10-24T02:52:37.274Z",
-            "updatedBy": "soneone@amazon.com",
-            "updatedAt": "2022-10-24T02:59:38.746Z"
-        }
-    ]
-}
+
+204
 ```
-### Example 10: Listing All Tags Created As Part Of Resource Creation
 
-You can retrieve all tags that as filter when you're listing the activities by running the command below:
+### Revoking Group Access
 
-#### Request
+To revoke group access:
 
-```shell
-GET /tags/<tagKey> # In the create example the tagKey is type
+**Request**
+
+```http
+DELETE /activities/<ID>/groups<ENCODED_GROUP_ID>
 Accept: application/json
+Accept-Version: 1.0.0
+Authorization: <TOKEN>
+
 ```
 
-#### Response
+**Response**
 
-```shell
+```http
 Content-Type: application/json
-{
-    "values": {
-        "material": "material"
-    }
-}
+
+204
 ```
 
-You can also specify `parentValue` in the query string to list its children as shown below:
+## Deeper Dive
 
-#### Request
+If you'd like to delve deeper into the Impacts module:
 
-```shell
-GET /activities/tags/<tagKey>?parentValue=<parentValue> # In the create example the tagKey is type and parentValue can be material or material/metal
-Accept: application/json
-```
-
-#### Response
-
-```shell
-Content-Type: application/json
-{
-    "values": {
-        "material/metal": "metal"
-    }
-}
-```
-
-You can also manage the underlying impacts and components of an activity please refer to [Impacts](/docs/impacts.md)
-or you can create activities in bulk please refer to [Activity Tasks](/docs/activity-tasks.md)
+- The above examples are working with activities. Review the [Swagger](./docs/swagger.json) to see how to interact with impacts and components directly.
+- If you need to create activities in bulk, read about [Activity Tasks](/docs/activity-tasks.md).
+- Refer to the [High Level Architecture](../../../../docs/design.md#impacts) to grasp how we utilize various AWS services.

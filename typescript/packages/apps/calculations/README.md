@@ -2,29 +2,34 @@
 
 ## Introduction
 
-This module allows one to create user-defined calculations that can then be used as part of pipeline transforms, and/or called from other user-defined calculations.
+The Calculations module enables users to define custom calculations. These calculations can be integrated into pipeline transformations or invoked within other user-defined calculations.
 
 ## REST API
 
-Refer to the [Swagger](docs/swagger.json) for a detailed list of the available REST API endpoints.
+For a comprehensive list of available REST API endpoints, please refer to the [Swagger documentation](./docs/swagger.json).
 
-## Walkthrough
+## Examples
 
-The following walkthrough introduces the different features available via this module.
+The following examples introduce the different features available via this module.
 
-### Step 1 : Define a new calculation
+- [Defining a New Calculation](#defining-a-new-calculation)
+- [Retrieving a calculation](#retrieving-a-calculation)
+- [Updating a Calculation](#updating-a-calculation)
+- [Listing Calculation Versions](#listing-calculation-versions)
+- [Granting Group Access](#granting-group-access)
+- [Revoking Group Access](#revoking-group-access)
 
-The following example defines a simple function that takes 2 numbers as an input and adds them together.
+To learn more about the expressions that can be used to build new functions, refer to the [calculator expressions](../../../../java/apps/calculator/docs/expressions.md).
 
-The `name` is what uniquely identifies the calculation within a group.
+### Defining a New Calculation
 
-The `formula` represents the equation itself. Tokens prefixed with a `:` in the formula represent parameter inputs, therefore the equation `:left+:right` can be described as _take the parameter `left` and add it to the parameter `right`_.
+Below is an example of a simple function that adds two numbers:
 
-The `parameters` section describes the required input for the `formula`. Any parameters used in the formula must be defined here. Parameters are referenced in a formula by prefixing the key with a `:`. The `index` of the parameters represents the sequence of the parameters to be provided when calling the function. The `index` must start at `0`, increment by `1` sequentially per each parameter.
-
-The `outputs` section describes the output value.
-
-Finally, an optional `tags` section can be provided which allows one to search and filter calculations based on the tag values.
+- `name`: A unique identifier for the calculation within a group.
+- `formula`: The equation itself. Tokens with a : prefix in the formula denote parameter inputs. For instance, the equation :left+:right means add the left parameter to the right parameter.
+- `parameters`: Describes the required input for the formula. Parameters used in the formula must be defined here and are referenced by prefixing the key with a :.
+- `outputs`: Describes the output value.
+- `tags` (optional): Allows for searching and filtering calculations based on tag values.
 
 **Request**
 
@@ -112,9 +117,9 @@ Content-Type: application/json
 
 Once created, the above calculation would be referenced in transforms and formulas as `#custom_add(?,?)` where the first parameter represents the value for `left` and the second for `right`. Note that when referencing custom functions their `name` is prefixed with `#`.
 
-### Step 2 : Retrieving the calculation
+### Retrieving a Calculation
 
-Calculations can be retrieved by using their `id` as follows:
+You can fetch a calculation using its `id`:
 
 **Request**
 
@@ -127,11 +132,9 @@ Authorization: <TOKEN>
 
 **Response**
 
-```http
-... same response as step 1
-```
+> same response body as as [Defining a New Calculation](#defining-a-new-calculation)
 
-Alternatively, if the calculation `name` is known but not its `id`, the calculation can be retrieved by searching via `name` as follows:
+Or, if you know the calculation's `name` but not its `id`, you can search by `name`:
 
 **Request**
 
@@ -146,15 +149,15 @@ Authorization: <TOKEN>
 
 ```http
 {
-    "calculations:[
-        ... same response as step 1
+    "calculations": [
+        ...
     ]
 }
 ```
 
-### Step 3 : Updating a calculation
+### Updating a Calculation
 
-Calculations, just like any other resource, are versioned. Any updates to the calculation will cause a new version to be created. The following call is an example of updating a calculation:
+Calculations are versioned. Any updates will create a new version:
 
 **Request**
 
@@ -215,9 +218,9 @@ Content-Type: application/json
 }
 ```
 
-### Step 4 : Listing version of a calculation
+### Listing Calculation Versions
 
-The following call lists all versions of a specific calculation:
+To view all versions of a specific calculation:
 
 **Request**
 
@@ -226,7 +229,6 @@ GET /calculations/<ID>/versions
 Accept: application/json
 Accept-Version: 1.0.0
 Authorization: <TOKEN>
-
 ```
 
 **Response**
@@ -241,9 +243,9 @@ Content-Type: application/json
 }
 ```
 
-### Step 5 : Granting access to a group
+### Granting Group Access
 
-When a calculation is first created it can only be accessible by users within the same group. To grant to other groups run the following:
+By default, a new calculation is only accessible to users within the same group hierarchy. To grant access to other groups:
 
 **Request**
 
@@ -263,9 +265,9 @@ Content-Type: application/json
 204
 ```
 
-### Step 6 : Revoking access to a group
+### Revoking Group Access
 
-As an opposite step to step 5, access to a group can be revoked as follows:
+To revoke group access:
 
 **Request**
 
@@ -284,3 +286,11 @@ Content-Type: application/json
 
 204
 ```
+
+## Deeper Dive
+
+If you'd like to delve deeper into the Calculations module:
+
+- Refer to the [High Level Architecture](../../../../docs/design.md#calculations) to grasp how we utilize various AWS services.
+- To learn about our data structure and storage, view the [Data Layer Design](./docs/datalayer.md).
+

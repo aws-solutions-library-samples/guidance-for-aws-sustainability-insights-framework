@@ -41,9 +41,8 @@ const logger: Logger = pino(
 	})
 );
 
-async function getSqlClient(databaseName: string, hostEndpoint: string, platformUsername: string): Promise<pgPkg.Client> {
+async function getSqlClient(databaseName: string, hostEndpoint: string, platformUsername: string, caCert: string): Promise<pgPkg.Client> {
 	logger.trace(`schemaMigrator > getSqlClient > databaseName : ${databaseName}, hostEndpoint: ${hostEndpoint}, platformUsername: ${platformUsername}`);
-	const { data: caCert } = await axios.get('https://www.amazontrust.com/repository/AmazonRootCA1.pem');
 	const defaultPort = 5432;
 	const signer = new Signer({
 		hostname: hostEndpoint,
@@ -101,7 +100,8 @@ async function updateSchema() {
 		RDS_PROXY_ENDPOINT: hostEndpoint,
 		TENANT_DATABASE: tenantDatabaseName,
 		CALLBACK_URL: callbackUrl,
-		TENANT_USERNAME: tenantUsername
+		TENANT_USERNAME: tenantUsername,
+		CA_CERTIFICATE: caCertificate
 	} = process.env;
 
 	ow(assetBucket, ow.string.nonEmpty);
@@ -110,11 +110,12 @@ async function updateSchema() {
 	ow(hostEndpoint, ow.string.nonEmpty);
 	ow(tenantDatabaseName, ow.string.nonEmpty);
 	ow(callbackUrl, ow.string.nonEmpty);
+	ow(caCertificate, ow.string.nonEmpty);
 	// validating the TENANT_USERNAME is not empty as it will be used by the migration scripts to give ownership to table
 	ow(tenantUsername, ow.string.nonEmpty);
 
 	const migrationFolder = await extractCustomResourceArtifacts(assetBucket, assetKey);
-	const sqlClient = await getSqlClient(tenantDatabaseName, hostEndpoint, platformUsername);
+	const sqlClient = await getSqlClient(tenantDatabaseName, hostEndpoint, platformUsername, caCertificate);
 
 	let status, reason;
 	try {

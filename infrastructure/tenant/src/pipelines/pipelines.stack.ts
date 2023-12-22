@@ -24,11 +24,11 @@ import { accessManagementApiFunctionNameParameter, calculatorFunctionNameParamet
 export type PipelineStackProperties = StackProps & {
 	tenantId: string;
 	environment: string;
-	enableDeleteResource?: boolean;
+	enableDeleteResource: boolean;
 };
 
 export class PipelineApiStack extends Stack {
-	constructor(scope: Construct, id: string, props?: PipelineStackProperties) {
+	constructor(scope: Construct, id: string, props: PipelineStackProperties) {
 		super(scope, id, props);
 
 		// validation
@@ -60,7 +60,6 @@ export class PipelineApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
-
 		const base = new ResourceApiBase(this, 'ResourceApiBase', {
 			tenantId: props.tenantId,
 			environment: props.environment,
@@ -84,7 +83,7 @@ export class PipelineApiStack extends Stack {
 			tableName: base.tableName,
 			workerQueueArn: base.workerQueueArn,
 			enableDeleteResource: props.enableDeleteResource,
-			calculatorFunctionName: calculatorFunctionName,
+			calculatorFunctionName: `${calculatorFunctionName}:live`,
 			pipelinesApiFunctionName,
 		});
 		module.node.addDependency(base);

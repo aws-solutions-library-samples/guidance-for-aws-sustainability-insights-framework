@@ -1,9 +1,8 @@
 {
 	"info": {
-		"_postman_id": "0f8a255a-75f7-4797-ae5d-0e3c96d88c24",
+		"_postman_id": "c01b4641-33d1-4a07-bc18-99c099cd9326",
 		"name": "SIF (Core)",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "8840028"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
@@ -3793,6 +3792,178 @@
 								{
 									"key": "pipelineId",
 									"value": "01ggwkf5wnzzc91rmh3e8mkf1j"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "list metrics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-groupcontextid",
+								"value": "{{group_context_id}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept-Version",
+								"value": "{{pipelines_version}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{pipelines_base_url}}/metrics",
+							"host": [
+								"{{pipelines_base_url}}"
+							],
+							"path": [
+								"metrics"
+							],
+							"query": [
+								{
+									"key": "count",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "fromToken",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "includeChildGroups",
+									"value": "false",
+									"disabled": true
+								},
+								{
+									"key": "includeParentGroups",
+									"value": "false",
+									"disabled": true
+								},
+								{
+									"key": "name",
+									"value": "Household Electricity Carbon Footprint",
+									"disabled": true
+								},
+								{
+									"key": "tags",
+									"value": "source:useeio",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get metric",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-groupcontextid",
+								"value": "{{group_context_id}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept-Version",
+								"value": "{{pipelines_version}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{pipelines_base_url}}/metrics/:metricId",
+							"host": [
+								"{{pipelines_base_url}}"
+							],
+							"path": [
+								"metrics",
+								":metricId"
+							],
+							"variable": [
+								{
+									"key": "metricId",
+									"value": "01hbe7wd2jt6dct38k3ampzxc2"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create metric",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-groupcontextid",
+								"value": "{{group_context_id}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept-Version",
+								"value": "{{pipelines_version}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "{{content_type}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"co2e:sum\",\n    \"summary\": \"Sum of CO2e\",\n    \"aggregationType\": \"sum\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{pipelines_base_url}}/metrics",
+							"host": [
+								"{{pipelines_base_url}}"
+							],
+							"path": [
+								"metrics"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete metric",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-groupcontextid",
+								"value": "{{group_context_id}}",
+								"type": "text"
+							},
+							{
+								"key": "Accept-Version",
+								"value": "{{pipelines_version}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{pipelines_base_url}}/metrics/:metricId",
+							"host": [
+								"{{pipelines_base_url}}"
+							],
+							"path": [
+								"metrics",
+								":metricId"
+							],
+							"variable": [
+								{
+									"key": "metricId",
+									"value": "01hbe7wd2jt6dct38k3ampzxc2"
 								}
 							]
 						}

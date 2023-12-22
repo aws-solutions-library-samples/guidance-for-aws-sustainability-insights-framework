@@ -40,6 +40,7 @@ export class PipelineProcessorsRepository {
 			connectorOverrides: i['connectorOverrides'],
 			groupContextId: i['groupContextId'],
 			groups: i['groups'],
+			triggerMetricAggregations: i['triggerMetricAggregations'] ?? true,
 			pipelineId: i['pipelineId'],
 			auditVersion: (i['auditVersion'] as number) ?? 0,
 		};
@@ -155,7 +156,7 @@ export class PipelineProcessorsRepository {
 					id,
 					keyPrefix: PkType.PipelineExecution,
 				},
-				// for other type of resources, the groups field contains the list of security group that can access the resouces
+				// for other type of resources, the groups field contains the list of security group that can access the resources
 				// so we can query all resources based on a group id (the implementation logic in @sif/resource-api-base module)
 				// but for pipeline execution, the group will point to the pipeline to allow us to query executions based on a pipeline id
 				{ id: pipelineId }

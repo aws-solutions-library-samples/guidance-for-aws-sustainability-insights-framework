@@ -13,7 +13,7 @@
 
 import type { BaseLogger } from 'pino';
 import type { ActivitiesRepository } from '../../api/activities/repository.js';
-import type { ProcessedTaskEvent } from './model.js';
+import type { ProcessedTaskEvent, Status } from './model.js';
 import { validateDefined, validateNotEmpty } from '@sif/validators';
 import type { Client } from 'pg';
 
@@ -26,15 +26,16 @@ export class InsertLatestValuesTaskService {
 		this.activitiesRepository = activitiesRepository;
 	}
 
-	public async process(event: ProcessedTaskEvent): Promise<void> {
+	public async process(event: ProcessedTaskEvent): Promise<Status> {
 		this.log.info(`InsertLatestValuesTaskService> process> event: ${JSON.stringify(event)}`);
 		validateDefined(event, 'event');
 		validateNotEmpty(event.executionId, 'event.executionId');
-		let sharedDbConnection: Client;
+		let sharedDbConnection: Client, status: Status = 'SUCCEEDED';
 		try {
 			sharedDbConnection = await this.activitiesRepository.getConnection();
 			await this.activitiesRepository.insertExecutionValuesToLatestTablesPerOutput(event.executionId, event.outputs, sharedDbConnection);
 		} catch (Exception) {
+			status = 'FAILED';
 			this.log.error(`InsertLatestValuesTaskService> process> error: ${JSON.stringify(Exception)}`);
 		} finally {
 			if (sharedDbConnection !== undefined) {
@@ -42,5 +43,6 @@ export class InsertLatestValuesTaskService {
 			}
 		}
 		this.log.info(`InsertLatestValuesTaskService> exit:`);
+		return status;
 	}
 }

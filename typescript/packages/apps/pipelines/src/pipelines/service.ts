@@ -19,7 +19,7 @@ dayjs.extend(utc);
 
 import type { SecurityContext } from '@sif/authz';
 import { GroupPermissions, SecurityScope, atLeastAdmin, atLeastReader, atLeastContributor } from '@sif/authz';
-import { AlternateIdInUseError, NotFoundError, UnauthorizedError, GroupService, TagService, ResourceService, MergeUtils, InvalidRequestError } from '@sif/resource-api-base';
+import { AlternateIdInUseError, NotFoundError, UnauthorizedError, GroupService, TagService, ResourceService, MergeUtils, InvalidRequestError, State } from '@sif/resource-api-base';
 import type { CalculatorClient, CalculatorRequest, ConnectorConfig, Transform } from '@sif/clients';
 
 import type { Pipeline, PipelineUpdateParams, PipelineCreateParams, PipelineVersionListType, DryRunResponse, Transformer, PipelineConnectors } from './schemas.js';
@@ -30,6 +30,7 @@ import type { MetricService } from '../metrics/service.js';
 import type { ConnectorService } from '../connectors/service.js';
 import type { Connector } from '../connectors/schemas.js';
 import type { PipelineValidator } from './validator.js';
+import { EventBridgeEventBuilder, EventPublisher, ConnectorSetupEventDetail, PIPELINE_CONNECTOR_SETUP_EVENT, PIPELINE_EVENT_SOURCE } from '@sif/events';
 
 export class PipelineService {
 	private readonly log: FastifyBaseLogger;
@@ -43,6 +44,8 @@ export class PipelineService {
 	private readonly calculatorClient: CalculatorClient;
 	private readonly metricService: MetricService;
 	private readonly connectorService: ConnectorService;
+	private readonly eventBusName: string;
+	private readonly eventPublisher: EventPublisher;
 
 	public constructor(
 		log: FastifyBaseLogger,
@@ -55,7 +58,9 @@ export class PipelineService {
 		mergeUtils: MergeUtils,
 		calculatorClient: CalculatorClient,
 		metricService: MetricService,
-		connectorService: ConnectorService
+		connectorService: ConnectorService,
+		eventBusName: string,
+		eventPublisher: EventPublisher,
 	) {
 		this.log = log;
 		this.authChecker = authChecker;
@@ -68,6 +73,8 @@ export class PipelineService {
 		this.calculatorClient = calculatorClient;
 		this.metricService = metricService;
 		this.connectorService = connectorService;
+		this.eventBusName = eventBusName;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public async create(sc: SecurityContext, params: PipelineCreateParams): Promise<Pipeline> {
@@ -109,6 +116,13 @@ export class PipelineService {
 
 		const now = new Date(Date.now()).toISOString();
 
+		// if connectors config is defined on the pipeline, validate if it needs infrastructure deployment and set the pipeline status accordingly
+		let state:State = 'enabled';
+		if(params.connectorConfig) {
+			const isDeployable = await this.isConnectorDeployable(sc, params.connectorConfig, 'create');
+			state = (isDeployable) ? 'disabled' : 'enabled';
+		}
+
 		const pipeline: Pipeline = {
 			...params,
 			id: ulid().toLowerCase(),
@@ -118,7 +132,7 @@ export class PipelineService {
 			updatedAt: now,
 			activeAt: params.activeAt ? dayjs.utc(params.activeAt).toISOString() : undefined,
 			version: 1,
-			state: 'enabled',
+			state,
 		};
 
 		this.mapTransformOutputsToKeyIndexes(pipeline);
@@ -133,6 +147,11 @@ export class PipelineService {
 			for (const metric of metrics) {
 				await this.metricService.linkPipeline(sc, metric.metricId, { id: pipeline.id, output: metric.output });
 			}
+		}
+
+		// if connectors config is defined on the pipeline, generate applicable deployment event
+		if(params.connectorConfig) {
+			await this.generateConnectorDeploymentEvent(sc, params.connectorConfig, pipeline, 'create');
 		}
 
 		this.log.debug(`PipelineService> create> exit> pipeline:${JSON.stringify(pipeline)}`);
@@ -160,6 +179,11 @@ export class PipelineService {
 		// save the changes to the pipeline
 		await this.repository.delete(pipelineId);
 		await this.tagService.submitGroupSummariesProcess(sc.groupId, PkType.Pipeline, {}, pipeline.tags);
+
+		// if connectors config is defined on the pipeline, generate applicable deployment event
+		if (pipeline.connectorConfig) {
+			await this.generateConnectorDeploymentEvent(sc, pipeline.connectorConfig, pipeline, 'delete');
+		}
 
 		this.log.debug(`PipelineService.delete(sc, pipelineId): [${JSON.stringify(sc)}, ${pipelineId}]`);
 	}
@@ -398,6 +422,11 @@ export class PipelineService {
 		}
 		for (const metric of metricDiff.toDelete) {
 			await this.metricService.unlinkPipeline(sc, metric.metricId, { id: merged.id, output: metric.output });
+		}
+
+		// if connectors config is defined on the pipeline, generate applicable deployment event
+		if (merged.connectorConfig) {
+			await this.generateConnectorDeploymentEvent(sc, merged.connectorConfig, merged, 'update');
 		}
 
 		this.log.debug(`pipelineService > update > exit: ${JSON.stringify(merged)}`);
@@ -717,7 +746,73 @@ export class PipelineService {
 			throw new InvalidOutputMetricError(`These output metrics [${metricsWithOtherMetricAsInput}] has metric as an input`);
 		}
 	}
+
+	private async generateConnectorDeploymentEvent(sc:SecurityContext,  connectors: PipelineConnectors, pipeline: Pipeline, action:string):Promise<void> {
+		this.log.debug(`PipelineService> generateConnectorDeploymentEvent: in> connectorsConfig:${connectors}`);
+
+		const isDeployable = await this.isConnectorDeployable(sc, connectors, action);
+			// generate deployment event only when connector deploymentMethod is managed-pipeline
+			if(isDeployable){
+				// this will throw an error if a connector by the name isn't found
+				const detail:ConnectorSetupEventDetail = {
+					pipelineId:pipeline.id,
+					group:pipeline.groups[0],
+					type: action,
+					connector: connectors.input[0]
+				}
+				const event = new EventBridgeEventBuilder()
+				.setEventBusName(this.eventBusName)
+				.setSource(PIPELINE_EVENT_SOURCE)
+				.setDetailType(PIPELINE_CONNECTOR_SETUP_EVENT)
+				.setDetail(detail);
+
+				this.log.debug(`PipelineService> generateConnectorDeploymentEvent: exit> event:${JSON.stringify(event)}`);
+
+				// publish the connector setup event
+				await this.eventPublisher.publish(event);
+			}
+	}
+
+	private async isConnectorDeployable(sc: SecurityContext, connectors: PipelineConnectors, action: string): Promise<boolean> {
+		this.log.debug(`PipelineService> isConnectorDeployable: in> connectorsConfig:${JSON.stringify(connectors)}`);
+
+		let isDeployable = false;
+		// check if config for input connectors is specified
+		if (connectors.input) {
+			// let's get the connectorConfig specified for the input
+			const connectorConfig = connectors.input[0];
+			// generate deployment event only when connector deploymentMethod is managed-pipeline
+			if (connectorConfig?.parameters?.['deploymentMethod'] === 'managed-pipeline') {
+
+				// if the connector has already been deployed or failed deployment then its not deployable
+				if (action === 'create' && connectorConfig?.parameters?.['deploymentStatus'] && ['deployed', 'failed'].includes(connectorConfig?.parameters?.['deploymentStatus'])) {
+					this.log.debug(`PipelineService> isConnectorDeployable: exit`);
+					return false;
+				}
+
+				/*
+				 * Block any updates if the blockDeploymentForUpdates flag is set to true
+				 * This is meant to prevent recurring updates from happening
+				*/
+				if (action === 'update' && connectorConfig?.parameters?.['blockDeploymentForUpdates']) {
+					this.log.debug(`PipelineService> isConnectorDeployable: exit`);
+					return false;
+				}
+
+				// this will throw an error if a connector by the name isn't found
+				const connector = await this.connectorService.getByName(sc, connectors.input[0].name);
+				if (connector) {
+					isDeployable = true;
+				}
+			}
+		}
+
+		this.log.debug(`PipelineService> isConnectorDeployable: exit isDeployable:${isDeployable}}`);
+		return isDeployable;
+	}
 }
+
+
 
 type Metrics = {
 	metricId: string;

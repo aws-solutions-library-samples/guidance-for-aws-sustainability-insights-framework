@@ -46,6 +46,8 @@ export interface ResourceApiBaseConstructProperties {
 		pnpmLockFileLocation: string;
 	};
 
+	timeToLiveAttribute?: string;
+
 	table?: {
 		create: boolean;
 	};
@@ -89,6 +91,7 @@ export class ResourceApiBase extends Construct {
 				encryption: TableEncryption.AWS_MANAGED,
 				pointInTimeRecovery: true,
 				removalPolicy: RemovalPolicy.DESTROY,
+				timeToLiveAttribute: props.timeToLiveAttribute
 			});
 
 			// define GSI1
@@ -233,9 +236,9 @@ export class ResourceApiBase extends Construct {
 				environment: {
 					NODE_ENV: props.environment,
 					EVENT_BUS_NAME: props.eventBusName,
-					TABLE_NAME: hasTable ? table.tableName : undefined,
+					TABLE_NAME: hasTable ? table!.tableName : '',
 					WORKER_QUEUE_URL: workerQueue.queueUrl,
-					ACCESS_MANAGEMENT_FUNCTION_NAME: props.auth?.accessManagementApiFunctionName,
+					ACCESS_MANAGEMENT_FUNCTION_NAME: props.auth?.accessManagementApiFunctionName!,
 				},
 
 				bundling: {
@@ -272,8 +275,8 @@ export class ResourceApiBase extends Construct {
 
 			// sqs lambda permissions
 			if (hasTable) {
-				table.grantWriteData(sqsLambda);
-				table.grantReadData(sqsLambda);
+				table!.grantWriteData(sqsLambda);
+				table!.grantReadData(sqsLambda);
 			}
 			eventBus.grantPutEventsTo(sqsLambda);
 			workerQueue.grantSendMessages(sqsLambda);

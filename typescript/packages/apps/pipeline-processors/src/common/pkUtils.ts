@@ -13,8 +13,9 @@
 
 export enum PkType {
 	Pipeline = 'p',
+	Group = 'g',
 	PipelineExecution = 'pe',
-
+	MetricAggregationJob = 'mj',
 	Metric = 'm',
 	MetricVersion = 'mv',
 	TimeUnit = 'tu',

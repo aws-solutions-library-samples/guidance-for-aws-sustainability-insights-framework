@@ -1,6 +1,13 @@
 # Change Log - @sif/calculations
 
-This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:36 GMT and should not be manually modified.
+
+## 4.8.3
+Wed, 13 Dec 2023 02:37:36 GMT
+
+### Patches
+
+- Updated documentation
 
 ## 4.8.2
 Thu, 17 Aug 2023 02:44:14 GMT

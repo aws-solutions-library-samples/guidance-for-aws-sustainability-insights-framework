@@ -15,7 +15,7 @@ import { Invoker, LambdaApiGatewayEventBuilder } from '@sif/lambda-invoker';
 import type { BaseLogger } from 'pino';
 import { ClientServiceBase } from '../common/common.js';
 import type { LambdaRequestContext } from '../common/models.js';
-import type { Pipeline, PipelineVersionList } from './pipeline.models.js';
+import type { EditPipeline, Pipeline, PipelineVersionList } from './pipeline.models.js';
 
 export class PipelineClient extends ClientServiceBase {
 	private readonly pipelineFunctionName: string;
@@ -73,5 +73,28 @@ export class PipelineClient extends ClientServiceBase {
 		const result = await this.lambdaInvoker.invoke(this.pipelineFunctionName, event);
 		this.log.info(`PipelineClient > getConfiguration > exit > result: ${JSON.stringify(result)}`);
 		return result.body as PipelineVersionList;
+	}
+
+	public async update(pipelineId: string, pipeline:EditPipeline, requestContext?: LambdaRequestContext): Promise<Pipeline> {
+		this.log.info(`PipelineClient > updateConfiguration > in > pipelineId: ${pipelineId}, pipeline:${pipeline}`);
+
+		const additionalHeaders = {};
+
+		if (requestContext.authorizer.claims.groupContextId) {
+			additionalHeaders['x-groupcontextid'] = requestContext.authorizer.claims.groupContextId;
+		}
+
+		const event: LambdaApiGatewayEventBuilder = new LambdaApiGatewayEventBuilder()
+			.setMethod('PATCH')
+			.setRequestContext(requestContext)
+			.setHeaders(super.buildHeaders(additionalHeaders))
+			.setPath(`pipelines/${pipelineId}`)
+			.setBody(
+				pipeline
+			);
+
+		const result = await this.lambdaInvoker.invoke(this.pipelineFunctionName, event);
+		this.log.info(`PipelineClient > updateConfiguration > exit > result: ${JSON.stringify(result)}`);
+		return result.body as Pipeline;
 	}
 }

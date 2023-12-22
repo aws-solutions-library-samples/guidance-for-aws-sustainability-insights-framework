@@ -1,20 +1,31 @@
 
 # Migration of backward incompatible changes
 
-While we endeavor to always make backward compatible changes, there may be times when we need to make changes that are not backward compatible. If these changes are made at the API level then the affected modules REST API vendor mime types
-will be versioned supporting both new and old versions, as well as the modules minor version bumped. But if the change affect something else such as how configuration is handled, or how applications are deployed, then the major versions of
-the modules will be bumped with migration notes added here.
+While we endeavor to always make backward compatible changes, there may be times when we need to make changes that are not backward compatible. If these changes are made at the API level then the affected modules REST API vendor mime types will be versioned supporting both new and old versions, as well as the modules minor version bumped. But if the change affect something else such as how configuration is handled, or how applications are deployed, then the major versions of the modules will be bumped with migration notes added here.
 
-## Migration from Tag RELEASE-LIVE-20230609225045
+## Migration from Release v1.8.0 to Release v1.9.0
 
-#### Migrating Metrics
-There are changes to the underlying metrics datastore which involves migration from dynamodb to RDS. After the deployment upgrade.
+In this release, significant changes have been made to enhance cost-efficiency and security in the SIF environment. As part of these changes, we have removed the public subnet by deleting the Internet Gateway (IGW) and NAT Gateway. If you have enabled AWS Client VPN when deploying your SIF environment, please follow these steps for a smooth transition:
 
-The [following document](../typescript/packages/tools/migrator/README.md) has information on how to run the tool itself.
+1. Deploy SIF environment v1.8.0 with VPN Client option disabled, this will remove the [public IP](https://repost.aws/questions/QUXQ8aH5RQTr-JRSXK2s9N7w/vpn-client-endpoint-interfaces-have-public-ip-how-to-remove) (assigned to AWS Client VPN) attached to the IGW
+2. Deploy SIF environment v1.9.0
+3. Deploy SIF tenant(s)
 
-After the tool has been executed it will kick off a process in background which runs the migration. This process takes about 5-10 minutes depending on the size of legacy metrics in dynamo.
+## Migration from Release v1.7.2 to Release v1.8.0
 
-## Migration from Tag RELEASE-LIVE-20230405210709
+The underlying pipeline executions datastore has been updated to enable querying with tags. This enhancement requires migrating data from the old DynamoDB table to the new DynamoDB table. This [document](../typescript/packages/tools/migrator/README.md#pipeline-executions-migrator) provides information on how to run the migration tool.
+
+## Migration from Release v1.3.0 to Release v1.4.0
+
+Changes have been made to the underlying metrics datastore, necessitating a migration from DynamoDB to RDS after a deployment upgrade. This [document](../typescript/packages/tools/migrator/README.md#metrics-migrator) provides information on how to use the migration tool to facilitate this process.
+
+After executing the migration tool, a background process will be initiated. This process handles any remaining tasks and cleanup related to the migration. It typically takes approximately 5-10 minutes to complete, but the duration may vary based on the size of the legacy metric data in DynamoDB.
+
+During this background process, the tool may perform additional optimizations or validations to ensure the integrity of the migrated data. Be patient and allow the process to finish.
+
+By following these steps, you can successfully migrate your metric data from DynamoDB to RDS, ensuring compatibility with the updated metrics datastore.
+
+## Migration from Release v1.1.0 to v1.2.0
 
 API Breaking changes.
 
@@ -151,125 +162,4 @@ The updated way of defining dry run config for a pipeline.
 		}]
 	}
 }
-```
-
----
-# The following migration notes apply to releases before public release to GitHub.
-
-## Migrating from Tag RELEASE-LIVE-20230316012742
-
-### Automatic Migration
-
-In release after `RELEASE-LIVE-20230316012742` , we're introducing a new column `type` on the `Activity` table in the RDS database as part of the pipeline aggregation feature. When you deploy the `Calculator` stack, the schema migration will be done
-automatically `Custom::DatabaseSeeder` custom resource. It will insert `raw` to the new column of the existing rows.
-
-### Manual Migration
-
-To migrate the schema manually, run the command below:
-
-1. To connect to the RDS cluster environment outside the VPC, you can deploy the shared platform stack with AWS Client VPN included (more can be found [here](deployment/walkthrough.md)). The rest of steps assume that your machine has connected the AWS Client VPN deployed inside your `SIF` VPC.
-2. Follow the backup and restore instruction [here](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Managing.Backups.html) to copy your production database to your staging environment.
-3. Get the administrator `username` and `password` from AWS Secrets Manager [console](https://console.aws.amazon.com/secretsmanager/listsecrets). The secret name will be `sif-<environment>-credentials` (e.g. for `staging` environment, it would be `sif-staging-credentials`).
-4. Get the Amazon RDS cluster (**not the Proxy**) `writer endpoint` from Amazon RDS [console](https://console.aws.amazon.com/rds/home). Database name will the concatenation of tenantId and environment (e.g. for tenantId `test` and environment `staging`, your database name will be `teststaging`)
-5. The migration folder can be found in [here](../infrastructure/tenant/src/calculator/assets).
-6. Run the command below to perform the migration on your copied RDS instance (use the information retrieved from step 3 and 4).
-    ```shell
-    $ DATABASE_URL=postgres://<username>:<password>@<aurora writer endpoint>:5432/<databasename> rush migrate -m <path to the parent of migration scripts folder>
-    ```
-7. If the migration in staging is successful, repeat step 3-6 in your production environment.
-
-
-## Migrating from Tag []()
-
-Prior to release, audit information can be retrieved by running the command below:
-
-```shell
-POST /pipelines/<PIPELINE_ID_GOES_HERE>/executions/<PIPELINE_EXECUTION_ID_GOES_HERE>/auditDownloadUrl
-
-Headers:
-    Accept-Version: 1.0.0
-    Authorization: Bearer COGNITO_TOKEN_GOES_HERE
-
-Body:
-
-{
-    "expiration": 900
-}
-```
-
-Response is list of audit file signed urls for the pipeline execution:
-
-```json
-{
-    "urls": ["auditFileSignedUrl1", "auditFileSignedUrl1"]
-}
-```
-
-With this release, this api endpoint is deprecated, but you can still access the audit files directly on the s3 bucket under the prefix `/pipelines/<pipelineId>/executions/<executionId>/audits`.
-
-Now the audit information can be retrieved by providing `ActivityId` to Activity Audit endpoint, as shown below (the `ActivityId` can be found in the response when you're [viewing pipeline results](../typescript/packages/apps/pipeline-processors/README.md#viewing-pipeline-results)):
-
-```shell
-GET /activities/<activityId>/audits
-
-Headers:
-    Accept-Version: 1.0.0
-    Authorization: Bearer COGNITO_TOKEN_GOES_HERE
-```
-
-It will return all the audit version for the specified Activity Id:
-
-```json
-[
-    {
-        "activityId": 1270,
-        "date": "2022-01-04T00:00:00.000Z",
-        "pipelineId": "01gwk0agenjqw7t7jcc3nycykx",
-        "executionId": "01gwk0ak07exn9bcmn5espmke0",
-        "auditId": "e76a8b66-31f8-41b2-a995-50e0f8858f11",
-        "createdAt": "2023-03-28T02:21:37.026Z",
-        "executionNo": 0,
-        "outputs": [
-            {
-                "index": 0,
-                "name": "time",
-                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy')",
-                "evaluated": {
-                    "AS_TIMESTAMP(:reading date,'M/d/yy')": "1641254400000",
-                    ":reading date": "1/4/22"
-                },
-                "result": "1641254400000"
-            },
-            {
-                "index": 1,
-                "name": "month",
-                "formula": "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')",
-                "evaluated": {
-                    "AS_TIMESTAMP(:reading date,'M/d/yy', roundDownTo='month')": "1640995200000",
-                    ":reading date": "1/4/22"
-                },
-                "result": "1640995200000"
-            },
-            {
-                "index": 2,
-                "name": "a",
-                "formula": ":a",
-                "evaluated": {
-                    ":a": "A"
-                },
-                "result": "A"
-            },
-            {
-                "index": 3,
-                "name": "b*c",
-                "formula": ":b*:c",
-                "evaluated": {
-                    ":b": "10",
-                    ":c": "1"
-                },
-                "result": "10"
-            }
-        ]
-    }
-]
 ```

@@ -72,6 +72,8 @@ export interface CalculatorRequest {
 
 export interface CalculatorBaseTransformResponse {
 	auditLogLocation: S3Location;
+	noActivitiesProcessed: boolean;
+	activityValueKey?: string;
 }
 
 export interface CalculatorInlineTransformResponse extends CalculatorBaseTransformResponse {

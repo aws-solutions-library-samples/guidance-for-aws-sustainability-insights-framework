@@ -40,12 +40,12 @@ export class PipelineAggregationTaskService {
 		this.log.info(`PipelineAggregationTaskService> process> event: ${JSON.stringify(event)}`);
 
 		validateDefined(event, 'event');
-		validateNotEmpty(event.groupContextId, 'event.groupContextId');
+		validateNotEmpty(event.security, 'event.security');
 		validateNotEmpty(event.pipelineId, 'event.pipelineId');
 		validateNotEmpty(event.executionId, 'event.executionId');
 		validateNotEmpty(event.requiresAggregation, 'event.requiresAggregation');
 
-		const { groupContextId, pipelineId, executionId, requiresAggregation } = event;
+		const { security, pipelineId, executionId, requiresAggregation } = event;
 
 		if (requiresAggregation) {
 			this.log.info(`PipelineAggregationTaskService> process> pipeline ${pipelineId} has aggregation specified`);
@@ -55,10 +55,10 @@ export class PipelineAggregationTaskService {
 				authorizer: {
 					claims: {
 						email: '',
-						'cognito:groups': `${groupContextId}|||reader`,
-						groupContextId: groupContextId,
-					},
-				},
+						'cognito:groups': `${security.groupId}|||reader`,
+						groupContextId: security.groupId
+					}
+				}
 			};
 
 			const pipeline = await this.pipelineClient.get(pipelineId, execution.pipelineVersion, requestContext);
@@ -78,7 +78,7 @@ export class PipelineAggregationTaskService {
 		this.log.info(`PipelineAggregationTaskService> process> exit:`);
 	}
 
-	public async *getActivitiesAggregatedBySqlFunctions(pipelineId: string, executionId: string, groupContextId: string, pipelineMetadata: PipelineMetadata) {
+	public async* getActivitiesAggregatedBySqlFunctions(pipelineId: string, executionId: string, groupContextId: string, pipelineMetadata: PipelineMetadata) {
 		this.log.debug(`PipelineAggregationTaskService> getActivitiesAggregatedBySqlFunctions> in> pipeline ${pipelineId}, executionId: ${executionId}, groupContextId: ${groupContextId}, pipelineMetadata: ${pipelineMetadata}`);
 
 		const { from: dateFrom, to: dateTo } = await this.activitiesRepository.getAffectedTimeRange(pipelineId, executionId);
@@ -94,7 +94,7 @@ export class PipelineAggregationTaskService {
 					pipelineId,
 					groupId: groupContextId,
 					nextToken: fromOffset,
-					maxRows: 1000,
+					maxRows: 1000
 				},
 				pipelineMetadata
 			);

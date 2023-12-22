@@ -74,7 +74,6 @@ Feature:
 		When I DELETE /metrics/`metric_hierarchical_id`
 		Then response code should be 204
 
-
 	Scenario: Admin cannot create metric other than the sum type
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
 		And I set body to {"name":"int:ghg:invalid:aggregation","summary":"GHG Scope 1 direct emissions.","aggregationType":"min","tags":{"standard":"ghg","scope":"1"}}
@@ -150,7 +149,7 @@ Feature:
 
 	Scenario: Admin can create new activities type pipeline that output to ghg:scope1:mobile metric
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "2023-02-21T14:48:00.000Z", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["int:ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1}}
+		And I set body to {"connectorConfig":{"input": [{"name": "sif-csv-pipeline-input-connector"}]},"name":"pipeline1", "activeAt": "2023-02-21T14:48:00.000Z", "transformer":{"transforms":[{"index":0,"formula":"AS_TIMESTAMP(:reading date,'M/d/yy')","outputs":[{"description":"Timestamp of business activity.","index":0,"key":"time","label":"Time","type":"timestamp"}]},{"index":1,"formula":":value_1+:value_2","outputs":[{"index":0,"key":"sum","label":"sum","description":"sum of value one and two","type":"number", "metrics":["int:ghg:scope1:mobile"]}]}],"parameters":[{"index":0,"key":"reading date","type":"string"},{"index":1,"key":"value_1","label":"value 1","description":"a value ","type":"number"},{"index":2,"key":"value_2","label":"value 2","description":"a value ","type":"number"}]},"tags":{"source":"sap"},"attributes":{"key1":"val","key2":"val"},"processorOptions":{"chunkSize":1, "triggerMetricAggregations": true}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -180,6 +179,7 @@ Feature:
 		And response body path $.attributes.key1 should be val
 		And response body path $.attributes.key2 should be val
 		And response body path $.processorOptions.chunkSize should be 1
+		And response body path $.processorOptions.triggerMetricAggregations should be true
 		And response body path $.createdBy should be pipelinesapitests_admin@amazon.com
 
 	Scenario: Create Pipeline with type data should fails when aggregations are specified
@@ -266,7 +266,7 @@ Feature:
 
 	Scenario: Admin can create a new version of a pipeline
 		Given I authenticate using email pipelinesApiTests_admin@amazon.com and password p@ssword1
-		And I set body to {"description":"the description is updated", "activeAt": "2023-02-21T15:48:00.000Z", "attributes": {"key3":"val","key1": null}, "processorOptions":{"chunkSize": 2}}
+		And I set body to {"description":"the description is updated", "activeAt": "2023-02-21T15:48:00.000Z", "attributes": {"key3":"val","key1": null}, "processorOptions":{"chunkSize": 2, "triggerMetricAggregations": false}}
 		When I PATCH /pipelines/`pipeline1_pipeline_id`
 		And response body path $.name should be pipeline1
 		And response body path $.state should be enabled
@@ -291,6 +291,7 @@ Feature:
 		And response body path $.attributes.key3 should be val
 		And response body path $.attributes.key2 should be val
 		And response body path $.processorOptions.chunkSize should be 2
+		And response body path $.processorOptions.triggerMetricAggregations should be false
 		And response body should contain createdAt
 		And response body path $.createdBy should be pipelinesapitests_admin@amazon.com
 		And response body should contain updatedAt

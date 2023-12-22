@@ -2,6 +2,29 @@
   "name": "@sif/pipelines",
   "entries": [
     {
+      "version": "4.8.0",
+      "tag": "@sif/pipelines_v4.8.0",
+      "date": "Wed, 13 Dec 2023 02:37:37 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Added support for connector setup events"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.9.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.8.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.7.3",
       "tag": "@sif/pipelines_v4.7.3",
       "date": "Thu, 17 Aug 2023 02:44:14 GMT",

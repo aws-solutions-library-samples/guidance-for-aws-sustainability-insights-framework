@@ -25,6 +25,7 @@ import type { MetricService } from '../metrics/service.js';
 import { PipelineService } from './service.js';
 import type { ConnectorService } from '../connectors/service.js';
 import type { Connector } from '../connectors/schemas.js';
+import type { EventPublisher } from '@sif/events/dist/publisher.js';
 
 describe('PipelineService', () => {
 	let pipelineService: PipelineService;
@@ -38,6 +39,8 @@ describe('PipelineService', () => {
 	let mockMetricService = mock<MetricService>();
 	let mockCalculatorClient = mock<CalculatorClient>();
 	let mockConnectorService = mock<ConnectorService>();
+	let mockEventPublisher = mock<EventPublisher>();
+
 
 	beforeEach(async () => {
 		const logger = pino(
@@ -47,7 +50,7 @@ describe('PipelineService', () => {
 		);
 		logger.level = 'debug';
 
-		pipelineService = new PipelineService(logger, mockGroupPermissions, mockPipelineRepository, mockGroupService, mockTagService, mockResourceService, mockValidator, mockMergeUtils, mockCalculatorClient, mockMetricService, mockConnectorService);
+		pipelineService = new PipelineService(logger, mockGroupPermissions, mockPipelineRepository, mockGroupService, mockTagService, mockResourceService, mockValidator, mockMergeUtils, mockCalculatorClient, mockMetricService, mockConnectorService, 'testEventBus', mockEventPublisher);
 	});
 
 	it('should not throw an error if transform new and old have the same outputs which has "includeAsUnique" property set', () => {

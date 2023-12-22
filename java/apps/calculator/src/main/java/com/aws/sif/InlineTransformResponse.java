@@ -28,9 +28,11 @@ public class InlineTransformResponse extends TransformResponse {
     private List<String> errors;
 
     @Builder
-    public InlineTransformResponse(List<String> headers, List<String> data, List<String> errors) {
+    public InlineTransformResponse(List<String> headers, List<String> data, List<String> errors, boolean noActivitiesProcessed, String activityValueKey) {
         this.headers = headers;
         this.data = data;
         this.errors = errors;
+		this.noActivitiesProcessed = noActivitiesProcessed;
+        this.activityValueKey = activityValueKey;
     }
 }

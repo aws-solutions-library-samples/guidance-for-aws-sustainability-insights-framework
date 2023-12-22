@@ -1,6 +1,6 @@
 {
 	"name": "@sif/clients",
-	"version": "1.7.2",
+	"version": "1.8.0",
 	"description": "Calculator client",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"exports": {

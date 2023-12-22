@@ -23,7 +23,7 @@ const di: AwilixContainer = app.diContainer;
 export const handler: PipelineAggregationTaskHandler = async (event, _context, _callback): Promise<ProcessedTaskEvent> => {
 	app.log.debug(`PipelineAggregationHandler> handler> event: ${JSON.stringify(event)}`);
 	const task = di.resolve<PipelineAggregationTaskService>('pipelineAggregationTaskService');
-	await task.process(event?.[0]);
+	await task.process(event);
 	app.log.debug(`PipelineAggregationHandler> handler> exit:`);
-	return event?.[0];
+	return event;
 };

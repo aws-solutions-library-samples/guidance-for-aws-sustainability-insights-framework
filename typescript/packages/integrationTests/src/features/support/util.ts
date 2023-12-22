@@ -14,10 +14,14 @@
 import apickli from 'apickli';
 import { BatchWriteCommand, BatchWriteCommandInput, DynamoDBDocumentClient, ScanCommand, ScanCommandInput } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { PutObjectCommand, PutObjectCommandInput, PutObjectCommandOutput, S3Client } from '@aws-sdk/client-s3';
+import { CloudFormationClient, DescribeStacksCommand, DescribeStacksCommandInput, DescribeStacksCommandOutput } from '@aws-sdk/client-cloudformation';
+import { KinesisClient, PutRecordsCommand, PutRecordsRequestEntry } from "@aws-sdk/client-kinesis"
 import { Auth } from '@aws-amplify/auth';
 import { fail } from 'assert';
 import sign from 'jwt-encode';
 import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
+import { ulid } from "ulid";
 
 export async function getUrl(path: string, parameterName: string): Promise<PostmanEnvironmentVariable> {
 	const ssm = new SSMClient({});
@@ -183,6 +187,50 @@ export async function cleanUpTable(tableName: string): Promise<void> {
 		if (!lastEvaluatedKey) keepGoing = false;
 	}
 }
+
+export async function uploadToS3(objectKey:string, content:string): Promise<PutObjectCommandOutput> {
+	const bucketName = process.env.BUCKET_NAME as string;
+	const s3Client = new S3Client({ region: process.env.AWS_REGION });
+
+	const inputParams:PutObjectCommandInput = {
+		Bucket: bucketName,
+		Key: objectKey,
+		Body: content
+	}
+	const resp = await s3Client.send(new PutObjectCommand(inputParams));
+	return resp;
+}
+
+export async function getCloudformationStackStatus(stackName:string): Promise<DescribeStacksCommandOutput> {
+	const cloudFormationClient = new CloudFormationClient({ region: process.env.AWS_REGION });
+	const inputParams:DescribeStacksCommandInput = {
+		StackName: stackName
+	}
+	const resp = await cloudFormationClient.send(new DescribeStacksCommand(inputParams));
+	return resp;
+}
+
+const generateUniqueKeys = (n: number) => [...new Set(Array.from({length: n}, (_) => ulid()))];
+
+export async function streamData(streamName:string, records:[], partitionCount:number): Promise<DescribeStacksCommandOutput> {
+	const kinesisClient = new KinesisClient({ region: process.env.AWS_REGION });
+	const partitions = generateUniqueKeys(partitionCount);
+	const data: PutRecordsRequestEntry[] = records.map((record) => {
+		const randomPartitionIndex = Math.floor(Math.random() * partitions.length);
+		return {
+			Data: Buffer.from(JSON.stringify(record)),
+			PartitionKey: partitions[randomPartitionIndex]
+		}
+	});
+	const resp = await kinesisClient.send(new PutRecordsCommand({
+			StreamName: streamName,
+			Records: data
+		}));
+	return resp;
+}
+
+
+
 
 export interface PostmanEnvironmentVariable {
 	key: string;

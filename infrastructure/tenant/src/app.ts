@@ -14,7 +14,6 @@
 
 import * as cdk from 'aws-cdk-lib';
 import { Aspects } from 'aws-cdk-lib';
-import axios from 'axios';
 import { AwsSolutionsChecks } from 'cdk-nag';
 import { AccessManagementStack } from './accessManagement/accessManagement.stack.js';
 import { AuditLogDepositorStack } from './auditLogDepositor/auditLogDepositor.stack.js';
@@ -28,10 +27,18 @@ import { PipelineApiStack } from './pipelines/pipelines.stack.js';
 import { ReferenceDatasetsApiStack } from './referenceDatasets/referenceDatasets.stack.js';
 import { SharedTenantInfrastructureStack } from './shared/sharedTenant.stack.js';
 import { CleanRoomsConnectorStack } from './connectors/cleanRooms.stack.js';
+import { KinesisConnectorStack } from './connectors/kinesis.stack.js';
 import { getOrThrow } from './shared/stack.utils.js';
-import { registerAllFacts } from '@sif/cdk-common';
+import { registerAllFacts, tryGetBooleanContext } from '@sif/cdk-common';
 
 const tenantApp = new cdk.App();
+
+import { fileURLToPath } from 'url';
+import path from 'path';
+import * as fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // mandatory requirements
 const tenantId = getOrThrow(tenantApp, 'tenantId');
@@ -44,12 +51,16 @@ const cognitoVerifiedDomain = tenantApp.node.tryGetContext('cognitoVerifiedDomai
 const cognitoFromName = tenantApp.node.tryGetContext('cognitoFromName') as string;
 const cognitoReplyToEmail = tenantApp.node.tryGetContext('cognitoReplyToEmail') as string;
 // optional requirement to expose delete resource endpoint
-const enableDeleteResource = tenantApp.node.tryGetContext('enableDeleteResource') as boolean;
+const enableDeleteResource = tryGetBooleanContext(tenantApp, 'enableDeleteResource', false);
+
 // optional requirement to remove bucket and objects when it got deleted
-const deleteBucket = (tenantApp.node.tryGetContext('deleteBucket') ?? 'false') === 'true';
+const deleteBucket = tryGetBooleanContext(tenantApp, 'deleteBucket', false);
 
 // optional requirement to expose delete resource endpoint
-const includeCaml = (tenantApp.node.tryGetContext('includeCaml') ?? false) === 'true';
+const includeCaml = tryGetBooleanContext(tenantApp, 'includeCaml', false);
+
+// optional configuration to enable/disable metric aggregation when execution finish
+const triggerMetricAggregations = tryGetBooleanContext(tenantApp, 'triggerMetricAggregations', true);
 
 // optional requirements to specify sql or nosql storage type to store the metric (defaulted to sql)
 const metricStorage = tenantApp.node.tryGetContext('metricStorage') as string;
@@ -63,6 +74,10 @@ const downloadAuditFileParallelLimit = (tenantApp.node.tryGetContext('downloadAu
 
 // Static argument defining the deployed audit version
 const auditVersion = '1';
+
+// Time value used for a hint for when firehose should flush audit log data
+// This value is also used in audit log processing to ensure audit logs are not attempted to be exported until all records have been flushed
+const auditLogFirehoseFlushTimeInSeconds = 60;
 
 //optional requirements for calculation engine lambda scaling
 const minScaling = (tenantApp.node.tryGetContext('minScaling') as number) ?? 1;
@@ -98,13 +113,10 @@ const tenantStackNamePrefix = `sif-${tenantId}-${environment}`;
 const csvConnectorName = 'sif-csv-pipeline-input-connector';
 const sifConnectorName = 'sif-activity-pipeline-input-connector';
 const cleanRoomsConnectorName = 'sif-cleanRooms-pipeline-input-connector';
+const kinesisConnectorName = 'sif-kinesis-pipeline-input-connector';
 
 const tenantStackName = (suffix: string) => `${tenantStackNamePrefix}-${suffix}`;
-const tenantStackDescription = (moduleName: string, includeGuidanceCode: boolean) => `Infrastructure for ${moduleName} module${includeGuidanceCode ? ' -- Guidance for Sustainability Insights Framework on AWS (SO9161).': '.'}`;
-
-
-
-const getCaCertResponse = await axios.get('https://www.amazontrust.com/repository/AmazonRootCA1.pem');
+const tenantStackDescription = (moduleName: string, includeGuidanceCode: boolean) => `Infrastructure for ${moduleName} module${includeGuidanceCode ? ' -- Guidance for Sustainability Insights Framework on AWS (SO9161).' : '.'}`;
 
 /**
  * When using `StringParameter.valueFromLookup` in stacks it returns the actual value of the parameter as a Runtime context
@@ -117,6 +129,32 @@ const env: cdk.Environment = {
 };
 
 registerAllFacts();
+
+const tags = {};
+
+if (!fs.existsSync(`${__dirname}/predeploy.json`)) {
+	throw new Error('Pre deployment file does not exist\n' +
+		'Make sure you run the cdk using npm script which will run the predeploy script automatically\n' +
+		'EXAMPLE\n' +
+		'$ npm run cdk deploy -- -c sampleTenant -e sampleEnvironment');
+}
+
+const { sifMetadata, sifCertificate } = JSON.parse(fs.readFileSync(`${__dirname}/predeploy.json`, 'utf-8'));
+
+const { revision: gitRevision, tag: gitTag, branch: gitBranch, version: gitVersion } = sifMetadata;
+
+if (gitTag) {
+	tags['sif:gitTag'] = gitTag;
+}
+if (gitRevision) {
+	tags['sif:gitRevision'] = gitRevision;
+}
+if (gitBranch) {
+	tags['sif:gitBranch'] = gitBranch;
+}
+if (gitVersion) {
+	tags['sif:gitVersion'] = gitVersion;
+}
 
 const sharedInfrastructureStack = new SharedTenantInfrastructureStack(tenantApp, 'SharedTenant', {
 	stackName: tenantStackName('shared'),
@@ -135,7 +173,8 @@ const sharedInfrastructureStack = new SharedTenantInfrastructureStack(tenantApp,
 					sesVerifiedDomain: cognitoVerifiedDomain,
 			  }
 			: undefined,
-	caCert: getCaCertResponse.data,
+	caCert: sifCertificate,
+	tags
 });
 
 const accessManagementStack = new AccessManagementStack(tenantApp, 'AccessManagement', {
@@ -145,6 +184,7 @@ const accessManagementStack = new AccessManagementStack(tenantApp, 'AccessManage
 	tenantId,
 	environment,
 	administratorEmail,
+	tags
 });
 accessManagementStack.node.addDependency(sharedInfrastructureStack);
 
@@ -154,6 +194,8 @@ const auditLogDepositorStack = new AuditLogDepositorStack(tenantApp, 'AuditLogDe
 	env,
 	tenantId,
 	environment,
+	tags,
+	auditLogFirehoseFlushTimeInSeconds
 });
 auditLogDepositorStack.node.addDependency(sharedInfrastructureStack);
 
@@ -163,28 +205,15 @@ const calculatorStack = new CalculatorApiStack(tenantApp, 'Calculator', {
 	env,
 	tenantId,
 	environment,
-	caCert: getCaCertResponse.data,
+	caCert: sifCertificate,
 	minScaling,
 	maxScaling,
 	includeCaml,
-	decimalPrecision
+	decimalPrecision,
+	tags
 });
 calculatorStack.node.addDependency(sharedInfrastructureStack, auditLogDepositorStack);
 
-const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'PipelineProcessors', {
-	stackName: tenantStackName('pipelineProcessors'),
-	description: tenantStackDescription('PipelineProcessors', false),
-	env,
-	tenantId,
-	environment,
-	csvConnectorName,
-	caCert: getCaCertResponse.data,
-	downloadAuditFileParallelLimit,
-	metricStorage,
-	auditVersion
-});
-pipelineProcessorsStack.node.addDependency(sharedInfrastructureStack);
-pipelineProcessorsStack.node.addDependency(calculatorStack);
 
 const referenceDatasetsApiStack = new ReferenceDatasetsApiStack(tenantApp, 'ReferenceDatasets', {
 	stackName: tenantStackName('referenceDatasets'),
@@ -195,6 +224,7 @@ const referenceDatasetsApiStack = new ReferenceDatasetsApiStack(tenantApp, 'Refe
 	enableDeleteResource,
 	permittedOutgoingTenantPaths,
 	externallySharedGroupIds,
+	tags
 });
 referenceDatasetsApiStack.node.addDependency(sharedInfrastructureStack);
 
@@ -207,6 +237,7 @@ const impactsApiStack = new ImpactsApiStack(tenantApp, 'Impacts', {
 	enableDeleteResource,
 	permittedOutgoingTenantPaths,
 	externallySharedGroupIds,
+	tags
 });
 impactsApiStack.node.addDependency(sharedInfrastructureStack);
 
@@ -217,6 +248,7 @@ const pipelineApiStack = new PipelineApiStack(tenantApp, 'Pipelines', {
 	tenantId,
 	environment,
 	enableDeleteResource,
+	tags
 });
 pipelineApiStack.node.addDependency(sharedInfrastructureStack);
 
@@ -229,6 +261,7 @@ const calculationApiStack = new CalculationApiStack(tenantApp, 'Calculations', {
 	enableDeleteResource,
 	permittedOutgoingTenantPaths,
 	externallySharedGroupIds,
+	tags
 });
 calculationApiStack.node.addDependency(sharedInfrastructureStack);
 
@@ -241,6 +274,7 @@ const sifConnectorStack = new SifConnectorStack(tenantApp, 'sifConnector', {
 	tenantId,
 	environment,
 	connectorName: sifConnectorName,
+	tags
 });
 sifConnectorStack.node.addDependency(pipelineApiStack);
 
@@ -251,6 +285,7 @@ const csvConnectorStack = new CsvConnectorStack(tenantApp, 'csvConnector', {
 	tenantId,
 	environment,
 	connectorName: csvConnectorName,
+	tags
 });
 csvConnectorStack.node.addDependency(pipelineApiStack);
 
@@ -260,6 +295,36 @@ const cleanRoomsConnectorStack = new CleanRoomsConnectorStack(tenantApp, 'cleanR
 	env,
 	tenantId,
 	environment,
-	connectorName: cleanRoomsConnectorName
+	connectorName: cleanRoomsConnectorName,
+	tags
 });
 cleanRoomsConnectorStack.node.addDependency(pipelineApiStack);
+
+const kinesisConnectorStack = new KinesisConnectorStack(tenantApp, 'kinesisConnector', {
+	stackName: tenantStackName('kinesisConnector'),
+	description: tenantStackDescription('kinesisConnector', false),
+	env,
+	tenantId,
+	environment,
+	connectorName: kinesisConnectorName
+});
+kinesisConnectorStack.node.addDependency(pipelineApiStack);
+
+const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'PipelineProcessors', {
+	stackName: tenantStackName('pipelineProcessors'),
+	description: tenantStackDescription('PipelineProcessors', false),
+	env,
+	tenantId,
+	environment,
+	csvConnectorName,
+	caCert: sifCertificate,
+	downloadAuditFileParallelLimit,
+	metricStorage,
+	auditVersion,
+	tags,
+	triggerMetricAggregations,
+	auditLogWaitTimeSeconds: auditLogFirehoseFlushTimeInSeconds * 2
+});
+pipelineProcessorsStack.node.addDependency(sharedInfrastructureStack);
+pipelineProcessorsStack.node.addDependency(calculatorStack);
+pipelineProcessorsStack.node.addDependency(kinesisConnectorStack);

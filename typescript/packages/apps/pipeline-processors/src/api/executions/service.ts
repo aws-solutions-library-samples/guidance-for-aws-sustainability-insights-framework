@@ -15,7 +15,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import { ulid } from 'ulid';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { atLeastContributor, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
-import { InvalidRequestError, NotImplementedError, ResourceService, UnauthorizedError, TagService } from '@sif/resource-api-base';
+import { NotImplementedError, ResourceService, UnauthorizedError, TagService, AccessManagementClient, ConflictError } from '@sif/resource-api-base';
 import type { EventPublisher } from '@sif/events';
 import { getPipelineErrorKey, getPipelineInputKey, getPipelineOutputKey } from '../../utils/helper.utils.js';
 import type { PipelineExecution, PipelineExecutionList, PipelineExecutionRequest, PipelineExecutionUpdateParams, SignedUrlResponse } from './schemas.js';
@@ -26,6 +26,7 @@ import type { Pipeline, PipelineClient } from '@sif/clients';
 import type { PipelineExecutionUtils } from './utils.js';
 import type { InlineExecutionService } from './inlineExecution.service.js';
 import { PkType } from '../../common/pkUtils.js';
+import type { AuroraStatus, PlatformResourceUtility } from '../../utils/platformResource.utility.js';
 
 const FIVE_MINUTES = 5 * 60;
 
@@ -46,7 +47,10 @@ export class PipelineProcessorsService {
 		private inlineExecutionService: InlineExecutionService,
 		private auditVersion: number,
 		private resourceService: ResourceService,
-		private tagService: TagService
+		private tagService: TagService,
+		private accessManagementClient: AccessManagementClient,
+		private triggerMetricAggregations: boolean,
+		private platformResourceUtility: PlatformResourceUtility
 	) {
 	}
 
@@ -64,7 +68,7 @@ export class PipelineProcessorsService {
 		await this.eventPublisher.publishTenantEvent({
 			resourceType: 'pipelineExecution',
 			eventType: 'created',
-			id: executionId,
+			id: executionId
 		});
 
 		// let's add the rawInputUploadUrl to the execution response
@@ -87,8 +91,12 @@ export class PipelineProcessorsService {
 			throw new UnauthorizedError(`The caller is not an \`contributor\` of the group in context \`${JSON.stringify(sc.groupId)}`);
 		}
 
+		await this.platformResourceUtility.checkPlatformResourceState<AuroraStatus>('aurora-cluster', 'available');
+
 		// check if the pipeline exists
 		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(sc));
+
+		const group = await this.accessManagementClient.getGroup(sc.groupId);
 
 		// create pipeline execution object
 		const executionId = ulid().toLowerCase();
@@ -100,6 +108,7 @@ export class PipelineProcessorsService {
 			pipelineId,
 			pipelineVersion: pipeline.version,
 			auditVersion: this.auditVersion,
+			triggerMetricAggregations: executionParams.triggerMetricAggregations ?? pipeline?.processorOptions?.triggerMetricAggregations ?? group?.configuration?.pipelineProcessor?.triggerMetricAggregations ?? this.triggerMetricAggregations,
 			connectorOverrides: executionParams.connectorOverrides,
 			// for other type of resources, the groups field contains the list of security group that can access the resouces
 			// so we can query all resources based on a group id (the implementation logic in @sif/resource-api-base module)
@@ -112,7 +121,7 @@ export class PipelineProcessorsService {
 
 		let updatedExecution;
 		switch (executionParams.mode) {
-			case 'inline' :
+			case 'inline':
 				updatedExecution = await this.inlineExecutionService.run(sc, pipeline, execution, executionParams.inlineExecutionOptions);
 				break;
 			case 'job':
@@ -149,7 +158,7 @@ export class PipelineProcessorsService {
 
 		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(securityContext));
 		if (pipeline.type === 'activities') {
-			throw new InvalidRequestError(`Pipeline ${pipeline.id} does not generate raw output file.`);
+			throw new ConflictError(`Pipeline ${pipeline.id} does not generate raw output file.`);
 		}
 
 		const pipelineExecution = await this.pipelineProcessorsRepository.get(executionId);
@@ -157,7 +166,7 @@ export class PipelineProcessorsService {
 
 		const params: GetObjectCommand = new GetObjectCommand({
 			Bucket: this.bucketName,
-			Key: getPipelineOutputKey(this.bucketPrefix, pipelineId, executionId),
+			Key: getPipelineOutputKey(this.bucketPrefix, pipelineId, executionId)
 		});
 		const signedUrl = await this.getSignedUrl(this.s3Client, params, { expiresIn: expiresIn });
 
@@ -178,7 +187,7 @@ export class PipelineProcessorsService {
 
 		const params: GetObjectCommand = new GetObjectCommand({
 			Bucket: this.bucketName,
-			Key: getPipelineErrorKey(this.bucketPrefix, pipelineId, executionId),
+			Key: getPipelineErrorKey(this.bucketPrefix, pipelineId, executionId)
 		});
 		const url = await this.getSignedUrl(this.s3Client, params, { expiresIn: expiresIn });
 
@@ -194,7 +203,7 @@ export class PipelineProcessorsService {
 
 		const params: PutObjectCommand = new PutObjectCommand({
 			Bucket: this.bucketName,
-			Key: getPipelineInputKey(this.bucketPrefix, pipeline.id, executionId, type),
+			Key: getPipelineInputKey(this.bucketPrefix, pipeline.id, executionId, type)
 		});
 
 		const url = await this.getSignedUrl(this.s3Client, params, { expiresIn });
@@ -224,11 +233,11 @@ export class PipelineProcessorsService {
 			pagination: {
 				count: options?.count,
 				from: {
-					paginationToken: options?.exclusiveStart?.paginationToken,
-				},
+					paginationToken: options?.exclusiveStart?.paginationToken
+				}
 			},
 			includeParentGroups: false,
-			includeChildGroups: false,
+			includeChildGroups: false
 		});
 
 		executions.push(...(await this.pipelineProcessorsRepository.listByIds(executionIds)));
@@ -253,7 +262,7 @@ export class PipelineProcessorsService {
 			...execution,
 			...params,
 			updatedBy: sc.email,
-			updatedAt: new Date(Date.now()).toISOString(),
+			updatedAt: new Date(Date.now()).toISOString()
 		});
 
 		await this.eventPublisher.publishTenantEvent({

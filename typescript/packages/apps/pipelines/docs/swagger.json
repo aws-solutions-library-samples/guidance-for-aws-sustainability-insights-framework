@@ -14,9 +14,10 @@
       }
     },
     "schemas": {
-      "tags": {
+      "def-0": {
         "description": "User-defined searchable tags",
         "type": "object",
+        "title": "tags",
         "additionalProperties": {
           "anyOf": [
             {
@@ -28,7 +29,7 @@
           ]
         }
       },
-      "newPipelineRequestBody": {
+      "def-1": {
         "type": "object",
         "properties": {
           "activeAt": {
@@ -120,6 +121,10 @@
           "processorOptions": {
             "type": "object",
             "properties": {
+              "triggerMetricAggregations": {
+                "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                "type": "boolean"
+              },
               "chunkSize": {
                 "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                 "minimum": 1,
@@ -297,9 +302,10 @@
           "name",
           "type",
           "transformer"
-        ]
+        ],
+        "title": "newPipelineRequestBody"
       },
-      "pipelineResource": {
+      "def-2": {
         "type": "object",
         "properties": {
           "_aggregatedOutputKeyAndTypeMap": {
@@ -368,6 +374,10 @@
           "processorOptions": {
             "type": "object",
             "properties": {
+              "triggerMetricAggregations": {
+                "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                "type": "boolean"
+              },
               "chunkSize": {
                 "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                 "minimum": 1,
@@ -623,9 +633,10 @@
           "state",
           "transformer",
           "version"
-        ]
+        ],
+        "title": "pipelineResource"
       },
-      "editPipelineRequestBody": {
+      "def-3": {
         "type": "object",
         "properties": {
           "activeAt": {
@@ -717,6 +728,10 @@
           "processorOptions": {
             "type": "object",
             "properties": {
+              "triggerMetricAggregations": {
+                "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                "type": "boolean"
+              },
               "chunkSize": {
                 "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                 "minimum": 1,
@@ -888,9 +903,10 @@
               ]
             }
           }
-        }
+        },
+        "title": "editPipelineRequestBody"
       },
-      "pipelineList": {
+      "def-4": {
         "type": "object",
         "properties": {
           "pipelines": {
@@ -964,6 +980,10 @@
                 "processorOptions": {
                   "type": "object",
                   "properties": {
+                    "triggerMetricAggregations": {
+                      "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                      "type": "boolean"
+                    },
                     "chunkSize": {
                       "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                       "minimum": 1,
@@ -1238,9 +1258,10 @@
         },
         "required": [
           "pipelines"
-        ]
+        ],
+        "title": "pipelineList"
       },
-      "pipelineVersionList": {
+      "def-5": {
         "type": "object",
         "properties": {
           "pipelines": {
@@ -1314,6 +1335,10 @@
                 "processorOptions": {
                   "type": "object",
                   "properties": {
+                    "triggerMetricAggregations": {
+                      "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                      "type": "boolean"
+                    },
                     "chunkSize": {
                       "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                       "minimum": 1,
@@ -1584,9 +1609,10 @@
         },
         "required": [
           "pipelines"
-        ]
+        ],
+        "title": "pipelineVersionList"
       },
-      "newMetricRequestBody": {
+      "def-6": {
         "type": "object",
         "properties": {
           "name": {
@@ -1644,9 +1670,10 @@
           "name",
           "summary",
           "aggregationType"
-        ]
+        ],
+        "title": "newMetricRequestBody"
       },
-      "metricResource": {
+      "def-7": {
         "type": "object",
         "properties": {
           "id": {
@@ -1783,9 +1810,10 @@
           "version",
           "createdAt",
           "createdBy"
-        ]
+        ],
+        "title": "metricResource"
       },
-      "editMetricRequestBody": {
+      "def-8": {
         "type": "object",
         "properties": {
           "summary": {
@@ -1843,9 +1871,10 @@
               "type": "string"
             }
           }
-        }
+        },
+        "title": "editMetricRequestBody"
       },
-      "metricList": {
+      "def-9": {
         "type": "object",
         "properties": {
           "metrics": {
@@ -2006,9 +2035,10 @@
         },
         "required": [
           "metrics"
-        ]
+        ],
+        "title": "metricList"
       },
-      "connector": {
+      "def-10": {
         "type": "object",
         "properties": {
           "createdAt": {
@@ -2127,9 +2157,10 @@
           "name",
           "type",
           "updatedAt"
-        ]
+        ],
+        "title": "connector"
       },
-      "connectorCreateParams": {
+      "def-11": {
         "type": "object",
         "properties": {
           "description": {
@@ -2214,9 +2245,10 @@
         "required": [
           "name",
           "type"
-        ]
+        ],
+        "title": "connectorCreateParams"
       },
-      "connectorUpdateParams": {
+      "def-12": {
         "type": "object",
         "properties": {
           "description": {
@@ -2292,9 +2324,10 @@
               }
             ]
           }
-        }
+        },
+        "title": "connectorUpdateParams"
       },
-      "connectorList": {
+      "def-13": {
         "type": "object",
         "properties": {
           "connectors": {
@@ -2437,7 +2470,8 @@
         },
         "required": [
           "connectors"
-        ]
+        ],
+        "title": "connectorList"
       }
     }
   },
@@ -2502,22 +2536,22 @@
             "description": "Tag key."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -2632,7 +2666,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/newPipelineRequestBody"
+                "$ref": "#/components/schemas/def-1"
               },
               "examples": {
                 "New Activities Pipeline Configuration": {
@@ -3015,22 +3049,22 @@
             "description": "Performs a dry run of creating the pipeline which includes all the validation steps."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -3099,7 +3133,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/pipelineResource"
+                  "$ref": "#/components/schemas/def-2"
                 },
                 "examples": {
                   "New pipeline": {
@@ -3359,22 +3393,22 @@
             "description": "Include all children groups result."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -3390,7 +3424,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/pipelineList"
+                  "$ref": "#/components/schemas/def-4"
                 },
                 "examples": {
                   "List of pipelines": {
@@ -3810,7 +3844,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/editPipelineRequestBody"
+                "$ref": "#/components/schemas/def-3"
               },
               "examples": {
                 "Update pipelines name and attribute": {
@@ -3943,22 +3977,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -4043,6 +4077,10 @@
                         "processorOptions": {
                           "type": "object",
                           "properties": {
+                            "triggerMetricAggregations": {
+                              "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+                              "type": "boolean"
+                            },
                             "chunkSize": {
                               "description": "The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.",
                               "minimum": 1,
@@ -4331,7 +4369,8 @@
                       "required": [
                         "headers",
                         "data"
-                      ]
+                      ],
+                      "title": "dryRunResponse"
                     }
                   ]
                 }
@@ -4412,22 +4451,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -4443,7 +4482,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/pipelineResource"
+                  "$ref": "#/components/schemas/def-2"
                 },
                 "examples": {
                   "Existing pipeline": {
@@ -4608,22 +4647,22 @@
             "description": "version number of the pipeline. The pipeline version is always incremented when there is an update to the pipeline configuration itself."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -4639,7 +4678,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/pipelineResource"
+                  "$ref": "#/components/schemas/def-2"
                 },
                 "examples": {
                   "Existing pipeline details": {
@@ -4812,22 +4851,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -4843,7 +4882,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/pipelineVersionList"
+                  "$ref": "#/components/schemas/def-5"
                 },
                 "examples": {
                   "List of pipelines": {
@@ -5280,22 +5319,22 @@
             "description": "Group id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -5382,22 +5421,22 @@
             "description": "Group id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -5469,7 +5508,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/newMetricRequestBody"
+                "$ref": "#/components/schemas/def-6"
               },
               "examples": {
                 "New Metric": {
@@ -5496,22 +5535,22 @@
         },
         "parameters": [
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -5526,7 +5565,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/metricResource"
+                  "$ref": "#/components/schemas/def-7"
                 },
                 "examples": {
                   "New metric": {
@@ -5726,22 +5765,22 @@
             "description": "Include all children groups result."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -5757,7 +5796,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/metricList"
+                  "$ref": "#/components/schemas/def-9"
                 },
                 "examples": {
                   "List of metrics": {
@@ -5889,7 +5928,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/editMetricRequestBody"
+                "$ref": "#/components/schemas/def-8"
               },
               "examples": {
                 "Update metrics name and attribute": {
@@ -5925,22 +5964,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -5955,7 +5994,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/metricResource"
+                  "$ref": "#/components/schemas/def-7"
                 }
               }
             }
@@ -6016,22 +6055,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -6047,7 +6086,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/metricResource"
+                  "$ref": "#/components/schemas/def-7"
                 },
                 "examples": {
                   "Existing metric": {
@@ -6131,22 +6170,22 @@
             "description": "version number of the Metric. The Metric version is incremented whenever there is an update to the Metric."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -6162,7 +6201,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/metricResource"
+                  "$ref": "#/components/schemas/def-7"
                 },
                 "examples": {
                   "Existing metric details": {
@@ -6255,22 +6294,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -6286,7 +6325,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/metricList"
+                  "$ref": "#/components/schemas/def-9"
                 },
                 "examples": {
                   "List of metrics": {
@@ -6435,22 +6474,22 @@
             "description": "Group id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -6537,22 +6576,22 @@
             "description": "Group id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -6624,7 +6663,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/connectorCreateParams"
+                "$ref": "#/components/schemas/def-11"
               },
               "examples": {
                 "New Pipeline connector Configuration": {
@@ -6655,22 +6694,22 @@
         },
         "parameters": [
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -6685,7 +6724,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/connector"
+                  "$ref": "#/components/schemas/def-10"
                 },
                 "examples": {
                   "New connector": {
@@ -6868,22 +6907,22 @@
             "description": "Include all children groups result."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -6899,7 +6938,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/connectorList"
+                  "$ref": "#/components/schemas/def-13"
                 },
                 "examples": {
                   "List of connectors": {
@@ -6965,22 +7004,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -6996,7 +7035,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/connector"
+                  "$ref": "#/components/schemas/def-10"
                 },
                 "examples": {
                   "Existing connector": {
@@ -7065,7 +7104,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/connectorUpdateParams"
+                "$ref": "#/components/schemas/def-12"
               },
               "examples": {
                 "Update Connector name and parameters": {
@@ -7102,22 +7141,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -7132,7 +7171,7 @@
               "application/json": {
                 "schema": {
                   "description": "Success.",
-                  "$ref": "#/components/schemas/connector"
+                  "$ref": "#/components/schemas/def-10"
                 }
               }
             }
@@ -7206,22 +7245,22 @@
             "description": "Group id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -7308,22 +7347,22 @@
             "description": "Group id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -7402,22 +7441,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -7495,22 +7534,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [
@@ -7588,22 +7627,22 @@
             "description": "Unique id."
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept-version",
             "required": true,
-            "description": "API version",
-            "schema": {
-              "type": "string"
-            }
+            "description": "API version"
           },
           {
+            "schema": {
+              "type": "string"
+            },
             "in": "header",
             "name": "accept",
             "required": true,
-            "description": "Accepted Content Type",
-            "schema": {
-              "type": "string"
-            }
+            "description": "Accepted Content Type"
           }
         ],
         "x-security-scopes": [

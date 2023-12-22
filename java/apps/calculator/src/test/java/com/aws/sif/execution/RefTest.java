@@ -58,7 +58,7 @@ public class RefTest extends CalculatorBaseTest {
 
     private static Stream<Arguments> providerForFailed() {
         return Stream.of(
-                Arguments.of("ref()", "Line 1:4 mismatched input ')' expecting {AS_TIMESTAMP, ASSIGN_TO_GROUP, GET_VALUE, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, CAML, SET, SPLIT, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
+                Arguments.of("ref()", "Line 1:4 mismatched input ')' expecting {AS_TIMESTAMP, ASSIGN_TO_GROUP, GET_VALUE, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, CAML, SET, SPLIT, SWITCH, UPPERCASE, SEARCH, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
                 Arguments.of("ref('one','two')", "Line 1:9 mismatched input ',' expecting {')', '+', '-', '*', '/', '^', '>', '>=', '<', '<=', '==', '!=', ' '}")
         );
     }

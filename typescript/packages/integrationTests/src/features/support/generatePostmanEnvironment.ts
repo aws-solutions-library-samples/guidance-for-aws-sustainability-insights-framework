@@ -11,15 +11,15 @@
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions
  *  and limitations under the License.
  */
-import { authorizeUser, getUrl, PostmanEnvironmentVariable } from './util';
+import { getUrl, PostmanEnvironmentVariable } from './util';
 import fs from 'fs';
 
 if (require.main === module) {
 	(async () => {
-		const [tenantId, environment, groupContext, username, password, newPassword] = process.argv.slice(2);
+		const [tenantId, environment] = process.argv.slice(2);
 
-		if (process.argv.length < 7) {
-			throw new Error('Missing arguments\r\nHow to run the command: \r\n> npm run generate:postman:environment -- <tenantId> <environment> <groupContext> <username> <password> <newPassword (optional)>');
+		if (process.argv.length < 3) {
+			throw new Error('Missing arguments\r\nHow to run the command: \r\n> npm run generate:postman:environment -- <tenantId> <environment>');
 		}
 
 		process.env['COGNITO_CLIENT_ID'] = (await getUrl(`/sif/${tenantId}/${environment}/shared/userPoolClientId`, '')).value;
@@ -56,9 +56,9 @@ if (require.main === module) {
 		postmanEnvironment.values.push(...apiEndpoints);
 
 		// Other referenced variables within the postman collection
-		const token = await authorizeUser(username, password, newPassword);
+		// const token = await authorizeUser(username, password, newPassword);
 		const otherVariables = {
-			group_context_id: groupContext,
+			group_context_id: '',
 			access_management_version: '1.0.0',
 			impacts_version: '1.0.0',
 			calculations_version: '1.0.0',
@@ -67,7 +67,7 @@ if (require.main === module) {
 			reference_datasets_version: '1.0.0',
 			pipeline_results_version: '1.0.0',
 			content_type: 'application/json',
-			authorization_token: token,
+			authorization_token: '',
 		};
 		for (const [key, value] of Object.entries(otherVariables)) {
 			postmanEnvironment.values.push({ key, value, type: 'default', enabled: true });

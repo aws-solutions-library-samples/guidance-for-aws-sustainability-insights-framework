@@ -2,67 +2,74 @@
 
 ## Introduction
 
-The _Access Management_ module has accountability for:
+The _Access Management_ module is responsible for:
 
-- Groups and permission management
-- User management
+- Managing groups and permissions
+- User administration
+- Authentication and authorization processes
 
-It allows for the creation of user defined groups that represent something significant to the customer by which
-permissions are managed. Examples include an organization business unit structure, internal team structure, end customer
-accounts and sub accounts, or any combination of.
+This module enables the creation of group hierarchies that typically represent an organization's reporting boundaries (e.g. [determining organizational boundaries](https://www.epa.gov/climateleadership/determine-organizational-boundaries#:~:text=The%20GHG%20inventory%20guidance%20documents,scope%201%20and%20scope%202.) for use with GHG Protocol), along with representing anything significant to an organization by which permissions would be managed (e.g. internal team structures).
 
-Groups are hierarchical (groups may have any number of sub groups, but a group may only have a single parent).
+Groups are structured hierarchically. While a group can have multiple sub-groups, it can only have one parent group.
 
-When users are created they are granted access to one or more of these groups along with a role assigned specific to
-that group. The supported roles are:
+Upon user creation, they are associated with one or more groups and assigned a specific role within each group. The roles available are:
 
 - `admin`
 - `contributor`
 - `reader`
 
-Out of the box, a global group `/` is automatically created which grants access to the entire platform. An administrator
-user is created (email to be provided at deployment time) and added as a member to the global `/` group with the `admin`
-role.
+For a breakdown of features available per role, refer to the respective module's Swagger documentation.
 
-It is recommended that sub-groups are created as needed to manage permissions rather than assigning all users (with
-exception of admins) to `/`.
+By default, a root group `/` is created, and an administrator user is added to this group with the `admin` role. This user's credentials are sent to the email provided during deployment.
 
-The following example grants `admin` access to the `/usa/northwest` group and all its child groups, and `contributor`
-access to the `/usa/southwest` group and all its child groups. It would not however grant any access to any other
-children of `/usa` such as `/usa/southeast`.
+For optimal permission management, it's recommended to set up group hierarchies as needed rather than assigning all users to the root group `/`. Group hierarchies should reflect the unique structure of each organization. Considering both broad organizational boundaries for GHG reporting and more detailed levels for permission management, example group hierarchy structures could include:
 
-**Follow [this](./docs/simpleTenant.md) example for a use-case specific walkthrough for a simple compartmentalized tenant onboarding**
+-  `/<holding company>/<subsidiary>/<geo>/<site>`
+-  `/<geo>/<subsidiary>/<site>/<team>`
+-  `/<business unit>/<site>/<team>`
 
-```json
-{
-	"email": "someone@somewhere.com",
-	"groups": {
-		"/usa/northwest": "admin",
-		"/usa/southwest": "contributor"
-	}
-}
-```
+Users must be associated with at least one group. For instance, a user with the `admin` role in `/acme corporation/acme plastics` can create sub-groups and users within that hierarchy. The same user, if granted the `reader` role in `/acme corporation/acme vehicle rentals`, would have read-only access to that hierarchy too.
+
+Assigning a user to a specific group grants them that role for all sub-groups within the same hierarchy. For example, a user with `reader` access to `/acme corporation/acme vehicle rentals` also has reader access to all its sub-groups.
+
+With SIF, all operations occur within the context of a group. Upon authentication, users are assigned a group in context based on their default group configuration.
+
+When using SIF modules, the group context is derived from the user's authentication token. However, this can be overridden in any REST API call by setting the `x-groupcontextid` request header with a `groupId`. This feature is handy when a user wants to operate in another authorized group without re-authenticating.
 
 ## REST API
 
-Refer to the [Swagger](./docs/swagger.json) for a detailed list of the available REST API endpoints.
+For a comprehensive list of available REST API endpoints and permissions, refer to the [Swagger documentation](./docs/swagger.json).
 
-## Walkthrough
+## Examples
 
-### Pre-requisite
+To obtain the required authorization token for API invocation, execute the following command:
 
-As part of the `guidance-for-aws-sustainability-insights-framework` deployment, a root (`/`) group and a user assigned to the group will be created by
-the [seed construct](../../../../infrastructure/tenant/src/accessManagement/accessManagementSeed.construct.ts).
+```shell
+sif instance auth -e <environment> -t <tenant> -g <group id> -u <username> -p <password>
+```
 
-You will need to log on as this admin user under the context of the root group to run the following examples.
+All examples assume the user is an admin of the root group `/`, derived from their authorization token. Alternatively, the `x-groupcontextid` header can be set to override the group context.
 
-### Example 1 - Creating a new sub-group
+When providing a groupId as part of a path or a query string, it must be url encoded. E.g., if needing to provide the groupId `/acme corporation`, its url encoded version `%2Facme%20corporation` should be used instead.
 
-Only `admin` of the group in context may create new groups.
+- [Creating a new group](#creating-a-new-group)
+- [Retrieve a group's details](#retrieve-a-groups-details)
+- [Retrieve list of groups](#retrieve-list-of-groups)
+- [Modify the description of a group](#modify-the-description-of-a-group)
+- [Disable a group](#disable-a-group)
+- [Delete a group](#delete-a-group)
+- [Create a user within a different group](#create-a-user-within-a-different-group)
+- [Retrieve details of a user](#retrieve-details-of-a-user)
+- [List users](#list-users)
+- [Change user password](#change-user-password)
+- [Deactivating a user](#deactivating-a-user)
+- [Deleting a user](#deleting-a-user)
 
-A sub-group can be created belonging to the root `/` group by running the following command:
+### Creating a new group
 
-#### Request
+Creates a new group named `Acme Corporation` belonging to the root group `/`. The new group will have the groupId `/acme corporation`.
+
+**Request**
 
 ```sh
 POST /groups
@@ -72,66 +79,63 @@ Content-Type: application/json
 Authorization: <INSERT TOKEN>
 
 {
-  "name": "USA"
+  "name": "Acme Corporation"
 }
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 201 Created
 Content-Type: application/json
 
 {
-    "id": "/usa",
-    "name": "USA",
+    "id": "/acme corporation",
+    "name": "Acme Corporation",
     "state": "active",
     "createdBy": "someone@example.com",
     "createdAt": "2022-10-27T01:08:18.407Z"
 }
 ```
 
-### Example 2 - Retrieve group details
+### Retrieve a group's details
 
-Only members of the group in context may retrieve details of a group.
+Retrieves details of the group `/acme corporation`.
 
-You can retrieve the detail of a group by running the following command.
 
-Note that whenever providing a group id as part of a path it must be url encoded, therefore the group `/usa` would be passed as `%2fusa`:
-
-#### Request
+**Request**
 
 
 ```sh
-GET /groups/<encoded_group_id>
+GET /groups/%2Facme%20corporation
 Accept: application/json
 Accept-Version: 1.0.0
 Authorization: <INSERT TOKEN>
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 200 OK
 Content-Type: application/json
 
 {
-	"id": "/usa",
-	"name": "USA",
-	"state": "active",
-	"createdBy": "someone@example.com",
-	"createdAt": "2022-10-27T01:08:18.407Z"
+    "id": "/acme corporation",
+    "name": "Acme Corporation",
+    "state": "active",
+    "createdBy": "someone@example.com",
+    "createdAt": "2022-10-27T01:08:18.407Z"
 }
 
 ```
 
-### Example 3 - Retrieve list of sub-groups
+### Retrieve list of groups
 
-Only members of the group in context may list its sub-groups.
+Lists all sub-groups of `/`.
 
-You can list all the groups that have been created in the systems by running the following command:
 
-#### Request
+
+**Request**
 
 ```sh
 GET /groups
@@ -140,71 +144,70 @@ Accept-Version: 1.0.0
 Authorization: <INSERT TOKEN>
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 200 OK
 Content-Type: application/json
 
 {
-    "groups": [
-        {
-            "id": "/usa",
-            "name": "USA",
-            "state": "active",
-            "createdBy": "someone@example.com",
-            "createdAt": "2022-10-27T01:08:18.407Z"
-        }
-    ]
+  "groups": [
+     {
+      "id": "/acme corporation",
+      "name": "Acme Corporation",
+      "state": "active",
+      "createdBy": "someone@example.com",
+      "createdAt": "2022-10-27T01:08:18.407Z"
+    }
+  ]
 }
 ```
 
-### Example 4 - Modify the description of a group
+### Modify the description of a group
 
-Only `admin` of the group in context may modify the detail of the group.
+Sets the description of group `/acme corporation`.
 
-You can modify the group description by issuing the following command:
-
-#### Request
+**Request**
 
 ```sh
 
-PATCH /groups/<encoded_group_id>
+PATCH /groups/%2Facme%20corporation
 Accept: application/json
 Accept-Version: 1.0.0
 Content-Type: application/json
 Authorization: <INSERT TOKEN>
 
 {
-  "description": "group USA has been modified"
+  "description": "this group has been modified"
 }
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 200 OK
 Content-Type: application/json
 
 {
-
-    "id": "/usa",
-    "description": "group USA has been modified",
-    "updatedBy": "someone@example.com",
-    "updatedAt": "2022-10-27T01:54:32.084Z"
+  "id": "/acme corporation",
+  "name": "Acme Corporation",
+  "description": "this group has been modified"
+  "state": "active",
+  "createdBy": "someone@example.com",
+  "createdAt": "2022-10-27T01:08:18.407Z",
+  "updatedBy": "someone@example.com",
+  "updatedAt": "2022-10-27T01:54:32.084Z"
 }
 ```
 
-### Example 5 - Set group state To disabled (prior to deletion)
+### Disable a group
 
-Only `admin` of the group in context may modify `state` of the group.
+Disable the group `/acme corporation` which will prevent anyone from logging into the group.
 
-You can set the group state to `disabled` by issuing the following command:
-
-#### Request
+**Request**
 
 ```sh
-PATCH /groups/<encoded_group_id>
+PATCH /groups/%2Facme%20corporation
 Accept: application/json
 Accept-Version: 1.0.0
 Content-Type: application/json
@@ -215,51 +218,47 @@ Authorization: <INSERT TOKEN>
 }
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 200 OK
 Content-Type: application/json
 
 {
-    "id": "/usa",
-    "state": "disabled",
-    "updatedBy": "someone@example.com",
-    "updatedAt": "2022-10-27T01:54:32.084Z"
+  "id": "/acme corporation",
+  "name": "Acme Corporation",
+  "state": "disabled",
+  "createdBy": "someone@example.com",
+  "createdAt": "2022-10-27T01:08:18.407Z",
+  "updatedBy": "someone@example.com",
+  "updatedAt": "2022-10-27T01:54:32.084Z"
 }
 ```
 
-### Example 6 - Delete group
+### Delete a group
 
-A group must be disabled before it can be deleted (see example 5).
+A group must be disabled (see example 5), as well as no longer having users associated, before it can be deleted.
 
-Only `admin` of the group in context may delete the group.
-
-You can delete the group from the system by running the following command:
-
-#### Request
+**Request**
 
 ```sh
-DELETE /groups/<encoded_group_id>
+DELETE /groups/%2Facme%20corporation
 Accept: application/json
 Accept-Version: 1.0.0
 Authorization: <INSERT TOKEN>
 ```
 
-#### Response
+**Response**
 
 ```
 HTTP: 204 No Content
 ```
 
-### Example 7 - Create user in a group
+### Create a user within a different group
 
-To run all the examples below, we will log on using our admin user under the group `/usa` that we had created in the
-previous example. Only users with role `reader` and above can list all users in context.
+Creates the user `someoneelse@example.com` as a `contributor` to the group `/acme corporation` which is different to the group `/` that the caller is logged into by overriding the group in context using the `x-groupcontextid` header.
 
-You can create user under the `/usa` group by running the following command:
-
-#### Request
+**Request**
 
 ```sh
 POST /users
@@ -267,69 +266,65 @@ Accept: application/json
 Accept-Version: 1.0.0
 Content-Type: application/json
 Authorization: <INSERT TOKEN>
+x-groupcontextid: /acme corporation
 
 {
-  "email": "your@user.com",
+  "email": "someoneelse@example.com",
   "role": "contributor"
 }
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 200 OK
 Content-Type: application/json
 
 {
-    "email": "your@user.com",
+    "email": "someoneelse@example.com",
     "state": "invited",
     "groups": {
-        "/usa": "contributor"
+        "/acme corporation": "contributor"
     },
     "createdAt": "2022-10-27T02:25:40.237Z",
     "createdBy": "someone@example.com"
 }
 ```
 
-### Example 8 - Retrieve details of a user
+### Retrieve details of a user
 
-Only users with role `reader` and above can retrieve details of an existing user.
+Retrieves the details of `someoneelse@example.com`.
 
-You can retrieve a user's details by running the following command. Note that the email will need to be url encoded as its provided as part of the url path,
-e.g. `your%40user.com` is the url encoding of `your@user.com`:
-
-#### Request
+**Request**
 
 ```sh
-GET /users/<encoded_email>
+GET /users/someoneelse%40example.com
 Accept: application/json
 Accept-Version: 1.0.0
 Authorization: <INSERT TOKEN>
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 200 OK
 Content-Type: application/json
 
 {
-	"email": "your@user.com",
-	"state": "invited",
-	"groups": {
-		"/usa": "contributor"
-	},
-	"createdAt": "2022-10-27T02:25:40.237Z"
+    "email": "someoneelse@example.com",
+    "state": "invited",
+    "groups": {
+        "/": "contributor"
+    },
+    "createdAt": "2022-10-27T02:25:40.237Z",
+    "createdBy": "someone@example.com"
 }
 ```
 
-### Example 9 - List all users for the group in context
+### List users
 
-Only users with role `reader` and above can list all users in context.
-
-You can list all the users by running the following command:
-
-#### Request
+Lists all users associated with the group `/` in context.
+**Request**
 
 ```sh
 GET /users
@@ -338,7 +333,7 @@ Accept-Version: 1.0.0
 Authorization: <INSERT TOKEN>
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 200 OK
@@ -347,37 +342,26 @@ Content-Type: application/json
 {
     "users": [
         {
-            "email": "your@user.com",
+            "email": "someoneelse@example.com",
             "state": "invited",
             "groups": {
-                "/usa": "contributor"
+                "/": "contributor"
             },
-            "createdAt": "2022-10-27T02:25:40.237Z"
-        },
-        {
-            "email": "someone@example.com",
-            "state": "active",
-            "groups": {
-                "/": "admin"
-            },
-            "createdAt": "2022-10-05T00:21:27.477Z",
-            "createdBy": "installer"
+            "createdAt": "2022-10-27T02:25:40.237Z",
+            "createdBy": "someone@example.com"
         }
     ]
 }
 ```
 
-### Example 10 - Modify user password
+### Change user password
 
-Only users with role `reader` and above can update their own password. Users with `admin` role may update any user
-status where they are themselves an admin of all the groups the user is a member of.
+Update the password of "someoneelse@example.com".
 
-You can update the user password by running the following command:
-
-#### Request
+**Request**
 
 ```sh
-PATCH /users/<encoded_email>
+PATCH /users/someoneelse%40example.com
 Accept: application/json
 Accept-Version: 1.0.0
 Content-Type: application/json
@@ -388,60 +372,61 @@ Authorization: <INSERT TOKEN>
 }
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 204 No Content
 ```
 
-### Set user To inactive
+### Deactivating a user
 
-Only users with role `admin` can set user to inactive.
+Deactivating the user "someoneelse@example.com" so that user would no longer be able to log in.
 
-You can disable a user by running the following command:
 
-#### Request
+**Request**
 
 ```sh
-PATCH /users/<encoded_email>
+PATCH /users/someoneelse%40example.com
 Accept: application/json
 Accept-Version: 1.0.0
 Content-Type: application/json
 Authorization: <INSERT TOKEN>
 
 {
-  "state": "inactive"
+  "state": "disabled"
 }
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 204 No Content
 ```
 
-### Delete user
+### Deleting a user
 
-Only users with role `admin` can set user to delete user.
+Deleting the user "someoneelse@example.com".
 
-You can disable user by running the following command:
-
-#### Request
+**Request**
 
 ```sh
-DELETE /users/<encoded_email>
+DELETE /users/someoneelse%40example.com
 Accept: application/json
 Accept-Version: 1.0.0
 Authorization: <INSERT TOKEN>
 ```
 
-#### Response
+**Response**
 
 ```sh
 HTTP: 204 No Content
 ```
 
-## High Level Architecture
+## Deeper Dive
 
-![hla](docs/images/access-management.hla-physical-runtime.drawio.png)
+If you'd like to delve deeper into the design and implementation of the Access Management module:
 
+- Refer to the [High Level Architecture](../../../../docs/design.md#access-Management) to grasp how we utilize various AWS services.
+- For detailed insights on our authentication process, check out the [Cognito implementation](./docs/cognito.md).
+- To learn about our data structure and storage, view the [Data Layer Design](./docs/datalayer.md).
+- Our approach to granting authorization to resources is explained in[Managing Resource Group Authorization](./docs/resourceGroupMembership.md)

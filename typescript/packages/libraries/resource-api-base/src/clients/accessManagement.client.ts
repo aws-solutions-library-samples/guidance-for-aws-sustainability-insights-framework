@@ -49,6 +49,32 @@ export class AccessManagementClient {
 		return subGroupIds;
 	}
 
+	public async getGroup(groupId: string): Promise<Group> {
+		this.log.debug(`AccessManagementClient> getGroup> in> groupId: ${groupId}`);
+		const event = new LambdaApiGatewayEventBuilder()
+			.setMethod('GET')
+			.setPath(`/groups/${encodeURIComponent(groupId)}`)
+			.setHeaders({
+				Accept: 'application/json',
+				'Accept-Version': '1.0.0',
+				'Content-Type': 'application/json',
+				'x-groupcontextid': `${groupId}`,
+			})
+			.setRequestContext({
+				authorizer: {
+					claims: {
+						email: 'resourceManagementLibrary',
+						'cognito:groups': `/|||reader`,
+						groupContextId: `${groupId}`,
+					},
+				},
+			});
+		this.log.debug(`AccessManagementClient> getGroup> event:${JSON.stringify(event)}`);
+		const data = await this.invoker.invoke(process.env['ACCESS_MANAGEMENT_FUNCTION_NAME'] as string, event);
+		this.log.debug(`AccessManagementClient> getGroup> data:${JSON.stringify(data)}`);
+		return data.body as Group;
+	}
+
 	public async listGroups(parentGroupId: string, fromToken?: string): Promise<ListGroupsResponse> {
 		this.log.debug(`AccessManagementClient> listGroups> in> parentGroupId:${parentGroupId}, fromToken:${fromToken}`);
 		const event = new LambdaApiGatewayEventBuilder()
@@ -120,6 +146,27 @@ export interface ListGroupsResponse {
 	groupIds: string[];
 	lastEvaluatedToken?: string;
 }
+
+interface Group {
+	id: string,
+	name: string,
+	description: string,
+	state: 'active' | 'disabled',
+	createdAt: string,
+	createdBy: string,
+	updatedAt: string
+	configuration?: {
+		referenceDatasets?: {
+			alwaysUseLatest?: boolean
+		},
+		preferredGroup?: string,
+		pipelineProcessor?: {
+			chunkSize?: number,
+			triggerMetricAggregations?: boolean,
+		},
+	}
+}
+
 
 interface Groups {
 	groups: {

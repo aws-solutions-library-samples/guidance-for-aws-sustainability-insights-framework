@@ -23,18 +23,36 @@ import createExecutionErrorDownloadUrlRoute from './api/executions/createErrorUr
 import createExecutionOutputDownloadUrlRoute from './api/executions/createOutputDownloadUrl.handler.js';
 import getPipelineExecutionRoute from './api/executions/getExecution.handler.js';
 import listPipelineExecutionsRoute from './api/executions/listExecutions.handler.js';
-import { pipelineExecutionFull, pipelineExecutionList, pipelineExecutionRequest, signedUrlListResponse, signedUrlRequest, signedUrlResponse, signedUrlUploadInputRequest } from './api/executions/schemas.js';
+import listMetricAggregationJobsRoute from './api/aggregations/list.handler.js';
+import startMetricAggregationJobRoute from './api/aggregations/start.handler.js';
+import createMetricAggregationJob from './api/aggregations/create.handler.js';
+import deleteMetricAggregationJobRoute from './api/aggregations/delete.handler.js';
+
+import {
+	pipelineExecutionFull,
+	pipelineExecutionList,
+	pipelineExecutionRequest,
+	signedUrlListResponse,
+	signedUrlRequest,
+	signedUrlResponse,
+	signedUrlUploadInputRequest
+} from './api/executions/schemas.js';
 import awilix from './plugins/module.awilix.js';
 import config from './plugins/config.js';
 import swagger from './plugins/swagger.js';
-import { activitiesList, activityResource } from './api/activities/schemas.js';
+import { activitiesDownload, activitiesDownloadList, activitiesList, activityResource, newActivitiesDownload } from './api/activities/schemas.js';
 import listActivitiesRoute from './api/activities/list.handler.js';
-import { metricResource, metricsList } from './api/metrics/schemas.js';
+import { metricResource, metricsList, newMetricsDownload, metricsDownloadList, metricsDownload } from './api/metrics/schemas.js';
 import listMetricsRoute from './api/metrics/list.handler.js';
 import { tags } from '@sif/resource-api-base';
 import createExecution from './api/executions/createExecution.js';
 import getPipelineAuditExecutionExportRoute from './api/executions/getAuditExecutionExport.handler.js';
+import createActivitiesDownloadRoute from './api/activities/createActivitiesDownload.handler.js';
+import getActivitiesDownloadRoute from './api/activities/getActivitiesDownload.handler.js';
+import createMetricsDownloadRoute from './api/metrics/createMetricsDownload.handler.js';
+import getMetricsDownloadRoute from './api/metrics/getMetricsDownload.handler.js';
 import cors from '@fastify/cors';
+import { newMetricAggregationJob, metricAggregationJob, metricAggregationJobList, startMetricAggregationJob } from './api/aggregations/schemas.js';
 
 export const buildApp = async (): Promise<FastifyInstance> => {
 	const environment = process.env['NODE_ENV'] as string;
@@ -96,6 +114,10 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	app.addSchema(signedUrlListResponse);
 	app.addSchema(auditResource);
 	app.addSchema(auditList);
+	app.addSchema(metricAggregationJob);
+	app.addSchema(metricAggregationJobList);
+	app.addSchema(startMetricAggregationJob);
+	app.addSchema(newMetricAggregationJob);
 
 	// register all routes
 	await app.register(createExecutionErrorDownloadUrlRoute);
@@ -103,7 +125,11 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 	await app.register(getPipelineExecutionRoute);
 	await app.register(listPipelineExecutionsRoute);
 	await app.register(createExecution);
+	await app.register(createMetricAggregationJob);
+	await app.register(deleteMetricAggregationJobRoute);
 	await app.register(listActivityAuditsRoute);
+	await app.register(listMetricAggregationJobsRoute);
+	await app.register(startMetricAggregationJobRoute);
 
 	app.addSchema(activityResource);
 	app.addSchema(activitiesList);
@@ -111,9 +137,21 @@ export const buildApp = async (): Promise<FastifyInstance> => {
 
 	app.addSchema(metricResource);
 	app.addSchema(metricsList);
-	await app.register(listMetricsRoute);
-	await app.register(getPipelineAuditExecutionExportRoute)
 
+	await app.register(listMetricsRoute);
+	await app.register(getPipelineAuditExecutionExportRoute);
+
+	app.addSchema(newActivitiesDownload);
+	app.addSchema(activitiesDownload);
+	app.addSchema(activitiesDownloadList);
+	await app.register(createActivitiesDownloadRoute);
+	await app.register(getActivitiesDownloadRoute);
+
+	app.addSchema(newMetricsDownload);
+	app.addSchema(metricsDownload);
+	app.addSchema(metricsDownloadList);
+	await app.register(createMetricsDownloadRoute);
+	await app.register(getMetricsDownloadRoute);
 
 	return app as unknown as FastifyInstance;
 };

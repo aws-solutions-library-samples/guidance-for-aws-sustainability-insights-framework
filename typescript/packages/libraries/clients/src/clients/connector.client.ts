@@ -118,4 +118,25 @@ export class ConnectorClient extends ClientServiceBase {
 		this.log.info(`ConnectorClient> delete> exit> result: ${JSON.stringify(result)}`);
 		return;
 	}
+
+	public async update(connectorId:string, updatedConnector: NewConnector, requestContext?: LambdaRequestContext): Promise<Connector> {
+		this.log.info(`ConnectorClient> update> in> connector: ${updatedConnector}`);
+
+		const additionalHeaders = {};
+
+		if (requestContext.authorizer.claims.groupContextId) {
+			additionalHeaders['x-groupcontextid'] = requestContext.authorizer.claims.groupContextId;
+		}
+
+		const event: LambdaApiGatewayEventBuilder = new LambdaApiGatewayEventBuilder()
+			.setMethod('PATCH')
+			.setRequestContext(requestContext)
+			.setHeaders(super.buildHeaders(additionalHeaders))
+			.setBody(updatedConnector)
+			.setPath(`connectors/${connectorId}`);
+
+		const result = await this.lambdaInvoker.invoke(this.pipelineFunctionName, event);
+		this.log.info(`ConnectorClient> update> exit> result: ${JSON.stringify(result)}`);
+		return result.body as Connector;
+	}
 }

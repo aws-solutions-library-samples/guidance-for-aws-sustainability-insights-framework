@@ -14,36 +14,43 @@
 import type { BaseLogger } from 'pino';
 import { validateHasSome, validateNotEmpty } from '@sif/validators';
 import { atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
-import { UnauthorizedError } from '@sif/resource-api-base';
-import type { Pipeline, PipelineClient, LambdaRequestContext } from '@sif/clients';
-import type { PipelineProcessorsService } from '../executions/service.js';
+import { InvalidRequestError, UnauthorizedError } from '@sif/resource-api-base';
+import type { Pipeline, LambdaRequestContext, PipelineClient } from '@sif/clients';
 import type { PipelineExecution } from '../executions/schemas.js';
-import type { QueryRequest, QueryResponse } from './models.js';
+import type { ActivitiesDownloadStatus, DownloadQueryRequest, PipelineMetadata, QueryRequest, QueryResponse } from './models.js';
 import type { ActivitiesRepository } from './repository.js';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
-import { getPipelineMetadata } from '../../utils/helper.utils.js';
+import { HOUR_IN_SECONDS, getQueriesDownloadStatusKey, getPipelineMetadata } from '../../utils/helper.utils.js';
+import { ulid } from 'ulid';
+import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
+import { GetObjectCommand, ListObjectsCommand, ListObjectsCommandInput, PutObjectCommand, type S3Client } from '@aws-sdk/client-s3';
+import type { GetSignedUrl } from '../../plugins/module.awilix.js';
+import type { ActivitiesDownloadList } from './schemas.js';
+import type { ActivityDownloadTaskResponse } from '../../stepFunction/tasks/model.js';
+import type { PipelineProcessorsService } from '../executions/service.js';
+import type { AuroraStatus, PlatformResourceUtility } from '../../utils/platformResource.utility.js';
+import { AuroraResourceName } from '../../utils/platformResource.utility.js';
 
 dayjs.extend(utc);
 
 export class ActivityService {
-	private readonly log: BaseLogger;
-	private readonly repo: ActivitiesRepository;
-	private readonly authChecker: GroupPermissions;
-	private readonly pipelineClient: PipelineClient;
-	private readonly pipelineProcessorService: PipelineProcessorsService;
-
-	public constructor(log: BaseLogger, repo: ActivitiesRepository, authChecker: GroupPermissions, pipelineClient, pipelineProcessorService) {
-		this.log = log;
-		this.repo = repo;
-		this.authChecker = authChecker;
-		this.pipelineClient = pipelineClient;
-		this.pipelineProcessorService = pipelineProcessorService;
+	public constructor(private log: BaseLogger,
+					   private repo: ActivitiesRepository,
+					   private authChecker: GroupPermissions,
+					   private pipelineClient: PipelineClient,
+					   private pipelineProcessorService: PipelineProcessorsService,
+					   private sqsQueueUrl: string,
+					   private sqsClient: SQSClient,
+					   private s3Client: S3Client,
+					   private bucketName: string,
+					   private bucketPrefix: string,
+					   private getSignedUrl: GetSignedUrl,
+					   private platformResourceUtility: PlatformResourceUtility) {
 	}
 
-	public async getActivities(sc: SecurityContext, req: QueryRequest): Promise<QueryResponse> {
-		this.log.debug(`ActivityService> query> req: ${JSON.stringify(req)}`);
-
+	private validateQueryRequest(sc: SecurityContext, req: QueryRequest) {
+		this.log.debug(`ActivityService> validateQueryRequest> req: ${JSON.stringify(req)}`);
 		const isAuthorized = this.authChecker.isAuthorized([sc.groupId], sc.groupRoles, atLeastReader, 'any');
 		if (!isAuthorized) {
 			throw new UnauthorizedError(`The caller is not authorized of the group in context \`${JSON.stringify(sc.groupId)}`);
@@ -56,15 +63,17 @@ export class ActivityService {
 		if (req.showHistory) {
 			validateNotEmpty(req.date, 'date');
 		}
+	}
 
+	private async getPipelineMetadata(sc: SecurityContext, req: QueryRequest): Promise<[PipelineMetadata, QueryRequest]> {
 		const requestContext: LambdaRequestContext = {
 			authorizer: {
 				claims: {
 					email: '',
 					'cognito:groups': `${sc.groupId}|||reader`,
-					groupContextId: sc.groupId,
-				},
-			},
+					groupContextId: sc.groupId
+				}
+			}
 		};
 
 		// get the pipeline, so we can figure out what are its outputs
@@ -96,19 +105,106 @@ export class ActivityService {
 			req.attributes = req.uniqueKeyAttributes;
 		}
 
-		const result = await this.repo.get(req, pipelineMetadata);
+		return [pipelineMetadata, req];
+	}
 
+	public async getActivities(sc: SecurityContext, req: QueryRequest): Promise<QueryResponse> {
+		this.log.debug(`ActivityService> query> req: ${JSON.stringify(req)}`);
+		this.validateQueryRequest(sc, req);
+		await this.platformResourceUtility.checkPlatformResourceState<AuroraStatus>(AuroraResourceName, 'available');
+		const [pipelineMetadata, transformedRequest] = await this.getPipelineMetadata(sc, req);
+		const result = await this.repo.get(transformedRequest, pipelineMetadata);
 		this.log.info(`ActivityService> query> exit:`);
 		return result;
 	}
 
 	private async getPipelineExecution(executionId: string, sc: SecurityContext): Promise<PipelineExecution> {
-		this.log.debug(`ActivitiesRepository> getPipelineExecution executionId:${executionId}`);
-
+		this.log.debug(`ActivityService> getPipelineExecution executionId:${executionId}`);
 		let execution = await this.pipelineProcessorService.get(sc, executionId);
-
-		this.log.debug(`ActivitiesRepository> getPipelineExecution out> execution:${JSON.stringify(execution)}`);
-
+		this.log.debug(`ActivityService> getPipelineExecution out> execution:${JSON.stringify(execution)}`);
 		return execution;
+	}
+
+	public async getActivitiesDownload(sc: SecurityContext, id: string, expiresIn = HOUR_IN_SECONDS): Promise<ActivitiesDownloadList | undefined> {
+		this.log.debug(`ActivityService> getActivitiesDownload> id: ${JSON.stringify(id)}`);
+		const isAuthorized = this.authChecker.isAuthorized([sc.groupId], sc.groupRoles, atLeastReader, 'any');
+		if (!isAuthorized) {
+			throw new UnauthorizedError(`The caller is not authorized of the group in context \`${JSON.stringify(sc.groupId)}`);
+		}
+
+		const statusResponse = await this.s3Client.send(new GetObjectCommand({
+			Bucket: this.bucketName,
+			Key: getQueriesDownloadStatusKey(this.bucketPrefix, id)
+		}));
+
+		const activitiesDownloadStatus: ActivitiesDownloadStatus = JSON.parse(await statusResponse.Body.transformToString());
+
+		const results: ActivitiesDownloadList = {
+			downloads: []
+		};
+		switch (activitiesDownloadStatus.state) {
+			case 'success':
+				const input: ListObjectsCommandInput = {
+					Bucket: this.bucketName,
+					Prefix: `${this.bucketPrefix}/${id}/`
+				};
+
+				const files = await this.s3Client.send(new ListObjectsCommand(input));
+
+				if (files?.Contents) {
+					const csvFiles = files.Contents?.filter(c => c.Key.endsWith('.csv'));
+					// eslint-disable-next-line @typescript-eslint/no-for-in-array, guard-for-in
+					for (const file of csvFiles) {
+						const params: GetObjectCommand = new GetObjectCommand({
+							Bucket: this.bucketName,
+							Key: file.Key
+						});
+						const url = await this.getSignedUrl(this.s3Client, params, { expiresIn: expiresIn });
+						results.downloads.push({ url });
+					}
+				}
+				break;
+			case 'failed':
+				throw new InvalidRequestError(`Could not create activities download for query ${id}, error: ${activitiesDownloadStatus.errorMessage}`);
+			default:
+				break;
+		}
+		return results;
+	}
+
+	public async createActivitiesDownload(sc: SecurityContext, req: DownloadQueryRequest): Promise<string> {
+		this.log.debug(`ActivityService> createActivitiesDownload> req: ${JSON.stringify(req)}`);
+		this.validateQueryRequest(sc, req);
+		await this.platformResourceUtility.checkPlatformResourceState<AuroraStatus>(AuroraResourceName, 'available');
+		const [pipelineMetadata, transformedRequest] = await this.getPipelineMetadata(sc, req);
+		const payload: ActivityDownloadTaskResponse = {
+			id: ulid().toLowerCase(),
+			type: 'activity',
+			state: 'in_progress',
+			activityRequest: {
+				queryRequest: transformedRequest,
+				pipelineMetadata
+			}
+		};
+
+		await Promise.all([
+			this.s3Client.send(new PutObjectCommand({
+				Bucket: this.bucketName,
+				Key: getQueriesDownloadStatusKey(this.bucketPrefix, payload.id), Body: JSON.stringify({
+					state: 'in_progress'
+				})
+			})),
+			this.sqsClient.send(new SendMessageCommand({
+				QueueUrl: this.sqsQueueUrl,
+				MessageBody: JSON.stringify(payload),
+				MessageAttributes: {
+					messageType: {
+						DataType: 'String',
+						StringValue: `ActivitiesDownload`
+					}
+				}
+			}))]);
+		this.log.debug(`ActivityService> createActivitiesDownload> exit> id: ${payload.id}`);
+		return payload.id;
 	}
 }

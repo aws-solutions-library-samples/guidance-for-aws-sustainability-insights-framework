@@ -49,7 +49,7 @@ export class AuroraSeeder extends Construct {
 	public tenantSecret: DatabaseSecret;
 	public tenantDatabaseUsername: string;
 
-	constructor(scope: Construct, id: string, props?: AuroraSeederConstructProperties) {
+	constructor(scope: Construct, id: string, props: AuroraSeederConstructProperties) {
 		super(scope, id);
 		const namePrefix = `sif-${props.tenantId}-${props.environment}`;
 

@@ -11,6 +11,8 @@
  *  and limitations under the License.
  */
 
+import type { FastifyReply } from 'fastify';
+
 export class FileError extends Error {
 	public constructor(message: string) {
 		super(message);
@@ -32,7 +34,7 @@ export class TimeoutError extends Error {
 	}
 }
 
-export async function errorHandler(error, _request, reply) {
+export async function errorHandler(error, _request, reply: FastifyReply) {
 	// Log error
 	this.log.error(`***** error: ${JSON.stringify(error)}`);
 	this.log.error(`***** error.code: ${error.code}`);
@@ -47,11 +49,15 @@ export async function errorHandler(error, _request, reply) {
 		switch (error.name) {
 			case 'InvalidFileHeaderError':
 			case 'InvalidRequestError':
+			case 'InvalidRequest':
 			case 'InvalidParameterError':
 			case 'CalculatorDryRunError':
 				return reply.badRequest(error.message);
+			case 'ConflictError':
 			case 'AuditFilePendingError':
-				return reply.noCone;
+				return reply.conflict(error.message);
+			case 'ServiceUnavailableError':
+				return reply.serviceUnavailable(error.message);
 			case 'TransformerDefinitionError':
 				return reply.badRequest(error.message);
 			case 'UnauthorizedError':

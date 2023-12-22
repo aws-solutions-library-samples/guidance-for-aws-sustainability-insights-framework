@@ -12,12 +12,12 @@
  */
 
 import { Construct } from 'constructs';
-import { Table } from 'aws-cdk-lib/aws-dynamodb';
+import type { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { DynamoDBSeeder, Seeds } from '@sif/cdk-common';
 import { createDelimitedAttribute } from '@sif/dynamodb-utils';
 
 export interface SemaphoreSeederConstructProperties {
-	tableName: string;
+	table: Table;
 	lockName: string;
 }
 
@@ -30,15 +30,13 @@ export class SemaphoreSeeder extends Construct {
 	constructor(scope: Construct, id: string, props: SemaphoreSeederConstructProperties) {
 		super(scope, id);
 
-		const table = Table.fromTableName(this, 'Table', props.tableName);
-
 		new DynamoDBSeeder(this, 'DatabaseSeeder', {
-			table,
+			table: props.table,
 			seeds: Seeds.fromInline([
 				{
 					pk: createDelimitedAttribute(PkType.Lock, props.lockName),
 					currentLockCount: 0
-				}]),
+				}])
 		});
 
 	}

@@ -17,9 +17,9 @@ export class DatabaseSeederContainer {
 
 	constructor(
 		private logger: Logger, private ecsClient: ECSClient,
-		private ecsClusterArn, private ecsTaskRoleArn, private ecsTaskDefinitionArn,
-		private containerSubnets, private containerSecurityGroup,
-		private rdsProxyEndpoint, private platformUserName) {
+		private ecsClusterArn: string, private ecsTaskRoleArn: string, private ecsTaskDefinitionArn: string,
+		private containerSubnets: string[], private containerSecurityGroup: string,
+		private rdsProxyEndpoint: string, private platformUserName: string, private caCertificate: string) {
 	}
 
 	public async runTask(callbackUrl: string, tenantUsername: string, tenantDatabaseName: string, assetBucket: string, assetPath: string) {
@@ -44,6 +44,10 @@ export class DatabaseSeederContainer {
 							{
 								name: 'RDS_PROXY_ENDPOINT',
 								value: this.rdsProxyEndpoint
+							},
+							{
+								name: 'CA_CERTIFICATE',
+								value: this.caCertificate
 							},
 							{
 								name: 'PLATFORM_USERNAME',

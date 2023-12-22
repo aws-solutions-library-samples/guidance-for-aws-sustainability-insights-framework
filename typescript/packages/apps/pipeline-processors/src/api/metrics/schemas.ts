@@ -12,7 +12,7 @@
  */
 
 import { Kind, Static, Type } from '@sinclair/typebox';
-import { stringEnum } from '@sif/resource-api-base';
+import { stringEnum, id } from '@sif/resource-api-base';
 import { TimeUnits } from './models.js';
 
 /**
@@ -98,3 +98,29 @@ export const metricVersionsList = Type.Object(
 	{ $id: 'metricVersionsList' }
 );
 export type MetricVersionsList = Static<typeof metricVersionsList>;
+
+export const newMetricsDownload = Type.Object(
+	{
+		id,
+	},
+	{ $id: 'newMetricsDownload' }
+);
+
+export const metricsDownload = Type.Object(
+	{
+		url: Type.Optional(Type.String({ description: 'requested metrics download file signed url' })),
+	},
+	{ $id: 'metricsDownload' }
+);
+
+export const metricsDownloadList = Type.Object(
+	{
+		downloads: Type.Array(Type.Ref(metricsDownload )),
+	},
+	{ $id: 'metricsDownloadList' }
+);
+
+export type NewMetricsDownload = Static<typeof newMetricsDownload>
+
+export type MetricsDownload = Static<typeof metricsDownload>
+export type MetricsDownloadList = Static<typeof metricsDownloadList>

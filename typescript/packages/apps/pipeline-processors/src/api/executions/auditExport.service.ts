@@ -53,7 +53,9 @@ export class ExecutionAuditExportService {
 		const execution = await this.pipelineProcessorsService.get(sc, executionId);
 		// ensure user has access to the pipeline execution
 		this.utils.validatePipelineExecutionAccess(execution, sc.groupId);
-
+		// ensure audit records are ready to export
+		this.utils.validateExecutionAuditComplete(execution);
+		
 		// check to see if an export archive has already been previously generated
 		const auditExportFileKey = await this.exportUtility.getAuditExportFileKey(pipelineId, executionId);
 		let archiveUrl;

@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/dynamodb-seeder",
+      "comment": "",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/dynamodb-seeder"
+}

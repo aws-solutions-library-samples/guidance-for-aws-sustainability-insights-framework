@@ -2,6 +2,23 @@
   "name": "@sif/deployment-helper",
   "entries": [
     {
+      "version": "0.6.0",
+      "tag": "@sif/deployment-helper_v0.6.0",
+      "date": "Wed, 13 Dec 2023 02:37:36 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "remove logic that utilise IAM to allow it to work inside vpc with no public subnet"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.8.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "0.5.2",
       "tag": "@sif/deployment-helper_v0.5.2",
       "date": "Thu, 17 Aug 2023 02:44:14 GMT",

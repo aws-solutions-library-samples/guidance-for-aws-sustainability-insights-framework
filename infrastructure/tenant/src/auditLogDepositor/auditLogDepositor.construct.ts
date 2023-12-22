@@ -26,6 +26,7 @@ import { CfnStream } from 'aws-cdk-lib/aws-kinesis';
 import { Effect, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { CfnDeliveryStream } from 'aws-cdk-lib/aws-kinesisfirehose';
 import { getLambdaArchitecture } from '@sif/cdk-common';
+import { CfnPrincipalPermissions } from 'aws-cdk-lib/aws-lakeformation';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +37,7 @@ export interface AuditLogDepositorConstructProperties {
 	bucketName: string;
 	auditLogsTableName: string;
 	auditLogsDatabaseName: string;
+	auditLogFirehoseFlushTimeInSeconds: number;
 	kmsKeyArn: string;
 	customResourceProviderToken: string;
 }
@@ -263,7 +265,7 @@ export class AuditLogDepositorModule extends Construct {
 
 		new StringParameter(this, 'DataStreamNameParameter', {
 			parameterName: auditLogDepositorDataStreamNameParameter(props.tenantId, props.environment),
-			stringValue: kinesisDataStream.name,
+			stringValue: kinesisDataStream.name!,
 		});
 
 		new StringParameter(this, 'DataStreamArnParameter', {
@@ -362,6 +364,20 @@ export class AuditLogDepositorModule extends Construct {
 			],
 		}));
 
+		new CfnPrincipalPermissions(this, 'GranDataLakePermissionsToRole_audit-logs-v1', {
+			permissions: ['ALTER', 'DESCRIBE'],
+			permissionsWithGrantOption: ['ALTER', 'DESCRIBE'],
+			principal: {
+				dataLakePrincipalIdentifier: deliveryStreamRole.roleArn,
+			},
+			resource: {
+				table: {
+					catalogId: accountId,
+					databaseName: props.auditLogsDatabaseName,
+					name: `${props.auditLogsTableName}-v1`,
+				},
+			},
+		});
 
 		var deliveryStreamName = `${namePrefix}-auditLogDepositor-delivery-stream`;
 
@@ -408,7 +424,7 @@ export class AuditLogDepositorModule extends Construct {
 				prefix: 'pipelines/!{partitionKeyFromQuery:pipelineId}/executions/!{partitionKeyFromQuery:executionId}/audit/',
 				errorOutputPrefix: 'pipelines/deliveryFailures/!{firehose:error-output-type}',
 				bufferingHints: {
-					intervalInSeconds: 60,
+					intervalInSeconds: props.auditLogFirehoseFlushTimeInSeconds,
 					sizeInMBs: 64,
 				},
 

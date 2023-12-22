@@ -1,6 +1,6 @@
 # Mkdocs
 
-The documentation is structured in a way to be navigatable from within different repositories (e.g. browsing via github). Mkdocs is an optional way of viewing this documentation by extracting the docs into a browseable site.
+The documentation is structured in a way to be navigable from within different repositories (e.g. browsing via github). Mkdocs is an optional way of viewing this documentation by extracting the docs into a browseable site.
 
 ## Initial setup
 

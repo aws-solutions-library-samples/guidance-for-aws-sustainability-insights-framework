@@ -21,11 +21,13 @@ import { Duration, Fn } from 'aws-cdk-lib';
 import { fileURLToPath } from 'url';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import * as cdk from 'aws-cdk-lib';
-import { Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
+import { Port, SecurityGroup, Vpc, SubnetFilter } from 'aws-cdk-lib/aws-ec2';
 import { Policy, PolicyStatement, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import type { DatabaseSecret } from 'aws-cdk-lib/aws-rds';
 import { NagSuppressions } from 'cdk-nag';
 import { getLambdaArchitecture } from '@sif/cdk-common';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { vpcIdParameter, privateSubnetIdsParameter } from './sharedTenant.stack.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,20 +51,20 @@ export interface DeploymentHelperConstructProperties {
 	ecsTaskExecutionRoleArn: string;
 	auditLogsDatabaseName: string;
 	auditLogsTableName: string;
+	caCertificate: string;
 }
 
 export const customResourceProviderTokenParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/shared/customResourceProviderToken`;
 
 export class DeploymentHelper extends Construct {
-	constructor(scope: Construct, id: string, props?: DeploymentHelperConstructProperties) {
+	constructor(scope: Construct, id: string, props: DeploymentHelperConstructProperties) {
 		super(scope, id);
 		const namePrefix = `sif-${props.tenantId}-${props.environment}`;
 
-		const vpc = Vpc.fromVpcAttributes(this, 'vpc', {
-			vpcId: props.vpcId,
-			availabilityZones: cdk.Fn.getAzs(),
-			privateSubnetIds: props.privateSubnetIds
-		});
+		const vpcId = StringParameter.valueFromLookup(this, vpcIdParameter(props.environment));
+		const vpc = Vpc.fromLookup(this, 'vpc', { vpcId });
+
+		const privateSubnetIds = StringParameter.valueFromLookup(this, privateSubnetIdsParameter(props.environment)).split(',');
 
 		const rdsSecurityGroup = SecurityGroup.fromSecurityGroupId(this, 'RdsProxySecurityGroup', props.rdsProxySecurityGroupId);
 
@@ -108,6 +110,7 @@ export class DeploymentHelper extends Construct {
 			environment: {
 				NODE_ENV: props.environment,
 				TENANT_ID: props.tenantId,
+				CA_CERTIFICATE: props.caCertificate,
 				PLATFORM_USERNAME: props.platformUsername,
 				ENVIRONMENT: props.environment,
 				RDS_PROXY_ENDPOINT: props.rdsProxyEndpoint,
@@ -122,7 +125,7 @@ export class DeploymentHelper extends Construct {
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
 			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT
+				subnetFilters: [SubnetFilter.byIds(privateSubnetIds)],
 			},
 
 			bundling: {
@@ -138,8 +141,8 @@ export class DeploymentHelper extends Construct {
 			architecture: getLambdaArchitecture(scope),
 		});
 
-		taskRole.grantPassRole(deploymentHelperLambda.role);
-		taskExecutionRole.grantPassRole(deploymentHelperLambda.role);
+		taskRole.grantPassRole(deploymentHelperLambda.role!);
+		taskExecutionRole.grantPassRole(deploymentHelperLambda.role!);
 
 		deploymentHelperLambda.role?.attachInlinePolicy(
 			new Policy(this, 'update-glue-table', {

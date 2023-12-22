@@ -1,6 +1,21 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:37 GMT and should not be manually modified.
+
+## 7.18.0
+Wed, 13 Dec 2023 02:37:37 GMT
+
+### Minor changes
+
+- include version information in cloudoformation tags
+- modify the subnet selection to use subnet name to ensure resources are deployed to the same subnet
+
+## 7.17.1
+Tue, 10 Oct 2023 14:45:33 GMT
+
+### Patches
+
+- Static config for firehose delivery delay
 
 ## 7.17.0
 Thu, 17 Aug 2023 02:44:14 GMT

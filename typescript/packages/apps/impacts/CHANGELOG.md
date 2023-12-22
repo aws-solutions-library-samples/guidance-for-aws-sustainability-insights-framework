@@ -1,6 +1,13 @@
 # Change Log - @sif/impacts
 
-This log was last generated on Fri, 21 Jul 2023 23:58:18 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:36 GMT and should not be manually modified.
+
+## 4.5.2
+Wed, 13 Dec 2023 02:37:36 GMT
+
+### Patches
+
+- updated documentation
 
 ## 4.5.1
 Fri, 21 Jul 2023 23:58:18 GMT

@@ -13,6 +13,7 @@
 		"ignoreDeprecations": "5.0",
 		// overrides of extends
 		"strict": false,
+		"strictNullChecks": true,
 		"exactOptionalPropertyTypes": false
 	},
 	"include": [

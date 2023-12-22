@@ -16,7 +16,6 @@ import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from '../../app.light';
 import type { ImpactCreationTaskHandler } from '../tasks/model.js';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { GetSecurityContext } from '../../plugins/module.awilix.js';
 import type { ImpactCreationTask } from '../tasks/impactCreationTask.js';
 import { validateNotEmpty } from '@sif/validators';
 
@@ -24,17 +23,17 @@ const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 const task = di.resolve<ImpactCreationTask>('impactCreationTask');
 const service = di.resolve<PipelineProcessorsService>('pipelineProcessorsService');
-const getSecurityContext = di.resolve<GetSecurityContext>('getSecurityContext');
 
 export const handler: ImpactCreationTaskHandler = async (event, _context, _callback): Promise<void> => {
 	app.log.debug(`impactCreationTask > handler > event:${JSON.stringify(event)}`);
 	validateNotEmpty(event, 'event');
-	validateNotEmpty(event[0].executionId, 'executionId');
-	validateNotEmpty(event[0].pipelineId, 'pipelineId');
-	const { executionId, pipelineId } = event[0];
+	validateNotEmpty(event.executionId, 'executionId');
+	validateNotEmpty(event.pipelineId, 'pipelineId');
+	validateNotEmpty(event.security, 'security');
+	const { executionId, pipelineId, security } = event;
 	// create the impact factors
 	const [status, statusMessage] = await task.process(event);
 	// set the status
-	await service.update(await getSecurityContext(executionId), pipelineId, executionId, { status, statusMessage });
+	await service.update(security, pipelineId, executionId, { status, statusMessage });
 	app.log.debug(`impactCreationTask > handler > exit:`);
 };

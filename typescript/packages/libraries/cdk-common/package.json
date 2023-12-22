@@ -1,6 +1,6 @@
 {
 	"name": "@sif/cdk-common",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "CDK constructs and shared utilities",
 	"author": "Edmund Chute <echute@amazon.com>",
 	"exports": {
@@ -24,7 +24,10 @@
 		"aws-lambda": "1.0.7",
 		"@aws-sdk/client-dynamodb": "3.370.0",
 		"@aws-sdk/client-s3": "3.370.0",
-		"@aws-sdk/lib-dynamodb": "3.370.0"
+		"@aws-sdk/client-sts": "3.370.0",
+		"@aws-sdk/lib-dynamodb": "3.370.0",
+		"octokit": "3.1.0",
+		"shelljs": "0.8.5"
 	},
 	"devDependencies": {
 		"cdk-nag": "2.27.73",

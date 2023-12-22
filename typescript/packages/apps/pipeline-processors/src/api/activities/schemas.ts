@@ -12,6 +12,7 @@
  */
 
 import { Static, Type } from '@sinclair/typebox';
+import { id } from '@sif/resource-api-base';
 
 /**
  * Activity specific path parameters
@@ -96,7 +97,6 @@ export const activitiesList = Type.Object(
 	},
 	{ $id: 'activitiesList' }
 );
-export type ActivitiesList = Static<typeof activitiesList>;
 
 export const activityVersionsList = Type.Object(
 	{
@@ -113,3 +113,31 @@ export type ActivityVersionsList = Static<typeof activityVersionsList>;
 
 export const versionParam = Type.Optional(Type.String({ description: 'specify the version number or latest to retrieve latest data.', default: 'latest' }));
 
+export const newActivitiesDownload = Type.Object(
+	{
+		id,
+	},
+	{ $id: 'newActivitiesDownload' }
+);
+
+export const activitiesDownload = Type.Object(
+	{
+		url: Type.Optional(Type.String({ description: 'requested activities download file signed url' })),
+	},
+	{ $id: 'activitiesDownload' }
+);
+
+export const activitiesDownloadList = Type.Object(
+	{
+		downloads: Type.Array(Type.Ref(activitiesDownload)),
+	},
+	{ $id: 'activitiesDownloadList' }
+);
+
+export type ActivitiesDownloadList = Static<typeof activitiesDownloadList>;
+
+export type ActivitiesList = Static<typeof activitiesList>;
+
+export type NewActivitiesDownload = Static<typeof newActivitiesDownload>
+
+export type ActivitiesDownload = Static<typeof activitiesDownload>

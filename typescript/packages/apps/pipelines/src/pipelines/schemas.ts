@@ -122,12 +122,13 @@ const transformer = Type.Object(
 );
 
 const processorOptions = Type.Object({
+	triggerMetricAggregations: Type.Optional(Type.Boolean({ description: 'If set to true, metrics aggregation will be triggered after inserting activity data' })),
 	chunkSize: Type.Optional(
 		Type.Number({
 			description: 'The size in MB to split the input file to allow parallel processing of the task. The size has to be larger than 1 MB and smaller than 5MB.',
 			minimum: 1,
 			maximum: 5,
-		})
+		}),
 	),
 });
 

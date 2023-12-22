@@ -1,3 +1,5 @@
+TODO: reference
+
 # Events
 
 Async communication between modules is handled via EventBridge acting as the event bus.

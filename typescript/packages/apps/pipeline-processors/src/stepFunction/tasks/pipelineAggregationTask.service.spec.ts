@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import type { Pipeline, PipelineClient } from '@sif/clients';
+import type { Pipeline, PipelineClient, SecurityContext } from '@sif/clients';
 import pino from 'pino';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MockProxy, mock } from 'vitest-mock-extended';
@@ -29,10 +29,12 @@ describe('PipelineAggregationTaskService', () => {
 	let mockedAggregationUtil: MockProxy<AggregationUtil>;
 	let underTest: PipelineAggregationTaskService;
 
+	const securityContext: SecurityContext = { groupId: '/tests' } as SecurityContext;
+
 	beforeEach(() => {
 		const logger = pino(
 			pino.destination({
-				sync: true, // test frameworks must use pino logger in sync mode!
+				sync: true // test frameworks must use pino logger in sync mode!
 			})
 		);
 		logger.level = 'info';
@@ -49,8 +51,8 @@ describe('PipelineAggregationTaskService', () => {
 			_aggregatedOutputKeyAndTypeMap: {},
 			transformer: {
 				transforms: [],
-				parameters: [],
-			},
+				parameters: []
+			}
 		} as unknown as Pipeline);
 		mockedActivitiesRepository.getAffectedTimeRange.mockResolvedValue({ from: new Date(), to: new Date() });
 	});
@@ -60,20 +62,21 @@ describe('PipelineAggregationTaskService', () => {
 			data: Array.from({ length: 1000 }, (value: string) => {
 				return { id: value };
 			}),
-			nextToken: 10,
+			nextToken: 10
 		});
 
 		mockedActivitiesRepository.aggregateRaw.mockResolvedValueOnce({ data: [], nextToken: undefined });
 		mockedAggregationUtil.getExecutionGroups.mockResolvedValueOnce(['/group/subgroup1']);
 
 		const testEvent: ProcessedTaskEvent = {
-			groupContextId: '/tests',
 			executionId: 'execution-1',
 			pipelineId: 'pipeline-1',
 			requiresAggregation: true,
-			sequence: 0,
 			pipelineType: 'activities',
-			metricQueue: []
+			metricQueue: [],
+			sequenceList: [],
+			errorLocationList: [],
+			security: securityContext
 		};
 
 		await underTest.process(testEvent);
@@ -86,19 +89,20 @@ describe('PipelineAggregationTaskService', () => {
 			data: Array.from({ length: 1000 }, (value: string) => {
 				return { id: value };
 			}),
-			nextToken: undefined,
+			nextToken: undefined
 		});
 		mockedActivitiesRepository.get.mockResolvedValueOnce({ data: [], nextToken: undefined });
 		mockedAggregationUtil.getExecutionGroups.mockResolvedValueOnce(['/group/subgroup1']);
 
 		const testEvent: ProcessedTaskEvent = {
-			groupContextId: '/tests',
 			executionId: 'execution-1',
 			pipelineId: 'pipeline-1',
 			requiresAggregation: true,
 			pipelineType: 'activities',
-			sequence: 0,
-			metricQueue: []
+			metricQueue: [],
+			sequenceList: [],
+			errorLocationList: [],
+			security: securityContext
 		};
 
 		await underTest.process(testEvent);
@@ -111,19 +115,20 @@ describe('PipelineAggregationTaskService', () => {
 			data: Array.from({ length: 1000 }, (value: string) => {
 				return { id: value };
 			}),
-			nextToken: undefined,
+			nextToken: undefined
 		});
 		mockedActivitiesRepository.get.mockResolvedValue({ data: [], nextToken: undefined });
-		mockedAggregationUtil.getExecutionGroups.mockResolvedValueOnce(['/group/subgroup1','/group/subgroup2']);
+		mockedAggregationUtil.getExecutionGroups.mockResolvedValueOnce(['/group/subgroup1', '/group/subgroup2']);
 
 		const testEvent: ProcessedTaskEvent = {
-			groupContextId: '/tests',
 			pipelineType: 'activities',
 			executionId: 'execution-1',
 			pipelineId: 'pipeline-1',
 			requiresAggregation: true,
-			sequence: 0,
-			metricQueue: []
+			sequenceList: [],
+			errorLocationList: [],
+			metricQueue: [],
+			security: securityContext
 		};
 
 		await underTest.process(testEvent);
@@ -133,13 +138,14 @@ describe('PipelineAggregationTaskService', () => {
 
 	it('Should skip aggregation if pipeline does not have aggregation configured', async () => {
 		const testEvent: ProcessedTaskEvent = {
-			groupContextId: '/tests',
 			executionId: 'execution-1',
 			pipelineId: 'pipeline-1',
 			requiresAggregation: false,
 			pipelineType: 'activities',
-			sequence: 0,
-			metricQueue: []
+			sequenceList: [],
+			errorLocationList: [],
+			metricQueue: [],
+			security: securityContext
 		};
 
 		await underTest.process(testEvent);

@@ -1,7 +1,7 @@
 {
 	"name": "@sif/clean-rooms-pipeline-input-connector",
 	"description": "SIF: connector for retrieving data from AWS Clean Rooms.",
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"author": "William Sia <willsia@amazon.com>",
 	"type": "module",
 	"scripts": {

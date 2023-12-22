@@ -13,14 +13,14 @@
 
 import { Aspects, Duration, Fn, RemovalPolicy, Stack } from 'aws-cdk-lib';
 import { Function, Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
-import { Port, SecurityGroup, SubnetType, Vpc } from 'aws-cdk-lib/aws-ec2';
+import { Port, SecurityGroup, Vpc, SubnetFilter, SubnetSelection } from 'aws-cdk-lib/aws-ec2';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { Construct } from 'constructs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
-import { LogLevel, Parallel, StateMachine, CustomState, Wait, Choice, WaitTime, Condition, Fail, Pass, IntegrationPattern, TaskInput, JsonPath, Succeed } from 'aws-cdk-lib/aws-stepfunctions';
-import { EventBridgePutEvents, LambdaInvoke, SqsSendMessage, } from 'aws-cdk-lib/aws-stepfunctions-tasks';
+import { Choice, Condition, CustomState, DefinitionBody, IntegrationPattern, JsonPath, LogLevel, Parallel, Pass, StateMachine, Succeed, TaskInput, Wait, WaitTime } from 'aws-cdk-lib/aws-stepfunctions';
+import { EventBridgePutEvents, LambdaInvoke, SqsSendMessage, StepFunctionsStartExecution } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { AttributeType, BillingMode, ProjectionType, StreamViewType, Table, TableEncryption } from 'aws-cdk-lib/aws-dynamodb';
 import { AccessLogFormat, AuthorizationType, CfnMethod, CognitoUserPoolsAuthorizer, Cors, EndpointType, LambdaRestApi, LogGroupLogDestination, MethodLoggingLevel } from 'aws-cdk-lib/aws-apigateway';
@@ -29,11 +29,11 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import { UserPool } from 'aws-cdk-lib/aws-cognito';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { vpcIdParameter } from '../shared/sharedTenant.stack.js';
+import { vpcIdParameter, privateSubnetIdsParameter } from '../shared/sharedTenant.stack.js';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { NagSuppressions } from 'cdk-nag';
-import { PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT } from '@sif/events';
+import { PIPELINE_CONNECTOR_SETUP_EVENT, PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT } from '@sif/events';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { getLambdaArchitecture } from '@sif/cdk-common';
 
@@ -70,6 +70,7 @@ export interface PipelineProcessorsConstructProperties {
 	metricStorage: string;
 	auditLogsTableName: string;
 	auditLogsDatabaseName: string;
+	auditLogWaitTimeSeconds: number;
 	activityInsertQueueArn: string;
 	acquireLockSqsQueueArn: string;
 	releaseLockSqsQueueArn: string;
@@ -77,8 +78,12 @@ export interface PipelineProcessorsConstructProperties {
 	auditVersion: string;
 	tableName: string;
 	workerQueueArn: string;
+	triggerMetricAggregations: boolean;
+	kinesisTemplateBucket: string;
+	kinesisTemplateKey: string;
 }
 
+export const auroraClusterStatusParameterName = (environment: string) => `/sif/shared/${environment}/aurora-cluster/status`;
 export const pipelineProcessorApiUrlParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiUrl`;
 export const pipelineProcessorApiNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiName`;
 export const pipelineProcessorApiFunctionArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/apiFunctionArn`;
@@ -91,6 +96,7 @@ export const metricsTableNameParameter = (tenantId: string, environment: string)
 export const taskQueueUrlParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/taskQueueUrl`;
 export const insertActivityQueueUrlParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/insertActivityQueueUrl`;
 export const pipelineProcessorTaskNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/taskName`;
+export const activityDownloadStateMachineArnParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/pipeline-processor/activityDownloadStateMachineArn`;
 export const INLINE_PROCESSING_ROWS_LIMIT = '100';
 
 enum DatabaseTask {
@@ -98,6 +104,7 @@ enum DatabaseTask {
 	InsertActivityLatestValues = 'InsertActivityLatestValues',
 	AggregateMetrics = 'AggregateMetrics',
 	AggregatePipelineOutput = 'AggregatePipelineOutput',
+	ActivityDownload = 'ActivityDownload'
 }
 
 export class PipelineProcessors extends Construct {
@@ -118,6 +125,8 @@ export class PipelineProcessors extends Construct {
 		const vpcId = StringParameter.valueFromLookup(this, vpcIdParameter(props.environment));
 		const vpc = Vpc.fromLookup(this, 'vpc', { vpcId });
 
+		const privateSubnetIds = StringParameter.valueFromLookup(this, privateSubnetIdsParameter(props.environment)).split(',');
+		const vpcSubnets: SubnetSelection = { subnetFilters: [SubnetFilter.byIds(privateSubnetIds)] };
 		const bucketPrefix = 'pipelines';
 		const bucket = Bucket.fromBucketName(this, 'Bucket', props.bucketName);
 
@@ -126,13 +135,13 @@ export class PipelineProcessors extends Construct {
 
 		new StringParameter(this, 'pipelineProcessorBucketPrefixParameter', {
 			parameterName: pipelineProcessorBucketPrefixParameter(props.tenantId, props.environment),
-			stringValue: bucketPrefix,
+			stringValue: bucketPrefix
 		});
 
 		const rdsSecurityGroup = SecurityGroup.fromSecurityGroupId(this, 'RdsProxySecurityGroup', props.rdsProxySecurityGroupId);
 
 		let lambdaToRDSProxyGroup = new SecurityGroup(this, 'Lambda to RDS Proxy Connection', {
-			vpc: vpc,
+			vpc: vpc
 		});
 
 		rdsSecurityGroup.addIngressRule(lambdaToRDSProxyGroup, Port.tcp(5432), 'allow lambda connection');
@@ -147,7 +156,7 @@ export class PipelineProcessors extends Construct {
 			ACTIVITIES_NUMBER_VALUE_TABLE_NAME: props.activityNumberValueTableName,
 			ACTIVITIES_STRING_VALUE_TABLE_NAME: props.activityStringValueTableName,
 			ACTIVITIES_BOOLEAN_VALUE_TABLE_NAME: props.activityBooleanValueTableName,
-			ACTIVITIES_DATETIME_VALUE_TABLE_NAME: props.activityDateTimeValueTableName,
+			ACTIVITIES_DATETIME_VALUE_TABLE_NAME: props.activityDateTimeValueTableName
 		};
 
 		const accountId = Stack.of(this).account;
@@ -155,7 +164,7 @@ export class PipelineProcessors extends Construct {
 
 		const rdsProxyPolicy = new PolicyStatement({
 			actions: ['rds-db:connect'],
-			resources: [`arn:aws:rds-db:${region}:${accountId}:dbuser:${Fn.select(6, Fn.split(':', props.rdsProxyArn))}/${props.tenantDatabaseUsername}`],
+			resources: [`arn:aws:rds-db:${region}:${accountId}:dbuser:${Fn.select(6, Fn.split(':', props.rdsProxyArn))}/${props.tenantDatabaseUsername}`]
 		});
 
 
@@ -165,10 +174,9 @@ export class PipelineProcessors extends Construct {
 		});
 
 		const SFNGetExecutionHistoryPolicy = new PolicyStatement({
-			actions: ['states:GetExecutionHistory'],
+			actions: ['states:GetExecutionHistory', 'states:DescribeExecution'],
 			resources: [`arn:aws:states:${region}:${accountId}:execution:sif-${props.tenantId}-${props.environment}-activityPipeline:*`]
 		});
-
 
 		/**
 		 * Define the DynamoDB config table
@@ -176,7 +184,7 @@ export class PipelineProcessors extends Construct {
 
 		const tableV2 = Table.fromTableAttributes(this, 'TableV2', {
 			tableName: props.tableName,
-			globalIndexes: ['siKey1-pk-index', 'siKey2-pk-index'],
+			globalIndexes: ['siKey1-pk-index', 'siKey2-pk-index']
 		});
 		const workerQueue = Queue.fromQueueArn(this, 'WorkerQueue', props.workerQueueArn);
 
@@ -184,36 +192,36 @@ export class PipelineProcessors extends Construct {
 			tableName: `${namePrefix}-pipelineProcessors`,
 			partitionKey: {
 				name: 'pk',
-				type: AttributeType.STRING,
+				type: AttributeType.STRING
 			},
 			sortKey: {
 				name: 'sk',
-				type: AttributeType.STRING,
+				type: AttributeType.STRING
 			},
 			billingMode: BillingMode.PAY_PER_REQUEST,
 			encryption: TableEncryption.AWS_MANAGED,
 			pointInTimeRecovery: true,
 			removalPolicy: RemovalPolicy.DESTROY,
 			stream: StreamViewType.NEW_AND_OLD_IMAGES,
-			timeToLiveAttribute: 'ttl',
+			timeToLiveAttribute: 'ttl'
 		});
 
 		tableV1.addGlobalSecondaryIndex({
 			indexName: 'sk-pk-index',
 			partitionKey: {
 				name: 'sk',
-				type: AttributeType.STRING,
+				type: AttributeType.STRING
 			},
 			sortKey: {
 				name: 'pk',
-				type: AttributeType.STRING,
+				type: AttributeType.STRING
 			},
-			projectionType: ProjectionType.ALL,
+			projectionType: ProjectionType.ALL
 		});
 
 		new StringParameter(this, 'pipelineProcessorTableNameParameter', {
 			parameterName: pipelineProcessorTableNameParameter(props.tenantId, props.environment),
-			stringValue: tableV2.tableName,
+			stringValue: tableV2.tableName
 		});
 
 		/**
@@ -223,16 +231,16 @@ export class PipelineProcessors extends Construct {
 			tableName: `${namePrefix}-pipelineMetrics`,
 			partitionKey: {
 				name: 'pk',
-				type: AttributeType.STRING,
+				type: AttributeType.STRING
 			},
 			sortKey: {
 				name: 'sk1',
-				type: AttributeType.STRING,
+				type: AttributeType.STRING
 			},
 			billingMode: BillingMode.PAY_PER_REQUEST,
 			encryption: TableEncryption.AWS_MANAGED,
 			pointInTimeRecovery: true,
-			removalPolicy: RemovalPolicy.DESTROY,
+			removalPolicy: RemovalPolicy.DESTROY
 		});
 
 		metricsTable.addLocalSecondaryIndex({
@@ -240,13 +248,13 @@ export class PipelineProcessors extends Construct {
 			projectionType: ProjectionType.ALL,
 			sortKey: {
 				name: 'sk2',
-				type: AttributeType.STRING,
-			},
+				type: AttributeType.STRING
+			}
 		});
 
 		new StringParameter(this, 'pipelineMetricsTableNameParameter', {
 			parameterName: metricsTableNameParameter(props.tenantId, props.environment),
-			stringValue: metricsTable.tableName,
+			stringValue: metricsTable.tableName
 		});
 
 		const verificationLambda = new NodejsFunction(this, 'ProcessorResourceVerificationLambda', {
@@ -271,7 +279,7 @@ export class PipelineProcessors extends Construct {
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				TENANT_ID: props.tenantId,
-				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName
 			},
 
 			bundling: {
@@ -281,15 +289,17 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		tableV2.grantReadWriteData(verificationLambda);
 		bucket.grantReadWrite(verificationLambda);
 		pipelineLambda.grantInvoke(verificationLambda);
+
+		const insertActivityQueue = Queue.fromQueueArn(this, 'calculatorInsertActivityQueue', props.activityInsertQueueArn);
 
 		const calculationLambda = new NodejsFunction(this, 'ProcessorCalculatorLambda', {
 			description: `Pipeline Processors Calculator Task Handler: Tenant ${props.tenantId}`,
@@ -306,12 +316,13 @@ export class PipelineProcessors extends Construct {
 				EVENT_BUS_NAME: props.eventBusName,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
+				ACTIVITY_QUEUE_URL: insertActivityQueue.queueUrl,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				TABLE_NAME: tableV2.tableName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
-				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName
 			},
 			bundling: {
 				minify: true,
@@ -320,16 +331,27 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		bucket.grantReadWrite(calculationLambda);
 		calculatorLambda.grantInvoke(calculationLambda);
+		calculationLambda.addToRolePolicy(new PolicyStatement({
+			sid: 'stepfunction',
+			effect: Effect.ALLOW,
+			actions: [
+				'states:SendTaskSuccess',
+				'states:SendTaskFailure',
+				'states:DescribeExecution'
+			],
+			resources: ['*']
+		}));
 		tableV2.grantReadWriteData(calculationLambda);
 		pipelineLambda.grantInvoke(calculationLambda);
+		insertActivityQueue.grantSendMessages(calculationLambda);
 
 		const resultProcessorLambda = new NodejsFunction(this, 'ProcessorResultProcessorLambda', {
 			description: `Pipeline Processors Resource Verification Task Handler: Tenant ${props.tenantId}`,
@@ -352,7 +374,7 @@ export class PipelineProcessors extends Construct {
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
-				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName
 			},
 			bundling: {
 				minify: true,
@@ -361,10 +383,10 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		tableV2.grantReadWriteData(resultProcessorLambda);
@@ -394,13 +416,11 @@ export class PipelineProcessors extends Construct {
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
-				...auroraEnvironmentVariables,
+				...auroraEnvironmentVariables
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
-			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT,
-			},
+			vpcSubnets,
 			bundling: {
 				minify: true,
 				format: OutputFormat.ESM,
@@ -408,16 +428,62 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		bucket.grantReadWrite(pipelineAggregationLambda);
 		tableV2.grantReadData(pipelineAggregationLambda);
 		pipelineLambda.grantInvoke(pipelineAggregationLambda);
 		pipelineAggregationLambda.addToRolePolicy(rdsProxyPolicy);
+
+		const saveAggregationJobLambda = new NodejsFunction(this, 'SaveAggregationJobLambda', {
+			description: `Save Aggregation Job Task Handler: Tenant ${props.tenantId}`,
+			entry: path.join(__dirname, '../../../../typescript/packages/apps/pipeline-processors/src/stepFunction/handlers/saveAggregationJob.handler.ts'),
+			functionName: `${namePrefix}-saveAggregationJob-task`,
+			runtime: Runtime.NODEJS_18_X,
+			tracing: Tracing.ACTIVE,
+			memorySize: 256,
+			logRetention: RetentionDays.ONE_WEEK,
+			timeout: Duration.minutes(2),
+			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
+				NODE_ENV: props.environment,
+				ACCESS_MANAGEMENT_FUNCTION_NAME: props.accessManagementApiFunctionName,
+				EVENT_BUS_NAME: props.eventBusName,
+				TABLE_NAME: tableV2.tableName,
+				BUCKET_NAME: bucket.bucketName,
+				BUCKET_PREFIX: bucketPrefix,
+				METRIC_STORAGE: props.metricStorage,
+				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
+				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
+				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
+				METRICS_TABLE_NAME: metricsTable.tableName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
+				...auroraEnvironmentVariables
+			},
+			securityGroups: [lambdaToRDSProxyGroup],
+			vpc,
+			vpcSubnets,
+			bundling: {
+				minify: true,
+				format: OutputFormat.ESM,
+				target: 'node18.16',
+				sourceMap: false,
+				sourcesContent: false,
+				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+				externalModules: ['aws-sdk', 'pg-native']
+			},
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope)
+		});
+
+		bucket.grantReadWrite(saveAggregationJobLambda);
+		tableV2.grantReadWriteData(saveAggregationJobLambda);
+		pipelineLambda.grantInvoke(saveAggregationJobLambda);
+		saveAggregationJobLambda.addToRolePolicy(rdsProxyPolicy);
 
 		const metricAggregationLambda = new NodejsFunction(this, 'ProcessorMetricAggregationLambda', {
 			description: `Metric Output Aggregation Task Handler: Tenant ${props.tenantId}`,
@@ -441,13 +507,11 @@ export class PipelineProcessors extends Construct {
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
-				...auroraEnvironmentVariables,
+				...auroraEnvironmentVariables
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
-			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT,
-			},
+			vpcSubnets,
 			bundling: {
 				minify: true,
 				format: OutputFormat.ESM,
@@ -455,14 +519,14 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		bucket.grantReadWrite(metricAggregationLambda);
-		tableV2.grantReadData(metricAggregationLambda);
+		tableV2.grantReadWriteData(metricAggregationLambda);
 		metricsTable.grantReadWriteData(metricAggregationLambda);
 		pipelineLambda.grantInvoke(metricAggregationLambda);
 
@@ -490,13 +554,11 @@ export class PipelineProcessors extends Construct {
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
-				...auroraEnvironmentVariables,
+				...auroraEnvironmentVariables
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
-			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT,
-			},
+			vpcSubnets,
 			bundling: {
 				minify: true,
 				format: OutputFormat.ESM,
@@ -504,10 +566,10 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		insertLatestValuesLambda.addToRolePolicy(rdsProxyPolicy);
@@ -529,7 +591,7 @@ export class PipelineProcessors extends Construct {
 				EVENT_BUS_NAME: props.eventBusName,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
-				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
+				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName
 			},
 			bundling: {
 				minify: true,
@@ -538,10 +600,10 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		tableV2.grantReadWriteData(impactCreationLambda);
@@ -565,7 +627,7 @@ export class PipelineProcessors extends Construct {
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				TABLE_NAME: tableV2.tableName,
-				EVENT_BUS_NAME: props.eventBusName,
+				EVENT_BUS_NAME: props.eventBusName
 			},
 			bundling: {
 				minify: true,
@@ -574,10 +636,10 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		tableV2.grantReadWriteData(rawResultProcessorLambda);
@@ -600,14 +662,14 @@ export class PipelineProcessors extends Construct {
 				BUCKET_PREFIX: bucketPrefix,
 				TABLE_NAME: tableV2.tableName,
 				EVENT_BUS_NAME: props.eventBusName,
-				...auroraEnvironmentVariables,
+				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
+				ACCESS_MANAGEMENT_FUNCTION_NAME: props.accessManagementApiFunctionName,
+				...auroraEnvironmentVariables
 			},
 
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
-			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT,
-			},
+			vpcSubnets,
 			bundling: {
 				minify: true,
 				format: OutputFormat.ESM,
@@ -615,12 +677,13 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
+		pipelineLambda.grantInvoke(sqlResultProcessorLambda);
 		sqlResultProcessorLambda.addToRolePolicy(rdsProxyPolicy);
 		tableV2.grantReadWriteData(sqlResultProcessorLambda);
 		bucket.grantRead(sqlResultProcessorLambda);
@@ -632,7 +695,7 @@ export class PipelineProcessors extends Construct {
 
 		const dataVerificationTask = new LambdaInvoke(this, 'DataVerificationTask', {
 			lambdaFunction: verificationLambda,
-			outputPath: '$.Payload',
+			outputPath: '$.Payload'
 		});
 
 		const rawResultProcessorTask = new LambdaInvoke(this, 'RawResultProcessorTask', {
@@ -642,14 +705,14 @@ export class PipelineProcessors extends Construct {
 					'executionStartTime.$': '$$.Execution.StartTime',
 					'executionArn.$': '$$.Execution.Id'
 				}),
-				outputPath: '$.Payload',
+				outputPath: '$.Payload'
 			}
 		);
 
-
 		const impactCreationTask = new LambdaInvoke(this, 'ImpactCreationTask', {
 				lambdaFunction: impactCreationLambda,
-				inputPath: '$.inputs'
+				inputPath: '$',
+				outputPath: '$.Payload'
 			}
 		);
 
@@ -685,7 +748,7 @@ export class PipelineProcessors extends Construct {
 								}
 							]
 						}
-					},
+					}
 				},
 				ItemsPath: '$.chunks',
 				ItemSelector: {
@@ -696,19 +759,19 @@ export class PipelineProcessors extends Construct {
 						'range.$': '$$.Map.Item.Value.range'
 					}
 				},
-				MaxConcurrency: 10,
+				MaxConcurrency: 10
 			}
 		});
 
-		const dataPipelineStateMachineLogGroup = new LogGroup(this, 'DataPipelineLogGroup', { logGroupName: `/aws/stepfunctions/${namePrefix}-dataPipeline`, removalPolicy: RemovalPolicy.DESTROY });
+		const dataPipelineStateMachineLogGroup = new LogGroup(this, 'DataPipelineLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-dataPipeline`, removalPolicy: RemovalPolicy.DESTROY });
 
 		const dataPipelineStateMachine = new StateMachine(this, 'DataPipelineStateMachine', {
-			definition: dataVerificationTask
+			definitionBody: DefinitionBody.fromChainable(dataVerificationTask
 				.next(calculateDataPipelineTask)
 				.next(rawResultProcessorTask)
 				.next(new Choice(this, 'Is Pipeline Type Equal To Impact?')
 					.otherwise(new Succeed(this, 'Pipeline Succeeded'))
-					.when(Condition.stringEquals('$.inputs[0].pipelineType', 'impacts'), impactCreationTask)),
+					.when(Condition.stringEquals('$.pipelineType', 'impacts'), impactCreationTask))),
 			logs: { destination: dataPipelineStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
 			stateMachineName: `${namePrefix}-dataPipeline`,
 			tracingEnabled: true
@@ -716,7 +779,7 @@ export class PipelineProcessors extends Construct {
 
 		new StringParameter(this, 'DataPipelineStateMachineArnParameter', {
 			parameterName: dataPipelineStateMachineArnParameter(props.tenantId, props.environment),
-			stringValue: dataPipelineStateMachine.stateMachineArn,
+			stringValue: dataPipelineStateMachine.stateMachineArn
 		});
 
 		calculationLambda.grantInvoke(dataPipelineStateMachine);
@@ -727,13 +790,13 @@ export class PipelineProcessors extends Construct {
 
 		const verificationTask = new LambdaInvoke(this, 'VerificationTask', {
 			lambdaFunction: verificationLambda,
-			outputPath: '$.Payload',
+			outputPath: '$.Payload'
 		});
 
-		const resultProcessorTask = new LambdaInvoke(this, 'ResultProcessorTask', {
+		const jobResultProcessorTask = new LambdaInvoke(this, 'JobResultProcessorTask', {
 				lambdaFunction: resultProcessorLambda,
 				payload: TaskInput.fromObject({
-					'inputs.$': '$',
+					'input.$': '$',
 					'executionStartTime.$': '$$.Execution.StartTime',
 					'executionArn.$': '$$.Execution.Id'
 				})
@@ -741,28 +804,34 @@ export class PipelineProcessors extends Construct {
 		);
 
 		const jobInsertLatestValuesTask = new LambdaInvoke(this, 'JobInsertLatestValuesTask', {
-			lambdaFunction: insertLatestValuesLambda,
-			inputPath: '$',
-			outputPath: '$.Payload',
-		}
+				lambdaFunction: insertLatestValuesLambda,
+				inputPath: '$',
+				outputPath: '$.Payload'
+			}
 		);
 
 		const jobMetricAggregationTask = new LambdaInvoke(this, 'JobMetricAggregationTask', {
 			lambdaFunction: metricAggregationLambda,
 			inputPath: '$',
-			outputPath: '$.Payload',
+			outputPath: '$.Payload'
+		});
+
+		const saveAggregationJobTask = new LambdaInvoke(this, 'SaveAggregationJobTask', {
+			lambdaFunction: saveAggregationJobLambda,
+			inputPath: '$',
+			outputPath: '$.Payload'
 		});
 
 		const jobPipelineAggregationTask = new LambdaInvoke(this, 'JobPipelineAggregationTask', {
 			lambdaFunction: pipelineAggregationLambda,
 			inputPath: '$',
-			outputPath: '$.Payload',
+			outputPath: '$.Payload'
 		});
 
 		const map = new CustomState(this, 'Map State', {
 			stateJson: {
 				Type: 'Map',
-				Next: 'Wait For SQL Insert Result',
+				Next: 'Process SQL Insert Result',
 				ItemProcessor: {
 					ProcessorConfig: {
 						Mode: 'INLINE'
@@ -771,11 +840,17 @@ export class PipelineProcessors extends Construct {
 					States: {
 						CalculationTask: {
 							Type: 'Task',
-							Resource: 'arn:aws:states:::lambda:invoke',
+							Resource: 'arn:aws:states:::lambda:invoke.waitForTaskToken',
+							ResultPath: '$.Payload',
 							OutputPath: '$.Payload',
 							Parameters: {
 								FunctionName: `${calculationLambda.functionArn}`,
-								'Payload.$': '$'
+								'Payload': {
+									'chunk.$': '$.chunk',
+									'source.$': '$.source',
+									'context.$': '$.context',
+									'taskToken.$': JsonPath.taskToken
+								}
 							},
 							End: true,
 							Retry: [
@@ -791,7 +866,7 @@ export class PipelineProcessors extends Construct {
 								}
 							]
 						}
-					},
+					}
 				},
 				ItemsPath: '$.chunks',
 				ItemSelector: {
@@ -802,7 +877,7 @@ export class PipelineProcessors extends Construct {
 						'range.$': '$$.Map.Item.Value.range'
 					}
 				},
-				MaxConcurrency: 10,
+				MaxConcurrency: 10
 			}
 		});
 
@@ -827,7 +902,7 @@ export class PipelineProcessors extends Construct {
 			return new Parallel(this, id, { outputPath: '$[1]' })
 				.branch(
 					new EventBridgePutEvents(this, `${id}EventBridgeAcquireLock`, {
-						entries: [queueManagerPayload(taskName)],
+						entries: [queueManagerPayload(taskName)]
 					})
 				).branch(
 					new SqsSendMessage(this, `${id}SqsAcquireLock`, {
@@ -840,7 +915,7 @@ export class PipelineProcessors extends Construct {
 							tenantId: props.tenantId,
 							execution: JsonPath.objectAt('$$.Execution'),
 							taskName,
-							token: JsonPath.taskToken,
+							token: JsonPath.taskToken
 						})
 					})
 				);
@@ -849,7 +924,7 @@ export class PipelineProcessors extends Construct {
 		const releaseLock = (id: string, taskName: string) => new Parallel(this, id, { outputPath: '$[1]' })
 			.branch(
 				new EventBridgePutEvents(this, `${id}EventBridgeReleaseLock`, {
-					entries: [queueManagerPayload(taskName)],
+					entries: [queueManagerPayload(taskName)]
 				}))
 			.branch(new SqsSendMessage(this, `${id}SqsReleaseLock`, {
 				queue: releaseLockQueue,
@@ -859,69 +934,56 @@ export class PipelineProcessors extends Construct {
 				messageBody: TaskInput.fromObject({
 					tenantId: props.tenantId,
 					executionName: JsonPath.stringAt('$$.Execution.Name'),
-					taskName,
+					taskName
 				})
 			}));
-
-
-		const acquireLockInsertLatest = acquireLock('AcquireLockInsertLatestActivityValues', DatabaseTask.InsertActivityLatestValues);
-		const releaseLockInsertLatest = releaseLock('ReleaseLockInsertLatestActivityValues', DatabaseTask.InsertActivityLatestValues);
-
-		const acquireLockPipelineAggregation = acquireLock('AcquireLockPipelineAggregation', DatabaseTask.AggregatePipelineOutput);
-		const releaseLockPipelineAggregation = releaseLock('ReleaseLockPipelineAggregation', DatabaseTask.AggregatePipelineOutput);
 
 		const acquireLockMetricAggregation = acquireLock('AcquireLockMetricAggregation', DatabaseTask.AggregateMetrics);
 		const releaseLockMetricAggregation = releaseLock('ReleaseLockMetricAggregation', DatabaseTask.AggregateMetrics);
 
 		const acquireLockInsertValues = acquireLock('AcquireLockInsertActivityValues', DatabaseTask.InsertActivityValues);
 		const releaseLockInsertValuesSuccess = releaseLock('ReleaseLockInsertActivityValuesSuccess', DatabaseTask.InsertActivityValues);
-		const releaseLockInsertValuesFail = releaseLock('ReleaseLockInsertActivityValuesFail', DatabaseTask.InsertActivityValues);
 
-		const parallel = new Parallel(this, 'Post Processing Tasks')
+		const metricAggregationLogGroup = new LogGroup(this, 'MetricAggregationLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-metricAggregation`, removalPolicy: RemovalPolicy.DESTROY });
+
+		const metricAggregationStateMachine = new StateMachine(this, 'MetricAggregationStateMachine', {
+			definitionBody: DefinitionBody.fromChainable(acquireLockMetricAggregation
+				.next(jobMetricAggregationTask)
+				.next((new Choice(this, 'Processing Metric Complete (Job)?')
+					.when(Condition.stringEquals('$.status', 'SUCCEEDED'),
+						releaseLockMetricAggregation.next(new Pass(this, 'Processing Metric Pass (Job)', { outputPath: '$' })))
+					.when(Condition.stringEquals('$.status', 'IN_PROGRESS'),
+						jobMetricAggregationTask)))),
+			logs: { destination: metricAggregationLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
+			stateMachineName: `${namePrefix}-metricAggregation`,
+			tracingEnabled: true
+		});
+
+		const jobAggregationTasks = new Parallel(this, 'JobAggregationTasks')
 			.branch(
-				acquireLockMetricAggregation
-					.next(jobMetricAggregationTask)
-					.next((new Choice(this, 'Processing Metric Complete (Job)?')
-						.when(Condition.stringEquals('$[0].status', 'SUCCEEDED'),
-							releaseLockMetricAggregation.next(new Pass(this, 'Processing Metric Pass (Job)', { outputPath: '$[0]' })))
-						.when(Condition.stringEquals('$[0].status', 'IN_PROGRESS'),
-							jobMetricAggregationTask)))
-			)
-			.branch(acquireLockPipelineAggregation
-				.next(jobPipelineAggregationTask)
-				.next(releaseLockPipelineAggregation));
-
-		const waitForSqlInsert = new Wait(this, 'Wait For SQL Insert Result', { time: WaitTime.duration(Duration.seconds(10)) });
+				new Choice(this, 'Trigger Metric Aggregations?')
+					.when(Condition.booleanEquals('$.triggerMetricAggregations', true),
+						new StepFunctionsStartExecution(this, 'StartMetricAggregationJob', { stateMachine: metricAggregationStateMachine, outputPath: '$.Output', integrationPattern: IntegrationPattern.RUN_JOB }))
+					.when(Condition.booleanEquals('$.triggerMetricAggregations', false), saveAggregationJobTask))
+			.branch(jobPipelineAggregationTask.next(jobResultProcessorTask));
 
 		const sqlResultProcessorTask = new LambdaInvoke(this, 'Process SQL Insert Result', {
 			lambdaFunction: sqlResultProcessorLambda,
-			payload: TaskInput.fromObject({
-				'inputs.$': '$',
-				'executionStartTime.$': '$$.Execution.StartTime'
-			})
-			, outputPath: '$.Payload',
+			inputPath: '$',
+			outputPath: '$.Payload'
 		});
 
-		const activityPipelineLogGroup = new LogGroup(this, 'ActivityPipelineLogGroup', { logGroupName: `/aws/stepfunctions/${namePrefix}-activityPipeline`, removalPolicy: RemovalPolicy.DESTROY });
+		const activityPipelineLogGroup = new LogGroup(this, 'ActivityPipelineLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-activityPipeline`, removalPolicy: RemovalPolicy.DESTROY });
 
 		const activityPipelineStateMachine = new StateMachine(this, 'ActivityPipelineStateMachine', {
-			definition: verificationTask
-				.next(acquireLockInsertValues)
-				.next(map)
-				.next(waitForSqlInsert)
-				.next(sqlResultProcessorTask)
-				.next(new Choice(this, 'Job Complete?')
-					.when(Condition.stringEquals('$[0].status', 'FAILED'),
-						releaseLockInsertValuesFail
-							.next(resultProcessorTask))
-					.when(Condition.stringEquals('$[0].status', 'SUCCEEDED'),
-						releaseLockInsertValuesSuccess
-							.next(acquireLockInsertLatest
-								.next(jobInsertLatestValuesTask)
-								.next(releaseLockInsertLatest))
-							.next(parallel)
-							.next(resultProcessorTask))
-					.otherwise(waitForSqlInsert)),
+			definitionBody: DefinitionBody.fromChainable(
+				verificationTask
+					.next(acquireLockInsertValues)
+					.next(map)
+					.next(sqlResultProcessorTask)
+					.next(jobInsertLatestValuesTask)
+					.next(jobAggregationTasks)
+					.next(releaseLockInsertValuesSuccess)),
 			logs: { destination: activityPipelineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
 			stateMachineName: `${namePrefix}-activityPipeline`,
 			tracingEnabled: true
@@ -929,73 +991,10 @@ export class PipelineProcessors extends Construct {
 
 		new StringParameter(this, 'ActivityPipelineStateMachineArnParameter', {
 			parameterName: activityPipelineStateMachineArnParameter(props.tenantId, props.environment),
-			stringValue: activityPipelineStateMachine.stateMachineArn,
+			stringValue: activityPipelineStateMachine.stateMachineArn
 		});
 
 		calculationLambda.grantInvoke(activityPipelineStateMachine);
-
-
-		/*
-		 * Inline Pipeline Definition
-		 */
-		const inlineWaitForSqlInsert = new Wait(this, 'Wait For SQL Insert Result (Inline)', { time: WaitTime.duration(Duration.seconds(10)) });
-
-		const inlineSqlResultProcessorTask = new LambdaInvoke(this, 'Process SQL Insert Result (Inline)', {
-			lambdaFunction: sqlResultProcessorLambda,
-			payload: TaskInput.fromObject({
-				'inputs.$': '$',
-				'executionStartTime.$': '$$.Execution.StartTime'
-			}), outputPath: '$.Payload',
-		});
-
-		const inlineStateMachineLogGroup = new LogGroup(this, 'InlineStateMachineLogGroup', { logGroupName: `/aws/stepfunctions/${namePrefix}-inlinePipeline`, removalPolicy: RemovalPolicy.DESTROY });
-
-		const inlineInsertLatestValuesTask = new LambdaInvoke(this, 'InsertLatestValuesTask', {
-			lambdaFunction: insertLatestValuesLambda,
-			inputPath: '$',
-			outputPath: '$.Payload',
-		}
-		);
-
-		const inlineMetricAggregationTask = new LambdaInvoke(this, 'InlineMetricAggregationTask', {
-			lambdaFunction: metricAggregationLambda,
-			outputPath: '$.Payload',
-		});
-
-		const inlinePipelineAggregationTask = new LambdaInvoke(this, 'InlinePipelineAggregationTask', {
-			lambdaFunction: pipelineAggregationLambda,
-		});
-
-		const parallelInlineTask = new Parallel(this, 'InlineAggregationTask')
-			.branch(inlineMetricAggregationTask.next(
-				(new Choice(this, 'Metric Processing Complete (Inline)?')
-					.when(Condition.stringEquals('$[0].status', 'SUCCEEDED'), new Pass(this, 'Processing Metric Pass (Inline)', {
-						outputPath: '$[0]'
-					}))
-					.when(Condition.stringEquals('$[0].status', 'IN_PROGRESS'), inlineMetricAggregationTask))))
-			.branch(inlinePipelineAggregationTask);
-
-
-		const inlinePipelineStateMachine = new StateMachine(this, 'InlinePipelineStateMachine', {
-			definition:
-				inlineWaitForSqlInsert
-					.next(inlineSqlResultProcessorTask)
-					.next(new Choice(this, 'Inline SQL insert Complete?')
-						.when(Condition.stringEquals('$[0].status', 'FAILED'), new Fail(this, 'Fail Inserting SQL'))
-						.when(Condition.stringEquals('$[0].status', 'SUCCEEDED'),
-							inlineInsertLatestValuesTask
-								.next(parallelInlineTask))
-						.otherwise(inlineWaitForSqlInsert)),
-			logs: { destination: inlineStateMachineLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
-			stateMachineName: `${namePrefix}-inlinePipeline`,
-			tracingEnabled: true
-		});
-
-
-		new StringParameter(this, 'InlinePipelineStateMachineArnParameter', {
-			parameterName: inlinePipelineStateMachineArnParameter(props.tenantId, props.environment),
-			stringValue: inlinePipelineStateMachine.stateMachineArn,
-		});
 
 		const eventIntegrationLambda = new NodejsFunction(this, 'BucketEventsLambda', {
 			description: `Pipeline Processors Bucket Events Handler: Tenant ${props.tenantId}`,
@@ -1011,7 +1010,52 @@ export class PipelineProcessors extends Construct {
 				NODE_ENV: props.environment,
 				DATA_PIPELINE_JOB_STATE_MACHINE_ARN: dataPipelineStateMachine.stateMachineArn,
 				ACTIVITIES_PIPELINE_JOB_STATE_MACHINE_ARN: activityPipelineStateMachine.stateMachineArn,
-				INLINE_PIPELINE_STATE_MACHINE_ARN: inlinePipelineStateMachine.stateMachineArn,
+				BUCKET_NAME: bucket.bucketName,
+				BUCKET_PREFIX: bucketPrefix,
+				EVENT_BUS_NAME: props.eventBusName,
+				TABLE_NAME: tableV2.tableName,
+				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
+				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
+				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
+				METRICS_TABLE_NAME: metricsTable.tableName,
+				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName
+			},
+			bundling: {
+				minify: true,
+				format: OutputFormat.ESM,
+				target: 'node18.16',
+				sourceMap: false,
+				sourcesContent: false,
+				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+				externalModules: ['aws-sdk', 'pg-native']
+			},
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope)
+		});
+
+		pipelineLambda.grantInvoke(eventIntegrationLambda);
+		activityPipelineStateMachine.grantStartExecution(eventIntegrationLambda);
+		dataPipelineStateMachine.grantStartExecution(eventIntegrationLambda);
+		tableV2.grantReadWriteData(eventIntegrationLambda);
+		bucket.grantReadWrite(eventIntegrationLambda);
+		eventBus.grantPutEventsTo(eventIntegrationLambda);
+		environmentEventBus.grantPutEventsTo(activityPipelineStateMachine);
+
+		const eventInfrastructureLambda = new NodejsFunction(this, 'InfrastructureEventsLambda', {
+			description: `Pipeline Processors Connector setup event handler: Tenant ${props.tenantId}`,
+			entry: path.join(__dirname, '../../../../typescript/packages/apps/pipeline-processors/src/lambda_eventbridge_infra.ts'),
+			runtime: Runtime.NODEJS_18_X,
+			tracing: Tracing.ACTIVE,
+			functionName: `${namePrefix}-infrastructureEvents`,
+			timeout: Duration.seconds(30),
+			memorySize: 512,
+			logRetention: RetentionDays.ONE_WEEK,
+			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
+				NODE_ENV: props.environment,
+				TENANT_ID: props.tenantId,
+				DATA_PIPELINE_JOB_STATE_MACHINE_ARN: dataPipelineStateMachine.stateMachineArn,
+				ACTIVITIES_PIPELINE_JOB_STATE_MACHINE_ARN: activityPipelineStateMachine.stateMachineArn,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
 				EVENT_BUS_NAME: props.eventBusName,
@@ -1021,6 +1065,8 @@ export class PipelineProcessors extends Construct {
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
+				KINESIS_TEMPLATE_BUCKET: props.kinesisTemplateBucket,
+				KINESIS_TEMPLATE_KEY: props.kinesisTemplateKey,
 			},
 			bundling: {
 				minify: true,
@@ -1035,13 +1081,72 @@ export class PipelineProcessors extends Construct {
 			architecture: getLambdaArchitecture(scope),
 		});
 
-		pipelineLambda.grantInvoke(eventIntegrationLambda);
-		activityPipelineStateMachine.grantStartExecution(eventIntegrationLambda);
-		dataPipelineStateMachine.grantStartExecution(eventIntegrationLambda);
-		tableV2.grantReadWriteData(eventIntegrationLambda);
-		bucket.grantReadWrite(eventIntegrationLambda);
-		eventBus.grantPutEventsTo(eventIntegrationLambda);
-		environmentEventBus.grantPutEventsTo(activityPipelineStateMachine);
+		bucket.grantReadWrite(eventInfrastructureLambda);
+		eventBus.grantPutEventsTo(eventInfrastructureLambda);
+		environmentEventBus.grantPutEventsTo(eventInfrastructureLambda);
+
+
+		const infrastructureDeploymentPolicy = new PolicyStatement({
+			actions: [
+				's3:GetObject',
+				'cloudformation:CreateStack',
+				'cloudformation:UpdateStack',
+				'cloudformation:DeleteStack',
+				'cloudformation:DescribeStacks',
+				'ssm:GetParameters',
+				'lambda:AddPermission',
+				'lambda:CreateAlias',
+				'lambda:CreateFunction',
+				'lambda:UpdateAlias',
+				'lambda:DeleteAlias',
+				'lambda:DeleteFunction',
+				'lambda:GetFunction',
+				'lambda:GetFunctionCodeSigningConfig',
+				'lambda:GetRuntimeManagementConfig',
+				'lambda:ListTags',
+				'lambda:ListVersionsByFunction',
+				'lambda:PublishVersion',
+				'lambda:RemovePermission',
+				'lambda:TagResource',
+				'lambda:UntagResource',
+				'lambda:UpdateFunctionCode',
+				'lambda:InvokeFunction',
+				'lambda:UpdateFunctionConfiguration',
+				'iam:GetRole',
+				'iam:PassRole',
+				'iam:CreateRole',
+				'iam:DeleteRole',
+				'iam:TagRole',
+				'iam:getRolePolicy',
+				'iam:PutRolePolicy',
+				'iam:AttachRolePolicy',
+				'iam:DetachRolePolicy',
+				'iam:DeleteRolePolicy',
+				'logs:DescribeLogGroups',
+				'logs:TagResource',
+				'logs:PutRetentionPolicy',
+				'logs:DeleteLogGroup',
+				'kinesis:AddTagsToStream',
+				'kinesis:CreateStream',
+				'kinesis:DeleteStream',
+				'kinesis:DescribeStreamSummary',
+				'kinesis:ListTagsForStream',
+				'kinesis:RemoveTagsFromStream',
+				'kinesis:StartStreamEncryption',
+				'firehose:CreateDeliveryStream',
+				'firehose:DeleteDeliveryStream',
+				'firehose:DescribeDeliveryStream',
+				'firehose:TagDeliveryStream',
+				'firehose:UntagDeliveryStream',
+				'firehose:UpdateDestination',
+				'kms:DescribeKey',
+			],
+			resources: [
+				`*`
+			],
+		});
+
+		eventInfrastructureLambda.addToRolePolicy(infrastructureDeploymentPolicy);
 
 		const deadLetterQueue = new Queue(this, 'DeadLetterQueue');
 
@@ -1064,13 +1169,13 @@ export class PipelineProcessors extends Construct {
 				detailType: ['Object Created'],
 				detail: {
 					bucket: {
-						name: [props.bucketName],
+						name: [props.bucketName]
 					},
 					object: {
-						key: [{ suffix: 'raw' }],
-					},
-				},
-			},
+						key: [{ suffix: 'raw' }]
+					}
+				}
+			}
 		});
 
 
@@ -1085,12 +1190,52 @@ export class PipelineProcessors extends Construct {
 			new LambdaFunction(eventIntegrationLambda, {
 				deadLetterQueue: deadLetterQueue,
 				maxEventAge: Duration.minutes(5),
-				retryAttempts: 2,
+				retryAttempts: 2
 			})
 		);
 
 		dataSourcesUploadRule.addTarget(
 			new LambdaFunction(eventIntegrationLambda, {
+				deadLetterQueue: deadLetterQueue,
+				maxEventAge: Duration.minutes(5),
+				retryAttempts: 2
+			})
+		);
+
+
+		const pipelineConnectorSetupRule = new Rule(this, 'PipelineConnectorSetupRule', {
+			eventBus: eventBus,
+			eventPattern: {
+				detailType: [PIPELINE_CONNECTOR_SETUP_EVENT]
+			}
+		});
+
+		pipelineConnectorSetupRule.addTarget(
+			new LambdaFunction(eventInfrastructureLambda, {
+				deadLetterQueue: deadLetterQueue,
+				maxEventAge: Duration.minutes(5),
+				retryAttempts: 2,
+			})
+		);
+
+		const stackChangeRule = new Rule(this, 'StackChangeRule', {
+			eventPattern: {
+				source: ['aws.cloudformation'],
+				detailType: ['CloudFormation Stack Status Change'],
+				detail: {
+					'status-details': {
+						'status': ['CREATE_COMPLETE']
+					}
+					,
+					'stack-id': [{
+						'wildcard': `*/sif-${props.tenantId}-${props.environment}-*`
+					}]
+				},
+			},
+		});
+
+		stackChangeRule.addTarget(
+			new LambdaFunction(eventInfrastructureLambda, {
 				deadLetterQueue: deadLetterQueue,
 				maxEventAge: Duration.minutes(5),
 				retryAttempts: 2,
@@ -1102,6 +1247,7 @@ export class PipelineProcessors extends Construct {
 		eventBus.grantPutEventsTo(eventIntegrationLambda);
 		eventBus.grantPutEventsTo(resultProcessorLambda);
 		eventBus.grantPutEventsTo(sqlResultProcessorLambda);
+		eventBus.grantPutEventsTo(eventInfrastructureLambda);
 
 		const kmsKey = Key.fromKeyArn(this, 'KmsKey', props.kmsKeyArn);
 
@@ -1127,7 +1273,7 @@ export class PipelineProcessors extends Construct {
 				maxReceiveCount: 10,
 				queue: taskDlq
 			},
-			visibilityTimeout: Duration.minutes(15),
+			visibilityTimeout: Duration.minutes(15)
 		});
 
 		taskQueue.addToResourcePolicy(new PolicyStatement({
@@ -1147,7 +1293,6 @@ export class PipelineProcessors extends Construct {
 		/*
 		 * Insert activities in bulk into the database
 		*/
-		const insertActivityQueue = Queue.fromQueueArn(this, 'calculatorInsertActivityQueue', props.activityInsertQueueArn);
 
 		const insertActivityBulkLambda = new NodejsFunction(this, 'InsertActivityBulkLambda', {
 			description: `Insert Activity Bulk Task Handler: Tenant ${props.tenantId}`,
@@ -1168,13 +1313,11 @@ export class PipelineProcessors extends Construct {
 				TABLE_NAME: tableV2.tableName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				AUDIT_VERSION: props.auditVersion,
-				...auroraEnvironmentVariables,
+				...auroraEnvironmentVariables
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
-			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT,
-			},
+			vpcSubnets,
 			bundling: {
 				minify: true,
 				format: OutputFormat.ESM,
@@ -1182,22 +1325,34 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 		insertActivityBulkLambda.node.addDependency(insertActivityQueue);
+		insertActivityBulkLambda.addToRolePolicy(new PolicyStatement({
+			sid: 'stepfunction',
+			effect: Effect.ALLOW,
+			actions: [
+				'states:SendTaskSuccess',
+				'states:SendTaskFailure',
+				'states:DescribeExecution'
+			],
+			resources: ['*']
+		}));
 
 		tableV2.grantReadData(insertActivityBulkLambda);
 		bucket.grantReadWrite(insertActivityBulkLambda);
 		bucket.grantDelete(insertActivityBulkLambda);
 		insertActivityBulkLambda.addToRolePolicy(rdsProxyPolicy);
 		insertActivityBulkLambda.addEventSource(new SqsEventSource(insertActivityQueue, {
-			batchSize: 1,
-			reportBatchItemFailures: true,
-		})
+				batchSize: 1,
+				reportBatchItemFailures: true
+			})
 		);
+
+		const auroraClusterStatusParameter = StringParameter.fromStringParameterName(this, 'AuroraClusterStatusParameter', auroraClusterStatusParameterName(props.environment));
 
 		/**
 		 * Define the API Lambda
@@ -1221,26 +1376,26 @@ export class PipelineProcessors extends Construct {
 				EVENT_BUS_NAME: eventBus.eventBusName,
 				DATA_PIPELINE_JOB_STATE_MACHINE_ARN: dataPipelineStateMachine.stateMachineArn,
 				ACTIVITIES_PIPELINE_JOB_STATE_MACHINE_ARN: activityPipelineStateMachine.stateMachineArn,
-				INLINE_PIPELINE_STATE_MACHINE_ARN: inlinePipelineStateMachine.stateMachineArn,
+				METRIC_AGGREGATION_STATE_MACHINE_ARN: metricAggregationStateMachine.stateMachineArn,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				METRICS_TABLE_NAME: metricsTable.tableName,
-				TENANT_ID: props.tenantId,
 				METRIC_STORAGE: props.metricStorage,
 				TASK_PARALLEL_LIMIT: props.downloadAuditFileParallelLimit.toString(),
 				CSV_INPUT_CONNECTOR_NAME: props.csvConnectorName,
 				TASK_QUEUE_URL: taskQueue.queueUrl,
 				ATHENA_AUDIT_LOGS_TABLE_NAME: props.auditLogsTableName,
 				ATHENA_DATABASE_NAME: props.auditLogsDatabaseName,
+				TRIGGER_METRIC_AGGREGATIONS: props.triggerMetricAggregations.toString(),
 				AUDIT_VERSION: props.auditVersion,
-				...auroraEnvironmentVariables,
+				RESOURCE_STATUS_PARAMETER_PREFIX: `/sif/shared/${props.environment}`,
+				AUDIT_LOG_WAIT_TIME_SECONDS: props.auditLogWaitTimeSeconds.toString(),
+				...auroraEnvironmentVariables
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
-			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT,
-			},
+			vpcSubnets,
 			timeout: Duration.minutes(5),
 			bundling: {
 				minify: true,
@@ -1249,12 +1404,13 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
+		auroraClusterStatusParameter.grantRead(apiLambda);
 		apiLambda.node.addDependency(taskQueue);
 		apiLambda.node.addDependency(workerQueue);
 		apiLambda.addToRolePolicy(rdsProxyPolicy);
@@ -1268,13 +1424,13 @@ export class PipelineProcessors extends Construct {
 		pipelineLambda.grantInvoke(apiLambda);
 		metricsTable.grantReadData(apiLambda);
 		calculatorLambda.grantInvoke(apiLambda);
-		inlinePipelineStateMachine.grantStartExecution(apiLambda);
+		metricAggregationStateMachine.grantStartExecution(apiLambda);
 		taskQueue.grantSendMessages(apiLambda);
 		impactLambda.grantInvoke(apiLambda);
 
 		new StringParameter(this, 'pipelineProcessorApiFunctionArnParameter', {
 			parameterName: pipelineProcessorApiFunctionArnParameter(props.tenantId, props.environment),
-			stringValue: apiLambda.functionArn,
+			stringValue: apiLambda.functionArn
 		});
 
 		const athenaPolicy = new PolicyStatement({
@@ -1284,17 +1440,191 @@ export class PipelineProcessors extends Construct {
 				'athena:GetQueryResults',
 				`glue:GetTables`,
 				`glue:GetTable`,
-				`glue:GetPartitions`,
+				`glue:GetPartitions`
 			],
 			resources: [
 				`arn:aws:athena:${region}:${accountId}:workgroup/primary`,
 				`arn:aws:glue:${region}:${accountId}:catalog`,
 				`arn:aws:glue:${region}:${accountId}:database/${props.auditLogsDatabaseName}`,
 				`arn:aws:glue:${region}:${accountId}:table/${props.auditLogsDatabaseName}/${props.auditLogsTableName}*`
-			],
+			]
 		});
 
 		apiLambda.addToRolePolicy(athenaPolicy);
+
+
+		const activityDownloadInitiateLambda = new NodejsFunction(this, 'ActivityDownloadInitiateLambda', {
+			description: `Pipeline Processors Activity Download Initiate Task Handler: Tenant ${props.tenantId}`,
+			functionName: `${namePrefix}-activityDownloadInitiateTask`,
+			entry: path.join(__dirname, '../../../../typescript/packages/apps/pipeline-processors/src/stepFunction/handlers/activityDownloadInitiate.handler.ts'),
+			runtime: Runtime.NODEJS_18_X,
+			tracing: Tracing.ACTIVE,
+			memorySize: 256,
+			logRetention: RetentionDays.ONE_WEEK,
+			timeout: Duration.minutes(5),
+			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
+				NODE_ENV: props.environment,
+				EVENT_BUS_NAME: props.eventBusName,
+				TABLE_NAME: tableV2.tableName,
+				CHUNK_SIZE: '1',
+				BUCKET_NAME: props.bucketName,
+				BUCKET_PREFIX: bucketPrefix,
+				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
+				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
+				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
+				METRICS_TABLE_NAME: metricsTable.tableName,
+				...auroraEnvironmentVariables
+			},
+			securityGroups: [lambdaToRDSProxyGroup],
+			bundling: {
+				minify: true,
+				format: OutputFormat.ESM,
+				target: 'node18.16',
+				sourceMap: false,
+				sourcesContent: false,
+				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+				externalModules: ['aws-sdk', 'pg-native']
+			},
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope)
+		});
+		bucket.grantReadWrite(activityDownloadInitiateLambda);
+
+
+		const activityDownloadStartLambda = new NodejsFunction(this, 'ActivityDownloadStartLambda', {
+			description: `Pipeline Processors Activity Download Start Task Handler: Tenant ${props.tenantId}`,
+			functionName: `${namePrefix}-activityDownloadStartTask`,
+			entry: path.join(__dirname, '../../../../typescript/packages/apps/pipeline-processors/src/stepFunction/handlers/activityDownloadStart.handler.ts'),
+			runtime: Runtime.NODEJS_18_X,
+			tracing: Tracing.ACTIVE,
+			memorySize: 256,
+			logRetention: RetentionDays.ONE_WEEK,
+			timeout: Duration.minutes(5),
+			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
+				NODE_ENV: props.environment,
+				EVENT_BUS_NAME: props.eventBusName,
+				TABLE_NAME: tableV2.tableName,
+				CHUNK_SIZE: '1',
+				BUCKET_NAME: props.bucketName,
+				BUCKET_PREFIX: bucketPrefix,
+				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
+				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
+				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
+				METRICS_TABLE_NAME: metricsTable.tableName,
+				...auroraEnvironmentVariables
+			},
+			securityGroups: [lambdaToRDSProxyGroup],
+			vpc,
+			vpcSubnets,
+			bundling: {
+				minify: true,
+				format: OutputFormat.ESM,
+				target: 'node18.16',
+				sourceMap: false,
+				sourcesContent: false,
+				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+				externalModules: ['aws-sdk', 'pg-native']
+			},
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope)
+		});
+		activityDownloadStartLambda.addToRolePolicy(rdsProxyPolicy);
+		bucket.grantReadWrite(activityDownloadStartLambda);
+
+
+		const activityDownloadVerifyLambda = new NodejsFunction(this, 'ActivityDownloadVerifyLambda', {
+			description: `Pipeline Processors Activity Download Verfification Task Handler: Tenant ${props.tenantId}`,
+			functionName: `${namePrefix}-activityDownloadVerifyTask`,
+			entry: path.join(__dirname, '../../../../typescript/packages/apps/pipeline-processors/src/stepFunction/handlers/activityDownloadVerify.handler.ts'),
+			runtime: Runtime.NODEJS_18_X,
+			tracing: Tracing.ACTIVE,
+			memorySize: 256,
+			logRetention: RetentionDays.ONE_WEEK,
+			timeout: Duration.minutes(5),
+			environment: {
+				INLINE_PROCESSING_ROWS_LIMIT,
+				NODE_ENV: props.environment,
+				EVENT_BUS_NAME: props.eventBusName,
+				TABLE_NAME: tableV2.tableName,
+				CHUNK_SIZE: '1',
+				BUCKET_NAME: props.bucketName,
+				BUCKET_PREFIX: bucketPrefix,
+				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
+				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
+				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
+				METRICS_TABLE_NAME: metricsTable.tableName,
+				...auroraEnvironmentVariables
+			},
+			securityGroups: [lambdaToRDSProxyGroup],
+			vpc,
+			vpcSubnets,
+			bundling: {
+				minify: true,
+				format: OutputFormat.ESM,
+				target: 'node18.16',
+				sourceMap: false,
+				sourcesContent: false,
+				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
+				externalModules: ['aws-sdk', 'pg-native']
+			},
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
+			architecture: getLambdaArchitecture(scope)
+		});
+		activityDownloadVerifyLambda.addToRolePolicy(rdsProxyPolicy);
+		bucket.grantReadWrite(activityDownloadVerifyLambda);
+
+
+		const initiateDownloadTask = new LambdaInvoke(this, 'Initiate Download Task', {
+			lambdaFunction: activityDownloadInitiateLambda,
+			payload: TaskInput.fromObject({
+				'payload.$': '$',
+				'executionArn.$': '$$.Execution.Id'
+			}),
+			outputPath: '$.Payload'
+		});
+
+
+		const startDownloadTask = new LambdaInvoke(this, 'Start Download Task', {
+			lambdaFunction: activityDownloadStartLambda,
+			outputPath: '$.Payload'
+		});
+
+		const verifyDownloadTask = new LambdaInvoke(this, 'Verify Download was successful', {
+			lambdaFunction: activityDownloadVerifyLambda,
+			outputPath: '$.Payload'
+		});
+
+
+		const activityDownloadLogGroup = new LogGroup(this, 'ActivityDownloadLogGroup', { logGroupName: `/aws/vendedlogs/states/${namePrefix}-activityDownload`, removalPolicy: RemovalPolicy.DESTROY });
+
+		const acquireLockActivityDownload = acquireLock('AcquireLockActivityDownload', DatabaseTask.ActivityDownload);
+		const releaseLockActivityDownloadSuccess = releaseLock('ReleaseLockActivityDownloadSuccess', DatabaseTask.ActivityDownload);
+		const releaseLockActivityDownloadFail = releaseLock('ReleaseLockActivityDownloadFail', DatabaseTask.ActivityDownload);
+		const waitForActivityDownload = new Wait(this, 'Wait For Download Export Result', { time: WaitTime.duration(Duration.seconds(10)) });
+
+		const activityDownloadStateMachine = new StateMachine(this, 'ActivityDownloadStateMachine', {
+			definitionBody: DefinitionBody.fromChainable(initiateDownloadTask
+				.next(acquireLockActivityDownload)
+				.next(startDownloadTask)
+				.next(waitForActivityDownload)
+				.next(verifyDownloadTask)
+				.next(new Choice(this, 'Download Complete?')
+					.when(Condition.stringEquals('$.state', 'failed'),
+						releaseLockActivityDownloadFail)
+					.when(Condition.stringEquals('$.state', 'success'),
+						releaseLockActivityDownloadSuccess)
+					.otherwise(waitForActivityDownload))),
+			logs: { destination: activityDownloadLogGroup, level: LogLevel.ERROR, includeExecutionData: true },
+			stateMachineName: `${namePrefix}-activityDownload`,
+			tracingEnabled: true
+		});
+
+		new StringParameter(this, 'ActivityDownloadStateMachineArnParameter', {
+			parameterName: activityDownloadStateMachineArnParameter(props.tenantId, props.environment),
+			stringValue: activityDownloadStateMachine.stateMachineArn
+		});
 
 		const taskQueueLambda = new NodejsFunction(this, 'Tasklambda', {
 			description: `Pipeline Executions Task processor: Tenant ${props.tenantId}`,
@@ -1310,27 +1640,24 @@ export class PipelineProcessors extends Construct {
 				TABLE_NAME: tableV2.tableName,
 				BUCKET_NAME: bucket.bucketName,
 				BUCKET_PREFIX: bucketPrefix,
-				TENANT_ID: props.tenantId,
 				PIPELINES_FUNCTION_NAME: props.pipelineApiFunctionName,
 				PIPELINE_PROCESSOR_FUNCTION_NAME: props.pipelineProcessorApiFunctionName,
+				ACTIVITIES_DOWNLOAD_STATE_MACHINE_ARN: activityDownloadStateMachine.stateMachineArn,
 				IMPACTS_FUNCTION_NAME: props.impactApiFunctionName,
 				TASK_QUEUE_URL: taskQueue.queueUrl,
 				METRICS_TABLE_NAME: metricsTable.tableName,
 				EVENT_BUS_NAME: eventBus.eventBusName,
 				DATA_PIPELINE_JOB_STATE_MACHINE_ARN: dataPipelineStateMachine.stateMachineArn,
 				ACTIVITIES_PIPELINE_JOB_STATE_MACHINE_ARN: activityPipelineStateMachine.stateMachineArn,
-				INLINE_PIPELINE_STATE_MACHINE_ARN: inlinePipelineStateMachine.stateMachineArn,
 				CALCULATOR_FUNCTION_NAME: props.calculatorFunctionName,
 				ATHENA_AUDIT_LOGS_TABLE_NAME: props.auditLogsTableName,
 				ATHENA_DATABASE_NAME: props.auditLogsDatabaseName,
 				AUDIT_VERSION: props.auditVersion,
-				...auroraEnvironmentVariables,
+				...auroraEnvironmentVariables
 			},
 			securityGroups: [lambdaToRDSProxyGroup],
 			vpc,
-			vpcSubnets: {
-				subnetType: SubnetType.PRIVATE_WITH_NAT,
-			},
+			vpcSubnets,
 			timeout: Duration.minutes(10),
 			bundling: {
 				minify: true,
@@ -1339,10 +1666,10 @@ export class PipelineProcessors extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk', 'pg-native'],
+				externalModules: ['aws-sdk', 'pg-native']
 			},
 			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'),
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		kmsKey.grantDecrypt(taskQueueLambda);
@@ -1354,18 +1681,20 @@ export class PipelineProcessors extends Construct {
 		taskQueueLambda.addToRolePolicy(athenaPolicy);
 		kmsKey.grantDecrypt(taskQueueLambda);
 		taskQueueLambda.addToRolePolicy(rdsProxyPolicy);
+		activityDownloadStateMachine.grantStartExecution(taskQueueLambda);
+		apiLambda.grantInvoke(taskQueueLambda);
 
 
 		taskQueueLambda.addEventSource(
 			new SqsEventSource(taskQueue, {
 				batchSize: 10,
-				reportBatchItemFailures: true,
+				reportBatchItemFailures: true
 			})
 		);
 
 		new StringParameter(this, `PipelineProcessorTaskQueueUrlParameter`, {
 			parameterName: taskQueueUrlParameter(props.tenantId, props.environment),
-			stringValue: taskQueue.queueUrl,
+			stringValue: taskQueue.queueUrl
 		});
 
 
@@ -1375,11 +1704,11 @@ export class PipelineProcessors extends Construct {
 
 		const userPool = UserPool.fromUserPoolId(this, 'UserPool', props.cognitoUserPoolId);
 		const authorizer = new CognitoUserPoolsAuthorizer(this, 'Authorizer', {
-			cognitoUserPools: [userPool],
+			cognitoUserPools: [userPool]
 		});
 		const authOptions = {
 			authorizationType: AuthorizationType.COGNITO,
-			authorizer: authorizer,
+			authorizer: authorizer
 		};
 
 		const logGroup = new LogGroup(this, 'PipelineExecutionsApiLogs');
@@ -1393,14 +1722,14 @@ export class PipelineProcessors extends Construct {
 				stageName: 'prod',
 				accessLogDestination: new LogGroupLogDestination(logGroup),
 				accessLogFormat: AccessLogFormat.jsonWithStandardFields(),
-				loggingLevel: MethodLoggingLevel.INFO,
+				loggingLevel: MethodLoggingLevel.INFO
 			},
 			defaultCorsPreflightOptions: {
 				allowOrigins: Cors.ALL_ORIGINS,
 				allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key', 'X-Amz-Security-Token', 'X-Amz-User-Agent', 'Accept-Version', 'x-groupcontextid']
 			},
 			endpointTypes: [EndpointType.REGIONAL],
-			defaultMethodOptions: authOptions,
+			defaultMethodOptions: authOptions
 		});
 
 		Aspects.of(apigw).add({
@@ -1415,24 +1744,25 @@ export class PipelineProcessors extends Construct {
 
 		new StringParameter(this, 'pipelineProcessorApiUrlParameter', {
 			parameterName: pipelineProcessorApiUrlParameter(props.tenantId, props.environment),
-			stringValue: apigw.url,
+			stringValue: apigw.url
 		});
 
 		new StringParameter(this, 'pipelineProcessorApiNameParameter', {
 			parameterName: pipelineProcessorApiNameParameter(props.tenantId, props.environment),
-			stringValue: apigw.url,
+			stringValue: apigw.url
 		});
 
 		const accessManagementLambda = Function.fromFunctionName(this, 'accessManagementLambda', props.accessManagementApiFunctionName);
 		accessManagementLambda.grantInvoke(apiLambda);
+		accessManagementLambda.grantInvoke(saveAggregationJobLambda);
 
 
-		NagSuppressions.addResourceSuppressions([apiLambda, eventIntegrationLambda, taskQueueLambda, resultProcessorLambda],
+		NagSuppressions.addResourceSuppressions([apiLambda, eventIntegrationLambda, taskQueueLambda, resultProcessorLambda, eventInfrastructureLambda],
 			[
 				{
 					id: 'AwsSolutions-IAM4',
 					appliesTo: [
-						'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
+						'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
 					],
 					reason: 'This policy is the one generated by CDK.'
 
@@ -1459,7 +1789,7 @@ export class PipelineProcessors extends Construct {
 			],
 			true);
 
-		NagSuppressions.addResourceSuppressions([verificationLambda, sqlResultProcessorLambda, insertLatestValuesLambda, taskQueueLambda, insertActivityBulkLambda, metricAggregationLambda, pipelineAggregationLambda, rawResultProcessorLambda, impactCreationLambda],
+		NagSuppressions.addResourceSuppressions([verificationLambda, sqlResultProcessorLambda, insertLatestValuesLambda, taskQueueLambda, insertActivityBulkLambda, metricAggregationLambda, pipelineAggregationLambda, rawResultProcessorLambda, impactCreationLambda, saveAggregationJobLambda],
 			[
 				{
 					id: 'AwsSolutions-IAM4',
@@ -1509,7 +1839,7 @@ export class PipelineProcessors extends Construct {
 					appliesTo: [
 						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<pipelineApiFunctionNameParameter>:*`,
-						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:*`,
+						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:live:*`
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
 				},
@@ -1538,7 +1868,7 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
-						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
+						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
 
@@ -1551,7 +1881,7 @@ export class PipelineProcessors extends Construct {
 			],
 			true);
 
-		NagSuppressions.addResourceSuppressions([metricAggregationLambda, pipelineAggregationLambda, insertLatestValuesLambda, insertActivityBulkLambda, sqlResultProcessorLambda, rawResultProcessorLambda, impactCreationLambda],
+		NagSuppressions.addResourceSuppressions([metricAggregationLambda, pipelineAggregationLambda, insertLatestValuesLambda, insertActivityBulkLambda, sqlResultProcessorLambda, rawResultProcessorLambda, impactCreationLambda, saveAggregationJobLambda],
 			[
 				{
 					id: 'AwsSolutions-IAM4',
@@ -1609,7 +1939,7 @@ export class PipelineProcessors extends Construct {
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
 						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
-						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:*`,
+						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:live:*`
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
 
@@ -1635,7 +1965,7 @@ export class PipelineProcessors extends Construct {
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
 						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
-
+						`Resource::<PipelineProcessorsApilambdaD72EC6E5.Arn>:*`,
 						'Resource::<PipelineProcessorsMetricsTable944ED8FD.Arn>/index/*',
 						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<pipelineApiFunctionNameParameter>:*`],
 					reason: 'This policy is required for the lambda to access the resource api table.'
@@ -1645,7 +1975,7 @@ export class PipelineProcessors extends Construct {
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
 						`Resource::arn:<AWS::Partition>:dynamodb:${region}:${accountId}:table/<ResourceApiBaseTable3133F8B2>/index/*`,
-						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:*`,
+						`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<calculatorFunctionNameParameter>:live:*`
 					],
 					reason: 'This policy is required for the lambda to access the resource api table.'
 
@@ -1655,6 +1985,30 @@ export class PipelineProcessors extends Construct {
 					appliesTo: [`Resource::arn:<AWS::Partition>:lambda:${region}:${accountId}:function:<accessManagementApiFunctionNameParameter>:*`],
 					reason: 'This policy is required to invoke access management and calculation engine.'
 				}
+			],
+			true);
+
+		NagSuppressions.addResourceSuppressions([activityDownloadInitiateLambda, activityDownloadStartLambda, activityDownloadVerifyLambda],
+			[
+				{
+					id: 'AwsSolutions-IAM4',
+					appliesTo: [
+						'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
+						'Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'],
+					reason: 'This policy is the one generated by CDK.'
+
+				},
+				{
+					id: 'AwsSolutions-IAM5',
+					appliesTo: ['Action::s3:Abort*', 'Action::s3:DeleteObject*', 'Action::s3:GetBucket*', 'Action::s3:GetObject*', 'Action::s3:List*', 'Resource::arn:<AWS::Partition>:s3:::<bucketNameParameter>/*'],
+					reason: 'This policy is required for the lambda to access the s3 bucket that contains reference datasets file.'
+				},
+				{
+					id: 'AwsSolutions-IAM5',
+					appliesTo: ['Resource::*'],
+					reason: 'The resource condition in the IAM policy is generated by CDK, this only applies to xray:PutTelemetryRecords and xray:PutTraceSegments.'
+				}
+
 			],
 			true);
 
@@ -1678,20 +2032,17 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-COG4',
 					reason: 'OPTIONS does not use Cognito auth.'
-				},
+				}
 			],
 			true);
 
-		NagSuppressions.addResourceSuppressions([inlinePipelineStateMachine],
+		NagSuppressions.addResourceSuppressions([metricAggregationStateMachine],
 			[
 				{
 					id: 'AwsSolutions-IAM5',
 					appliesTo: [
 						'Resource::<AcquireLockLambdaFunctionArnParameter>:*',
-						'Resource::<PipelineProcessorsProcessorMetricAggregationLambda4ABE57AD.Arn>:*',
-						'Resource::<PipelineProcessorsProcessorPipelineAggregationLambda21DC6AD2.Arn>:*',
-						'Resource::<PipelineProcessorsSqlResultProcessorLambda0313E998.Arn>:*',
-						'Resource::<PipelineProcessorsInsertLatestValuesLambda017685D2.Arn>:*',
+						'Resource::<PipelineProcessorsProcessorMetricAggregationLambda4ABE57AD.Arn>:*'
 					],
 					reason: 'this policy is required to invoke lambda specified in the state machine definition'
 				},
@@ -1744,7 +2095,33 @@ export class PipelineProcessors extends Construct {
 						'Resource::<PipelineProcessorsProcessorPipelineAggregationLambda21DC6AD2.Arn>:*',
 						'Resource::<PipelineProcessorsProcessorResourceVerificationLambdaD6D60A28.Arn>:*',
 						'Resource::<PipelineProcessorsSqlResultProcessorLambda0313E998.Arn>:*',
-						'Resource::<PipelineProcessorsInsertLatestValuesLambda017685D2.Arn>:*'
+						'Resource::<PipelineProcessorsInsertLatestValuesLambda017685D2.Arn>:*',
+						'Resource::<PipelineProcessorsSaveAggregationJobLambda76A7DCB6.Arn>:*',
+						`Resource::arn:<AWS::Partition>:states:${region}:${accountId}:execution:{"Fn::Select":[6,{"Fn::Split":[":",{"Ref":"PipelineProcessorsMetricAggregationStateMachineCDC694F2"}]}]}*`
+					],
+					reason: 'this policy is required to invoke lambda specified in the state machine definition'
+				},
+				{
+					id: 'AwsSolutions-SF1',
+					reason: 'We only care about logging the error for now.'
+
+				},
+				{
+					id: 'AwsSolutions-IAM5',
+					reason: 'This resource policy only applies to log.',
+					appliesTo: ['Resource::*']
+
+				}],
+			true);
+
+		NagSuppressions.addResourceSuppressions([activityDownloadStateMachine],
+			[
+				{
+					id: 'AwsSolutions-IAM5',
+					appliesTo: [
+						'Resource::<PipelineProcessorsActivityDownloadInitiateLambdaA283B8D1.Arn>:*',
+						'Resource::<PipelineProcessorsActivityDownloadStartLambda6021AA7C.Arn>:*',
+						'Resource::<PipelineProcessorsActivityDownloadVerifyLambda0E540FA5.Arn>:*'
 					],
 					reason: 'this policy is required to invoke lambda specified in the state machine definition'
 				},
@@ -1767,7 +2144,7 @@ export class PipelineProcessors extends Construct {
 					id: 'AwsSolutions-SQS3',
 					reason: 'This is the dead letter queue.'
 
-				},
+				}
 			],
 			true);
 
@@ -1776,9 +2153,9 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					reason: 'Given access to versioned glue tables',
-					appliesTo: [`Resource::arn:aws:glue:${region}:${accountId}:table/<AuditLogsDatabaseNameParameter>/<AuditLogsTableNameParameter>*`],
+					appliesTo: [`Resource::arn:aws:glue:${region}:${accountId}:table/<AuditLogsDatabaseNameParameter>/<AuditLogsTableNameParameter>*`]
 
-				},
+				}
 			],
 			true);
 
@@ -1787,9 +2164,9 @@ export class PipelineProcessors extends Construct {
 				{
 					id: 'AwsSolutions-IAM5',
 					reason: 'Given access to versioned glue tables',
-					appliesTo: [`Resource::arn:aws:states:${region}:${accountId}:execution:sif-${props.tenantId}-${props.environment}-activityPipeline:*`],
+					appliesTo: [`Resource::arn:aws:states:${region}:${accountId}:execution:sif-${props.tenantId}-${props.environment}-activityPipeline:*`]
 
-				},
+				}
 			],
 			true);
 	}

@@ -13,7 +13,8 @@
 
 import dayjs from 'dayjs';
 import { ulid } from 'ulid';
-import type { Metric, MetricsList, MetricVersionsList } from './schemas.js';
+import type { Metric, MetricsDownloadList, MetricsList, MetricVersionsList } from './schemas.js';
+import type { NewMetricsDownload } from '../metrics/schemas.js';
 
 const metricExample1: Metric = {
 	date: dayjs('2022-01-01').toDate(),
@@ -53,7 +54,7 @@ const metricVersion1: Metric = {
 
 const metricVersion2: Metric = {
 	...metricExample1,
-	hierarchyValue:158,
+	hierarchyValue: 158,
 	groupValue: 36,
 	subGroupsValue: 122,
 	version: 2,
@@ -76,4 +77,16 @@ export const metricVersionsListExample: MetricVersionsList = {
 	pagination: {
 		lastEvaluatedVersion: metricVersion3.version,
 	},
+};
+
+export const newMetricsDownloadExample: NewMetricsDownload = {
+	id: '12345'
+};
+
+export const metricsDownloadExample: MetricsDownloadList = {
+	downloads:[
+		{
+			url: 'https://<some-signed-url>'
+		}
+	]
 };

@@ -103,7 +103,7 @@ export class SifConnector extends Construct {
 		eventBus.grantPutEventsTo(connectorLambda);
 
 		const newConnectorRequest = {
-			'description': 'this connector is an input integration connector to configure pipelines in a cascade.',
+			'description': 'this connector is an input integration connector to configure cascading pipelines.',
 			'requiresFileUpload': true,
 			'name': props.connectorName,
 			'type': 'input',

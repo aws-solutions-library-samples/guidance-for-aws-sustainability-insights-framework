@@ -116,6 +116,17 @@ Feature:
 		And response body path $.headers[0] should be sum
 		And response body path $.data[0] should match stringified json "{\"sum\":\"left_text_right_text\"}"
 
+	Scenario: Should be able to check if a string is inside another string
+		Given I'm using the calculations api
+		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1
+		And I set body to { "name": "calculator_syntax_check", "summary": "Sample formula to validate calculator syntax.", "formula": "SEARCH(:text,:match,ignoreCase=true)", "parameters": [ { "index": 0, "key": "text", "label": "text", "description": "input string", "type": "string" }, { "index": 1, "key": "match", "label": "match", "description": "string to search for", "type": "string" } ], "outputs": [ { "name": "result", "description": "The total.", "type": "string" } ], "dryRunOptions": { "data": [{"text":"a long string to search for","match":"search"}] } }
+		When I POST to /calculations?dryRun=true
+		Then response code should be 200
+		And response body should contain headers
+		And response body should contain data
+		And response body path $.headers[0] should be result
+		And response body path $.data[0] should match stringified json "{\"result\":17 }"
+
 	Scenario: Should be able return condition based on switch statement
 		Given I'm using the calculations api
 		Given I authenticate using email calculationsApiTests_admin@amazon.com and password p@ssword1

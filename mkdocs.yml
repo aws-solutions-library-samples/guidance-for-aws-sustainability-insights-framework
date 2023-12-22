@@ -6,8 +6,8 @@ docs_dir: .
 nav:
   - Introduction: README.md
   - Walkthroughs:
-    - Deploying: docs/deployment/walkthrough.md
-    - User guide: docs/walkthrough.md
+    - Deploying: docs/deployment/cli_walkthrough.md
+    - User guide: docs/cli_walkthrough.md
     - docs/integration/postman.md
   - Modules:
     - Access Management:

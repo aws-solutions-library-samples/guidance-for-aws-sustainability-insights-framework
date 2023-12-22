@@ -2,6 +2,26 @@
   "name": "@sif/connector-utils",
   "entries": [
     {
+      "version": "1.2.3",
+      "tag": "@sif/connector-utils_v1.2.3",
+      "date": "Wed, 13 Dec 2023 02:37:36 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "updated logging"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.8.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.2.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.2.2",
       "tag": "@sif/connector-utils_v1.2.2",
       "date": "Thu, 17 Aug 2023 02:44:14 GMT",

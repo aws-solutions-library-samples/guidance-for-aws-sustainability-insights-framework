@@ -21,4 +21,11 @@ import lombok.ToString;
 @AllArgsConstructor
 @ToString
 public abstract class TransformResponse {
+	@Getter
+	protected boolean noActivitiesProcessed;
+
+	@Getter
+	protected String activityValueKey;
+
+	public TransformResponse() {}
 }

@@ -82,6 +82,8 @@ tsconfig.tsbuildinfo
 **/.zip
 **/tmp
 **/out-tsc
+**/bundle.zip
+assets/**
 
 # dependencies
 **/node_modules
@@ -179,3 +181,5 @@ license-checker/
 
 model.tar.gz
 /python/apps/caml/model/
+predeploy.json
+?

@@ -12,66 +12,38 @@
  */
 
 
-import type { ProcessedTaskEventWithExecutionDetails } from './model';
+import type { S3Location } from './model.js';
 import type { BaseLogger } from 'pino';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import type {  SFNClient } from '@aws-sdk/client-sfn';
-import type { CloudWatchClient} from '@aws-sdk/client-cloudwatch';
-import * as fs from 'fs';
-import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
-import * as os from 'os';
-import { getPipelineOutputKey, getTaskExecutionResultKey } from '../../utils/helper.utils.js';
-import { ResultProcessorTask } from './resultProcessorTask.js';
-import { validateNotEmpty } from '@sif/validators';
-import type { PipelineClient } from '@sif/clients/dist';
-import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
+import { validateDefined, validateNotEmpty } from '@sif/validators';
+import type { CalculatorResultUtil } from '../../utils/calculatorResult.util.js';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
+import type { SecurityContext } from '@sif/authz';
 
-export class RawResultProcessorTask extends ResultProcessorTask {
-	constructor(log: BaseLogger, s3Client: S3Client, sfnClient:SFNClient, cloudWatchClient:CloudWatchClient, pipelineClient:PipelineClient, pipelineBucket: string, pipelinePrefix: string, getSecurityContext:GetSecurityContext, getLambdaRequestContext:GetLambdaRequestContext, pipelineProcessorsService:PipelineProcessorsService) {
-		super(log, s3Client, sfnClient, cloudWatchClient, pipelineClient, pipelineBucket, pipelinePrefix, getSecurityContext, getLambdaRequestContext,  pipelineProcessorsService);
+export class RawResultProcessorTask {
+	constructor(private log: BaseLogger, private calculatorUtil: CalculatorResultUtil, private pipelineProcessorsService: PipelineProcessorsService) {
 	}
 
-	private async concatenateS3Result(pipelineId: string, executionId: string, sequenceList: number[]): Promise<void> {
-		this.log.debug(`RawResultProcessorTask > concatenateS3Result > pipelineId: ${pipelineId}, executionId: ${executionId}, sequenceList: ${sequenceList}`);
-		const concatenatedFilePath = `${os.tmpdir()}/result.csv`;
-		const out = fs.createWriteStream(concatenatedFilePath);
-		for (const sequence of sequenceList) {
-			const result = await this.s3Client.send(new GetObjectCommand({ Bucket: this.dataBucket, Key: getTaskExecutionResultKey(this.dataPrefix, pipelineId, executionId, sequence) }));
-			out.write(await sdkStreamMixin(result.Body).transformToByteArray());
-		}
-		await this.s3Client.send(new PutObjectCommand({ Bucket: this.dataBucket, Key: getPipelineOutputKey(this.dataPrefix, pipelineId, executionId), Body: fs.createReadStream(concatenatedFilePath) }));
-		this.log.debug(`RawResultProcessorTask > concatenateS3Result > exit:`);
-		return;
-	}
-
-	public override async process(event: ProcessedTaskEventWithExecutionDetails): Promise<[string, string | undefined]> {
+	public async process(event: { security: SecurityContext, pipelineId: string, executionId: string, errorLocationList: S3Location[], sequenceList: number[], pipelineType: string }): Promise<void> {
 		this.log.debug(`RawResultProcessorTask > process > event: ${JSON.stringify(event)}`);
 		validateNotEmpty(event, 'event');
-		validateNotEmpty(event.inputs, 'inputs');
+		validateDefined(event.errorLocationList, 'event.errorLocationList');
+		validateDefined(event.sequenceList, 'event.sequenceList');
 
-		const inputs = event.inputs;
-
-		const sortedEvents = inputs.sort((a, b) => {
-			return a.sequence - b.sequence;
-		});
-		const { pipelineId, executionId, pipelineType } = sortedEvents[0];
+		const { pipelineId, executionId, pipelineType, security } = event;
 
 		validateNotEmpty(executionId, 'executionId');
 		validateNotEmpty(pipelineId, 'pipelineId');
 		validateNotEmpty(pipelineType, 'pipelineType');
 
-		const errorS3LocationList = inputs.filter(o => o.errorLocation).map(o => o.errorLocation);
-		const sequenceList = sortedEvents.map(o => o.sequence);
+		await this.calculatorUtil.concatenateS3Error(pipelineId, executionId, event.errorLocationList);
+		await this.calculatorUtil.concatenateS3Result(pipelineId, executionId, event.sequenceList);
 
-		await this.concatenateS3Error(pipelineId, executionId, errorS3LocationList);
-		await this.concatenateS3Result(pipelineId, executionId, sequenceList);
-
-		const taskStatus = errorS3LocationList.length < 1 ? (pipelineType === 'data' ? 'success' : 'in_progress') : 'failed';
-		const taskStatusMessage = taskStatus == 'failed' ? 'error when performing calculation' : undefined;
+		const taskStatus = event.errorLocationList.length < 1 ? (pipelineType === 'data' ? 'success' : 'in_progress') : 'failed';
+		const taskStatusMessage = taskStatus == 'failed' ? 'error when performing calculation, review the pipeline execution error log for further info' : undefined;
 
 		const result: [string, string] = [taskStatus, taskStatusMessage];
+
+		await this.pipelineProcessorsService.update(security, pipelineId, executionId, { status: taskStatus, statusMessage: taskStatusMessage });
 		this.log.debug(`RawResultProcessorTask > process > exit > result : ${result}`);
-		return result;
 	}
 }

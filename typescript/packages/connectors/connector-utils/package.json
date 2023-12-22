@@ -1,6 +1,6 @@
 {
 	"name": "@sif/connector-utils",
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"description": "Common Connector utils.",
 	"author": "William Sia <willsia@amazon.com>",
 	"exports": {

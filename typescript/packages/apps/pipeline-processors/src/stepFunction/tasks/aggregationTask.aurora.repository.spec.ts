@@ -39,19 +39,26 @@ describe('AggregationTaskAuroraRepository', () => {
 		// @ts-ignore
 		mockPostgresClient.query.mockResolvedValueOnce({ rows: [{ from: '2023-01-03T16:00:00.000Z', to: '2023-01-05T16:00:00.000Z' }] });
 		const result = await aggregationTaskRepository.getAffectedTimeRange('pipe2', 'exec1');
-		const expectedQuery = '\n' +
-			`SELECT date_trunc('day', date(min(a.date)))::timestamp with time zone as "from",\n` +
-			`       (date_trunc('day', max(a.date)) + interval '1 day' - interval '1 second')::timestamp with time zone as "to"\n` +
-			'FROM "Activity" a\n' +
-			'         LEFT JOIN "ActivityNumberValue" n\n' +
-			`                   on a."activityId" = n."activityId" and n."executionId" = 'exec1'\n` +
-			'         LEFT JOIN "ActivityBooleanValue" b\n' +
-			`                   on a."activityId" = b."activityId" and b."executionId" = 'exec1'\n` +
-			'         LEFT JOIN "ActivityStringValue" s\n' +
-			`                   on a."activityId" = s."activityId" and s."executionId" = 'exec1'\n` +
-			'         LEFT JOIN "ActivityDateTimeValue" d\n' +
-			`                   on a."activityId" = d."activityId" and d."executionId" = 'exec1'\n` +
-			`WHERE a."type" = 'raw';`
+		const expectedQuery = `
+SELECT date_trunc('day', date(min(a.date)))::timestamp with time zone                                      as "from",
+       (date_trunc('day', max(a.date)) + interval '1 day' - interval '1 second')::timestamp with time zone as "to"
+FROM "Activity" a RIGHT JOIN
+     (SELECT "activityId"
+      FROM "ActivityNumberValue"
+      WHERE "executionId" = 'exec1'
+      UNION
+      SELECT "activityId"
+      FROM "ActivityStringValue"
+      WHERE "executionId" ='exec1'
+      UNION
+      SELECT "activityId"
+      FROM "ActivityBooleanValue"
+      WHERE "executionId" ='exec1'
+      UNION
+      SELECT "activityId"
+      FROM "ActivityDateTimeValue"
+      WHERE "executionId" ='exec1') b on a."activityId" = b."activityId"
+WHERE a."type" = 'raw' AND a."pipelineId" = 'pipe2' ;`;
 
 		console.log(mockPostgresClient.query.mock.calls[0])
 

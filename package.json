@@ -5,8 +5,8 @@
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"scripts": {},
 	"engines": {
-		"node": "=16",
-		"pnpm": "=7"
+		"node": ">=18.16.0 <19.0.0",
+		"pnpm": "=8.6.8"
 	},
 	"private": true,
 	"devDependencies": {

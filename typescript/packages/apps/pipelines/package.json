@@ -1,6 +1,6 @@
 {
 	"name": "@sif/pipelines",
-	"version": "4.7.3",
+	"version": "4.8.0",
 	"description": "Pipelines module",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"type": "module",
@@ -22,6 +22,7 @@
 		"@aws-sdk/client-lambda": "3.370.0",
 		"aws-sdk-client-mock": "3.0.0",
 		"@aws-sdk/types": "3.370.0",
+		"@aws-sdk/client-eventbridge": "3.370.0",
 		"@fastify/awilix": "3.1.0",
 		"@fastify/aws-lambda": "3.3.0",
 		"@fastify/cors": "8.3.0",
@@ -50,7 +51,8 @@
 		"pino": "8.14.1",
 		"source-map-support": "0.5.21",
 		"ulid": "2.3.0",
-		"validator": "13.9.0"
+		"validator": "13.9.0",
+		"aws-xray-sdk": "3.5.0"
 	},
 	"devDependencies": {
 		"@aws-sdk/client-ssm": "3.370.0",

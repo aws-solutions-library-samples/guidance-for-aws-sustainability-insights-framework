@@ -8,7 +8,7 @@ Feature:
 
 	Scenario: Admin can create a new group
 		Given I authenticate using email accessManagement_group_admin@amazon.com and password p@ssword1
-		And I set body to {"name": "accessManagementGroupTests1"}
+		And I set body to {"name": "accessManagementGroupTests1", "configuration": {"pipelineProcessor" : {"triggerMetricAggregations":true}}}
 		When I POST to /groups
 		And I pause for 1000ms
 		Then response code should be 201
@@ -17,6 +17,22 @@ Feature:
 		And response body path $.name should be accessManagementGroupTests1
 		And response body should contain createdBy
 		And response body should contain createdAt
+		When I GET /groups/%2Faccessmanagementgrouptests1
+		Then response code should be 200
+		And response body path $.id should be /accessmanagementgrouptests1
+		And response body path $.name should be accessManagementGroupTests1
+		And response body path $.configuration.pipelineProcessor.triggerMetricAggregations should be true
+
+	Scenario: Admin can modify existing group
+		Given I authenticate using email accessManagement_group_admin@amazon.com and password p@ssword1
+		And I set body to {"name": "accessManagementGroupTests1", "configuration": {"pipelineProcessor" : {"triggerMetricAggregations":false}}}
+		When I PATCH /groups/%2Faccessmanagementgrouptests1
+		Then response code should be 200
+		When I GET /groups/%2Faccessmanagementgrouptests1
+		Then response code should be 200
+		And response body path $.id should be /accessmanagementgrouptests1
+		And response body path $.name should be accessManagementGroupTests1
+		And response body path $.configuration.pipelineProcessor.triggerMetricAggregations should be false
 
 	Scenario: Contributor cannot create a new group
 		#TODO: need disposal email addresses

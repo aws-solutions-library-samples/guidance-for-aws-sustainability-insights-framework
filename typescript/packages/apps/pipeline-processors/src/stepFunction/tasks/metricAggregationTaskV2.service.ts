@@ -17,8 +17,8 @@ import isBetween from 'dayjs/plugin/isBetween.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
 import weekOfYear from 'dayjs/plugin/weekOfYear.js';
 import type { BaseLogger } from 'pino';
-import type { ProcessedTaskEvent } from './model.js';
-import { validateDefined, validateNotEmpty } from '@sif/validators';
+import type { MetricAggregationTaskEvent } from './model.js';
+import { validateDefined, validateHasSome, validateNotEmpty } from '@sif/validators';
 
 import type { LambdaRequestContext, MetricClient, Metric as MetricResource } from '@sif/clients';
 import type { Utils } from '@sif/resource-api-base';
@@ -26,6 +26,7 @@ import { AffectedTimeRange, TIME_UNIT_TO_DATE_PART, TimeUnitAbbreviation } from 
 import type { AggregationTaskAuroraRepository } from './aggregationTask.aurora.repository.js';
 import type { MetricAggregationRepository } from './metricAggregationRepository.js';
 import type { AggregationUtil } from '../../utils/aggregation.util.js';
+import type { MetricAggregationJobService } from '../../api/aggregations/service';
 
 dayjs.extend(weekOfYear);
 dayjs.extend(quarterOfYear);
@@ -33,46 +34,43 @@ dayjs.extend(dayOfYear);
 dayjs.extend(isBetween);
 
 export class MetricAggregationTaskServiceV2 {
-	private readonly log: BaseLogger;
-	private readonly metricClient: MetricClient;
-	private readonly aggregationTaskRepo: AggregationTaskAuroraRepository;
-	private readonly metricAggregationRepo: MetricAggregationRepository;
-	private readonly metricAggregationUtil: AggregationUtil;
-	private readonly utils: Utils;
+
 
 	public constructor(
-		log: BaseLogger,
-		metricClient: MetricClient,
-		aggregationTaskRepo: AggregationTaskAuroraRepository,
-		utils: Utils,
-		metricAggregationRepo: MetricAggregationRepository,
-		metricAggregationUtil: AggregationUtil
+		private log: BaseLogger,
+		private metricClient: MetricClient,
+		private aggregationTaskRepo: AggregationTaskAuroraRepository,
+		private utils: Utils,
+		private metricAggregationRepo: MetricAggregationRepository,
+		private metricAggregationUtil: AggregationUtil,
+		private metricAggregationJobService: MetricAggregationJobService
 	) {
-		this.log = log;
-		this.metricClient = metricClient;
-		this.aggregationTaskRepo = aggregationTaskRepo;
-		this.utils = utils;
-		this.metricAggregationRepo = metricAggregationRepo;
-		this.metricAggregationUtil = metricAggregationUtil;
 	}
 
-	public async process(event: ProcessedTaskEvent): Promise<ProcessedTaskEvent> {
+	public async process(event: MetricAggregationTaskEvent): Promise<MetricAggregationTaskEvent> {
 		this.log.info(`MetricAggregationTaskServiceV2> process> event: ${JSON.stringify(event)}`);
 
 		validateDefined(event, 'event');
 		validateDefined(event.metricQueue, 'event.metricQueue');
-		validateNotEmpty(event.groupContextId, 'event.groupContextId');
+		validateNotEmpty(event.security, 'event.security');
 		validateNotEmpty(event.pipelineId, 'event.pipelineId');
-		validateNotEmpty(event.executionId, 'event.executionId');
+		// execution id is required if either timeRange and groupsQueue is not provided
+		validateHasSome([event.timeRange, event.executionId], ['event.timeRange', 'event.executionId']);
+		validateHasSome([event.groupsQueue, event.executionId], ['event.groupsQueue', 'event.executionId']);
 
-		const { groupContextId, pipelineId, executionId, metricQueue } = event;
+		const { security, pipelineId, executionId, metricQueue } = event;
 		let { groupsQueue, nextMetric, nextGroup } = event;
 
 		if (metricQueue.length === 0) {
 			this.log.info(`AggregationTask> process> early exit (no metrics)`);
+
+			if (event.metricAggregationJobId) {
+				await this.metricAggregationJobService.update(event.metricAggregationJobId, { status: 'succeeded' });
+			}
+
 			return {
 				...event,
-				status: 'SUCCEEDED',
+				status: 'SUCCEEDED'
 			};
 		}
 
@@ -87,7 +85,7 @@ export class MetricAggregationTaskServiceV2 {
 			const executionGroupLeaves = await this.metricAggregationUtil.getExecutionGroupLeaves(pipelineId, executionId);
 			this.log.debug(`executionGroupLeaves: ${JSON.stringify(executionGroupLeaves)}`);
 			executionGroupLeaves.forEach((egl, i) => {
-				groupsQueue.push({order: i+1, group: egl});
+				groupsQueue.push({ order: i + 1, group: egl });
 			});
 
 			this.log.debug(`created groupsQueue: ${JSON.stringify(groupsQueue)}`);
@@ -100,13 +98,13 @@ export class MetricAggregationTaskServiceV2 {
 		// sort the metric to process in order of priority or hierarchy then get the first one
 		const metricToProcess = metricQueue.find(m => m.order === currentMetric);
 
-		const requestContext = this.buildLambdaRequestContext(groupContextId);
+		const requestContext = this.buildLambdaRequestContext(security.groupId);
 
 		this.log.trace(`MetricAggregationTaskServiceV2> process> aggregating metric ${metricToProcess.metric}`);
 
 		const metric = await this.metricClient.getByName(metricToProcess.metric, undefined, requestContext);
 
-		await this.rollupMetric(groupHierarchy, timeRange, metric, pipelineId, executionId);
+		await this.rollupMetric(groupHierarchy, timeRange, metric, pipelineId, executionId ?? '');
 
 		// iterate through all of the metrics for each group
 		// so on each run increment the metric processed
@@ -121,14 +119,20 @@ export class MetricAggregationTaskServiceV2 {
 
 		this.log.info(`MetricAggregationTaskServiceV2> process> exit:`);
 
+		const status = nextGroup <= groupsQueue.length ? 'IN_PROGRESS' : 'SUCCEEDED';
+
+		if (status === 'SUCCEEDED' && event.metricAggregationJobId) {
+			await this.metricAggregationJobService.update(event.metricAggregationJobId, { status: 'succeeded' });
+		}
+
 		return {
 			...event,
 			timeRange,
-			status: nextGroup <= groupsQueue.length ? 'IN_PROGRESS' : 'SUCCEEDED',
+			status,
 			metricQueue,
 			groupsQueue,
 			nextMetric,
-			nextGroup,
+			nextGroup
 		};
 	}
 
@@ -160,12 +164,11 @@ export class MetricAggregationTaskServiceV2 {
 				{ fromUnit: 'd', toUnit: 'w' },
 				{ fromUnit: 'd', toUnit: 'm' },
 				{ fromUnit: 'm', toUnit: 'q' },
-				{ fromUnit: 'q', toUnit: 'y' },
+				{ fromUnit: 'q', toUnit: 'y' }
 			];
 			for (const { fromUnit, toUnit } of rollupTo) {
 				this.log.debug(`AggregationTask> rollupMetric> fromUnit:${fromUnit}, toUnit:${toUnit}, aggregated:${JSON.stringify(timeRange)}`);
 
-				const fromDatePart = TIME_UNIT_TO_DATE_PART[fromUnit];
 				const toDatePart = TIME_UNIT_TO_DATE_PART[toUnit];
 				/**
 				 * Time range is extended to the time unit boundaries else a part time unit could be aggregated
@@ -175,8 +178,8 @@ export class MetricAggregationTaskServiceV2 {
 						.startOf(toDatePart as OpUnitType)
 						.toDate(),
 					to: dayjs(timeRange.to)
-						.endOf(fromDatePart as OpUnitType)
-						.toDate(),
+						.endOf(toDatePart as OpUnitType)
+						.toDate()
 				};
 				this.log.debug(`AggregationTask> rollupMetric> timeRangeTimeUnit:${JSON.stringify(timeRangeTimeUnit)}`);
 
@@ -196,9 +199,9 @@ export class MetricAggregationTaskServiceV2 {
 				claims: {
 					email: '',
 					'cognito:groups': `${groupId}|||reader`,
-					groupContextId: groupId,
-				},
-			},
+					groupContextId: groupId
+				}
+			}
 		};
 	}
 }

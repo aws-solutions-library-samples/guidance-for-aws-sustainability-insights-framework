@@ -61,6 +61,16 @@ describe('Utils', () => {
 	});
 
 	test.each([
+		[['/a/b/c', '/x/y/z'], ['/a/b/c/d'], true],
+		[['/a/b/c', '/x/y/z'], ['/m/n/o'], false],
+		[['/a/b/c', '/x/y/z'], ['/'], true],
+		[['/a/b/c', '/x/y/z'], ['/a/b/c'], true],
+		[['/a/b/c', '/x/y/z'], ['/m/n', '/x/y'], true],
+	])('%s overlap with %s is %s', (groupOne: string[], groupTwo: string[], expected) => {
+		expect(underTest.checkIfGroupsLeavesOverlap(groupOne, groupTwo)).toEqual(expected);
+	});
+
+	test.each([
 		['/group1', { includeChildGroups: true, includeParentGroups: true }, ['/group1'], true],
 		['/group1', { includeChildGroups: false, includeParentGroups: true }, ['/group1/group2'], false],
 		['/group1', { includeChildGroups: true, includeParentGroups: false }, ['/group1', '/group1/group2'], true],

@@ -1,43 +1,51 @@
-## Cognito implementation
+# Cognito Implementation
 
-The initial release of this module supports Cognito User Pool integration only. This may change as new requirements arise.
+## Overview
 
-A dedicated Cognito User Pool is created per deployment.
+- This module currently supports only Cognito User Pool integration.
+- Each deployment gets its own dedicated Cognito User Pool.
+- Users need to provide an email, which will also serve as their username. This email must be verified before it can be used.
+- All modules with REST API's via API Gateway use the `COGNITO_USER_POOLS` authentication type, ensuring a shared Cognito User Pool across all modules.
 
-Cognito users are configured to provide just an email which will also represent the username, and must be verified before use.
+## User Groups and Roles
 
-A Cognito Group is created per each group and role combination. For example, if creating the group `/usa/northwest` within the application then the Cognito Groups `/usa/northwest|||admin`, `/usa/northwest|||contributor`, and `/usa/northwest|||reader` are created. This module will manage a users Cognito Group membership based on the group and roles configured.
+- A unique Cognito Group is created for each combination of SIF group and role. For instance, creating the group `/usa/northwest` in the application will lead to the creation of Cognito Groups: `/usa/northwest|||admin`, `/usa/northwest|||contributor`, and `/usa/northwest|||reader`.
+- The module manages an instances Cognito Group membership based on the group and roles set.
+- During the initial deployment, Cognito Groups `/|||admin`, `/|||contributor`, and `/|||reader` are created. An administrator user is also created and assigned to the `/|||admin` Cognito Group.
 
-As part of the initial deployment the Cognito Groups `/|||admin`, `/|||contributor`, `/|||reader` are automatically created along with an administrator user assigned to the `/|||admin` Cognito Group.
+## API Requests
 
-All modules within the platform (beyond just this module) that expose REST API's via API Gateway are configured to use `COGNITO_USER_POOLS` type authentication. This ensures that all modules share the same Cognito User Pool. As part of the integration between API Gateway and Lambda, the `email` and `cognito:groups` claims are decoded, verified, and added to the request.
+- All API requests are executed within the context of a specific group, which defaults to the user's default group. To change the group context for a specific API, use the `x-groupcontextid` header.
+- As part of the integration between API Gateway and Lambda, the `email` and `cognito:groups` claims are decoded, verified, and added to the request.
 
-All API requests made against any modules are carried out within the context of a specific group. This is the users default group (as per their user profile) by default. To override the group context of a specific API, set the `x-groupcontextid` header to the required group.
+### Cognito Challenge Flow
 
-### Cognito challenge flow to set group context
+- The deployed Cognito uses the [Secure Remote Password (SRP) protocol](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#Built-in-authentication-flow-and-challenges).
+- The user's default group is added to the JWT claims during the [pre token generation](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-token-generation.html) trigger.
+- After successful authentication, the id token can be used for API call authentication.
 
-The Cognito that is deployed as part of `guidance-for-aws-sustainability-insights-framework` is configured to use [Secure Remote Password (SRP) protocol](https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#Built-in-authentication-flow-and-challenges). The user's default group is inserted into the JWT claims as part of the [pre token generation](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-token-generation.html) trigger. After successful authentication the id token can be used to authenticate API calls.
+### Manual Email Verification
 
-### Manually verifying a user's email
+To manually verify a user's email:
 
 ```shell
 > aws cognito-idp admin-update-user-attributes --user-pool-id YOUR_USER_POOL_ID --username EMAIL --user-attributes Name="email_verified",Value="true"
 ```
 
-### Generating a token
+### Token Generation
 
-1. Run the command below inside the `packages/integrationTests` folder:
+To obtain the required authorization token for API invocation, execute following command using [sif-cli](https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework-cli) :
 
-   a. New User
-
-```shell
-> npm run generate:token -- <tenantId> <environment> <username> <initialPassword> <newPassword>
-```
-
-   b. Existing User
+- For a new user:
 
 ```shell
-> npm run generate:token -- <tenantId> <environment> <username> <password>
+sif instance auth -e <environment> -t <tenant> -u <username> -p <initialPassword> -n <newPassword>
 ```
 
-2. Use the id token from the previous step and provide it as the `Authorization` request header.
+- For an existing user:
+
+```shell
+sif instance auth -e <environment> -t <tenant> -u <username> -p <password>
+```
+
+Use the `id` token from the previous step and provide it as the `Authorization` request header.

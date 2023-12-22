@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import { CustomResource, Duration, RemovalPolicy, Size, Stack, CfnWaitCondition, CfnWaitConditionHandle } from 'aws-cdk-lib';
+import { BundlingFileAccess, CfnWaitCondition, CfnWaitConditionHandle, CustomResource, Duration, RemovalPolicy, Size, Stack } from 'aws-cdk-lib';
 import { ScalableTarget, ServiceNamespace } from 'aws-cdk-lib/aws-applicationautoscaling';
 import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
 import { AttributeType, BillingMode, Table, TableEncryption } from 'aws-cdk-lib/aws-dynamodb';
@@ -24,7 +24,7 @@ import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { NagSuppressions } from 'cdk-nag';
-import { ExecSyncOptions, execSync } from 'child_process';
+import { execSync, ExecSyncOptions } from 'child_process';
 import { Construct } from 'constructs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -51,7 +51,7 @@ export interface CalculatorConstructProperties {
 	customResourceProviderToken: string;
 	camlInferenceEndpointName?: string;
 	auditDataStreamArn: string;
-	auditDataStreamName:string;
+	auditDataStreamName: string;
 	decimalPrecision: number;
 }
 
@@ -284,18 +284,27 @@ export class CalculatorModule extends Construct {
 				'RESOURCE_MAPPING_TABLE_NAME': resourceMappingTable.tableName,
 				'ACTIVITY_QUEUE_URL': activityInsertQueue.queueUrl,
 				'AUDIT_QUEUE_URL': auditQueue.queueUrl,
-				'AUDIT_DATA_STREAM_NAME':props.auditDataStreamName,
-				'CAML_INFERENCE_ENDPOINT_NAME': props.camlInferenceEndpointName,
+				'AUDIT_DATA_STREAM_NAME': props.auditDataStreamName,
+				'CAML_INFERENCE_ENDPOINT_NAME': props.camlInferenceEndpointName!,
 				'CALCULATOR_DECIMAL_PRECISION': props.decimalPrecision.toString()
 			},
 			code: Code.fromAsset(calculatorPath, {
 				bundling: {
-					workingDirectory: calculatorPath,
 					image: Runtime.JAVA_17.bundlingImage,
+					bundlingFileAccess: BundlingFileAccess.VOLUME_COPY,
+					command: [
+						'/bin/sh',
+						'-c',
+						[
+							`perl -pe 'BEGIN{undef $/;}s/<plugin>.*bjurr.*?<\\/plugin>//smg' -i pom.xml`,
+							'mvn clean install -X -DskipReleasePrepare=true',
+							`cp ./target/calculator.jar /asset-output/calculator.jar`
+						].join(' && ')
+					],
 					local: {
 						tryBundle(outputDir: string): boolean {
 							try {
-								execSync(`mvn clean install`, {
+								execSync(`mvn clean install  -DskipReleasePrepare=true`, {
 									...execOptions,
 									cwd: calculatorPath,
 								});
@@ -339,7 +348,7 @@ export class CalculatorModule extends Construct {
 		calculatorLambda.addToRolePolicy(new PolicyStatement({
 			sid: 'dateStream',
 			effect: Effect.ALLOW,
-			actions: ['kinesis:DescribeStream', 'kinesis:Get*', 'kinesis:List*', 'kinesis:PutRecord','kinesis:PutRecords'],
+			actions: ['kinesis:DescribeStream', 'kinesis:Get*', 'kinesis:List*', 'kinesis:PutRecord', 'kinesis:PutRecords'],
 			resources: [props.auditDataStreamArn],
 		}));
 
@@ -375,7 +384,7 @@ export class CalculatorModule extends Construct {
 
 		const alias = new Alias(this, 'CalculatorHandlerAlias', {
 			aliasName: 'live',
-			provisionedConcurrentExecutions: props.minScaling,
+			provisionedConcurrentExecutions: Number(props.minScaling),
 			version: calculatorLambda.currentVersion
 		});
 
@@ -383,8 +392,8 @@ export class CalculatorModule extends Construct {
 
 		const scalableTarget = new ScalableTarget(this, 'CalculatorHandlerScalableTarget', {
 			serviceNamespace: ServiceNamespace.LAMBDA,
-			minCapacity: props.minScaling,
-			maxCapacity: props.maxScaling,
+			minCapacity: Number(props.minScaling),
+			maxCapacity: Number(props.maxScaling),
 			resourceId: `function:${calculatorLambda.functionName}:${alias.aliasName}`,
 			scalableDimension: 'lambda:function:ProvisionedConcurrency'
 		});

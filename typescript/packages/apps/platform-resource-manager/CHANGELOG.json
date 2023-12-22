@@ -1,0 +1,28 @@
+{
+  "name": "@sif/platform-resource-manager",
+  "entries": [
+    {
+      "version": "0.1.1",
+      "tag": "@sif/platform-resource-manager_v0.1.1",
+      "date": "Wed, 13 Dec 2023 02:37:37 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Added ability to manage platform resources shuch as shutting down the database"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.9.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/concurrency-manager\" to `0.2.2`"
+          }
+        ]
+      }
+    }
+  ]
+}

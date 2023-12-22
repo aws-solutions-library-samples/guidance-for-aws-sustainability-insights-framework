@@ -15,7 +15,7 @@ import { Invoker, LambdaApiGatewayEventBuilder } from '@sif/lambda-invoker';
 import type { BaseLogger } from 'pino';
 import { ClientServiceBase } from '../common/common.js';
 import type { LambdaRequestContext } from '../common/models.js';
-import type { Execution } from './execution.models.js';
+import type { Execution, ExecutionList, NewExecution } from './execution.models.js';
 
 export class ExecutionClient extends ClientServiceBase {
 	private readonly pipelineProcessorFunctionName: string;
@@ -29,8 +29,8 @@ export class ExecutionClient extends ClientServiceBase {
 		this.log = log;
 	}
 
-	public async get(pipelineId:string ,executionId: string, requestContext?: LambdaRequestContext, verbose = true): Promise<Execution> {
-		this.log.info(`ExecutionClient > get > in > pipelineId:${pipelineId}, executionId: ${executionId}, `);
+	public async get(pipelineId: string, executionId: string, requestContext?: LambdaRequestContext, verbose = true): Promise<Execution> {
+		this.log.info(`ExecutionClient > get > in > pipelineId:${pipelineId}, executionId: ${executionId}`);
 
 		const additionalHeaders = {};
 
@@ -48,7 +48,54 @@ export class ExecutionClient extends ClientServiceBase {
 			});
 
 		const result = await this.lambdaInvoker.invoke(this.pipelineProcessorFunctionName, event);
-		this.log.info(`ExecutionClient > get > exit > result: ${JSON.stringify(result)}`);
+		this.log.info(`ExecutionClient > get > exit`);
+		return result.body as Execution;
+	}
+
+	public async list(pipelineId: string, requestContext?: LambdaRequestContext, options?: { tags: { key: string, value: string } }): Promise<ExecutionList> {
+		this.log.info(`ExecutionClient > list > in > pipelineId:${pipelineId} `);
+
+		const additionalHeaders = {};
+
+		if (requestContext.authorizer.claims.groupContextId) {
+			additionalHeaders['x-groupcontextid'] = requestContext.authorizer.claims.groupContextId;
+		}
+
+		let event: LambdaApiGatewayEventBuilder = new LambdaApiGatewayEventBuilder()
+			.setMethod('GET')
+			.setRequestContext(requestContext)
+			.setHeaders(super.buildHeaders(additionalHeaders))
+			.setPath(`pipelines/${pipelineId}/executions`)
+			.setQueryStringParameters({});
+
+		if (options?.tags) {
+			event = event.setQueryStringParameters({
+				tags: `${options.tags.key}:${options.tags.value}`
+			});
+		}
+
+		const result = await this.lambdaInvoker.invoke(this.pipelineProcessorFunctionName, event);
+		this.log.info(`ExecutionClient > list > exit`);
+		return result.body as ExecutionList;
+	}
+
+	public async create(pipelineId: string, newExecution: NewExecution, requestContext?: LambdaRequestContext): Promise<Execution> {
+		this.log.info(`ExecutionClient> create> in> pipelineId:${pipelineId}, newExecution: ${JSON.stringify(newExecution)}`);
+
+		const additionalHeaders = {};
+
+		if (requestContext.authorizer.claims.groupContextId) {
+			additionalHeaders['x-groupcontextid'] = requestContext.authorizer.claims.groupContextId;
+		}
+
+		const event: LambdaApiGatewayEventBuilder = new LambdaApiGatewayEventBuilder()
+			.setMethod('POST')
+			.setRequestContext(requestContext)
+			.setHeaders(super.buildHeaders(additionalHeaders))
+			.setBody(newExecution)
+			.setPath(`pipelines/${pipelineId}/executions`);
+		const result = await this.lambdaInvoker.invoke(this.pipelineProcessorFunctionName, event);
+		this.log.info(`ExecutionClient> create> exit`);
 		return result.body as Execution;
 	}
 }

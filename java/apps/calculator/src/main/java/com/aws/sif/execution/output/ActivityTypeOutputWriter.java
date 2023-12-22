@@ -37,20 +37,17 @@ public class ActivityTypeOutputWriter implements OutputWriter<ActivityTypeRecord
     private final S3Utils s3;
     private final Config config;
     private BufferedWriter activityValueWriter;
-    private Path activityValuePath;
+    public Path activityValuePath;
     // context
     private String pipelineId;
     private String executionId;
     private int chunkNo;
     private Map<String, String> outputMap;
-    private final ActivitySqsWriter sqsWriter;
     protected int precision;
 
-
-    public ActivityTypeOutputWriter(Config config, S3Utils s3, ActivitySqsWriter sqsWriter) {
+    public ActivityTypeOutputWriter(Config config, S3Utils s3) {
         this.s3 = s3;
         this.config = config;
-        this.sqsWriter = sqsWriter;
     }
 
     public void init(String pipelineId, String executionId, int chunkNo,
@@ -198,7 +195,7 @@ public class ActivityTypeOutputWriter implements OutputWriter<ActivityTypeRecord
                 default:
                     typeFragments = stringValueFragments;
                     valueString = (value instanceof NullValue) ? ""
-                            : String.format("%s", value.asString());
+                            : String.format("\"%s\"", value.asString());
             }
 
             boolean error = false;
@@ -247,13 +244,6 @@ public class ActivityTypeOutputWriter implements OutputWriter<ActivityTypeRecord
 
         uploads.add(0, this.activityValuePath);
 
-
-        var activityValueKey = config.getString("calculator.upload.s3.activities.key")
-                .replace("<pipelineId>", this.pipelineId)
-                .replace("<executionId>", this.executionId)
-                + this.activityValuePath.getFileName().toString();
-
-
         CompletableFuture<?>[] futures = uploads.stream()
                 .map(filePath -> s3.uploadAsync(
                         new S3Location(bucket, config.getString("calculator.upload.s3.activities.key")
@@ -265,14 +255,6 @@ public class ActivityTypeOutputWriter implements OutputWriter<ActivityTypeRecord
 
         // Wait for all futures to complete
         CompletableFuture.allOf(futures).join();
-
-
-        // Send a message to SQS
-        String payload = String.format("""
-                {"pipelineId":"%s","executionId":"%s","sequence":"%s", "activityValuesKey": "%s"}
-                	""", this.pipelineId, this.executionId, this.chunkNo, activityValueKey);
-        var deDuplicationId = UUID.randomUUID().toString();
-        this.sqsWriter.submitWithRetry(payload, this.executionId, deDuplicationId);
     }
 
     @Data

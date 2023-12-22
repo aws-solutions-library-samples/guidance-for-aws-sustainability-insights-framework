@@ -11,25 +11,25 @@
  *  and limitations under the License.
  */
 
-import type { SecurityContext } from '@sif/authz';
-import type { CalculatorClient, MetricClient, LambdaRequestContext } from '@sif/clients';
+import type { CalculatorClient, SecurityContext } from '@sif/clients';
 import pino from 'pino';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MockProxy, mock } from 'vitest-mock-extended';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
 import { CalculationTask } from './calculationTask';
 import type { CalculationChunk, CalculationContext } from './model.js';
+import type { SQSClient } from '@aws-sdk/client-sqs';
+import type { SFNClient } from '@aws-sdk/client-sfn';
 
 const sampleParameters = [
 	{
 		key: 'one',
-		type: 'string',
+		type: 'string'
 	},
 	{
 		key: 'two',
-		type: 'number',
-	},
+		type: 'number'
+	}
 ];
 const sampleTransforms = [
 	{
@@ -39,9 +39,9 @@ const sampleTransforms = [
 			{
 				index: 0,
 				key: 'sum',
-				type: 'number',
-			},
-		],
+				type: 'number'
+			}
+		]
 	},
 	{
 		index: 1,
@@ -50,54 +50,49 @@ const sampleTransforms = [
 			{
 				index: 0,
 				key: 'sumtwo',
-				type: 'number',
-			},
-		],
-	},
+				type: 'number'
+			}
+		]
+	}
 ];
 
 describe('Calculation Task', () => {
 	let underTest: CalculationTask,
+		mockSfnClient: MockProxy<SFNClient>,
 		mockedCalculatorClient: MockProxy<CalculatorClient>,
 		mockedPipelineProcessorsService: MockProxy<PipelineProcessorsService>,
-		mockMetricClient: MockProxy<MetricClient>;
+		mockSqsClient: MockProxy<SQSClient>;
 
 	let sampleChunkFirst: CalculationChunk = { sequence: 0, range: [0, 100] };
 	let sampleChunkSecond: CalculationChunk = { sequence: 1, range: [101, 200] };
-
 	let sampleSource = {
 		key: 'pipelines/1/executions/1/input.csv',
-		bucket: 'test_bucket',
+		bucket: 'test_bucket'
 	};
 
 	beforeEach(() => {
 		const logger = pino(
 			pino.destination({
-				sync: true, // test frameworks must use pino logger in sync mode!
+				sync: true // test frameworks must use pino logger in sync mode!
 			})
 		);
 		logger.level = 'debug';
 		mockedPipelineProcessorsService = mock<PipelineProcessorsService>();
 		mockedCalculatorClient = mock<CalculatorClient>();
 		mockedPipelineProcessorsService = mock<PipelineProcessorsService>();
-		mockMetricClient = mock<MetricClient>();
+		mockSqsClient = mock<SQSClient>();
+		mockSfnClient = mock<SFNClient>();
 		mockedCalculatorClient.process.mockReset();
 		mockedCalculatorClient.process.mockResolvedValue({
 			data: [],
 			auditLogLocation: { bucket: 'unit-test-bucket', key: 'audit-test-key' },
 			errorLocation: { bucket: 'unit-test-bucket', key: 'error-test-key' },
+			noActivitiesProcessed: false
 		});
 
-		const mockGetContext: GetSecurityContext = async (): Promise<SecurityContext> => {
-			return {} as unknown as SecurityContext;
-		};
+		const activityQueueUrl = 'sampleQueueName';
 
-		const mockGetLambdaRequestContext: GetLambdaRequestContext = (): LambdaRequestContext => {
-			return {} as unknown as LambdaRequestContext;
-		};
-
-
-		underTest = new CalculationTask(logger, mockedPipelineProcessorsService, mockedCalculatorClient, mockGetContext, mockGetLambdaRequestContext, mockMetricClient);
+		underTest = new CalculationTask(logger, mockedPipelineProcessorsService, mockedCalculatorClient, mockSqsClient, activityQueueUrl, mockSfnClient);
 	});
 
 	it('happy path first chunk', async () => {
@@ -105,13 +100,13 @@ describe('Calculation Task', () => {
 			actionType: 'create',
 			transformer: {
 				transforms: sampleTransforms,
-				parameters: sampleParameters,
+				parameters: sampleParameters
 			},
 			pipelineType: 'activities',
-			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
 			executionId: 'unit-test-pipeline-execution',
 			pipelineCreatedBy: 'admin',
+			security: { groupId: '/unit/test/group' } as SecurityContext
 		} as CalculationContext;
 
 		const result = await underTest.process({ context, chunk: sampleChunkFirst, source: sampleSource });
@@ -127,17 +122,17 @@ describe('Calculation Task', () => {
 				bucket: sampleSource.bucket,
 				key: sampleSource.key,
 				startByte: sampleChunkFirst.range[0],
-				endByte: sampleChunkFirst.range[1],
+				endByte: sampleChunkFirst.range[1]
 			},
 			chunkNo: 0,
 			actionType: 'create',
-			username: 'admin',
+			username: 'admin'
 		});
 
-		expect(result.pipelineId).toEqual('unit-test-pipeline');
-		expect(result.executionId).toEqual('unit-test-pipeline-execution');
-		expect(result.sequence).toEqual(0);
-		expect(result.errorLocation).toEqual({ bucket: 'unit-test-bucket', key: 'error-test-key' });
+		expect(result.context.pipelineId).toEqual('unit-test-pipeline');
+		expect(result.context.executionId).toEqual('unit-test-pipeline-execution');
+		expect(result.calculatorTransformResponse.sequence).toEqual(0);
+		expect(result.calculatorTransformResponse.errorLocation).toEqual({ bucket: 'unit-test-bucket', key: 'error-test-key' });
 	});
 
 	it('happy path second chunk', async () => {
@@ -146,12 +141,12 @@ describe('Calculation Task', () => {
 			pipelineType: 'activities',
 			transformer: {
 				transforms: sampleTransforms,
-				parameters: sampleParameters,
+				parameters: sampleParameters
 			},
-			groupContextId: '/unit/test/group',
 			pipelineId: 'unit-test-pipeline',
 			executionId: 'unit-test-pipeline-execution',
 			pipelineCreatedBy: 'admin',
+			security: { groupId: '/unit/test/group' } as SecurityContext
 		} as CalculationContext;
 
 		const result = await underTest.process({ context, chunk: sampleChunkSecond, source: sampleSource });
@@ -169,10 +164,10 @@ describe('Calculation Task', () => {
 				bucket: sampleSource.bucket,
 				key: sampleSource.key,
 				startByte: sampleChunkSecond.range[0],
-				endByte: sampleChunkSecond.range[1],
+				endByte: sampleChunkSecond.range[1]
 			},
-			chunkNo: 1,
+			chunkNo: 1
 		});
-		expect(result.sequence).toEqual(1);
+		expect(result.calculatorTransformResponse.sequence).toEqual(1);
 	});
 });

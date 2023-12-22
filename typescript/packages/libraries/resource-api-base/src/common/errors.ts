@@ -60,10 +60,24 @@ export class NotImplementedError extends Error {
 	}
 }
 
+export class ServiceUnavailableError extends Error {
+	public constructor(message?: string) {
+		super(message);
+		this.name = 'ServiceUnavailableError';
+	}
+}
+
 export class InvalidNameError extends Error {
 	public constructor(message: string) {
 		super(message);
 		this.name = 'InvalidNameError';
+	}
+}
+
+export class ConflictError extends Error {
+	public constructor(message: string) {
+		super(message);
+		this.name = 'ConflictError';
 	}
 }
 
@@ -83,6 +97,7 @@ export class InvalidRequestError extends Error {
 
 export class DatabaseTransactionError extends Error {
 	public readonly reasons: TransactionCancellationReason[];
+
 	public constructor(reasons: TransactionCancellationReason[]) {
 		super('Transaction failed.');
 		this.name = 'DatabaseTransactionError';

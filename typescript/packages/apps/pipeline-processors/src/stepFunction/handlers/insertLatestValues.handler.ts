@@ -15,15 +15,15 @@ import { buildLightApp } from '../../app.light';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import type { InsertLatestValuesTaskService } from '../tasks/insertLatestValues.service.js';
-import type { ProcessedTaskEvent } from '../tasks/model.js';
+import type { InsertLatestValuesTaskHandler, ProcessedTaskEvent } from '../tasks/model.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
-export const handler = async (event: ProcessedTaskEvent[], _context, _callback) => {
+export const handler: InsertLatestValuesTaskHandler = async (event: ProcessedTaskEvent, _context, _callback) => {
 	app.log.debug(`InsertLatestValues > handler > event: ${JSON.stringify(event)}`);
 	const task = di.resolve<InsertLatestValuesTaskService>('insertLatestValuesTaskService');
-	await task.process(event[0]);
-	app.log.debug(`InsertLatestValues > handler > exit:`);
+	event.status = await task.process(event);
+	app.log.debug(`InsertLatestValues > handler > exit > event: ${JSON.stringify(event)}`);
 	return event;
 };

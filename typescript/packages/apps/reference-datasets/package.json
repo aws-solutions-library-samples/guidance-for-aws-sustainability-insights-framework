@@ -1,6 +1,6 @@
 {
 	"name": "@sif/reference-datasets",
-	"version": "4.6.0",
+	"version": "4.6.1",
 	"description": "Reference Datasets: Manages Reference Datasets",
 	"author": "Hassan Khokhar <hkhokhar@amazon.com>",
 	"type": "module",

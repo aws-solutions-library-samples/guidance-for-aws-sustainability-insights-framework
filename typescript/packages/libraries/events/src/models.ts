@@ -77,16 +77,47 @@ export const inputConnectorResponseEventDetail = Type.Object(
 	}
 );
 
+
+
+
+export const connectorSetupEventDetail = Type.Object(
+	{
+		pipelineId: Type.String(),
+		group: Type.String(),
+		type: Type.String(),
+		connector: Type.Any()
+	},
+	{
+		$id: 'connectorSetupEventDetail',
+	}
+);
+
+export const connectorSetupEvent = Type.Object(
+	{
+		EventBusName: Type.String(),
+		Source: Type.String(),
+		DetailType: Type.String(),
+		Detail: connectorSetupEventDetail,
+	},
+	{
+		$id: 'connectorSetupEvent',
+	}
+);
+
 export const ACCESS_MANAGEMENT_EVENT_SOURCE: string = 'com.aws.sif.accessManagement';
 export const PIPELINE_PROCESSOR_EVENT_SOURCE: string = 'com.aws.sif.pipelineProcessor';
 export const REFERENCE_DATASET_EVENT_SOURCE: string = 'com.aws.sif.referenceDataset';
+export const PIPELINE_EVENT_SOURCE: string = 'com.aws.sif.pipeline';
 
 export const PIPELINE_PROCESSOR_CONNECTOR_REQUEST_EVENT = `SIF>${PIPELINE_PROCESSOR_EVENT_SOURCE}>connectorIntegration>request`;
 export const PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT = `SIF>${PIPELINE_PROCESSOR_EVENT_SOURCE}>connectorIntegration>response`;
+export const PIPELINE_CONNECTOR_SETUP_EVENT = `SIF>${PIPELINE_EVENT_SOURCE}>connector>setup`;
 
 export type Status = Static<typeof status>;
 export type InputConnectorEvent = Static<typeof inputConnectorEvent>;
 export type InputConnectorEventDetail = Static<typeof inputConnectorEventDetail>;
 export type InputConnectorResponseEvent = Static<typeof inputConnectorResponseEvent>;
 export type InputConnectorResponseEventDetail = Static<typeof inputConnectorResponseEventDetail>;
+export type ConnectorSetupEventDetail = Static<typeof connectorSetupEventDetail>;
+export type ConnectorSetupEvent = Static<typeof connectorSetupEvent>;
 

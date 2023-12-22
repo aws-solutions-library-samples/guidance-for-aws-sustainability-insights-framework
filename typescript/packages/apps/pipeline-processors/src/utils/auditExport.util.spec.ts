@@ -145,7 +145,7 @@ describe('AuditExportUtil', () => {
 	it('should create a athena query needed to perform an audit log export', () => {
 		const expectedQuery = "\n" +
 			"WITH inputs AS (\n" +
-			"\tSELECT auditId, ikv['timestamp'] AS in_timestamp, ikv['zipcode'] AS in_zipcode, ikv['kwh'] AS in_kwh\n" +
+			"\tSELECT auditId, ikv['timestamp'] AS \"in_timestamp\", ikv['zipcode'] AS \"in_zipcode\", ikv['kwh'] AS \"in_kwh\"\n" +
 			"\tFROM (\n" +
 			"\t\tSELECT  auditId, map_agg(input.name, input.value) ikv\n" +
 			"\t\tFROM    \"audit-logs-v1\" CROSS JOIN UNNEST(inputs) AS t(input)\n" +
@@ -156,10 +156,10 @@ describe('AuditExportUtil', () => {
 			"\t)\n" +
 			"), outputs AS (\n" +
 			"\tSELECT auditId,\n" +
-			"\t\tokv_formulas['timestamp'] AS out_timestamp_formula, okv_results['timestamp'] AS out_timestamp_results, okv_impacts['timestamp'] AS out_timestamp_impacts, okv_calculations['timestamp'] AS out_timestamp_calculations, okv_referenceDatasets['timestamp'] AS out_timestamp_referenceDatasets,\n" +
-			"okv_formulas['zipcode'] AS out_zipcode_formula, okv_results['zipcode'] AS out_zipcode_results, okv_impacts['zipcode'] AS out_zipcode_impacts, okv_calculations['zipcode'] AS out_zipcode_calculations, okv_referenceDatasets['zipcode'] AS out_zipcode_referenceDatasets,\n" +
-			"okv_formulas['kwh'] AS out_kwh_formula, okv_results['kwh'] AS out_kwh_results, okv_impacts['kwh'] AS out_kwh_impacts, okv_calculations['kwh'] AS out_kwh_calculations, okv_referenceDatasets['kwh'] AS out_kwh_referenceDatasets,\n" +
-			"okv_formulas['co2e'] AS out_co2e_formula, okv_results['co2e'] AS out_co2e_results, okv_impacts['co2e'] AS out_co2e_impacts, okv_calculations['co2e'] AS out_co2e_calculations, okv_referenceDatasets['co2e'] AS out_co2e_referenceDatasets\n" +
+			"\t\tokv_formulas['timestamp'] AS \"out_timestamp_formula\", okv_results['timestamp'] AS \"out_timestamp_results\", okv_impacts['timestamp'] AS \"out_timestamp_impacts\", okv_calculations['timestamp'] AS \"out_timestamp_calculations\", okv_referenceDatasets['timestamp'] AS \"out_timestamp_referenceDatasets\",\n" +
+			"okv_formulas['zipcode'] AS \"out_zipcode_formula\", okv_results['zipcode'] AS \"out_zipcode_results\", okv_impacts['zipcode'] AS \"out_zipcode_impacts\", okv_calculations['zipcode'] AS \"out_zipcode_calculations\", okv_referenceDatasets['zipcode'] AS \"out_zipcode_referenceDatasets\",\n" +
+			"okv_formulas['kwh'] AS \"out_kwh_formula\", okv_results['kwh'] AS \"out_kwh_results\", okv_impacts['kwh'] AS \"out_kwh_impacts\", okv_calculations['kwh'] AS \"out_kwh_calculations\", okv_referenceDatasets['kwh'] AS \"out_kwh_referenceDatasets\",\n" +
+			"okv_formulas['co2e'] AS \"out_co2e_formula\", okv_results['co2e'] AS \"out_co2e_results\", okv_impacts['co2e'] AS \"out_co2e_impacts\", okv_calculations['co2e'] AS \"out_co2e_calculations\", okv_referenceDatasets['co2e'] AS \"out_co2e_referenceDatasets\"\n" +
 			"\tFROM (\n" +
 			"\t\tSELECT  auditId,\n" +
 			"\t\t\tmap_agg(output.name, output.formula) AS okv_formulas,\n" +
@@ -174,11 +174,11 @@ describe('AuditExportUtil', () => {
 			"\t)\n" +
 			")\n" +
 			"SELECT inputs.auditId,\n" +
-			"in_timestamp, in_zipcode, in_kwh,\n" +
-			"out_timestamp_formula, out_timestamp_results,out_timestamp_impacts,out_timestamp_calculations,out_timestamp_referenceDatasets,\n" +
-			"out_zipcode_formula, out_zipcode_results,out_zipcode_impacts,out_zipcode_calculations,out_zipcode_referenceDatasets,\n" +
-			"out_kwh_formula, out_kwh_results,out_kwh_impacts,out_kwh_calculations,out_kwh_referenceDatasets,\n" +
-			"out_co2e_formula, out_co2e_results,out_co2e_impacts,out_co2e_calculations,out_co2e_referenceDatasets\n" +
+			"\"in_timestamp\", \"in_zipcode\", \"in_kwh\",\n" +
+			"\"out_timestamp_formula\", \"out_timestamp_results\",\"out_timestamp_impacts\",\"out_timestamp_calculations\",\"out_timestamp_referenceDatasets\",\n" +
+			"\"out_zipcode_formula\", \"out_zipcode_results\",\"out_zipcode_impacts\",\"out_zipcode_calculations\",\"out_zipcode_referenceDatasets\",\n" +
+			"\"out_kwh_formula\", \"out_kwh_results\",\"out_kwh_impacts\",\"out_kwh_calculations\",\"out_kwh_referenceDatasets\",\n" +
+			"\"out_co2e_formula\", \"out_co2e_results\",\"out_co2e_impacts\",\"out_co2e_calculations\",\"out_co2e_referenceDatasets\"\n" +
 			"FROM inputs LEFT JOIN outputs ON inputs.auditId = outputs.auditId"
 
 		const query = util['createAthenaQuery'](pipeline, '01h0672sx482bzc26fpb7y8fq0', 1);

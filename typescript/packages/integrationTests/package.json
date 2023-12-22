@@ -1,7 +1,7 @@
 {
 	"name": "@sif/integration-tests",
 	"description": "SIF: Integration Tests.",
-	"version": "3.15.0",
+	"version": "3.16.0",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"scripts": {
 		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
@@ -20,8 +20,12 @@
 		"@aws-sdk/client-cognito-identity-provider": "3.370.0",
 		"@aws-sdk/client-dynamodb": "3.370.0",
 		"@aws-sdk/client-lambda": "3.370.0",
+		"@aws-sdk/client-sfn": "3.370.0",
 		"@aws-sdk/client-ssm": "3.370.0",
 		"@aws-sdk/lib-dynamodb": "3.370.0",
+		"@aws-sdk/client-s3": "3.370.0",
+		"@aws-sdk/client-cloudformation": "3.370.0",
+		"@aws-sdk/client-kinesis": "3.370.0",
 		"@cucumber/cucumber": "9.3.0",
 		"@sif/lambda-invoker": "workspace:*",
 		"axios": "1.4.0",
@@ -31,7 +35,9 @@
 		"jwt-encode": "1.0.1",
 		"pino": "8.14.1",
 		"@aws-amplify/auth": "5.5.4",
-		"jsonpath-plus": "7.2.0"
+		"jsonpath-plus": "7.2.0",
+		"convert-csv-to-array": "1.0.3",
+		"ulid" :"2.3.0"
 	},
 	"devDependencies": {
 		"@esbuild-plugins/node-globals-polyfill": "0.2.3",

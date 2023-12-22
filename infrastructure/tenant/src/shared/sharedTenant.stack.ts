@@ -44,7 +44,7 @@ export type SharedTenantStackProperties = StackProps & {
 	environment: string;
 	administratorEmail: string;
 	deleteBucket?: boolean;
-	userPoolEmail: {
+	userPoolEmail?: {
 		fromEmail: string;
 		fromName: string;
 		replyTo: string;
@@ -170,7 +170,8 @@ export class SharedTenantInfrastructureStack extends Stack {
 			ecsTaskDefinitionArn,
 			ecsTaskExecutionRoleArn,
 			auditLogsDatabaseName,
-			auditLogsTableName
+			auditLogsTableName,
+			caCertificate: props.caCert
 		});
 
 		NagSuppressions.addResourceSuppressionsByPath(this, [

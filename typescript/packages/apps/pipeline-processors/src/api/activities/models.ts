@@ -34,7 +34,16 @@ export type QueryRequest = {
 	showHistory?: boolean;
 	showAggregate?: boolean;
 	uniqueKeyAttributes?: Record<string, string>;
+	unlimited?:boolean;
+	download?:{
+		queryId:string;
+		bucket:string;
+		bucketPrefix:string;
+	}
+
 };
+
+export type DownloadQueryRequest = Omit<QueryRequest, 'nextToken' | 'maxRows'>
 
 export type QueryResponse = {
 	nextToken?: number;
@@ -68,4 +77,18 @@ export type PipelineMetadata = {
 export interface Output {
 	name: string;
 	type: string;
+}
+
+export type DownloadType = 'activity'| 'metric';
+
+export interface ActivityRequest {
+	queryRequest: QueryRequest;
+	pipelineMetadata: PipelineMetadata;
+}
+
+export type ActivitiesDownloadState = 'in_progress' | 'failed' | 'success';
+
+export type ActivitiesDownloadStatus = {
+	state: ActivitiesDownloadState,
+	errorMessage?: string
 }

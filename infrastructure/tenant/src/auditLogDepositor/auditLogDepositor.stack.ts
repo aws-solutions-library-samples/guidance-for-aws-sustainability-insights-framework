@@ -24,10 +24,11 @@ import { customResourceProviderTokenParameter } from '../shared/deploymentHelper
 export type AuditLogDepositorStackProperties = StackProps & {
 	tenantId: string;
 	environment: string;
+	auditLogFirehoseFlushTimeInSeconds: number;
 };
 
 export class AuditLogDepositorStack extends Stack {
-	constructor(scope: Construct, id: string, props?: AuditLogDepositorStackProperties) {
+	constructor(scope: Construct, id: string, props: AuditLogDepositorStackProperties) {
 		super(scope, id, props);
 
 		// validation
@@ -65,6 +66,7 @@ export class AuditLogDepositorStack extends Stack {
 			bucketName,
 			auditLogsDatabaseName,
 			auditLogsTableName,
+			auditLogFirehoseFlushTimeInSeconds: props.auditLogFirehoseFlushTimeInSeconds,
 			kmsKeyArn,
 			customResourceProviderToken
 		});

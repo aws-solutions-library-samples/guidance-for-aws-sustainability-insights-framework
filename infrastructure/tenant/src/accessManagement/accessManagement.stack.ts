@@ -29,7 +29,7 @@ export type AccessManagementStackProperties = StackProps & {
 };
 
 export class AccessManagementStack extends Stack {
-	constructor(scope: Construct, id: string, props?: AccessManagementStackProperties) {
+	constructor(scope: Construct, id: string, props: AccessManagementStackProperties) {
 		super(scope, id, props);
 
 		// validation

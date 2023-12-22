@@ -16,10 +16,10 @@ import type { BaseLogger } from 'pino';
 import { convertCSVToArray } from 'convert-csv-to-array';
 import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import type { ProcessedTaskEvent } from './model.js';
+import type { ImpactCreationTaskEvent } from './model.js';
 import { getPipelineOutputKey } from '../../utils/helper.utils.js';
 import type { ImpactClient, NewActivity, LambdaRequestContext } from '@sif/clients';
-import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
+import type { GetLambdaRequestContext } from '../../plugins/module.awilix.js';
 import { validateNotEmpty } from '@sif/validators';
 
 export class ImpactCreationTask {
@@ -27,8 +27,7 @@ export class ImpactCreationTask {
 				private s3: S3Client,
 				private bucket: string,
 				private impactClient: ImpactClient,
-				private getLambdaRequestContext: GetLambdaRequestContext,
-				private getSecurityContext: GetSecurityContext
+				private getLambdaRequestContext: GetLambdaRequestContext
 	) {
 	}
 
@@ -119,22 +118,21 @@ export class ImpactCreationTask {
 		return errorList;
 	}
 
-	public async process(event: ProcessedTaskEvent[]): Promise<[string, string]> {
+	public async process(event: ImpactCreationTaskEvent): Promise<[string, string]> {
 		this.log.debug(`ImpactCreationTask > process > event: ${JSON.stringify(event)}`);
 		validateNotEmpty(event, 'event');
-		validateNotEmpty(event[0].executionId, 'executionId');
-		validateNotEmpty(event[0].pipelineId, 'pipelineId');
+		validateNotEmpty(event.executionId, 'executionId');
+		validateNotEmpty(event.pipelineId, 'pipelineId');
 
-		const { pipelineId, executionId } = event[0];
-		const errorS3LocationList = event.filter(o => o.errorLocation).map(o => o.errorLocation);
+		const { pipelineId, executionId, errorLocationList } = event;
 
 		// create activities based on the calculation result
-		const lambdaRequestContext = this.getLambdaRequestContext(await this.getSecurityContext(executionId));
+		const lambdaRequestContext = this.getLambdaRequestContext(event.security);
 		const createActivitiesErrors = await this.createActivities(pipelineId, executionId, lambdaRequestContext);
-		const hasError = createActivitiesErrors.length > 0 || errorS3LocationList.length > 0;
+		const hasError = createActivitiesErrors.length > 0 || errorLocationList.length > 0;
 
 		const taskStatus = hasError ? 'failed' : 'success';
-		const taskStatusMessage = !hasError ? undefined : errorS3LocationList.length > 0 ? 'error when performing calculation' : createActivitiesErrors.join(',');
+		const taskStatusMessage = !hasError ? undefined : errorLocationList.length > 0 ? 'error when performing calculation, review the pipeline execution error log for further info' : createActivitiesErrors.join(',');
 
 		// update pipeline status
 		this.log.debug(`ImpactCreationTask > process > exit> ${JSON.stringify([taskStatus, taskStatusMessage])}`);

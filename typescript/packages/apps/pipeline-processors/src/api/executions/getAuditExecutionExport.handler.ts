@@ -12,7 +12,7 @@
  */
 
 import { atLeastReader } from '@sif/authz';
-import { apiVersion100, badRequestResponse, commonHeaders, FastifyTypebox, forbiddenResponse, id, noBodyResponse, notFoundResponse } from '@sif/resource-api-base';
+import { apiVersion100, badRequestResponse, commonHeaders, conflictResponse, FastifyTypebox, forbiddenResponse, id, noBodyResponse, notFoundResponse } from '@sif/resource-api-base';
 import { Type } from '@sinclair/typebox';
 
 import { executionId, signedUrlResponse } from './schemas.js';
@@ -47,6 +47,7 @@ export default function getPipelineExecutionExportRoute(fastify: FastifyTypebox,
 				},
 				403: forbiddenResponse,
 				404: notFoundResponse,
+				409: conflictResponse,
 				400: badRequestResponse
 			},
 			'x-security-scopes': atLeastReader,
@@ -63,7 +64,6 @@ export default function getPipelineExecutionExportRoute(fastify: FastifyTypebox,
 			} else {
 				await reply.status(201).send(resp); // nosemgrep
 			}
-
 		},
 	});
 

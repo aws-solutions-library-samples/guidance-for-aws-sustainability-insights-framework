@@ -2,46 +2,46 @@
 
 ## Introduction
 
-The AWS Sustainability Insights Framework (SIF) provides foundational software building blocks to help accelerate the design and implementation of a customers own application to automate their carbon footprint tracking.
+The AWS Sustainability Insights Framework (SIF) offers foundational software components that accelerate the design and implementation of applications to automate carbon footprint tracking.
 
 Key features include:
 
-- **Account management** - Manage hierarchical groups representing organizational reporting boundaries. Manage user access, roles, and their access to different resource within the framework.
-- **Calculations** - Extensible calculator allowing the definition of custom calculations.
-- **Emission factors** - Extensible emission factory catalog, allowing the addition of custom impact factors.
-- **Reference datasets** - Custom datasets can be used as part of the data pipelines to augment data.
-- **Data ingestion pipelines** - Import any format of csv file, import directly from AWS Clean Rooms, or create your own input data connector to import business activities from other data sources using our input data connector framework. Then apply calculations to transform the data to desired outputs.
-- **Metrics (KPI's)** - Define metrics to be automatically aggregated based on data ingest pipeline outputs, rolled up to the organizational reporting boundaries and different time units.
-- **Versioning** - All pipeline outputs, metrics, calculations, emission factors, and reference datasets, are versioned, for full traceability.
-- **Auditability** - Full traceability of how a data pipeline output was achieved allowing repeatability of calculations and results.
+- **Account management** - Manage organizational reporting boundaries. Control user access, roles, and their permissions within the framework.
+- **Impacts** - Catalog activity impacts, such as GHG emission factors. Populate with emission factors published by organizations, or define your proprietary factors.
+- **Reference datasets** - Incorporate custom datasets in data pipelines to enhance data.
+- **Calculations** - A low-code way of defining custom calculations.
+- **Metrics (KPI's)** - Define metrics for automatic aggregation based on processed activities, aligned with organizational reporting boundaries and various time units.
+- **Data ingestion pipelines** - Import data from any CSV format, directly from AWS Clean Rooms, or use the input data connector framework to fetch business activities from other sources. Apply calculations to transform data into desired outputs.
+- **Auditability** -Achieve full traceability and repeatability of calculations and results.
+- **Multi-tenancy** - Support both single tenant and multi-tenant modes. Cater to organizations wanting to calculate their emissions, as well as those aiming to build a SaaS offering. It also offers the capability to securely share data between isolated tenants when necessary. For instance, when building a SaaS offering where top-tier customers access pre-defined calculations (e.g., industry-specific calculations), a central tenant can store the calculations, ensuring centralized management. Top-tier tenants can then be granted permission to remotely access and use these calculations.
 
 Key benefits include:
 
-- **Automation of carbon tracking** - Reducing manual hours and human error. Near real time actionable insights on a centralized platform.
-- **Flexibility** - Modular, fully customizable, 100% customer ownership. The software building blocks are presented as individual modules accessed via a REST API, therefore any language can be used to interact with it.
-- **Scalability** - Highly available, durable, and scalable, built upon AWS serverless technologies and services.
+- **Automation** - Reduce manual tasks and errors with near real-time insights on a centralized platform.
+- **Flexibility** - Modular, fully customizable with 100% customer ownership. Access individual modules via a REST API, allowing interaction in any language.
+- **Scalability** - Built on AWS serverless technologies and services, ensuring high availability, durability, and scalability.
 - **Transparency** - No black-box approach.
-- **No recurring license fees** - Only pay for the underlying AWS services consumed.
-- **Security** - Follows security best practices (least privilege permissions, data encryption, etc).
-- **Implementation best practices** - Adheres to software architecture, design, and AWS best practices.
+- **Cost-Effective** - No recurring license fees. Pay only for the AWS services used.
+- **Security** - Adheres to security best practices, such as least privilege permissions and data encryption at rest.
+- **Best practices** - FAligns with software architecture, design, and AWS best practices.
+- **Open sourced** - Licensed under Apache License Version 2.0.
 
-## Next Steps
+## First steps
 
-If you are interested in how to deploy it, follow this [deployment walkthrough](docs/deployment/walkthrough.md).
+- For deployment instructions, refer to the [deployment walkthrough](docs/deployment/cli_walkthrough.md).
+- After deployment, consult the [end to end walkthrough](docs/cli_walkthrough.md).
 
-Once deployed, if you are interested in how to use it, see these walkthroughs:
+## Deeper dive
 
-- [End to end walkthrough](docs/walkthrough.md)
+- For architectural details and information on the underlying AWS services used, refer to the [design documentation](docs/design.md).
+- Interested in understanding more about each module? Explore their specific overviews:
+	- [Access Management](./typescript/packages/apps/access-management/README.md)
+- Planning to deploy SIF in production? Review the [path to production](docs/deployment/path_to_production.md).
+
 - [AWS Clean Rooms walkthrough](typescript/packages/connectors/clean-rooms/README.md)
-
-Deploying SIF in production? Check out [path to production](docs/deployment/path_to_production.md).
-
-If you are interested in how SIF was architected, and what underlying AWS services and being used, see the [design documentation](docs/design.md).
-
-If you are a developer wishing to dive into SIF itself, possibly wanting to modify the source code, follow this [developer walkthrough](docs/developer_walkthrough.md).
 
 ## Changelog
 
-Changelog and release artifacts can be found [here](https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework/releases).
+Find the changelog and release artifacts [here](https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework/releases).
 
-Details on any major changes along with migration instructions can be found in the [Migration Guide](./docs/migration.md).
+For details on significant changes and associated migration instructions, refer to the [Migration Guide](./docs/migration.md).

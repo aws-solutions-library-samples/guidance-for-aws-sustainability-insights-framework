@@ -15,7 +15,7 @@ import { Type } from '@sinclair/typebox';
 import { executionId, signedUrlRequest, signedUrlResponse } from './schemas.js';
 import { signedUrlRequestExample, signedUrlResponseExample } from './examples.js';
 import { atLeastContributor } from '@sif/authz';
-import { apiVersion100, badRequestResponse, commonHeaders, FastifyTypebox, id } from '@sif/resource-api-base';
+import { apiVersion100, badRequestResponse, commonHeaders, conflictResponse, FastifyTypebox, id } from '@sif/resource-api-base';
 
 export default function createExecutionOutputDownloadUrlRoute(fastify: FastifyTypebox, _options: unknown, done: () => void): void {
 	fastify.route({
@@ -46,6 +46,7 @@ export default function createExecutionOutputDownloadUrlRoute(fastify: FastifyTy
 						},
 					},
 				},
+				409: conflictResponse,
 				400: badRequestResponse,
 			},
 			'x-security-scopes': atLeastContributor,

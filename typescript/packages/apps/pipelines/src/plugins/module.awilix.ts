@@ -14,6 +14,10 @@
 import { asFunction, Lifetime } from 'awilix';
 import fp from 'fastify-plugin';
 
+import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
+import pkg from 'aws-xray-sdk';
+const { captureAWSv3Client } = pkg;
+
 import { Cradle, diContainer, FastifyAwilixOptions, fastifyAwilixPlugin } from '@fastify/awilix';
 import { DynamoDbUtils } from '@sif/dynamodb-utils';
 import { BaseCradle, registerBaseAwilix } from '@sif/resource-api-base';
@@ -29,6 +33,7 @@ import { MetricService } from '../metrics/service.js';
 import { ConnectorRepository } from '../connectors/repository.js';
 import { ConnectorService } from '../connectors/service.js';
 import { PipelineValidator } from '../pipelines/validator.js';
+import { PIPELINE_EVENT_SOURCE, EventPublisher } from '@sif/events';
 
 declare module '@fastify/awilix' {
 	interface Cradle extends BaseCradle {
@@ -42,6 +47,16 @@ declare module '@fastify/awilix' {
 		pipelineValidator: PipelineValidator;
 		transformerValidator: TransformerValidator;
 		calculatorClient: CalculatorClient;
+		eventBridgeClient: EventBridgeClient;
+		eventPublisher: EventPublisher;
+	}
+}
+
+// factories for instantiation of 3rd party object
+class EventBridgeClientFactory {
+	public static create(region: string | undefined): EventBridgeClient {
+		const eb = captureAWSv3Client(new EventBridgeClient({ region }));
+		return eb;
 	}
 }
 
@@ -60,6 +75,9 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 
 	registerBaseAwilix(app.log);
 
+	const awsRegion = process.env['AWS_REGION'];
+	const eventBusName = process.env['EVENT_BUS_NAME'];
+
 	// then we can register our classes with the DI container
 	diContainer.register({
 		dynamoDbUtils: asFunction((container: Cradle) => new DynamoDbUtils(app.log, container.dynamoDBDocumentClient), {
@@ -75,6 +93,12 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 		pipelineRepository: asFunction((container) => new PipelineRepository(app.log, container.dynamoDBDocumentClient, app.config.TABLE_NAME, container.tagRepository, container.groupRepository, container.dynamoDbUtils), {
 			...commonInjectionOptions,
 		}),
+		eventBridgeClient: asFunction(() => EventBridgeClientFactory.create(awsRegion), {
+			...commonInjectionOptions,
+		}),
+		eventPublisher: asFunction((container: Cradle) => new EventPublisher(app.log, container.eventBridgeClient, eventBusName, PIPELINE_EVENT_SOURCE), {
+			...commonInjectionOptions,
+		}),
 		pipelineService: asFunction(
 			(container) =>
 				new PipelineService(
@@ -88,7 +112,9 @@ export default fp<FastifyAwilixOptions>(async (app: FastifyInstance): Promise<vo
 					container.mergeUtils,
 					container.calculatorClient,
 					container.metricService,
-					container.connectorService
+					container.connectorService,
+					eventBusName,
+					container.eventPublisher
 				),
 			{
 				...commonInjectionOptions,

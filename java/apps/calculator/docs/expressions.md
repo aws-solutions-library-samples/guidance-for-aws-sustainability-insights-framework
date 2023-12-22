@@ -270,6 +270,19 @@ Where:
 - `'json'` (required) represents JSON that we want to query.
 - `'query`' (required) represents the JsonPath query that we will use to retrieve a value .
 
+### `SEARCH` function
+
+Search function returns the position of the first occurrence of specified character(s) in a string.
+
+```
+SEARCH( 'text', 'match', ignoreCase=? )
+```
+
+Where:
+
+- `text` (required) an expression that should evaluate to a string. Text represents the input string to perform search  on.
+- `match` (required) an expression that should evaluate to a string. Match representing the string to search for.
+- if `ignoreCase=?` (optional - boolean) is specified, either a case-sensitive (`false`) or case-insensitive (`true`) match will be performed. If not provided, then case sensitive matching is performed.
 
 ## Custom defined functions
 

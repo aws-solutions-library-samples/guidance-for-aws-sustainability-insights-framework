@@ -27,7 +27,7 @@ export type SifConnectorStackProperties = StackProps & {
 };
 
 export class SifConnectorStack extends Stack {
-	constructor(scope: Construct, id: string, props?: SifConnectorStackProperties) {
+	constructor(scope: Construct, id: string, props: SifConnectorStackProperties) {
 		super(scope, id, props);
 
 		// validation

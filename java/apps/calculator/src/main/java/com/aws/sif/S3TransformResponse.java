@@ -22,7 +22,9 @@ public class S3TransformResponse extends TransformResponse {
     @Getter
     private S3Location errorLocation;
 
-    public S3TransformResponse(S3Location errorLocation) {
+    public S3TransformResponse(S3Location errorLocation, boolean noActivitiesProcessed, String activityValueKey) {
         this.errorLocation = errorLocation;
+		this.noActivitiesProcessed = noActivitiesProcessed;
+        this.activityValueKey = activityValueKey;
     }
 }

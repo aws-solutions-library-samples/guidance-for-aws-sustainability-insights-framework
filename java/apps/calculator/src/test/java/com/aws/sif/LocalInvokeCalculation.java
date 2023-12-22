@@ -13,6 +13,7 @@
 
 package com.aws.sif;
 
+import com.aws.sif.execution.PipelineType;
 import com.google.gson.GsonBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ public class LocalInvokeCalculation {
 			.executionId(String.format("exe-%s", String.valueOf(System.currentTimeMillis())))
 			.groupContextId("/")
 			.username("test@amazon.com")
+			.pipelineType(PipelineType.activities)
 			.parameters(List.of(
 				TransformParameter.builder().key("timestamp").type("string").build(),
 				TransformParameter.builder().key("zipcode").type("string").build(),

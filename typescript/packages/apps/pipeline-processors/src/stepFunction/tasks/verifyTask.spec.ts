@@ -22,8 +22,9 @@ import { mockClient } from 'aws-sdk-client-mock';
 import type { SecurityContext } from '@sif/authz';
 import type { VerificationTaskEvent } from './model';
 import type { Pipeline } from '@sif/clients';
-import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix';
+import type { GetLambdaRequestContext } from '../../plugins/module.awilix';
 import type { LambdaRequestContext } from '@sif/clients';
+import type { PipelineExecution } from '../../api/executions/schemas';
 
 describe('Verify Task', () => {
 	const mockedS3Client = mockClient(S3Client);
@@ -33,26 +34,22 @@ describe('Verify Task', () => {
 	const ONE_MB = 1000000;
 	const chunkSize = 1;
 
-	const mockGetContext: GetSecurityContext = async (): Promise<SecurityContext> => {
-		return {} as unknown as SecurityContext;
-	};
-
 	const mockGetLambdaRequestContext: GetLambdaRequestContext = (): LambdaRequestContext => {
 		return {
 			authorizer: {
 				claims: {
 					email: 'email',
 					'cognito:groups': `/|||reader`,
-					groupContextId: '/',
-				},
-			},
+					groupContextId: '/'
+				}
+			}
 		};
 	};
 
 	beforeEach(() => {
 		const logger = pino(
 			pino.destination({
-				sync: true, // test frameworks must use pino logger in sync mode!
+				sync: true // test frameworks must use pino logger in sync mode!
 			})
 		);
 		logger.level = 'debug';
@@ -60,36 +57,42 @@ describe('Verify Task', () => {
 		mockedPipelineClient = mock<PipelineClient>();
 		mockedS3Client.reset();
 
-		underTest = new VerifyTask(logger, mockedPipelineClient, mockedPipelineProcessorsService, mockedS3Client as unknown as S3Client, mockGetContext, chunkSize, mockGetLambdaRequestContext);
+		underTest = new VerifyTask(logger, mockedPipelineClient, mockedPipelineProcessorsService, mockedS3Client as unknown as S3Client, chunkSize, mockGetLambdaRequestContext);
 	});
+
+	const mockPipelineExecution: PipelineExecution = {
+		groupContextId: '/groupId1',
+		createdBy: 'sampleUser',
+		actionType: 'create',
+		triggerMetricAggregations: true
+	} as PipelineExecution;
 
 	const sampleEvent: VerificationTaskEvent = {
 		source: {
 			bucket: 'testBucket',
-			key: 'testKey',
+			key: 'testKey'
 		},
+		securityContext: { groupId: mockPipelineExecution.groupContextId } as SecurityContext,
 		executionId: '55555',
 		pipelineId: '111111',
 		pipelineType: 'activities'
 	};
 
 	const mockPipeline = {
+		createdBy: "sampleUser",
 		transformer: {
 			parameters: [
 				{
-					key: 'one',
+					key: 'one'
 				},
 				{
-					key: 'two',
-				},
-			],
-		},
+					key: 'two'
+				}
+			]
+		}
 	};
 
-	const mockPipelineExecution = {
-		groupContextId: '/groupId1',
-		pipelineVersionId: 2,
-	};
+
 	beforeEach(() => {
 		mockedPipelineClient.get.mockResolvedValue(mockPipeline as Pipeline);
 		mockedPipelineProcessorsService.get.mockResolvedValue(mockPipelineExecution as any);
@@ -99,7 +102,7 @@ describe('Verify Task', () => {
 		const expectedChunkNum = 5;
 
 		mockedS3Client.on(HeadObjectCommand).resolves({
-			ContentLength: ONE_MB * expectedChunkNum,
+			ContentLength: ONE_MB * expectedChunkNum
 		});
 
 		const result = await underTest.process(sampleEvent);
@@ -112,7 +115,12 @@ describe('Verify Task', () => {
 		expect(result.context).toEqual({
 			pipelineId: sampleEvent.pipelineId,
 			executionId: sampleEvent.executionId,
-			groupContextId: mockPipelineExecution.groupContextId,
+			"triggerMetricAggregations": true,
+			"actionType": "create",
+			"pipelineCreatedBy": "sampleUser",
+			security: {
+				groupId: mockPipelineExecution.groupContextId
+			},
 			transformer: mockPipeline.transformer,
 			pipelineType: sampleEvent.pipelineType
 		});

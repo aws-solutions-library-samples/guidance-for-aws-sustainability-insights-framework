@@ -97,6 +97,7 @@ export const pipelineExecutionFull = Type.Object(
 		auditVersion: Type.Optional(auditVersion),
 		connectorOverrides,
 		status,
+		triggerMetricAggregations: Type.Optional(Type.Boolean({ description: 'If set to true, metrics aggregation will be triggered after inserting activity data', default: true })),
 		statusMessage: Type.Optional(statusMessage),
 		groupContextId: Type.String({ description: 'security context id of the creator of this execution' }),
 		updatedAt: Type.Optional(updatedAt),
@@ -196,6 +197,7 @@ const executionMode = Type.Enum(
 );
 
 export const pipelineExecutionRequest = Type.Object({
+	triggerMetricAggregations: Type.Optional(Type.Boolean({ description: 'If set to true, metrics aggregation will be triggered after inserting activity data' })),
 	inlineExecutionOptions: Type.Optional(inlineExecutionOptions),
 	mode: executionMode,
 	actionType,

@@ -3,7 +3,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import pino from 'pino';
 import { S3Client, ListObjectsV2Command, ListObjectsV2CommandOutput, GetObjectCommand, GetObjectCommandInput, GetObjectCommandOutput } from '@aws-sdk/client-s3';
 import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
-import { Readable } from "stream";
+import { Readable } from 'stream';
 import { AggregationUtil } from './aggregation.util';
 
 describe('AggregationUtil', () => {
@@ -24,7 +24,7 @@ describe('AggregationUtil', () => {
 	it('happy path group leaves', async () => {
 		const listObjectOutput: ListObjectsV2CommandOutput = {
 			$metadata: {},
-			Contents:[{Key:'chunk0.txt'},{Key: 'chunk1.txt'},{Key:'chunk2.txt'}]
+			Contents: [{ Key: 'chunk0.txt' }, { Key: 'chunk1.txt' }, { Key: 'chunk2.txt' }]
 		};
 		mockedS3Client.on(ListObjectsV2Command).resolves(listObjectOutput);
 
@@ -64,13 +64,13 @@ describe('AggregationUtil', () => {
 		// verify
 		expect(groupLeaves.length).toEqual(5);
 		// only group leaf paths, de-duped and sorted by hierarchy depth
-		expect(groupLeaves).toEqual(['/usa/mn/minneapolis','/usa/mn/mankato','/usa/ca/bakersfield','/usa/wa/seattle','/usa/ny']);
+		expect(groupLeaves).toEqual(['/usa/mn/minneapolis', '/usa/mn/mankato', '/usa/ca/bakersfield', '/usa/wa/seattle', '/usa/ny']);
 	});
 
 	it('happy path groups', async () => {
 		const listObjectOutput: ListObjectsV2CommandOutput = {
 			$metadata: {},
-			Contents:[{Key:'chunk0.txt'},{Key: 'chunk1.txt'},{Key:'chunk2.txt'}]
+			Contents: [{ Key: 'chunk0.txt' }, { Key: 'chunk1.txt' }, { Key: 'chunk2.txt' }]
 		};
 		mockedS3Client.on(ListObjectsV2Command).resolves(listObjectOutput);
 
@@ -110,6 +110,15 @@ describe('AggregationUtil', () => {
 		// verify
 		expect(groups.length).toEqual(7);
 		// de-duped and sorted by hierarchy depth
-		expect(groups).toEqual(['/usa/mn/minneapolis','/usa/mn/mankato','/usa/ca/bakersfield','/usa/wa/seattle','/usa/ny','/usa/wa','/usa']);
+		expect(groups).toEqual(['/usa/mn/minneapolis', '/usa/mn/mankato', '/usa/ca/bakersfield', '/usa/wa/seattle', '/usa/ny', '/usa/wa', '/usa']);
+	});
+
+	it('happy path merge groups', async () => {
+		// run test
+		const groups = await aggregationUtil.mergeExecutionGroupLeaves(['/c/d/e', '/a/b/c/d'], ['/a/b', '/b/c/d', '/c/d/e/f']);
+
+		// verify
+		expect(groups.length).toEqual(3);
+		expect(groups).toEqual(['/c/d/e/f', '/a/b/c/d', '/b/c/d']);
 	});
 });

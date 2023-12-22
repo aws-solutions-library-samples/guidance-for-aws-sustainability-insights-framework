@@ -82,7 +82,7 @@ Permissions:
 				count,
 				nextToken: fromToken,
 			};
-			const metrics = await svc.query(request.authz, req);
+			const metrics = await svc.list(request.authz, req);
 
 			const response: MetricsList = { metrics };
 

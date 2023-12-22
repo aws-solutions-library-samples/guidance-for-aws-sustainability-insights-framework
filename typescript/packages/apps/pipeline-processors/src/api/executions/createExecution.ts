@@ -13,8 +13,8 @@
 
 import { Type } from '@sinclair/typebox';
 import { pipelineExecutionRequest, pipelineExecutionFull } from './schemas.js';
-import { executionRequestExample,  pipelineExecutionFullSuccess } from './examples.js';
-import { apiVersion100, badRequestResponse, commonHeaders, FastifyTypebox, id } from '@sif/resource-api-base';
+import { executionRequestExample, pipelineExecutionFullSuccess } from './examples.js';
+import { apiVersion100, badRequestResponse, commonHeaders, FastifyTypebox, id, serviceUnavailableResponse } from '@sif/resource-api-base';
 import { atLeastContributor } from '@sif/authz';
 
 export default function createExecution(fastify: FastifyTypebox, _options: unknown, done: () => void): void {
@@ -26,13 +26,13 @@ export default function createExecution(fastify: FastifyTypebox, _options: unkno
 			tags: ['Pipeline Executions'],
 			headers: commonHeaders,
 			params: Type.Object({
-				pipelineId: id,
+				pipelineId: id
 			}),
 			body: {
 				...Type.Ref(pipelineExecutionRequest),
 				'x-examples': {
-					'Pipeline Execution request example': { ...executionRequestExample },
-				},
+					'Pipeline Execution request example': { ...executionRequestExample }
+				}
 			},
 			response: {
 				201: {
@@ -42,17 +42,18 @@ export default function createExecution(fastify: FastifyTypebox, _options: unkno
 						'Pipeline Execution creation response': {
 							summary: 'pipeline execution response',
 							value: {
-								...pipelineExecutionFullSuccess,
-							},
-						},
-					},
+								...pipelineExecutionFullSuccess
+							}
+						}
+					}
 				},
 				400: badRequestResponse,
+				503: serviceUnavailableResponse
 			},
-			'x-security-scopes': atLeastContributor,
+			'x-security-scopes': atLeastContributor
 		},
 		constraints: {
-			version: apiVersion100,
+			version: apiVersion100
 		},
 
 		handler: async (request, reply) => {
@@ -61,7 +62,7 @@ export default function createExecution(fastify: FastifyTypebox, _options: unkno
 			const execution = await svc.create(request.authz, request.params.pipelineId, request.body);
 
 			await reply.status(201).send(execution); // nosemgrep
-		},
+		}
 	});
 
 	done();

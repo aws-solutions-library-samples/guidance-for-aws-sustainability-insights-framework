@@ -1,6 +1,6 @@
 {
 	"name": "@sif/events",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "Platform events",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {

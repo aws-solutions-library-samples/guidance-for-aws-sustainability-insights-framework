@@ -2,6 +2,41 @@
   "name": "@sif/pipeline-processors",
   "entries": [
     {
+      "version": "4.14.0",
+      "tag": "@sif/pipeline-processors_v4.14.0",
+      "date": "Wed, 13 Dec 2023 02:37:37 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Added support for connector setup events"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.8.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.9.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "4.13.3",
+      "tag": "@sif/pipeline-processors_v4.13.3",
+      "date": "Tue, 10 Oct 2023 14:45:33 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Prevent audit log export before audit log processing completes"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.13.2",
       "tag": "@sif/pipeline-processors_v4.13.2",
       "date": "Thu, 17 Aug 2023 02:44:14 GMT",

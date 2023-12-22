@@ -100,19 +100,27 @@ GROUP BY date(a.date)`;
 
 		// min and max are based on the latest pipeline execution based on the max(createdAt) condition
 		// we need to set the "to" to end of day to cover all activities for aggregation
+
 		const query = `
-SELECT date_trunc('day', date(min(a.date)))::timestamp with time zone as "from",
+SELECT date_trunc('day', date(min(a.date)))::timestamp with time zone                                      as "from",
        (date_trunc('day', max(a.date)) + interval '1 day' - interval '1 second')::timestamp with time zone as "to"
-FROM "Activity" a
-         LEFT JOIN "ActivityNumberValue" n
-                   on a."activityId" = n."activityId" and n."executionId" = '${executionId}'
-         LEFT JOIN "ActivityBooleanValue" b
-                   on a."activityId" = b."activityId" and b."executionId" = '${executionId}'
-         LEFT JOIN "ActivityStringValue" s
-                   on a."activityId" = s."activityId" and s."executionId" = '${executionId}'
-         LEFT JOIN "ActivityDateTimeValue" d
-                   on a."activityId" = d."activityId" and d."executionId" = '${executionId}'
-WHERE a."type" = 'raw';`;
+FROM "Activity" a RIGHT JOIN
+     (SELECT "activityId"
+      FROM "ActivityNumberValue"
+      WHERE "executionId" = '${executionId}'
+      UNION
+      SELECT "activityId"
+      FROM "ActivityStringValue"
+      WHERE "executionId" ='${executionId}'
+      UNION
+      SELECT "activityId"
+      FROM "ActivityBooleanValue"
+      WHERE "executionId" ='${executionId}'
+      UNION
+      SELECT "activityId"
+      FROM "ActivityDateTimeValue"
+      WHERE "executionId" ='${executionId}') b on a."activityId" = b."activityId"
+WHERE a."type" = 'raw' AND a."pipelineId" = '${pipelineId}' ;`;
 
 		this.log.trace(`AggregationTaskAuroraRepository> getAffectedTimeRange> query:${query}`);
 

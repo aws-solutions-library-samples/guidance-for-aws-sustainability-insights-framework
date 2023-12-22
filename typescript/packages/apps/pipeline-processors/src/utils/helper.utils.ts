@@ -14,6 +14,7 @@
 import type { Readable } from 'stream';
 import type { Pipeline } from '@sif/clients';
 import type { Aggregate, AggregateType, PipelineMetadata } from '../api/activities/models.js';
+import dayjs from 'dayjs';
 
 export async function streamToString(stream: Readable): Promise<string> {
 	return await new Promise((resolve, reject) => {
@@ -26,7 +27,15 @@ export async function streamToString(stream: Readable): Promise<string> {
 
 export const INPUT_DATA_FILENAME = 'input';
 
-export function getPipelineInputKey(bucketPrefix: string, pipelineId: string, executionId: string, type: 'raw' | 'transformed' | 'archived'): string {
+export function getQueriesDownloadStatusKey(bucketPrefix: string, queryId: string): string {
+	return `${bucketPrefix}/${queryId}/status.json`;
+}
+
+export function getQueriesDownloadFileKey(bucketPrefix: string, queryId: string): string {
+	return `${bucketPrefix}/${queryId}/result.csv`;
+}
+
+export function getPipelineInputKey(bucketPrefix: string, pipelineId: string, executionId: string, type: string): string {
 	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/input/${type}`;
 }
 
@@ -100,3 +109,29 @@ export function getPipelineMetadata(pipeline: Pipeline): PipelineMetadata {
 	return metadata;
 }
 
+export const validateDates = (date: string, dateTo: string, dateFrom: string) => {
+	let isValid = true;
+
+	if (date) isValid = dayjs(date).isValid();
+	if (dateFrom) isValid = dayjs(dateFrom).isValid();
+	if (dateTo) isValid = dayjs(dateTo).isValid();
+
+	if (!isValid) {
+		throw new Error('Invalid Date specified double check if the date/time is in ISO8601 local time');
+	}
+};
+
+export const expandAttributes = (attrString: string) => {
+	const expandedAttributes: Record<string, string> = {};
+	if ((attrString?.length ?? 0) > 0) {
+		attrString.split(',').forEach((a) => {
+			const kv = a.split(':');
+			const k = decodeURIComponent(kv[0] as string);
+			const v = decodeURIComponent(kv[1] as string);
+			expandedAttributes[k] = v;
+		});
+	}
+	return expandedAttributes;
+};
+
+export const HOUR_IN_SECONDS = 60 * 60;

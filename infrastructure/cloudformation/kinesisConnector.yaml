@@ -1,0 +1,422 @@
+Description: Infrastructure for kinesisConnector module.
+Parameters:
+  handlebarsTemplate:
+    Type: 'String'
+    Description: 'The handlebars template used to transform to raw data source'
+  environment:
+    Type: 'String'
+    Description: 'The SIF environment to deploy to'
+  tenantId:
+    Type: 'String'
+    Description: 'The SIF tenantId to deploy to'
+  pipelineId:
+    Type: 'String'
+    Description: 'The pipelineId the connector will be linked to'
+  group:
+    Type: 'String'
+    Description: 'The group context id of the pipeline'
+  connectorConfig:
+    Type: 'String'
+    Description: 'The connector configuration'
+  useExistingKinesisDataStream:
+    Type: 'String'
+    Description: 'if true you must also supply kinesisDataStreamArn otherwise one will be created with the stack'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+  kinesisDataStreamArn:
+    Type: 'String'
+    Description: 'if supplied will use a pre existing kineses data stream else will create one'
+    Default: 'N/A'
+  lambdaBufferSize:
+    Type: 'String'
+    Description: 'The lambda buffer size in MB'
+    Default: '0.2'
+  lambdaBufferInterval:
+    Type: 'String'
+    Description: 'The lambda buffer interval'
+    Default: '60'
+  eventBusNameParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/shared/eventBusName
+  eventBusArnParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/shared/eventBusArn
+  bucketNameParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/shared/bucketName
+  customResourceProviderTokenParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/shared/customResourceProviderToken
+  kmsKeyArnParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/shared/kmsKeyArn
+  pipelinesApiFunctionNameParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/pipelines/apiFunctionName
+  pipelineProcessorApiFunctionNameParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/pipeline-processor/apiFunctionNameV2
+  assetBucketParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/connectors/kinesis/application/bucket
+  assetKeyParameter:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Default: /sif/<tenantId>/<environment>/connectors/kinesis/application/key
+Conditions:
+  DeployDataStream: !Equals [ !Ref useExistingKinesisDataStream, 'false' ]
+
+Resources:
+  KinesisConnectorLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Sub "/aws/kinesisfirehose/sif-${tenantId}-${environment}-connectors-kinesis-${pipelineId}"
+      RetentionInDays: 7
+      Tags:
+        - Key: 'sif:environment'
+          Value: !Ref environment
+        - Key: 'sif:tenantId'
+          Value: !Ref tenantId
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+
+  KinesisConnectorDataStream:
+    Condition: DeployDataStream
+
+    Type: 'AWS::Kinesis::Stream'
+    Properties:
+      Name: !Sub "sif-${tenantId}-${environment}-connectors-kinesis-${pipelineId}"
+      StreamEncryption:
+        EncryptionType: KMS
+        KeyId: !Ref kmsKeyArnParameter
+      StreamModeDetails:
+        StreamMode: ON_DEMAND
+      Tags:
+        - Key: 'sif:environment'
+          Value: !Ref environment
+        - Key: 'sif:tenantId'
+          Value: !Ref tenantId
+    Metadata:
+      'aws:cdk:path': kinesisConnector/KinesisConnector/KinesisDataStream
+
+  KinesisConnectorRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      Tags:
+        - Key: 'sif:environment'
+          Value: !Ref environment
+        - Key: 'sif:tenantId'
+          Value: !Ref tenantId
+
+  KinesisConnectorRoleDefaultPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:AbortMultipartUpload'
+              - 's3:GetBucketLocation'
+              - 's3:GetObject'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:PutObject'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - ':s3:::'
+                  - !Ref bucketNameParameter
+                  - /*
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - ':s3:::'
+                  - !Ref bucketNameParameter
+            Sid: s3
+          - Action:
+              - 'kms:Decrypt'
+              - 'kms:GenerateDataKey'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub 's3.${AWS::Region}.amazonaws.com'
+              StringLike:
+                'kms:EncryptionContext:aws:s3:arn':
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref 'AWS::Partition'
+                      - ':s3:::'
+                      - !Ref bucketNameParameter
+                  - !Join
+                    - ''
+                    - - 'arn:'
+                      - !Ref 'AWS::Partition'
+                      - ':s3:::'
+                      - !Ref bucketNameParameter
+                      - /*
+            Effect: Allow
+            Resource: !Ref kmsKeyArnParameter
+            Sid: kms
+          - Action: 'logs:PutLogEvents'
+            Effect: Allow
+            Resource: !Join
+              - ''
+              - - !GetAtt
+                  - KinesisConnectorLogGroup
+                  - Arn
+                - ': *'
+            Sid: logs
+          - Action:
+              - 'kinesis:DescribeStream'
+              - 'kinesis:GetRecords'
+              - 'kinesis:GetShardIterator'
+              - 'kinesis:ListShards'
+            Effect: Allow
+            Resource: !If [ DeployDataStream,!GetAtt KinesisConnectorDataStream.Arn, !Ref kinesisDataStreamArn ]
+            Sid: dateStream
+          - Action: 'kms:Decrypt'
+            Condition:
+              StringEquals:
+                'kms:ViaService': !Sub 'kinesis.${AWS::Region}.amazonaws.com'
+              StringLike:
+                'kms:EncryptionContext:aws:kinesis:arn': !If [ DeployDataStream,!GetAtt KinesisConnectorDataStream.Arn, !Ref kinesisDataStreamArn ]
+            Effect: Allow
+            Resource: !Ref kmsKeyArnParameter
+            Sid: kmsDecrypt
+        Version: 2012-10-17
+      PolicyName: KinesisConnectorRoleDefaultPolicy
+      Roles:
+        - !Ref KinesisConnectorRole
+
+  TransformerLambdaServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - !Join
+          - ''
+          - - 'arn:'
+            - !Ref 'AWS::Partition'
+            - ':iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Tags:
+        - Key: 'sif:environment'
+          Value: !Ref environment
+        - Key: 'sif:tenantId'
+          Value: !Ref tenantId
+
+
+  TransformerLambdaServiceRoleDefaultPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 'xray:PutTelemetryRecords'
+              - 'xray:PutTraceSegments'
+            Effect: Allow
+            Resource: '*'
+          - Action:
+              - 's3:Abort*'
+              - 's3:DeleteObject*'
+              - 's3:GetBucket*'
+              - 's3:GetObject*'
+              - 's3:List*'
+              - 's3:PutObject'
+              - 's3:PutObjectLegalHold'
+              - 's3:PutObjectRetention'
+              - 's3:PutObjectTagging'
+              - 's3:PutObjectVersionTagging'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - ':s3:::'
+                  - !Ref bucketNameParameter
+                  - /*
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - ':s3:::'
+                  - !Ref bucketNameParameter
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - ':s3:::'
+                  - !Ref assetBucketParameter
+                  - /*
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - ':s3:::'
+                  - !Ref assetBucketParameter
+          - Action: 'lambda:InvokeFunction'
+            Effect: Allow
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pipelineProcessorApiFunctionNameParameter}'
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - !Sub ':lambda:${AWS::Region}:${AWS::AccountId}:function:'
+                  - ':*'
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - !Sub ':lambda:${AWS::Region}:${AWS::AccountId}:function:'
+          - Action: 'lambda:InvokeFunction'
+            Effect: Allow
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${pipelinesApiFunctionNameParameter}'
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - !Sub ':lambda:${AWS::Region}:${AWS::AccountId}:function:'
+                  - ':*'
+              - !Join
+                - ''
+                - - 'arn:'
+                  - !Ref 'AWS::Partition'
+                  - !Sub ':lambda:${AWS::Region}:${AWS::AccountId}:function:'
+          - Action:
+              - 'events:PutEvents'
+            Effect: Allow
+            Resource:
+              - !Ref eventBusArnParameter
+        Version: 2012-10-17
+      PolicyName: TransformerLambdaServiceRoleDefaultPolicy
+      Roles:
+        - !Ref TransformerLambdaServiceRole
+
+  TransformerLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: 'lambda_firehose_transformer.handler'
+      Code:
+        S3Bucket: !Ref assetBucketParameter
+        S3Key: !Ref assetKeyParameter
+      Role: !GetAtt TransformerLambdaServiceRole.Arn
+      Architectures:
+        - arm64
+      Description: !Sub 'Kinesis Connector Transformer for pipelineId:${pipelineId}'
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !Ref eventBusNameParameter
+          NODE_ENV: !Ref environment
+          BUCKET_NAME: !Ref bucketNameParameter
+          BUCKET_PREFIX: pipelines
+          HANDLEBARS_TEMPLATE: !Ref handlebarsTemplate
+          PIPELINE_PROCESSOR_FUNCTION_NAME: !Ref pipelineProcessorApiFunctionNameParameter
+          PIPELINE_ID: !Ref pipelineId
+          GROUP_CONTEXT_ID: !Ref group
+          CONNECTOR_CONFIG: !Ref connectorConfig
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+      FunctionName: !Sub 'sif-${tenantId}-${environment}-kinesis-${pipelineId}'
+      MemorySize: 1024
+      Runtime: nodejs18.x
+      Tags:
+        - Key: 'sif:environment'
+          Value: !Ref environment
+        - Key: 'sif:tenantId'
+          Value: !Ref tenantId
+      Timeout: 300
+      TracingConfig:
+        Mode: Active
+    DependsOn:
+      - TransformerLambdaServiceRoleDefaultPolicy
+      - TransformerLambdaServiceRole
+
+
+  KinesisConnectorDeliveryStream:
+    Type: 'AWS::KinesisFirehose::DeliveryStream'
+    Properties:
+      DeliveryStreamName: !Sub 'sif-${tenantId}-${environment}-kinesis-${pipelineId}'
+      DeliveryStreamType: KinesisStreamAsSource
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Join
+          - ''
+          - - 'arn:'
+            - !Ref 'AWS::Partition'
+            - ':s3:::'
+            - !Ref bucketNameParameter
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 64
+        CloudWatchLoggingOptions:
+          Enabled: true
+          LogGroupName: !Ref KinesisConnectorLogGroup
+          LogStreamName: !Sub 'sif-${tenantId}-${environment}-connectors-kinesis-${pipelineId}'
+        CompressionFormat: UNCOMPRESSED
+        DynamicPartitioningConfiguration:
+          Enabled: true
+          RetryOptions:
+            DurationInSeconds: 60
+        ErrorOutputPrefix: !Sub 'pipelines/${pipelineId}/deliveryFailures/preTransformed/!{firehose:error-output-type}'
+        Prefix: >-
+          pipelines/!{partitionKeyFromQuery:pipelineId}/executions/!{partitionKeyFromQuery:executionId}/input/
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+            - Parameters:
+                - ParameterName: LambdaArn
+                  ParameterValue: !GetAtt TransformerLambda.Arn
+                - ParameterName: NumberOfRetries
+                  ParameterValue: '3'
+                - ParameterName: BufferSizeInMBs
+                  ParameterValue: !Ref lambdaBufferSize
+                - ParameterName: BufferIntervalInSeconds
+                  ParameterValue: !Ref lambdaBufferInterval
+              Type: Lambda
+            - Parameters:
+                - ParameterName: MetadataExtractionQuery
+                  ParameterValue: '{pipelineId:.pipelineId,executionId:.executionId}'
+                - ParameterName: JsonParsingEngine
+                  ParameterValue: JQ-1.6
+              Type: MetadataExtraction
+            - Parameters:
+                - ParameterName: Delimiter
+                  ParameterValue: \n
+              Type: AppendDelimiterToRecord
+        RoleARN: !GetAtt KinesisConnectorRole.Arn
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN: !If [ DeployDataStream,!GetAtt KinesisConnectorDataStream.Arn, !Ref kinesisDataStreamArn ]
+        RoleARN: !GetAtt KinesisConnectorRole.Arn
+      Tags:
+        - Key: 'sif:environment'
+          Value: !Ref environment
+        - Key: 'sif:tenantId'
+          Value: !Ref tenantId
+    DependsOn:
+      - KinesisConnectorRoleDefaultPolicy
+      - KinesisConnectorRole
+
+Outputs:
+  KinesisDataStreamArn:
+    Description: The Arn of the kinesis data stream being used
+    Value: !If [ DeployDataStream,!GetAtt KinesisConnectorDataStream.Arn, !Ref kinesisDataStreamArn ]

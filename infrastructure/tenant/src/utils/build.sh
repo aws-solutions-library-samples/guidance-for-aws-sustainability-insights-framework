@@ -19,11 +19,14 @@ if [ -z "$1" ] || [ -z "$2" ]; then
 	exit 1
 fi
 
-TENANT_ID=$1
-ENVIRONMENT=$2
+export TENANT_ID=$1
+export ENVIRONMENT=$2
 SHARED_TENANT_ID=$3
 
 # Set environment variables from there respective SSM parameters
+
+export BUCKET_NAME=$(aws ssm get-parameter --name /sif/$TENANT_ID/$ENVIRONMENT/shared/bucketName | jq -r '.Parameter.Value')
+export PLATFORM_RESOURCE_MANAGER_FUNCTION_NAME=$(aws ssm get-parameter --name /sif/shared/$ENVIRONMENT/platformResourceManager/apiFunctionName | jq -r '.Parameter.Value')
 
 export COGNITO_CLIENT_ID=$(aws ssm get-parameter --name /sif/$TENANT_ID/$ENVIRONMENT/shared/userPoolClientId | jq -r '.Parameter.Value')
 export COGNITO_USER_POOL_ID=$(aws ssm get-parameter --name /sif/$TENANT_ID/$ENVIRONMENT/shared/userPoolId | jq -r '.Parameter.Value')

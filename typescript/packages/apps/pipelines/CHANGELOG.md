@@ -1,6 +1,13 @@
 # Change Log - @sif/pipelines
 
-This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:37 GMT and should not be manually modified.
+
+## 4.8.0
+Wed, 13 Dec 2023 02:37:37 GMT
+
+### Minor changes
+
+- Added support for connector setup events
 
 ## 4.7.3
 Thu, 17 Aug 2023 02:44:14 GMT

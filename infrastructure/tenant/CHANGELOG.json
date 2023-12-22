@@ -2,6 +2,47 @@
   "name": "@sif/infrastructure-tenant",
   "entries": [
     {
+      "version": "7.18.0",
+      "tag": "@sif/infrastructure-tenant_v7.18.0",
+      "date": "Wed, 13 Dec 2023 02:37:37 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "include version information in cloudoformation tags"
+          },
+          {
+            "comment": "modify the subnet selection to use subnet name to ensure resources are deployed to the same subnet"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/access-management\" to `4.1.2`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/cdk-common\" to `1.1.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/calculations\" to `4.8.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.2.0`"
+          }
+        ]
+      }
+    },
+    {
+      "version": "7.17.1",
+      "tag": "@sif/infrastructure-tenant_v7.17.1",
+      "date": "Tue, 10 Oct 2023 14:45:33 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Static config for firehose delivery delay"
+          }
+        ]
+      }
+    },
+    {
       "version": "7.17.0",
       "tag": "@sif/infrastructure-tenant_v7.17.0",
       "date": "Thu, 17 Aug 2023 02:44:14 GMT",

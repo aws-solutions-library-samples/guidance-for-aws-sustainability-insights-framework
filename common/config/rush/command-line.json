@@ -58,6 +58,15 @@
 		  "safeForSimultaneousRushProcesses": true,
 		  "autoinstallerName": "database-migration",
 		  "shellCommand": "node-pg-migrate up"
+	  },
+
+	  {
+		"name": "bundle",
+		"commandKind": "global",
+		"summary": "Bundle modules.",
+		"description": "Bundles deployable projects as zip files inclusive of all dependencies ready for deployment.",
+		"safeForSimultaneousRushProcesses": true,
+		"shellCommand": "infrastructure/tenant/src/utils/bundle.bash"
 	  }
     // {
     //   /**

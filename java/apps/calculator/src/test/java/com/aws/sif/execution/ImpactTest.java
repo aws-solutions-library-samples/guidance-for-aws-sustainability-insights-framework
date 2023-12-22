@@ -246,7 +246,7 @@ public class ImpactTest extends CalculatorBaseTest {
 
     private static Stream<Arguments> providerForImpactFunctionFailed_ParseCancellationExceptions() {
         return Stream.of(
-                Arguments.of("impact()", "Line 1:7 mismatched input ')' expecting {AS_TIMESTAMP, ASSIGN_TO_GROUP, GET_VALUE, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, CAML, SET, SPLIT, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
+                Arguments.of("impact()", "Line 1:7 mismatched input ')' expecting {AS_TIMESTAMP, ASSIGN_TO_GROUP, GET_VALUE, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, CAML, SET, SPLIT, SWITCH, UPPERCASE, SEARCH, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
                 Arguments.of("impact('one','two')", "Line 1:18 mismatched input ')' expecting {'+', '-', '*', '/', '^', '>', '>=', '<', '<=', '==', '!=', COMMA, ' '}")
         );
     }

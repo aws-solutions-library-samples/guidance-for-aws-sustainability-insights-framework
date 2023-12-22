@@ -40,6 +40,8 @@ const requiresFileUpload = Type.Optional(Type.Boolean({
 	default: false
 }));
 
+
+
 export const connectorCreateParams = Type.Object({
 	description: Type.Optional(description),
 	name,

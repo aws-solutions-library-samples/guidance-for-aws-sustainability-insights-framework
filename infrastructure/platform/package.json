@@ -1,26 +1,37 @@
 {
 	"name": "@sif/infrastructure-platform",
-	"version": "2.6.0",
+	"version": "2.7.1",
 	"description": "SIF: Common Platform Infrastructure.",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"type": "module",
 	"scripts": {
 		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
-		"build": "npx tsc -b",
+		"build": "npx tsc -b && npm run build:validator",
+		"build:validator": "node_modules/.bin/ts-node --esm --prefer-ts-exts esbuild.ts",
 		"test": "npm run build && vitest run --passWithNoTests",
-		"cdk": "cdk"
+		"predeploy": "node_modules/.bin/ts-node --esm --prefer-ts-exts src/predeploy.ts",
+		"cdk": "npm run predeploy && cdk"
 	},
 	"dependencies": {
 		"aws-cdk-lib": "2.87.0",
 		"constructs": "10.2.69",
+		"@aws-sdk/client-ec2": "3.370.0",
 		"@aws-sdk/client-iam": "3.370.0",
+		"@aws-sdk/client-acm": "3.370.0",
+		"@aws-sdk/client-secrets-manager": "3.370.0",
+		"@aws-sdk/client-rds": "3.370.0",
 		"source-map-support": "0.5.21",
 		"pino": "8.14.1",
 		"pino-pretty": "10.0.1",
 		"cdk-nag": "2.27.73",
 		"@sif/cdk-common": "workspace:*",
 		"@sif/dynamodb-utils": "workspace:*",
-		"@aws-cdk/aws-sagemaker-alpha": "2.87.0-alpha.0"
+		"@aws-cdk/aws-sagemaker-alpha": "2.87.0-alpha.0",
+		"shelljs": "0.8.5",
+		"@inquirer/prompts": "3.0.3",
+		"@inquirer/select": "1.2.8",
+		"@inquirer/confirm": "2.0.9",
+		"ajv": "8.12.0"
 	},
 	"devDependencies": {
 		"@esbuild-plugins/node-globals-polyfill": "0.2.3",

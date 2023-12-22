@@ -2,6 +2,26 @@
   "name": "@sif/reference-datasets",
   "entries": [
     {
+      "version": "4.6.1",
+      "tag": "@sif/reference-datasets_v4.6.1",
+      "date": "Wed, 13 Dec 2023 02:37:37 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "Library update"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.2.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/resource-api-base\" to `3.9.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.6.0",
       "tag": "@sif/reference-datasets_v4.6.0",
       "date": "Thu, 20 Jul 2023 00:30:14 GMT",

@@ -1,6 +1,20 @@
 # Change Log - @sif/integration-tests
 
-This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:37 GMT and should not be manually modified.
+
+## 3.16.0
+Wed, 13 Dec 2023 02:37:37 GMT
+
+### Minor changes
+
+- Added integration tests fo kinesis connector
+
+## 3.15.1
+Tue, 10 Oct 2023 14:45:33 GMT
+
+### Patches
+
+- Added integration test for audit export
 
 ## 3.15.0
 Thu, 17 Aug 2023 02:44:14 GMT

@@ -2,7 +2,7 @@
 
 ## Deployments Steps
 
-Refer to the [deployment walkthrough](../docs/deployment/walkthrough.md).
+Refer to the [deployment walkthrough](../docs/deployment/cli_walkthrough.md).
 
 ## Deploying Certificates (Optional)
 

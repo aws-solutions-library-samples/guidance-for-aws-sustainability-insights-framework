@@ -50,6 +50,7 @@ enum CriticalDatabaseTask {
 	InsertActivityLatestValues = 'InsertActivityLatestValues',
 	AggregateMetrics = 'AggregateMetrics',
 	AggregatePipelineOutput = 'AggregatePipelineOutput',
+	ActivityDownload = 'ActivityDownload'
 }
 
 export type StateMachineInput = {

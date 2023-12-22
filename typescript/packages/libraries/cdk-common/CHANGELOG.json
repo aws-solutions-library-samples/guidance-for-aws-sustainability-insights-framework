@@ -2,6 +2,18 @@
   "name": "@sif/cdk-common",
   "entries": [
     {
+      "version": "1.1.0",
+      "tag": "@sif/cdk-common_v1.1.0",
+      "date": "Wed, 13 Dec 2023 02:37:36 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "new utility function to list version information based on github releases"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.0.0",
       "tag": "@sif/cdk-common_v1.0.0",
       "date": "Thu, 17 Aug 2023 02:44:14 GMT",

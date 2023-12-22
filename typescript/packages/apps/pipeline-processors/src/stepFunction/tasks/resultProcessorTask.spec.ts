@@ -13,48 +13,55 @@
 
 import type { LambdaRequestContext, Pipeline, PipelineClient } from '@sif/clients';
 import pino from 'pino';
-import { beforeEach, describe, expect, it, afterAll } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { MockProxy, mock } from 'vitest-mock-extended';
-
+import { mockClient } from 'aws-sdk-client-mock';
 import { ResultProcessorTask } from './resultProcessorTask';
-import type { S3Client } from '@aws-sdk/client-s3';
+import { CopyObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { CloudWatchClient } from '@aws-sdk/client-cloudwatch';
-import type { SFNClient } from '@aws-sdk/client-sfn';
-import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
-import type { PipelineProcessorsService } from '../../api/executions/service';
+import { DescribeExecutionCommand, SFNClient } from '@aws-sdk/client-sfn';
+import type { GetLambdaRequestContext } from '../../plugins/module.awilix.js';
 import type { ProcessedTaskEventWithExecutionDetails, StepFunctionEvent } from './model';
-import type { SecurityContext } from '@sif/authz/dist';
+import type { SecurityContext } from '@sif/authz';
+import type { CalculatorResultUtil } from '../../utils/calculatorResult.util.js';
+import type { PipelineProcessorsRepository } from '../../api/executions/repository.js';
+import type { EventPublisher } from '@sif/events';
+import type { PipelineExecution } from '../../api/executions/schemas.js';
 
 describe('ResultProcessorTaskService', () => {
 	let mockedPipelineClient: MockProxy<PipelineClient>;
-	let mockedS3Client: MockProxy<S3Client>;
 	let mockedCloudWatchClient: MockProxy<CloudWatchClient>;
-	let mockedSfnClient: MockProxy<SFNClient>;
-	let mockedPipelineProcessorsService: MockProxy<PipelineProcessorsService>;
+	let mockCalculatorUtil: MockProxy<CalculatorResultUtil>;
 	let underTest: ResultProcessorTask;
+	let mockedPipelineProcessorRepository: MockProxy<PipelineProcessorsRepository>;
+	let mockedEventPublisher: MockProxy<EventPublisher>;
 
+	mockedCloudWatchClient = mock<CloudWatchClient>();
+	mockedPipelineClient = mock<PipelineClient>();
+	mockCalculatorUtil = mock<CalculatorResultUtil>();
+	mockedEventPublisher = mock<EventPublisher>();
+	mockedPipelineProcessorRepository = mock<PipelineProcessorsRepository>();
+	const mockedSfnClient = mockClient(SFNClient);
+	const mockedS3Client = mockClient(S3Client);
+
+	const pipelineName = 'test-pipeline';
+	const pipelineId = 'testPipelineId';
+	const executionId = 'testExecutionId';
+	const security = {} as SecurityContext;
 
 	beforeEach(() => {
 		const logger = pino(
 			pino.destination({
-				sync: true, // test frameworks must use pino logger in sync mode!
+				sync: true // test frameworks must use pino logger in sync mode!
 			})
 		);
 		logger.level = 'info';
 		process.env['TENANT_ID'] = 'test-tenant';
 		process.env['NODE_ENV'] = 'test-env';
 
-		mockedPipelineProcessorsService.get.mockResolvedValueOnce({
-			actionType: 'create',
-			createdAt: new Date().toString(),
-			createdBy: 'unitTest',
-			id: executionId,
-			pipelineId,
-			pipelineVersion: 1,
-			status: 'success',
-			groupContextId: '/test',
-			groups: []
-		});
+		mockedPipelineClient.get.mockReset();
+		mockedPipelineProcessorRepository.create.mockReset();
+		mockedPipelineProcessorRepository.get.mockReset();
 
 		mockedPipelineClient.get.mockResolvedValueOnce({
 			id: pipelineId,
@@ -71,52 +78,36 @@ describe('ResultProcessorTaskService', () => {
 			type: 'activities'
 		} as unknown as Pipeline);
 
-		const mockedGetSecurityContext: GetSecurityContext = async (): Promise<SecurityContext> => {
-			return {} as unknown as SecurityContext;
-		};
-
 		const mockGetLambdaRequestContext: GetLambdaRequestContext = (): LambdaRequestContext => {
 			return {} as unknown as LambdaRequestContext;
 		};
 
-		underTest = new ResultProcessorTask(logger, mockedS3Client, mockedSfnClient, mockedCloudWatchClient, mockedPipelineClient, s3Bucket, bucketPrefix, mockedGetSecurityContext, mockGetLambdaRequestContext, mockedPipelineProcessorsService);
+		mockedPipelineProcessorRepository.get.mockResolvedValue({ id: executionId } as PipelineExecution);
+
+		underTest = new ResultProcessorTask(logger, mockedS3Client as unknown as S3Client, mockedSfnClient as unknown as SFNClient, mockedCloudWatchClient, mockedPipelineClient, mockGetLambdaRequestContext, mockCalculatorUtil, mockedPipelineProcessorRepository, mockedEventPublisher);
+
+		mockedSfnClient.on(DescribeExecutionCommand).resolves({
+			input: JSON.stringify({ source: { key: 'pipeline1/input/someInputData', bucket: 'testBucket' } })
+		});
+
 
 	});
 
-	mockedS3Client = mock<S3Client>();
-	mockedCloudWatchClient = mock<CloudWatchClient>();
-	mockedSfnClient = mock<SFNClient>();
-	mockedPipelineProcessorsService = mock<PipelineProcessorsService>();
-	mockedPipelineClient = mock<PipelineClient>();
-	const s3Bucket = 'test-bucket';
-	const bucketPrefix = 'prefix';
-	const pipelineName = 'test-pipeline';
-	const pipelineId = 'testPipelineId';
-	const executionId = 'testExecutionId';
-
 
 	const processEvent: ProcessedTaskEventWithExecutionDetails = {
-		'inputs': [{
-			'sequence': 0,
+		input: {
+			security,
 			'metricQueue': [],
-			'groupContextId': '/test',
+			sequenceList: [],
+			errorLocationList: [],
 			pipelineId,
 			executionId,
 			'outputs': [{ 'name': 'month', 'type': 'timestamp' }, { 'name': 'b*c', 'type': 'number' }],
 			'requiresAggregation': true,
 			'pipelineType': 'activities',
 			'status': 'SUCCEEDED'
-		}, {
-			'sequence': 0,
-			'metricQueue': [],
-			'groupContextId': 'test',
-			pipelineId,
-			executionId,
-			'outputs': [{ 'name': 'month', 'type': 'timestamp' }, { 'name': 'b*c', 'type': 'number' }],
-			'requiresAggregation': true,
-			'pipelineType': 'activities',
-			'status': 'SUCCEEDED'
-		}], 'executionArn': 'testArn', 'executionStartTime': '2023-08-07T03:18:14.088Z'
+		},
+		'executionArn': 'testArn', 'executionStartTime': '2023-08-07T03:18:14.088Z'
 	};
 	const successfulStepFunctionEvent: StepFunctionEvent[] = [{
 		'id': 5,
@@ -335,18 +326,79 @@ describe('ResultProcessorTaskService', () => {
 	});
 
 
-	it('Should return results of an successfuly executed task', async () => {
-		const result = await underTest.process(processEvent);
-		expect(mockedPipelineProcessorsService.get).toBeCalledTimes(1);
+	it('Should update execution status to success', async () => {
+		await underTest.process(processEvent);
 		expect(mockedPipelineClient.get).toBeCalledTimes(1);
-		expect(result).toEqual([
-			'success',
-			undefined,
-		]);
+		expect(mockedPipelineProcessorRepository.create.mock.calls[0][0].status).toEqual('success');
+		expect(mockedEventPublisher.publishTenantEvent).toBeCalledWith({
+			'eventType': 'updated',
+			'id': 'testExecutionId',
+			'resourceType': 'pipelineExecution',
+		});
 	});
 
 
-	afterAll(() => {
+	it('Should update execution status to failed when there is failed calculation', async () => {
+		await underTest.process({
+			...processEvent,
+			input: {
+				...processEvent.input,
+				errorLocationList: [{ bucket: 'testBucket', key: 'testKey' }]
+			}
+		});
+		expect(mockedPipelineClient.get).toBeCalledTimes(1);
+		expect(mockedPipelineProcessorRepository.create).toBeCalledTimes(1);
+		expect(mockedPipelineProcessorRepository.create.mock.calls[0][0].status).toEqual('failed');
+		expect(mockedPipelineProcessorRepository.create.mock.calls[0][0].statusMessage).toEqual('error when performing calculation, review the pipeline execution error log for further info');
+		expect(mockedS3Client.commandCalls(CopyObjectCommand)[0].args[0].input).toEqual({
+			'Bucket': 'testBucket',
+			'CopySource': 'testBucket/pipeline1/input/someInputData',
+			'Key': 'pipeline1/deliveryFailures/postTransformed/someInputData',
+		});
+		expect(mockedEventPublisher.publishTenantEvent).toBeCalledWith({
+			'eventType': 'updated',
+			'id': 'testExecutionId',
+			'resourceType': 'pipelineExecution',
+		});
 	});
 
+
+	it('Should update execution status to failed when there is failed sql insert', async () => {
+		await underTest.process({
+			...processEvent,
+			input: {
+				...processEvent.input,
+				status: 'FAILED'
+			}
+		});
+		expect(mockedPipelineClient.get).toBeCalledTimes(1);
+		expect(mockedPipelineProcessorRepository.create).toBeCalledTimes(1);
+		expect(mockedPipelineProcessorRepository.create.mock.calls[0][0].status).toEqual('failed');
+		expect(mockedPipelineProcessorRepository.create.mock.calls[0][0].statusMessage).toEqual('error when inserting activities to database');
+		expect(mockedEventPublisher.publishTenantEvent).toBeCalledWith({
+			'eventType': 'updated',
+			'id': 'testExecutionId',
+			'resourceType': 'pipelineExecution',
+		});
+	});
+
+	it('Should update execution status to failed when there are failed calculation and sql inserts', async () => {
+		await underTest.process({
+			...processEvent,
+			input: {
+				...processEvent.input,
+				status: 'FAILED',
+				errorLocationList: [{ bucket: 'testBucket', key: 'testKey' }]
+			}
+		});
+		expect(mockedPipelineClient.get).toBeCalledTimes(1);
+		expect(mockedPipelineProcessorRepository.create).toBeCalledTimes(1);
+		expect(mockedPipelineProcessorRepository.create.mock.calls[0][0].status).toEqual('failed');
+		expect(mockedPipelineProcessorRepository.create.mock.calls[0][0].statusMessage).toEqual('error when performing calculation, review the pipeline execution error log for further info\nerror when inserting activities to database');
+		expect(mockedEventPublisher.publishTenantEvent).toBeCalledWith({
+			'eventType': 'updated',
+			'id': 'testExecutionId',
+			'resourceType': 'pipelineExecution',
+		});
+	});
 });

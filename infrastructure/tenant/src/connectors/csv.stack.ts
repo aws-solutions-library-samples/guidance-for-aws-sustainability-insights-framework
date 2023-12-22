@@ -28,7 +28,7 @@ export type CsvConnectorStackProperties = StackProps & {
 };
 
 export class CsvConnectorStack extends Stack {
-	constructor(scope: Construct, id: string, props?: CsvConnectorStackProperties) {
+	constructor(scope: Construct, id: string, props: CsvConnectorStackProperties) {
 		super(scope, id, props);
 
 		// validation

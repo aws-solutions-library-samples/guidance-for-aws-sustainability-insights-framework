@@ -48,6 +48,7 @@ import {
 import { kmsKeyArnParameter } from '../shared/kms.construct.js';
 import { calculatorActivityInsertQueueArnParameter } from '../calculator/calculator.construct.js';
 import { ResourceApiBase } from '../shared/resourceApiBase.construct.js';
+import { kinesisConnectorTemplateAssetBucketParameter, kinesisConnectorTemplateAssetKeyParameter } from '../connectors/kinesis.construct.js';
 
 export type PipelineProcessorsStackProperties = StackProps & {
 	tenantId: string;
@@ -57,10 +58,12 @@ export type PipelineProcessorsStackProperties = StackProps & {
 	csvConnectorName: string;
 	metricStorage: string;
 	auditVersion: string;
+	triggerMetricAggregations: boolean;
+	auditLogWaitTimeSeconds: number;
 };
 
 export class PipelineProcessorsApiStack extends Stack {
-	constructor(scope: Construct, id: string, props?: PipelineProcessorsStackProperties) {
+	constructor(scope: Construct, id: string, props: PipelineProcessorsStackProperties) {
 		super(scope, id, props);
 
 		const accessManagementApiFunctionName = StringParameter.fromStringParameterAttributes(this, 'accessManagementApiFunctionName', {
@@ -193,11 +196,22 @@ export class PipelineProcessorsApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
+		const kinesisTemplateBucket = StringParameter.fromStringParameterAttributes(this, 'kinesisTemplateBucket', {
+			parameterName: kinesisConnectorTemplateAssetBucketParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
+		const kinesisTemplateKey = StringParameter.fromStringParameterAttributes(this, 'kinesisTemplateKey', {
+			parameterName: kinesisConnectorTemplateAssetKeyParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
 		const base = new ResourceApiBase(this, 'ResourceApiBase', {
 			tenantId: props.tenantId,
 			environment: props.environment,
 			moduleName: 'pipelineProcessorsV2',
 			eventBusName,
+			timeToLiveAttribute: 'ttl',
 			auth: {
 				accessManagementApiFunctionName,
 			},
@@ -230,17 +244,21 @@ export class PipelineProcessorsApiStack extends Stack {
 			activityBooleanValueTableName,
 			activityDateTimeValueTableName,
 			activityStringValueTableName,
+			auditLogWaitTimeSeconds: props.auditLogWaitTimeSeconds,
 			caCert: props.caCert,
 			kmsKeyArn,
-			calculatorFunctionName,
+			calculatorFunctionName: `${calculatorFunctionName}:live`,
 			downloadAuditFileParallelLimit: props.downloadAuditFileParallelLimit,
 			csvConnectorName: props.csvConnectorName,
 			metricStorage: props.metricStorage,
 			auditLogsTableName,
 			auditLogsDatabaseName,
 			activityInsertQueueArn,
+			triggerMetricAggregations: props.triggerMetricAggregations,
 			tableName: base.tableName,
 			workerQueueArn: base.workerQueueArn,
+			kinesisTemplateBucket,
+			kinesisTemplateKey
 		});
 
 		module.node.addDependency(base);

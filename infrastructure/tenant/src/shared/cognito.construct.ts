@@ -47,7 +47,7 @@ export interface CognitoConstructProperties {
 	tenantId: string;
 	environment: string;
 	administratorEmail: string;
-	userPoolEmail: {
+	userPoolEmail?: {
 		fromEmail: string;
 		fromName: string;
 		replyTo: string;

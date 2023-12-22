@@ -77,7 +77,7 @@ public class AssignToGroupTest extends CalculatorBaseTest {
 
     private static Stream<Arguments> providerForFailedArguments() {
         return Stream.of(
-                Arguments.of("assign_to_group()", "Line 1:16 mismatched input ')' expecting {AS_TIMESTAMP, ASSIGN_TO_GROUP, GET_VALUE, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, CAML, SET, SPLIT, SWITCH, UPPERCASE, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
+                Arguments.of("assign_to_group()", "Line 1:16 mismatched input ')' expecting {AS_TIMESTAMP, ASSIGN_TO_GROUP, GET_VALUE, COALESCE, CONCAT, CONVERT, IF, IMPACT, LOOKUP, LOWERCASE, REF, CAML, SET, SPLIT, SWITCH, UPPERCASE, SEARCH, BOOLEAN, NULL, CUSTOM_FUNCTION, TOKEN, QUOTED_STRING, NUMBER, SCIENTIFIC_NUMBER, '(', '-'}"),
                 Arguments.of("assign_to_group('/group1','/group2')", "Line 1:25 mismatched input ',' expecting {')', '+', '-', '*', '/', '^', '>', '>=', '<', '<=', '==', '!=', ' '}")
         );
     }

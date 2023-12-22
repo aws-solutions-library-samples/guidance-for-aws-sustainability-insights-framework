@@ -28,7 +28,7 @@ expr
     |   SWITCH LPAREN value=expr COMMA exprList (optionalSwitchParams)* RPAREN      # SwitchFunctionExpr
     |   UPPERCASE LPAREN value=expr RPAREN    										# UppercaseFunctionExpr
     |   function=CUSTOM_FUNCTION LPAREN exprList (optionalCustomParams)* RPAREN		# CustomFunctionExpr
-
+    |   SEARCH LPAREN text=expr COMMA match=expr (optionalSearchParams)* RPAREN              # SearchFunctionExpr
     |   SET SPACE* name=TOKEN SPACE* EQ SPACE* value=expr 					# SetVariableExpr
     |   atom                                                                # AtomsExpr
 
@@ -72,6 +72,10 @@ optionalCommonParam
     |   tenant=optionalTenantParam
     |   version=optionalVersionParam
     |  	versionAsAt=optionalVersionAsAtParam
+    ;
+
+optionalSearchParams
+    : (COMMA ignoreCase=optionalIgnoreCaseParam)
     ;
 
 // list of expressions
@@ -141,6 +145,7 @@ optionalArrayIndexParam
     : LSQUARE expr RSQUARE
     ;
 
+
 // function name declarations
 AS_TIMESTAMP    : A S US T I M E S T A M P ;
 ASSIGN_TO_GROUP : A S S I G N US T O US G R O U P ;
@@ -159,6 +164,7 @@ SOURCE          : S O U R C E ;
 SPLIT           : S P L I T ;
 SWITCH          : S W I T C H ;
 UPPERCASE       : U P P E R C A S E ;
+SEARCH          : S E A R C H ;
 
 // parameter name declarations
 BOOLEAN  : T R U E | F A L S E ;

@@ -32,6 +32,10 @@
       "def-1": {
         "type": "object",
         "properties": {
+          "triggerMetricAggregations": {
+            "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+            "type": "boolean"
+          },
           "inlineExecutionOptions": {
             "type": "object",
             "properties": {
@@ -225,6 +229,11 @@
                 ]
               }
             ]
+          },
+          "triggerMetricAggregations": {
+            "description": "If set to true, metrics aggregation will be triggered after inserting activity data",
+            "default": true,
+            "type": "boolean"
           },
           "statusMessage": {
             "description": "Execution status details message, in case there is meaningful message which needs to be reported, this property will be present with the message details.",
@@ -433,6 +442,191 @@
         "title": "auditList"
       },
       "def-10": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          },
+          "pipelineId": {
+            "description": "Identifier of the pipeline configuration.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Status of the metric aggregation job.",
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "pending"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "running"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "succeeded"
+                ]
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "failed"
+                ]
+              }
+            ]
+          },
+          "groupContextId": {
+            "description": "Security context id of the pending metric aggregation",
+            "type": "string"
+          },
+          "metricQueue": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "order": {
+                  "description": "Metric processing order",
+                  "type": "number"
+                },
+                "metric": {
+                  "description": "Name of the metric",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "order",
+                "metric"
+              ]
+            }
+          },
+          "groupsQueue": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "order": {
+                  "description": "Group processing order",
+                  "type": "number"
+                },
+                "group": {
+                  "description": "Name of the group",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "order",
+                "group"
+              ]
+            }
+          },
+          "timeRange": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "description": "To date of the pipeline executions to be aggregated into the metric",
+                "type": "string"
+              },
+              "from": {
+                "description": "From date of the pipeline executions to be aggregated into the metric",
+                "type": "string"
+              }
+            },
+            "required": [
+              "to",
+              "from"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "pipelineId",
+          "status",
+          "groupContextId",
+          "metricQueue",
+          "groupsQueue"
+        ],
+        "title": "metricAggregationJob"
+      },
+      "def-11": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-10"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "description": "No. of results returned when pagination requested.",
+                "type": "integer"
+              },
+              "lastEvaluatedToken": {
+                "description": "Token used to paginate to the next page of search result.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "jobs"
+        ],
+        "title": "metricAggregationJob_list"
+      },
+      "def-12": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "description": "Metric aggregation start date in ISO string format",
+            "type": "string"
+          },
+          "to": {
+            "description": "Metric aggregation end date in ISO string format",
+            "type": "string"
+          }
+        },
+        "title": "startMetricAggregationJob"
+      },
+      "def-13": {
+        "type": "object",
+        "properties": {
+          "pipelineId": {
+            "description": "Identifier of the pipeline configuration.",
+            "type": "string"
+          },
+          "timeRange": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "description": "To date of the pipeline executions to be aggregated into the metric in ISO string format",
+                "type": "string"
+              },
+              "from": {
+                "description": "From date of the pipeline executions to be aggregated into the metric in ISO string format",
+                "type": "string"
+              }
+            },
+            "required": [
+              "to",
+              "from"
+            ]
+          }
+        },
+        "required": [
+          "pipelineId",
+          "timeRange"
+        ],
+        "title": "newMetricAggregationJob"
+      },
+      "def-14": {
         "description": "Processed activities.",
         "type": "object",
         "title": "activityResource",
@@ -454,13 +648,13 @@
           ]
         }
       },
-      "def-11": {
+      "def-15": {
         "type": "object",
         "properties": {
           "activities": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/def-10"
+              "$ref": "#/components/schemas/def-14"
             }
           },
           "pagination": {
@@ -478,7 +672,7 @@
         ],
         "title": "activitiesList"
       },
-      "def-12": {
+      "def-16": {
         "type": "object",
         "properties": {
           "date": {},
@@ -561,13 +755,13 @@
         ],
         "title": "metricResource"
       },
-      "def-13": {
+      "def-17": {
         "type": "object",
         "properties": {
           "metrics": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/def-12"
+              "$ref": "#/components/schemas/def-16"
             }
           }
         },
@@ -575,6 +769,82 @@
           "metrics"
         ],
         "title": "metricsList"
+      },
+      "def-18": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "newActivitiesDownload"
+      },
+      "def-19": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "requested activities download file signed url",
+            "type": "string"
+          }
+        },
+        "title": "activitiesDownload"
+      },
+      "def-20": {
+        "type": "object",
+        "properties": {
+          "downloads": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-19"
+            }
+          }
+        },
+        "required": [
+          "downloads"
+        ],
+        "title": "activitiesDownloadList"
+      },
+      "def-21": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique id.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "newMetricsDownload"
+      },
+      "def-22": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "requested metrics download file signed url",
+            "type": "string"
+          }
+        },
+        "title": "metricsDownload"
+      },
+      "def-23": {
+        "type": "object",
+        "properties": {
+          "downloads": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/def-22"
+            }
+          }
+        },
+        "required": [
+          "downloads"
+        ],
+        "title": "metricsDownloadList"
       }
     }
   },
@@ -777,6 +1047,44 @@
                   "properties": {
                     "message": {
                       "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Conflict.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "syntaxErrors": {
+                      "type": "object",
+                      "properties": {
+                        "charPositionInLine": {
+                          "type": "integer"
+                        },
+                        "line": {
+                          "type": "integer"
+                        },
+                        "msg": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "charPositionInLine",
+                        "line",
+                        "msg"
+                      ]
                     }
                   },
                   "required": [
@@ -1143,6 +1451,571 @@
               "application/json": {
                 "schema": {
                   "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/aggregations": {
+      "post": {
+        "tags": [
+          "MetricAggregationJob"
+        ],
+        "description": "Create metric aggregation job for a pipeline",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-13"
+              },
+              "examples": {
+                "New metric aggregation request example": {
+                  "pipelineId": "pipeline-12345",
+                  "timeRange": {
+                    "to": "2022-02-02",
+                    "from": "2022-01-02"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id.",
+                      "type": "string"
+                    },
+                    "pipelineId": {
+                      "description": "Identifier of the pipeline configuration.",
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "Status of the metric aggregation job.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "pending"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "succeeded"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        }
+                      ]
+                    },
+                    "groupContextId": {
+                      "description": "Security context id of the pending metric aggregation",
+                      "type": "string"
+                    },
+                    "metricQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "order": {
+                            "description": "Metric processing order",
+                            "type": "number"
+                          },
+                          "metric": {
+                            "description": "Name of the metric",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "order",
+                          "metric"
+                        ]
+                      }
+                    },
+                    "groupsQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "order": {
+                            "description": "Group processing order",
+                            "type": "number"
+                          },
+                          "group": {
+                            "description": "Name of the group",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "order",
+                          "group"
+                        ]
+                      }
+                    },
+                    "timeRange": {
+                      "type": "object",
+                      "properties": {
+                        "to": {
+                          "description": "To date of the pipeline executions to be aggregated into the metric",
+                          "type": "string"
+                        },
+                        "from": {
+                          "description": "From date of the pipeline executions to be aggregated into the metric",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "to",
+                        "from"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "pipelineId",
+                    "status",
+                    "groupContextId",
+                    "metricQueue",
+                    "groupsQueue"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id.",
+                      "type": "string"
+                    },
+                    "pipelineId": {
+                      "description": "Identifier of the pipeline configuration.",
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "Status of the metric aggregation job.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "pending"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "succeeded"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        }
+                      ]
+                    },
+                    "groupContextId": {
+                      "description": "Security context id of the pending metric aggregation",
+                      "type": "string"
+                    },
+                    "metricQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "order": {
+                            "description": "Metric processing order",
+                            "type": "number"
+                          },
+                          "metric": {
+                            "description": "Name of the metric",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "order",
+                          "metric"
+                        ]
+                      }
+                    },
+                    "groupsQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "order": {
+                            "description": "Group processing order",
+                            "type": "number"
+                          },
+                          "group": {
+                            "description": "Name of the group",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "order",
+                          "group"
+                        ]
+                      }
+                    },
+                    "timeRange": {
+                      "type": "object",
+                      "properties": {
+                        "to": {
+                          "description": "To date of the pipeline executions to be aggregated into the metric",
+                          "type": "string"
+                        },
+                        "from": {
+                          "description": "From date of the pipeline executions to be aggregated into the metric",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "to",
+                        "from"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "pipelineId",
+                    "status",
+                    "groupContextId",
+                    "metricQueue",
+                    "groupsQueue"
+                  ]
+                },
+                "examples": {
+                  "New Metric Aggregation Job": {
+                    "summary": "New metric aggregation job created successfully.",
+                    "value": {
+                      "id": "11111",
+                      "pipelineId": "pipeline-12345",
+                      "groupContextId": "/test",
+                      "timeRange": {
+                        "to": "2022-02-02",
+                        "from": "2022-01-02"
+                      },
+                      "status": "pending",
+                      "groupsQueue": [
+                        {
+                          "order": 1,
+                          "group": "group-one"
+                        }
+                      ],
+                      "metricQueue": [
+                        {
+                          "order": 1,
+                          "metric": "metric-one"
+                        },
+                        {
+                          "order": 2,
+                          "metric": "metric-two"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listMetricAggregationJobs",
+        "summary": "List metric aggregation jobs.",
+        "tags": [
+          "MetricAggregationJob"
+        ],
+        "description": "List metric aggregation jobs.'\n\nPermissions:\n- `readers` of the group in context may list metric aggregation tasks.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "description": "Count of results to return."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "pipelineId",
+            "required": false,
+            "description": "Filters by `name` based on the group access of the caller."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "fromToken",
+            "required": false,
+            "description": "Token used to paginate from (exclusive)."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/def-11"
+                },
+                "examples": {
+                  "List of aggregation jobs": {
+                    "summary": "Paginated list of metric aggregation jobs.",
+                    "value": {
+                      "jobs": [
+                        {
+                          "id": "11111",
+                          "pipelineId": "pipeline-12345",
+                          "groupContextId": "/test",
+                          "timeRange": {
+                            "to": "2022-02-02",
+                            "from": "2022-01-02"
+                          },
+                          "status": "pending",
+                          "groupsQueue": [
+                            {
+                              "order": 1,
+                              "group": "group-one"
+                            }
+                          ],
+                          "metricQueue": [
+                            {
+                              "order": 1,
+                              "metric": "metric-one"
+                            },
+                            {
+                              "order": 2,
+                              "metric": "metric-two"
+                            }
+                          ]
+                        }
+                      ],
+                      "pagination": {
+                        "lastEvaluatedToken": "12345"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/aggregations/{id}": {
+      "delete": {
+        "tags": [
+          "MetricAggregationJob"
+        ],
+        "description": "Delete Metric Aggregation Job\n\nPermissions:\n- Only `Admin` may delete metric aggregation Job.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
                   "type": "object",
                   "properties": {
                     "message": {
@@ -1561,6 +2434,272 @@
         }
       }
     },
+    "/aggregations/{metricAggregationJobId}": {
+      "patch": {
+        "tags": [
+          "MetricAggregationJob"
+        ],
+        "description": "Start aggregation job for a pipeline",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/def-12"
+              },
+              "examples": {
+                "Pipeline Execution request example": {
+                  "to": "2022-02-02",
+                  "from": "2022-01-02"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "metricAggregationJobId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id.",
+                      "type": "string"
+                    },
+                    "pipelineId": {
+                      "description": "Identifier of the pipeline configuration.",
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "Status of the metric aggregation job.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "pending"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "running"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "succeeded"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "failed"
+                          ]
+                        }
+                      ]
+                    },
+                    "groupContextId": {
+                      "description": "Security context id of the pending metric aggregation",
+                      "type": "string"
+                    },
+                    "metricQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "order": {
+                            "description": "Metric processing order",
+                            "type": "number"
+                          },
+                          "metric": {
+                            "description": "Name of the metric",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "order",
+                          "metric"
+                        ]
+                      }
+                    },
+                    "groupsQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "order": {
+                            "description": "Group processing order",
+                            "type": "number"
+                          },
+                          "group": {
+                            "description": "Name of the group",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "order",
+                          "group"
+                        ]
+                      }
+                    },
+                    "timeRange": {
+                      "type": "object",
+                      "properties": {
+                        "to": {
+                          "description": "To date of the pipeline executions to be aggregated into the metric",
+                          "type": "string"
+                        },
+                        "from": {
+                          "description": "From date of the pipeline executions to be aggregated into the metric",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "to",
+                        "from"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "pipelineId",
+                    "status",
+                    "groupContextId",
+                    "metricQueue",
+                    "groupsQueue"
+                  ]
+                },
+                "examples": {
+                  "Metric Aggregation Job": {
+                    "summary": "metric aggregation job started successfully.",
+                    "value": {
+                      "id": "11111",
+                      "pipelineId": "pipeline-12345",
+                      "groupContextId": "/test",
+                      "timeRange": {
+                        "to": "2022-02-02",
+                        "from": "2022-01-02"
+                      },
+                      "status": "pending",
+                      "groupsQueue": [
+                        {
+                          "order": 1,
+                          "group": "group-one"
+                        }
+                      ],
+                      "metricQueue": [
+                        {
+                          "order": 1,
+                          "metric": "metric-one"
+                        },
+                        {
+                          "order": 2,
+                          "metric": "metric-two"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Bad request.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/activities": {
       "get": {
         "operationId": "listActivities",
@@ -1715,7 +2854,7 @@
                     "activities": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/def-10"
+                        "$ref": "#/components/schemas/def-14"
                       }
                     },
                     "pagination": {
@@ -1903,7 +3042,7 @@
                     "metrics": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/def-12"
+                        "$ref": "#/components/schemas/def-16"
                       }
                     }
                   },
@@ -1918,7 +3057,7 @@
                       "metrics": [
                         {
                           "date": "2021-12-31T16:00:00.000Z",
-                          "metricId": "01H6TQ4SQNVE0FXCYAY6TJT14J",
+                          "metricId": "01HC8Z3SFX6EJFWHV90G5TZ5H9",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 1,
@@ -1930,7 +3069,7 @@
                         },
                         {
                           "date": "2022-01-31T16:00:00.000Z",
-                          "metricId": "01H6TQ4SQNVE0FXCYAY6TJT14J",
+                          "metricId": "01HC8Z3SFX6EJFWHV90G5TZ5H9",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 2,
@@ -1942,7 +3081,7 @@
                         },
                         {
                           "date": "2022-02-28T16:00:00.000Z",
-                          "metricId": "01H6TQ4SQNVE0FXCYAY6TJT14J",
+                          "metricId": "01HC8Z3SFX6EJFWHV90G5TZ5H9",
                           "name": "ghg:scope1",
                           "timeUnit": "month",
                           "month": 3,
@@ -2068,6 +3207,503 @@
               "application/json": {
                 "schema": {
                   "description": "Forbidden.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/download": {
+      "post": {
+        "operationId": "startActivityDownload",
+        "summary": "Initiate a download request for activities processed by a pipeline. An ID will be returned that can be used to download the file once processing completes.",
+        "tags": [
+          "Activities"
+        ],
+        "description": "Initiate a download request for activities processed by a pipeline. An ID will be returned that can be used to download the file once processing completes.'\n\nPermissions:\n- `readers` of the group in context may initiate a download request.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "pipelineId",
+            "required": false,
+            "description": "Filters processed activities based on a specific pipeline."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "executionId",
+            "required": false,
+            "description": "Filters processed activities based on a specific pipeline execution."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "metric",
+            "required": false,
+            "description": "Filters processed activities that contributed to a specific metric."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "dateFrom",
+            "required": false,
+            "description": "Filters processed activities that have a ISO8601 timestamp to be greater than or equal to this date. i.e. 2023-01-26T17:38:05.205Z"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "dateTo",
+            "required": false,
+            "description": "Filters processed activities that have a ISO8601 timestamp to be lesser than or equal to this date.  i.e. 2023-01-26T17:38:05.205Z"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "description": "Filters processed activities that have a ISO8601 timestamp to be exact match with a date.  i.e. 2023-01-26T17:38:05.205Z"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "attributes",
+            "required": false,
+            "description": "Filters processed activities based on attributes in the format of `key1:value1[,key2:value2]`."
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "showHistory",
+            "required": false,
+            "description": "Retrieves full history of an activity"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "uniqueKeyAttributes",
+            "required": false,
+            "description": "This parameter is required for viewing historical activities. The uniquely specified outputs of the pipeline should be provided for showHistory=true parameter `key1:value1[,key2:value2]`."
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "showAggregate",
+            "required": false,
+            "description": "Show the aggregated value of activities."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "id": "1234",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                },
+                "examples": {
+                  "New activities download": {
+                    "summary": "Query id used to get the signed url.",
+                    "value": {
+                      "id": "12345"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/download/{downloadId}": {
+      "get": {
+        "tags": [
+          "Activities"
+        ],
+        "description": "Retrieve signed url used to download the activities query output.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "downloadId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/def-20"
+                },
+                "examples": {
+                  "Activity Download": {
+                    "summary": "Signed url of the created activity download.",
+                    "value": {
+                      "downloads": [
+                        {
+                          "url": "https://<some-signed-url>"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Accepted.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not found.",
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics/download": {
+      "post": {
+        "operationId": "createMetricsDownload",
+        "summary": "Initiate the process to query and save the metrics output so it can be downloaded.",
+        "tags": [
+          "Metrics"
+        ],
+        "description": "List metrics processed by a pipeline.'\n\nPermissions:\n- `readers` of the group in context may list metrics.\n",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "description": "Filters metrics based on a specific metric name."
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "quarter",
+                "year"
+              ]
+            },
+            "in": "query",
+            "name": "timeUnit",
+            "required": true,
+            "description": "Time unit to aggregate metric by."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "dateFrom",
+            "required": false,
+            "description": "Filters metrics that have a timestamp greater than or equal to this date."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "dateTo",
+            "required": false,
+            "description": "Filters metrics that have a timestamp lesser than or equal to this date."
+          },
+          {
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "name": "members",
+            "required": true,
+            "description": "If true, metrics are returned for the current groups members. If false (default) metrics are returned for the current group only."
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "description": "Filters metrics based on a specific version."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "202": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Unique id.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ]
+                },
+                "examples": {
+                  "Metrics Download": {
+                    "summary": "Query id used to get the download signed url.",
+                    "value": {
+                      "id": "12345"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics/download/{downloadId}": {
+      "get": {
+        "tags": [
+          "Metrics"
+        ],
+        "description": "Retrieve signed url used to download the metrics query output.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "downloadId",
+            "required": true,
+            "description": "Unique id."
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept-version",
+            "required": true,
+            "description": "API version"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "header",
+            "name": "accept",
+            "required": true,
+            "description": "Accepted Content Type"
+          }
+        ],
+        "x-security-scopes": [
+          "reader",
+          "contributor",
+          "admin",
+          "superAdmin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Success.",
+                  "$ref": "#/components/schemas/def-23"
+                },
+                "examples": {
+                  "Metrics Download": {
+                    "summary": "Signed url of the created metric download.",
+                    "value": {
+                      "downloads": [
+                        {
+                          "url": "https://<some-signed-url>"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Accepted.",
                   "type": "object",
                   "properties": {
                     "message": {

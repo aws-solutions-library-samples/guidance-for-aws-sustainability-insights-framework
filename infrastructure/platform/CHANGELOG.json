@@ -2,6 +2,38 @@
   "name": "@sif/infrastructure-platform",
   "entries": [
     {
+      "version": "2.7.1",
+      "tag": "@sif/infrastructure-platform_v2.7.1",
+      "date": "Fri, 15 Dec 2023 02:32:26 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "use aspect to ensure the cdk generated match the previous version of cdk"
+          }
+        ]
+      }
+    },
+    {
+      "version": "2.7.0",
+      "tag": "@sif/infrastructure-platform_v2.7.0",
+      "date": "Wed, 13 Dec 2023 02:37:37 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "include version information in cloudformation tags"
+          },
+          {
+            "comment": "modify all subnets to be isolated subnets"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/cdk-common\" to `1.1.0`"
+          }
+        ]
+      }
+    },
+    {
       "version": "2.6.0",
       "tag": "@sif/infrastructure-platform_v2.6.0",
       "date": "Thu, 17 Aug 2023 02:44:14 GMT",

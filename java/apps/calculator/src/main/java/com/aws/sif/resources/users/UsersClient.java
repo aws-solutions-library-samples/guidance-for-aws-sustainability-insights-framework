@@ -15,9 +15,12 @@ package com.aws.sif.resources.users;
 
 
 import com.aws.sif.Authorizer;
+import com.aws.sif.lambdaInvoker.LambdaInvocationException;
 import com.aws.sif.lambdaInvoker.LambdaInvoker;
+import com.aws.sif.resources.groups.GroupNotFoundException;
 import com.typesafe.config.Config;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.Validate;
 
 import javax.inject.Inject;
 import java.io.UnsupportedEncodingException;
@@ -25,6 +28,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 
 @Slf4j
 public class UsersClient {
@@ -52,16 +56,26 @@ public class UsersClient {
     public User invokeGetUserById(String groupContextId, Authorizer authorizer, String id) throws UserNotFoundException {
         log.debug("invokeGetUserById> in> groupContextId:{}, id:{}", groupContextId, id);
 
-        // TODO validate parameters
+		Validate.notEmpty(groupContextId);
+		Validate.notEmpty(id);
 
         var functionName = config.getString("calculator.accessManagement.functionName");
         var path = String.format("/users/%s", encodeValue(id) );
 
-        var getResponse =this.userInvoker.invokeFunction(functionName, groupContextId, authorizer, "GET", path, Optional.empty(), Optional.empty(), Optional.empty(), User.class);
-        var response = getResponse.getBody();
-        log.debug("invokeGetUserById> exit:{}", response);
-        return response;
-
+		try {
+			var getResponse = this.userInvoker.invokeFunction(functionName, groupContextId, authorizer, "GET", path, Optional.empty(), Optional.empty(), Optional.empty(), User.class);
+			var response = getResponse.getBody();
+			log.debug("invokeGetUserById> exit:{}", response);
+			return response;
+		} catch (CompletionException e) {
+			var lie = (LambdaInvocationException)e.getCause();
+			if (lie.getStatusCode() == 404) {
+				log.debug(String.format("User %s not found", id));
+				throw new UserNotFoundException(String.format("User %s not found.", id));
+			} else {
+				throw e;
+			}
+		}
     }
 
     private String encodeValue(String value) {

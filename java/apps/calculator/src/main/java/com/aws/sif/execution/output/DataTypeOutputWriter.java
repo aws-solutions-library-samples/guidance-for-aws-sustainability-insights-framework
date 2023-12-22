@@ -41,7 +41,6 @@ public class DataTypeOutputWriter implements OutputWriter<DataTypeRecord> {
     private int chunkNo;
     private Map<String, String> outputMap;
 
-
     public DataTypeOutputWriter(Config config, S3Utils s3) {
         this.s3 = s3;
         this.config = config;

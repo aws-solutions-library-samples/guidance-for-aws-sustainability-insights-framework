@@ -12,20 +12,24 @@
  */
 
 import type { BaseLogger } from 'pino';
-import type { CalculatorClient, CalculatorRequest, CalculatorS3TransformResponse, MetricClient } from '@sif/clients';
+import type { CalculatorClient, CalculatorRequest, CalculatorS3TransformResponse } from '@sif/clients';
 import { validateDefined, validateNotEmpty } from '@sif/validators';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
-import type { CalculationChunk, CalculationContext, CalculationTaskEvent, CalculationTaskResult, S3Location } from './model.js';
+import type { CalculationChunk, CalculationContext, CalculationTaskEvent, InsertActivityBulkEvent, InsertActivityBulkResult, S3Location } from './model.js';
+import type { SQSClient } from '@aws-sdk/client-sqs';
+import { SendMessageCommand } from '@aws-sdk/client-sqs';
+import { ulid } from 'ulid';
+import type { SFNClient } from '@aws-sdk/client-sfn';
+import { SendTaskSuccessCommand } from '@aws-sdk/client-sfn';
 
 export class CalculationTask {
 
 	constructor(private log: BaseLogger,
 				private pipelineProcessorsService: PipelineProcessorsService,
 				private calculatorClient: CalculatorClient,
-				private getSecurityContext: GetSecurityContext,
-				private getLambdaRequestContext: GetLambdaRequestContext,
-				private metricClient: MetricClient) {
+				private sqsClient: SQSClient,
+				private activityInsertQueueUrl: string,
+				private sfnClient: SFNClient) {
 	}
 
 	private async assembleCalculatorRequest(chunk: CalculationChunk, source: S3Location, context: CalculationContext): Promise<CalculatorRequest> {
@@ -40,15 +44,15 @@ export class CalculationTask {
 		validateNotEmpty(source.key, 'source.key');
 
 		validateDefined(context, 'context');
-		validateNotEmpty(context.groupContextId, 'securityContextId');
 		validateNotEmpty(context.pipelineId, 'pipelineId');
 		validateNotEmpty(context.executionId, 'executionId');
 		validateDefined(context.transformer?.parameters, 'transformer.parameters');
 		validateDefined(context.transformer?.transforms, 'transformer.transforms');
 		validateDefined(context.pipelineCreatedBy, 'pipelineCreatedBy');
+		validateDefined(context.security, 'security');
 
 		const response: CalculatorRequest = {
-			groupContextId: context.groupContextId,
+			groupContextId: context.security.groupId,
 			pipelineId: context.pipelineId,
 			executionId: context.executionId,
 			parameters: context.transformer.parameters,
@@ -59,63 +63,71 @@ export class CalculationTask {
 				bucket: source.bucket,
 				key: source.key,
 				startByte: chunk.range[0],
-				endByte: chunk.range[1],
+				endByte: chunk.range[1]
 			},
 			username: context.pipelineCreatedBy,
-			chunkNo: chunk.sequence,
+			chunkNo: chunk.sequence
 		};
 
 		this.log.debug(`CalculationTask > assembleCalculatorRequest > exit:${JSON.stringify(response)}`);
 		return response;
 	}
 
-	public async process(event: CalculationTaskEvent): Promise<CalculationTaskResult> {
+	public async process(event: CalculationTaskEvent): Promise<InsertActivityBulkEvent> {
 		this.log.info(`CalculationTask > process > in > event: ${JSON.stringify(event)}`);
 
-		const { context, source, chunk } = event;
-		const { pipelineId, executionId: executionId, groupContextId, transformer, pipelineType } = context;
-		const securityContext = await this.getSecurityContext(executionId, 'contributor', groupContextId);
-		const result: CalculationTaskResult = { sequence: chunk.sequence };
-		if (result.sequence === 0) {
-
-			const metrics = Array.from(new Set(transformer.transforms.flatMap((t) => t.outputs.flatMap((o) => o.metrics ?? []))));
-			const metricQueue = await this.metricClient.sortMetricsByDependencyOrder(metrics, this.getLambdaRequestContext(securityContext));
-
-			const outputs = transformer.transforms.flatMap((t) =>
-				t.outputs.filter(o => !o.includeAsUnique && t.index > 0)        // needs values only (no keys, and no timestamp)
-					.map((o) => ({ name: o.key, type: o.type })));
-			const requiresAggregation = transformer.transforms.some((o) => o.outputs.some((o) => o.aggregate));
-			Object.assign(result, {
-				metricQueue,
-				groupContextId,
-				pipelineId,
-				executionId,
-				outputs,
-				requiresAggregation,
-				pipelineType
-			});
-		}
-
+		const { context, source, chunk, taskToken } = event;
+		const { pipelineId, executionId: executionId } = context;
+		const securityContext = context.security;
+		const { sequence } = chunk;
 		try {
 			// Extract the required parameters for Calculation Module
 			const calculatorRequest = await this.assembleCalculatorRequest(chunk, source, context);
 
 			// Perform calculation
-			const r: CalculatorS3TransformResponse = (await this.calculatorClient.process(calculatorRequest)) as CalculatorS3TransformResponse;
+			const calculatorTransformResponse: CalculatorS3TransformResponse = (await this.calculatorClient.process(calculatorRequest)) as CalculatorS3TransformResponse;
 
-			if (result.sequence === 0) {
-				Object.assign(result, { errorLocation: r.errorLocation });
+			const result: InsertActivityBulkEvent = {
+				context: {
+					...context
+				},
+				stateMachine: {
+					taskToken
+				},
+				calculatorTransformResponse: {
+					...calculatorTransformResponse,
+					sequence
+				}
+			};
+
+			if (calculatorTransformResponse?.noActivitiesProcessed !== undefined && !calculatorTransformResponse.noActivitiesProcessed) {
+				await this.sqsClient.send(new SendMessageCommand({ MessageBody: JSON.stringify(result), QueueUrl: this.activityInsertQueueUrl, MessageGroupId: executionId, MessageDeduplicationId: ulid().toLowerCase() }));
+			} else {
+				this.log.error(`CalculationTask > process > insertActivityBulkEvent error: ${JSON.stringify(calculatorTransformResponse)}`);
+				const failedInsertActivityBulkResult: InsertActivityBulkResult = {
+					context: sequence === 0 ? context : undefined,
+					calculatorTransformResponse: {
+						...calculatorTransformResponse,
+						sequence
+					},
+					sqlExecutionResult: {
+						status: 'failed'
+					}
+				};
+				// Make sure we signal back to state machine so this does not get blocked
+				await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(failedInsertActivityBulkResult), taskToken }));
 			}
+
+			this.log.info(`CalculationTask > process > exit:`);
+			return result;
+
 		} catch (error) {
 			this.log.error(`CalculationTask > process > error : ${JSON.stringify(error)}`);
 			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, {
 				status: 'failed',
-				statusMessage: error.message,
+				statusMessage: error.message
 			});
 			throw error;
 		}
-
-		this.log.info(`CalculationTask > process > exit: ${JSON.stringify(result)}`);
-		return result;
 	}
 }

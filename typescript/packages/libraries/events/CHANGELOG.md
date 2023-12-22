@@ -1,6 +1,13 @@
 # Change Log - @sif/events
 
-This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:36 GMT and should not be manually modified.
+
+## 1.2.0
+Wed, 13 Dec 2023 02:37:36 GMT
+
+### Minor changes
+
+- Added new event type for connector setup
 
 ## 1.1.0
 Thu, 20 Jul 2023 00:30:14 GMT

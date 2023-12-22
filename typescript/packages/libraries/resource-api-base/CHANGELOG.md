@@ -1,6 +1,13 @@
 # Change Log - @sif/resource-api-base
 
-This log was last generated on Thu, 20 Jul 2023 00:30:14 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:37 GMT and should not be manually modified.
+
+## 3.9.0
+Wed, 13 Dec 2023 02:37:37 GMT
+
+### Minor changes
+
+- added ability to make getGroup call through the client
 
 ## 3.8.0
 Thu, 20 Jul 2023 00:30:14 GMT

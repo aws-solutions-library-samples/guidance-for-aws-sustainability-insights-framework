@@ -13,25 +13,18 @@
 
 import { ContainerImage, Endpoint, EndpointConfig, InstanceType, Model, ModelData } from '@aws-cdk/aws-sagemaker-alpha';
 import { Construct } from 'constructs';
-import { Asset } from 'aws-cdk-lib/aws-s3-assets';
-import { execSync, ExecSyncOptions } from 'child_process';
-import { Runtime } from 'aws-cdk-lib/aws-lambda';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { Stack } from 'aws-cdk-lib';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { NagSuppressions } from 'cdk-nag';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import * as fs from 'fs';
 
 export interface CamlConstructProperties {
 	environment: string;
 	camlArtifactBucket: string;
 	camlArtifactKey: string;
 	camlContainerTag: string,
-	camlRepositoryHash: string,
+	camlModelArtifactPath?: string,
 	camlInstanceType: InstanceType
 }
 
@@ -46,52 +39,10 @@ export class Caml extends Construct {
 			const bucket = Bucket.fromBucketName(this, 'CamlArtifactBucket', props.camlArtifactBucket);
 			containerModel = ModelData.fromBucket(bucket, props.camlArtifactKey);
 		} else {
-			const camlPath = path.join(__dirname, '../../../../python/apps/caml');
-			const execOptions: ExecSyncOptions = { stdio: ['ignore', process.stderr, 'inherit'] };
-			new Asset(this, 'BundledAsset', {
-				path: `${camlPath}`,
-				bundling: {
-					image: Runtime.NODEJS_18_X.bundlingImage,
-					local: {
-						tryBundle(outputDir: string): boolean {
-							try {
-								// clone the model locally
-								execSync(`[ "$(ls -A ${camlPath}/model)" ] && echo "Model folder is not empty" || git clone https://huggingface.co/sentence-transformers/all-mpnet-base-v2 ${camlPath}/model && cd model && git checkout ${props.camlRepositoryHash}`, {
-									...execOptions,
-									cwd: camlPath,
-								});
-								// copy our custom inference
-								execSync(`mkdir -p  ./model/code && cp inference.py naics_codes.pkl requirements.txt ./model/code`, {
-									...execOptions,
-									cwd: camlPath,
-								});
-								execSync(`rm -f model.tar.gz`, {
-									...execOptions,
-									cwd: `${camlPath}/model`,
-								});
-								// tar our model and custom code
-								execSync(`tar zcvf model.tar.gz *`, {
-									...execOptions,
-									cwd: `${camlPath}/model`,
-								});
-								/*
-								 * semgrep issue https://sg.run/l2lo
-								 * Ignore reason: there is no risk of command injection in this context
-								*/
-								// nosemgrep
-								execSync(`cp model.tar.gz ${outputDir}`, {
-									...execOptions,
-									cwd: `${camlPath}/model`,
-								});
-							} catch (err) {
-								return false;
-							}
-							return true;
-						},
-					},
-				},
-			});
-			containerModel = ModelData.fromAsset(`${camlPath}/model/model.tar.gz`);
+			if (!props.camlModelArtifactPath || !fs.existsSync(props.camlModelArtifactPath)) {
+				throw new Error(`CaML model artifact does not exist in ${props.camlModelArtifactPath}`);
+			}
+			containerModel = ModelData.fromAsset(props.camlModelArtifactPath);
 		}
 
 		const repositoryName = 'huggingface-pytorch-inference';

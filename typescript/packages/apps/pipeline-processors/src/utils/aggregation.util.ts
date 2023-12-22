@@ -29,15 +29,31 @@ export class AggregationUtil {
 	private readonly dataPrefix: string;
 
 	public constructor(
-		log: BaseLogger,
-		s3Client: S3Client,
-		dataBucket: string,
-		dataPrefix: string
+	  log: BaseLogger,
+	  s3Client: S3Client,
+	  dataBucket: string,
+	  dataPrefix: string
 	) {
 		this.log = log;
 		this.s3Client = s3Client;
 		this.dataBucket = dataBucket;
 		this.dataPrefix = dataPrefix;
+	}
+
+	public mergeExecutionGroupLeaves(firstGroups: string[], secondGroups: string[]): string[] {
+		this.log.debug(`AggregationUtil> mergeExecutionGroupLeaves> firstGroups: ${firstGroups}, secondGroups: ${secondGroups}`);
+
+		// create a group tree to get only the leaf group paths
+		const root: GroupNode = new GroupNode('/', undefined);
+		root.setRoot(true);
+
+		firstGroups.forEach((g) => root.addChildrenByPath(g));
+		secondGroups.forEach((g) => root.addChildrenByPath(g));
+
+		const leafGroupPaths = root.getLeafNodes();
+
+		this.log.debug(`AggregationUtil> mergeExecutionGroupLeaves> exit: ${JSON.stringify(leafGroupPaths)}`);
+		return leafGroupPaths;
 	}
 
 	public async getExecutionGroupLeaves(pipelineId: string, executionId: string): Promise<string[]> {
@@ -102,7 +118,7 @@ export class AggregationUtil {
 		}
 
 		// sort by hierarchy length (longest first)
-		const sortedGroupPaths = Array.from(groupsSet).sort((a,b) => {
+		const sortedGroupPaths = Array.from(groupsSet).sort((a, b) => {
 			return b.split('/').length - a.split('/').length;
 		});
 		this.log.debug(`AggregationUtil> getExecutionGroups> exit: ${JSON.stringify(sortedGroupPaths)}`);

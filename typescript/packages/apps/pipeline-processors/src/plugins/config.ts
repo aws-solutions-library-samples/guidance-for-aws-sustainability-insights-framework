@@ -25,7 +25,6 @@ export const moduleConfigSchema = Type.Object({
 	PIPELINES_FUNCTION_NAME: Type.String(),
 	ACTIVITIES_PIPELINE_JOB_STATE_MACHINE_ARN: Type.String(),
 	DATA_PIPELINE_JOB_STATE_MACHINE_ARN: Type.String(),
-	INLINE_PIPELINE_STATE_MACHINE_ARN: Type.String(),
 	PORT: Type.Number({ default: 30004 }),
 	TABLE_NAME: Type.String(),
 	METRICS_TABLE_NAME: Type.String(),

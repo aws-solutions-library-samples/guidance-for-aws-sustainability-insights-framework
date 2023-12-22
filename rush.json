@@ -271,7 +271,7 @@
 		 * your PR branch, and in this situation "rush change" will also automatically invoke "git fetch"
 		 * to retrieve the latest activity for the remote main branch.
 		 */
-		"url": "git@ssh.gitlab.aws.dev:wwso-cross-industry-prototyping/sif/sif-core.git",
+		"url": "https://github.com/aws-solutions-library-samples/guidance-for-aws-sustainability-insights-framework",
 		/**
 		 * The default branch name. This tells "rush change" which remote branch to compare against.
 		 * The default value is "main"
@@ -481,6 +481,12 @@
 			"shouldPublish": true
 		},
 		{
+			"packageName": "@sif/platform-resource-manager",
+			"projectFolder": "typescript/packages/apps/platform-resource-manager",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
 			"packageName": "@sif/connector-utils",
 			"projectFolder": "typescript/packages/connectors/connector-utils",
 			"reviewCategory": "production",
@@ -501,6 +507,12 @@
 		{
 			"packageName": "@sif/clean-rooms-pipeline-input-connector",
 			"projectFolder": "typescript/packages/connectors/clean-rooms",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
+			"packageName": "@sif/kinesis-pipeline-input-connector",
+			"projectFolder": "typescript/packages/connectors/kinesis",
 			"reviewCategory": "production",
 			"shouldPublish": true
 		},

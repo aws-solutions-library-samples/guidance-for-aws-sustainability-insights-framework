@@ -24,16 +24,9 @@ const di: AwilixContainer = app.diContainer;
 export const handler: MetricAggregationTaskHandler = async (event, _context, _callback) => {
 	app.log.debug(`MetricAggregationTaskHandler> handler> event: ${JSON.stringify(event)}`);
 
-	// the handler takes in an array of AggregationTaskEvent as it occurs after a map of calculation tasks, but
-	// the parameters that this task needs are the same for all calculation tasks, hence why we just grab the
-	// 1st AggregationTaskEvent to process. What's important here is the AggregationTask does not start until
-	// all calculation tasks have completed.
-
-	let eventToProcess = event[0];
-
 	const taskV2 = di.resolve<MetricAggregationTaskServiceV2>('aggregationTaskServiceV2');
-	eventToProcess = await taskV2.process(event[0]);
+	const processedEvent = await taskV2.process(event);
 
-	app.log.debug(`MetricAggregationTaskHandler> handler> exit:`);
-	return [eventToProcess];
+	app.log.debug(`MetricAggregationTaskHandler> handler> exit > processedEvent: ${processedEvent}`);
+	return processedEvent;
 };

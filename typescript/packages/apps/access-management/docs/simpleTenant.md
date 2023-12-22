@@ -1,3 +1,5 @@
+TODO: review whether we need this, whether it needs to be changed, and where it should live if keeping it around.
+
 # Simple Tenant onboard and compartmentalization of resources
 
 In this walk-through we will deploy SIF in a multi-tenant mode, where the framework owners are able to host compartmentalized (isolated) customers while also having the ability to access resources shared by the owner

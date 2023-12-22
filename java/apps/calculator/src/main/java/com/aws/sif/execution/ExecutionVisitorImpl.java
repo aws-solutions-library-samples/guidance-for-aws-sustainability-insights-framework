@@ -249,22 +249,35 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
         return result;
     }
 
-    @Override public BooleanTypeValue visitPredicateExpr(CalculationsParser.PredicateExprContext ctx) {
-        log.trace("visitPredicateExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+	@Override
+	public BooleanTypeValue visitPredicateExpr(CalculationsParser.PredicateExprContext ctx) {
+		log.trace("visitPredicateExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
 
-        var left = super.visit(ctx.left);
+		var left = super.visit(ctx.left);
+		var right = super.visit(ctx.right);
+		var operation = ctx.op.getText();
 
-        var right = super.visit(ctx.right);
+		// if left and right are null or NullValue type
+		if ((left == null || left instanceof NullValue) && (right == null || right instanceof NullValue) && operation.equals("==")) {
+			return new BooleanTypeValue(true);
+		}
 
-        if (left.getClass()!=right.getClass()) {
-            throw new ArithmeticException(String.format("Logical expression '%s' cannot be compared as each side if the expression has different types.", ctx.getText()));
-        }
+		if ((left == null || left instanceof NullValue) || (right == null || right instanceof NullValue)) {
+			if (!operation.equals("==")) {
+				throw new ArithmeticException(String.format("Logical expression '%s' cannot be compared only equal operation can be compared with null value.", ctx.getText()));
+			}
+			return new BooleanTypeValue(false);
+		}
+
+	    if (left.getClass() != right.getClass()) {
+		    throw new ArithmeticException(String.format("Logical expression '%s' cannot be compared as each side if the expression has different types.", ctx.getText()));
+	    }
 
 		var comparedValue = (left instanceof NumberTypeValue)
 			? ((NumberTypeValue)left).getValue().compareTo(((NumberTypeValue)right).getValue())
 			: left.getValue().toString().compareTo(right.getValue().toString());
         boolean r;
-        switch (ctx.op.getText()) {
+        switch (operation) {
             case ">":
                 r = comparedValue > 0;
                 break;
@@ -1149,6 +1162,30 @@ public class ExecutionVisitorImpl extends CalculationsBaseVisitor<DynamicTypeVal
 		log.trace("visitLowercaseFunctionExpr> exit> {}", result);
 		return result;
 	}
+
+    @Override
+    public NumberTypeValue visitSearchFunctionExpr(CalculationsParser.SearchFunctionExprContext ctx) {
+        log.trace("visitSearchFunctionExpr> in> {}, parent: {}", ctx.getText(), ctx.getParent().getText());
+
+        var text = asString(super.visit(ctx.text), "Evaluated text is not a string.").getValue();
+        var match = asString(super.visit(ctx.match), "Evaluated match is not a string.").getValue();
+
+        var optionalParams = getOptionalParams(ctx.optionalSearchParams());
+        Optional<Boolean> ignoreCaseParam = getOptionalParamValue(optionalParams, OptionalParamKey.ignoreCase);
+        boolean ignoreCase = ignoreCaseParam.orElse(false);
+
+        if (ignoreCase) {
+            text = text.toLowerCase();
+            match = match.toLowerCase();
+        }
+
+        var result = new NumberTypeValue(text.indexOf(match));
+
+        auditEvaluated.put(ctx.getText(), result.asString());
+
+        log.trace("visitSearchFunctionExpr> exit> {}", result);
+        return result;
+    }
 
     private NumberTypeValue asNumber(DynamicTypeValue value, String failureMessage) {
         if (!(value instanceof NumberTypeValue)) {

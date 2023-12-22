@@ -11,170 +11,114 @@
  *  and limitations under the License.
  */
 
-import { GetObjectCommand, S3Client,DeleteObjectsCommand } from '@aws-sdk/client-s3';
-import type { ActivitiesRepository } from '../../api/activities/repository.js';
 
-import pLimit from 'p-limit';
 import type { BaseLogger } from 'pino';
-import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { GetSecurityContext } from '../../plugins/module.awilix.js';
-import type { InsertActivityResult, ProcessedTaskEvent, ProcessedTaskEventWithExecutionDetails } from './model.js';
+import type { GetLambdaRequestContext } from '../../plugins/module.awilix.js';
+import type { CalculationContext, CalculatorS3TransformResponseWithSequence, InsertActivityBulkResult, ProcessedTaskEvent, Status } from './model.js';
+import type { MetricClient } from '@sif/clients';
+import type { ActivitiesRepository } from '../../api/activities/repository';
 import type { Client } from 'pg';
-import dayjs from 'dayjs';
-import { TimeoutError } from '../../common/errors.js';
-
-const concurrencyLimit = 10;
+import type { PipelineProcessorsRepository } from '../../api/executions/repository';
+import type { EventPublisher } from '@sif/events';
 
 export class SqlResultProcessorTask {
-	private readonly log: BaseLogger;
-	private readonly pipelineProcessorsService: PipelineProcessorsService;
-	private readonly activitiesRepository: ActivitiesRepository;
-	private readonly s3: S3Client;
-	private readonly bucket: string;
-	private readonly getSecurityContext: GetSecurityContext;
-	private cleanupFiles:string[];
-	private readonly timeout:number;
-
-	constructor(log: BaseLogger, getSecurityContext: GetSecurityContext, pipelineProcessorsService: PipelineProcessorsService, s3: S3Client, bucket: string, activitiesRepository: ActivitiesRepository) {
-		this.log = log;
-		this.pipelineProcessorsService = pipelineProcessorsService;
-		this.s3 = s3;
-		this.bucket = bucket;
-		this.getSecurityContext = getSecurityContext;
-		this.activitiesRepository =activitiesRepository;
-		this.cleanupFiles = [];
-		this.timeout = 7200;
-
+	constructor(private readonly log: BaseLogger, private readonly pipelineProcessorsRepository: PipelineProcessorsRepository,
+				private readonly metricClient: MetricClient, private readonly getLambdaRequestContext: GetLambdaRequestContext, private readonly activitiesRepository: ActivitiesRepository, private readonly eventPublisher: EventPublisher) {
 	}
 
-	public async process(taskEvent: ProcessedTaskEventWithExecutionDetails): Promise<ProcessedTaskEvent[]> {
-		this.log.debug(`SqlResultProcessorTask > process > event: ${JSON.stringify(taskEvent)}`);
+	private async assemble(context: CalculationContext, status: Status, calculatorTransformResponseList: CalculatorS3TransformResponseWithSequence[]): Promise<ProcessedTaskEvent> {
+		this.log.trace(`SqlResultProcessorTask > assembler > context: ${JSON.stringify(context)}, status: ${status}, calculatorTransformResponseList:${calculatorTransformResponseList}`);
 
-		const event = taskEvent.inputs;
+		const { security, transformer } = context;
 
+		const metrics = Array.from(new Set(transformer.transforms.flatMap((t) => t.outputs.flatMap((o) => o.metrics ?? []))));
+
+		const metricQueue = await this.metricClient.sortMetricsByDependencyOrder(metrics, this.getLambdaRequestContext(security));
+		const outputs = transformer.transforms.flatMap((t) =>
+			t.outputs.filter(o => !o.includeAsUnique && t.index > 0)        // needs values only (no keys, and no timestamp)
+				.map((o) => ({ name: o.key, type: o.type })));
+		const requiresAggregation = transformer.transforms.some((o) => o.outputs.some((o) => o.aggregate));
+
+		const sequenceList = calculatorTransformResponseList.map(o => o.sequence);
+		const errorLocationList = calculatorTransformResponseList.filter(o => o.errorLocation !== undefined).map(o => o.errorLocation);
+
+		const response = {
+			...context,
+			// needed when concatenating the result
+			errorLocationList,
+			sequenceList,
+			// needed when performing metric aggregation
+			metricQueue,
+			outputs,
+			requiresAggregation,
+			status
+		};
+
+		this.log.trace(`SqlResultProcessorTask > assembler > response: ${JSON.stringify(response)}`);
+		return response;
+	}
+
+	private async cleanup(sequenceList: { executionId: string, sequence: number }[]) {
+		this.log.debug(`sqlResultProcessor> cleanup> sequenceList: ${JSON.stringify(sequenceList)}`);
+		let sharedDbConnection: Client;
+		try {
+			sharedDbConnection = await this.activitiesRepository.getConnection();
+			// Confirm #temp tables matches #chunks
+			const count = await this.activitiesRepository.getCountTempTables(sequenceList[0].executionId, sharedDbConnection);
+			this.log.debug(`sqlResultProcessor> cleanup> Number of tables: ${count}`);
+			// cleanup S3 files
+			await this.activitiesRepository.cleanupTempTables(sequenceList, sharedDbConnection, true);
+		} catch (Exception) {
+			this.log.error(`sqlResultProcessor> cleanup> error: ${JSON.stringify(Exception)}`);
+		} finally {
+			// close the db connection if established
+			if (sharedDbConnection !== undefined) {
+				await sharedDbConnection.end();
+			}
+		}
+		this.log.debug(`sqlResultProcessor> cleanup> exit>`);
+	}
+
+	public async process(event: InsertActivityBulkResult[]): Promise<ProcessedTaskEvent> {
+		this.log.debug(`SqlResultProcessorTask > process > event: ${JSON.stringify(event)}`);
 
 		const sortedResults = event.sort((a, b) => {
-			return a.sequence - b.sequence;
+			return a.calculatorTransformResponse.sequence - b.calculatorTransformResponse.sequence;
 		});
 
 		const firstResult = sortedResults[0];
-		const { pipelineId, executionId } = firstResult;
 
-		let status;
-		let sharedDbConnection :Client;
+		const { executionId, security } = firstResult.context;
 
-		try {
-
-			//Check the total execution time of the step function exceeds our timeout of 2 hours
-			const startTime = dayjs(taskEvent.executionStartTime,'YYYY-MM-ddTHH:mm:ss.SSSZ');
-			const now = dayjs();
-			const runTime = now.diff(startTime,'seconds');
-			if( runTime >= this.timeout){
-				this.log.error(`SqlResultProcessorTask > process > step function execution exceeded timeout: ${this.timeout} seconds`);
-				throw new TimeoutError(`step function execution exceeded timeout: ${this.timeout} seconds`)
-
-			}
-
-			sharedDbConnection = await this.activitiesRepository.getConnection();
-			// Confirm #temp tables matches #chunks
-			const countTables = await this.activitiesRepository.getCountTempTables(executionId, sharedDbConnection);
-			this.log.trace(`sqlResultProcessor> count tables: ${JSON.stringify(countTables)}, event size:${event.length}`);
-			if(countTables >= event.length) {
-				this.log.trace(`sqlResultProcessor> number of tables matches expected event size start processing!!`);
-				// Confirm the migration of all the chunks has completed
-				const limit = pLimit(concurrencyLimit);
-				const s3GetFutures = sortedResults.map((e) => {
-					return limit(async () => {
-						const taskExecutionResult = `pipelines/${pipelineId}/executions/${executionId}/output/${e.sequence}.json`;
-						const obj = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: taskExecutionResult }));
-						const body = await obj.Body.transformToString();
-						return JSON.parse(body);
-					});
-				});
-
-				const results = await Promise.all(s3GetFutures);
-				const failedResult = results.filter((o: InsertActivityResult) => o.sqlExecutionResult === 'failed');
-				status = failedResult.length > 0 ? 'FAILED' : 'SUCCEEDED';
-
-				// set activity keys
-				for (const result  of results){
-					this.cleanupFiles.push(result['activityValuesKey']);
-				}
-			} else {
-				this.log.trace(`sqlResultProcessor> number of tables is less than the expected event size skip processing!!`);
-				status = 'IN_PROGRESS';
-			}
-
-		} catch (Exception) {
-			if(Exception.name === 'TimeoutError'){
-				status = 'FAILED';
-			} else{
-				this.log.error(`sqlResultProcessor > handler > result not available : ${JSON.stringify(Exception)}`);
-				status = 'IN_PROGRESS';
-			}
-
-		} finally{
-			// close the db connection if established
-			if (sharedDbConnection !== undefined){
-				sharedDbConnection.end();
-			}
-			// cleanup on success or failure
-			if (status !== 'IN_PROGRESS'){
-				await this.cleanup(event);
-			}
-		}
+		const status: Status = event.some((o: InsertActivityBulkResult) => o.calculatorTransformResponse.noActivitiesProcessed === true) ? 'FAILED' : event.some((o: InsertActivityBulkResult) => o.sqlExecutionResult?.status === 'failed') ? 'FAILED' : 'SUCCEEDED';
 
 		// if finished and success, transition the status
 		if (status === 'SUCCEEDED') {
 			this.log.debug(`sqlResultProcessor > handler > transitioning status to SUCCEEDED`);
-			const securityContext = await this.getSecurityContext(executionId);
-			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, { status: 'calculating_metrics' });
+			const execution = await this.pipelineProcessorsRepository.get(executionId);
+			await this.pipelineProcessorsRepository.create({
+				...execution,
+				status: 'calculating_metrics',
+				updatedBy: security.email,
+				updatedAt: new Date(Date.now()).toISOString()
+			});
+
+			// publish the updated event
+			await this.eventPublisher.publishTenantEvent({
+				resourceType: 'pipelineExecution',
+				eventType: 'updated',
+				id: executionId
+			});
 		}
 
-		// add the status to the first result so that the first result is the only result that contains the common
-		// data therefore reducing the size of the state machine payload
-		firstResult.status = status;
+		const processedTaskEvent = await this.assemble(firstResult.context, status, sortedResults.map(o => o.calculatorTransformResponse));
 
-		this.log.debug(`sqlResultProcessor > handler > exit> ${JSON.stringify(sortedResults)}`);
-		return sortedResults;
-	}
+		await this.cleanup(event.map(e => {
+			return { sequence: e.calculatorTransformResponse.sequence, executionId };
+		}));
 
-
-	// This function will truncate and drop all temp resources related to the events and will act as a garbage collector
-	private async cleanup(events: ProcessedTaskEvent[]){
-		this.log.debug(`sqlResultProcessor> cleanup> events: ${JSON.stringify(events)}, cleanupFiles:${JSON.stringify(this.cleanupFiles)}`);
-
-		let sharedDbConnection :Client;
-
-		try{
-			sharedDbConnection = await this.activitiesRepository.getConnection();
-			// Confirm #temp tables matches #chunks
-			const count = await this.activitiesRepository.getCountTempTables(events[0].executionId, sharedDbConnection);
-			this.log.debug(`sqlResultProcessor> cleanup> Number of tables: ${count}`);
-
-			// cleanup the temporary tables
-			await this.activitiesRepository.cleanupTempTables(events,sharedDbConnection, true);
-
-			// cleanup S3 files
-			const input = { // DeleteObjectsRequest
-				Bucket: this.bucket,
-				Delete: {
-				  Objects: [],
-				  Quiet: false,
-				}
-			  };
-			for (const key of this.cleanupFiles){
-				input.Delete.Objects.push({ Key: `${key}` });
-			}
-
-			const command = new DeleteObjectsCommand(input);
-			await this.s3.send(command);
-
-		} catch( Exception) {
-			this.log.error(`sqlResultProcessor> cleanup> error: ${JSON.stringify(Exception)}`);
-		}
-		this.log.debug(`sqlResultProcessor> cleanup> exit`);
-
+		this.log.debug(`sqlResultProcessor > handler > exit> ${JSON.stringify(processedTaskEvent)}`);
+		return processedTaskEvent;
 	}
 
 }

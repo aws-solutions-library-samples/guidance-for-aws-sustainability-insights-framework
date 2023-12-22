@@ -31,6 +31,23 @@ async function clonePipelineProcessorsApi() {
 	return endpoint;
 }
 
+Then(/^no aggregation jobs exist$/, async function() {
+	const pipelineProcessorsUrl = `aggregations`;
+	await this['apickli'].sendWithAxios('GET', pipelineProcessorsUrl);
+	if (this['apickli'].httpResponse?.statusCode !== 404) {
+		const { jobs } = JSON.parse(this['apickli'].httpResponse.body);
+		for (const { id } of jobs) {
+			const endpoint = await clonePipelineProcessorsApi();
+			endpoint.removeRequestHeader('Content-Type');
+			await endpoint.sendWithAxios('DELETE', `aggregations/${id}`);
+			const statusCode = endpoint?.httpResponse?.statusCode ?? 0;
+			if (statusCode !== 204 && statusCode !== 404) {
+				fail(`Invalid response code ${statusCode} for ${pipelineProcessorsUrl}`);
+			}
+		}
+	}
+});
+
 Then(/^the latest execution status should be (.*)$/, async function(status: string) {
 	const latestResponseBody = JSON.parse(this['apickli'].getResponseObject().body);
 
@@ -106,7 +123,7 @@ When(/^I upload pipeline execution concurrently using this urls$/, async functio
 	console.log(`\n***** finished uploading\n`);
 });
 
-When(/^Using directory stored at global variable (.*), I upload pipeline execution concurrently using this urls$/, async function(directoryVariable:string, table: DataTable) {
+When(/^Using directory stored at global variable (.*), I upload pipeline execution concurrently using this urls$/, async function(directoryVariable: string, table: DataTable) {
 	const directory = this['apickli'].getGlobalVariable(directoryVariable);
 	const uploadFutures = table.rows().map((r) => {
 		console.log(`\n***** uploading ${r[1]}\n`);

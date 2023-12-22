@@ -13,6 +13,7 @@
 
 package com.aws.sif.di;
 
+import com.amazonaws.xray.interceptors.TracingInterceptor;
 import com.aws.sif.ActivityTypeCalculatorService;
 import com.aws.sif.DataTypeCalculatorService;
 import com.aws.sif.S3Utils;
@@ -48,6 +49,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import dagger.Module;
 import dagger.Provides;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
@@ -55,7 +57,6 @@ import software.amazon.awssdk.services.lambda.LambdaAsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.sagemakerruntime.SageMakerRuntimeClient;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
-
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
@@ -75,8 +76,10 @@ public class CalculatorModule {
 	@Singleton
 	public SageMakerRuntimeClient provideSageMakerRuntimeClient(Config config) {
 		return SageMakerRuntimeClient.builder()
-			.region(Region.of(config.getString("calculator.aws.region")))
-			.build();
+				.region(Region.of(config.getString("calculator.aws.region")))
+				.overrideConfiguration(ClientOverrideConfiguration.builder()
+						.addExecutionInterceptor(new TracingInterceptor()).build())
+				.build();
 	}
 
 
@@ -84,41 +87,51 @@ public class CalculatorModule {
 	@Singleton
 	public LambdaAsyncClient provideLambdaClient(Config config) {
 		return LambdaAsyncClient.builder()
-			.region(Region.of(config.getString("calculator.aws.region")))
-			.build();
+				.region(Region.of(config.getString("calculator.aws.region")))
+				.overrideConfiguration(ClientOverrideConfiguration.builder()
+						.addExecutionInterceptor(new TracingInterceptor()).build())
+				.build();
 	}
 
 	@Provides
 	@Singleton
 	public DynamoDbAsyncClient provideDynamoDbClient(Config config) {
 		return DynamoDbAsyncClient.builder()
-			.region(Region.of(config.getString("calculator.aws.region")))
-			.build();
+				.region(Region.of(config.getString("calculator.aws.region")))
+				.overrideConfiguration(ClientOverrideConfiguration.builder()
+						.addExecutionInterceptor(new TracingInterceptor()).build())
+				.build();
 	}
 
 	@Provides
 	@Singleton
 	public SqsAsyncClient provideSqsClient(Config config) {
 		return SqsAsyncClient.builder()
-			.region(Region.of(config.getString("calculator.aws.region")))
-			.build();
+				.region(Region.of(config.getString("calculator.aws.region")))
+				.overrideConfiguration(ClientOverrideConfiguration.builder()
+						.addExecutionInterceptor(new TracingInterceptor()).build())
+				.build();
 	}
 
 	@Provides
 	@Singleton
 	public S3AsyncClient provideS3Client(Config config) {
 		return S3AsyncClient.builder()
-			.region(Region.of(config.getString("calculator.aws.region")))
-			.build();
+				.region(Region.of(config.getString("calculator.aws.region")))
+				.overrideConfiguration(ClientOverrideConfiguration.builder()
+						.addExecutionInterceptor(new TracingInterceptor()).build())
+				.build();
 	}
 
 	@Provides
-    @Singleton
-    public KinesisAsyncClient provideKinesisAsyncClient(Config config) {
-        return KinesisAsyncClient.builder()
-                .region(Region.of(config.getString("calculator.aws.region")))
-                .build();
-    }
+	@Singleton
+	public KinesisAsyncClient provideKinesisAsyncClient(Config config) {
+		return KinesisAsyncClient.builder()
+				.region(Region.of(config.getString("calculator.aws.region")))
+				.overrideConfiguration(ClientOverrideConfiguration.builder()
+						.addExecutionInterceptor(new TracingInterceptor()).build())
+				.build();
+	}
 
 	@Provides
 	@Singleton
@@ -226,7 +239,7 @@ public class CalculatorModule {
 
 	@Provides
 	public ActivityTypeOutputWriter provideActivityTypeOutputWriter(Config config, S3Utils s3, ActivitySqsWriter sqsWriter) {
-		return new ActivityTypeOutputWriter(config, s3, sqsWriter);
+		return new ActivityTypeOutputWriter(config, s3);
 	}
 
 	@Provides

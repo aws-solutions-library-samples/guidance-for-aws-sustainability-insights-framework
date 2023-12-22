@@ -21,6 +21,7 @@ variables:
   ENVIRONMENT: staging
   AWS_REGION: us-east-2
 
+
 .main-run-condition: &main-run-condition
   - if: ($CI_COMMIT_BRANCH == "main" && $CI_COMMIT_MESSAGE != /.*\[skip ci\].*/)
 
@@ -39,11 +40,21 @@ variables:
 .branch-run-cleanup-condition: &branch-run-cleanup-condition
   - if: ($CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH != "main" && $ENVIRONMENT != null && $AWS_REGION != null && $CLEANUP == "true")
 
+
+
+
 .common-build-steps: &common-build-steps # install dependencies
   - pushd ${CI_PROJECT_DIR}/typescript/packages
   - rush update
   - rush build
   - popd
+
+.sif-cli-build-steps: &sif-cli-build-steps # install dependencies & build
+  - yum install -y sudo
+  - sed -i "s|.*SILENT_COMMAND_EXECUTION=.*|SILENT_COMMAND_EXECUTION=true|" "$SIF_CLI_ENV"
+  - sif init -p $CI_PROJECT_DIR
+  - sif core build
+  - sed -i "s|.*SILENT_COMMAND_EXECUTION=.*|SILENT_COMMAND_EXECUTION=true|" "$SIF_CLI_ENV"
 
 .sif-mock-build-steps: &sif-mock-build-steps # install sif-mock dependencies
   - pushd ../../
@@ -65,7 +76,7 @@ variables:
 
 .common-install-deployment-dependencies: &common-install-deployment-dependencies
   - yum update -y
-  - yum install -y git tar openssl zip unzip jq python3 python3-pip
+  - yum install -y git tar openssl zip unzip jq python3 python3-pip nodejs
   - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip -qq awscliv2.zip
   - ./aws/install && rm -rf ./aws && rm awscliv2.zip
   - curl -s -qL -o /usr/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64
@@ -75,31 +86,49 @@ variables:
   - python3 -m pip install semgrep
 
 .common-install-gitlfs: &common-install-gitlfs
-  - yum install -y amazon-linux-extras
-  - amazon-linux-extras install epel -y
-  - yum update -y
-  - yum install -y git-lfs
-
-.common-install-gitlfs: &common-install-gitlfs
-  - yum install -y amazon-linux-extras
-  - amazon-linux-extras install epel -y
-  - yum update -y
-  - yum install -y git-lfs
+  - curl -s -qL -o "git-lfs.tar.gz" https://github.com/git-lfs/git-lfs/releases/download/v3.3.0/git-lfs-linux-amd64-v3.3.0.tar.gz && tar -xf git-lfs.tar.gz -C /opt
+  - ls -lht /opt
+  - pushd /opt/git-lfs-3.3.0
+  - ls -lht
+  - ./install.sh
+  - git lfs version
+  - popd
 
 .common-install-java-dependencies: &common-install-java-dependencies
   - yum update -y
-  - yum install -y git tar zip unzip jq curl openssl gcc-c++ make java-17-amazon-corretto-devel
-  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip -qq awscliv2.zip
-  - ./aws/install && rm -rf ./aws && rm awscliv2.zip
+  - yum install -y git tar zip unzip jq curl openssl gcc-c++ make java-17-amazon-corretto-devel nodejs sudo --allowerasing
   - curl -s -qL -o /usr/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64
   - chmod +x /usr/bin/jq
-  - npm install -g @microsoft/rush esbuild@0.14 aws-cdk@2.87.0
-  - cdk --version
   - java --version
   - curl "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.8.6/apache-maven-3.8.6-bin.tar.gz" -o "maven.tar.gz" && tar -xf maven.tar.gz -C /opt
   - ln -s /opt/apache-maven-3.8.6 /opt/maven
   - export M2_HOME=/opt/maven && export MAVEN_HOME=/opt/maven && export PATH=${M2_HOME}/bin:${PATH}
   - mvn --version
+
+.download-sif-cli-artifacts: &download-sif-cli-artifacts # Download and install the sif-cli artifacts
+  - export CI_ROOT_DIR="$(dirname $CI_PROJECT_DIR)"
+  - pushd $CI_ROOT_DIR
+  - export API_URL="https://gitlab.aws.dev/api/v4"
+  - export JOB_NAME="package"
+  - export ARTIFACT_NAME="artifacts.zip"
+  - export SIF_CLI_BRANCH="main"
+  - export SIF_CLI_PROJECT_ID="76241"
+  - echo "$API_URL/projects/$SIF_CLI_PROJECT_ID/jobs/$SIF_CLI_ARTIFACT_BUILD_ID/artifacts"
+  - 'curl --header "PRIVATE-TOKEN: $PROJECT_ACCESS_TOKEN" "$API_URL/projects/$SIF_CLI_PROJECT_ID/jobs/$SIF_CLI_ARTIFACT_BUILD_ID/artifacts" --output $CI_ROOT_DIR/$ARTIFACT_NAME'
+  - unzip $ARTIFACT_NAME -d artifacts
+  - pushd artifacts/dist
+  - export SIF_CLI_PACKAGE=$(ls | grep "linux-x64.tar.gz")
+  - npm install -g $SIF_CLI_PACKAGE
+  - popd
+  - SIF_CLI_BIN=$(whereis sif| awk '{print($2)}')
+  - NODE_DIR=$(echo $SIF_CLI_BIN| rev | cut -d/ -f3- | rev)
+  - export SIF_CLI_ENV="$NODE_DIR/lib/node_modules/@sif/cli/dist/.env"
+  - cat $SIF_CLI_ENV
+  - sed -i "s|.*SILENT_COMMAND_EXECUTION=.*|SILENT_COMMAND_EXECUTION=true|" "$SIF_CLI_ENV"
+  - cat $SIF_CLI_ENV
+  - popd
+
+
 
 .common-artifacts: &common-artifacts
   artifacts:
@@ -169,11 +198,12 @@ test-milestone:
 
 deploy-platform-milestone:
   image:
-    name: public.ecr.aws/lambda/nodejs:18
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
     - *common-install-gitlfs
+    - *download-sif-cli-artifacts
   rules:
     - *milestone-run-condition
   stage: deployStage
@@ -181,17 +211,21 @@ deploy-platform-milestone:
     <<: *milestone-variables
   needs: [ 'test-milestone' ]
   script:
-    - *common-build-steps
-    - pushd infrastructure/platform
-    - cdk deploy -c repositoryName=schema-migrator -c repositoryArn=arn:aws:ecr:${AWS_REGION}:${ACCOUNT_ID}:repository/schema-migrator -c includeCaml=true -c imageTag=latest -c rdsConcurrencyLimit=10 -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
-    - popd
+    - *sif-cli-build-steps
+    - export PLATFORM_ENV="$CI_ROOT_DIR/platform.env"
+    - 'echo "{\"useRepository\": true,\"repositoryName\": \"schema-migrator\", \"repositoryArn\": \"arn:aws:ecr:${AWS_REGION}:${ACCOUNT_ID}:repository/schema-migrator\", \"imageTag\": \"latest\", \"maxClusterCapacity\" : 40, \"minClusterCapacity\": 10, \"clusterDeletionProtection\": false, \"deleteBucket\": true, \"rdsConcurrencyLimit\": 10, \"includeCaml\": true, \"camlContainerTag\": \"1.13.1-transformers4.26.0-gpu-py39-cu117-ubuntu20.04\" }" > $PLATFORM_ENV'
+    - sed -i "s|.*SILENT_COMMAND_EXECUTION=.*|SILENT_COMMAND_EXECUTION=true|" "$SIF_CLI_ENV"
+    - cat $PLATFORM_ENV
+    - sif environment install -e $ENVIRONMENT -h -c $PLATFORM_ENV -l $AWS_CREDS_TARGET_ROLE
+
 
 deploy-tenant-milestone:
   image:
-    name: public.ecr.aws/lambda/nodejs:18
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
+    - *download-sif-cli-artifacts
   rules:
     - *milestone-run-condition
   stage: deployStage
@@ -199,13 +233,16 @@ deploy-tenant-milestone:
     <<: *milestone-variables
   needs: [ 'deploy-platform-milestone' ]
   script:
-    - *common-build-steps
-    - pushd infrastructure/tenant
-    - cdk synth -c includeCaml=true -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE --all
-    - cdk deploy --app cdk.out -c includeCaml=true -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
-    - cdk synth -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --r $AWS_CREDS_TARGET_ROLE  --concurrency=5  --all
-    - cdk deploy --app cdk.out -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
-    - popd
+    - *sif-cli-build-steps
+    - export TENANT_ENV="$CI_ROOT_DIR/tenant.env"
+    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": true, \"outGoingAllowed\": true, \"outGoingTenants\" : \"$TENANT_ID-shared\" , \"outGoingPath\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_ENV'
+    - cat $TENANT_ENV
+    - sif instance install -e $ENVIRONMENT -t $TENANT_ID -h -c $TENANT_ENV -l $AWS_CREDS_TARGET_ROLE
+    - export TENANT_SHARED_ENV="$CI_ROOT_DIR/tenant-shared.env"
+    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": false, \"externalSharingAllowed\": true, \"externallySharedGroupIds\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_SHARED_ENV'
+    - cat $TENANT_SHARED_ENV
+    - sif instance install -e $ENVIRONMENT -t $TENANT_ID-shared -h -c $TENANT_SHARED_ENV -l $AWS_CREDS_TARGET_ROLE
+
 
 integrationTest-milestone-accessManagement:
   rules:
@@ -238,7 +275,7 @@ integrationTest-milestone-worker-1:
     - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
     - popd
     - pushd typescript/packages/integrationTests
-    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @calculations" "npx cucumber-js dist/features/* --tags @impacts" "npx cucumber-js dist/features/* --tags @referenceDataSets" "npx cucumber-js dist/features/* --tags @pipelines"
+    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @calculations" "npx cucumber-js dist/features/* --tags @impacts" "npx cucumber-js dist/features/* --tags @referenceDataSets" "npx cucumber-js dist/features/* --tags @pipelines" "npx cucumber-js dist/features/* --tags @connectors"
     - popd
 
 
@@ -298,28 +335,34 @@ test:
 
 deploy-platform:
   image:
-    name: public.ecr.aws/lambda/nodejs:18
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
     - *common-install-gitlfs
+    - *download-sif-cli-artifacts
   rules:
     - *main-run-condition
   stage: deployStage
   variables:
     <<: *staging-variables
   script:
-    - *common-build-steps
-    - pushd infrastructure/platform
-    - cdk deploy -c repositoryName=schema-migrator -c includeCaml=true -c repositoryArn=arn:aws:ecr:${AWS_REGION}:${ACCOUNT_ID}:repository/schema-migrator -c imageTag=latest -c rdsConcurrencyLimit=10 -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
-    - popd
+    - *sif-cli-build-steps
+    - echo "CI_ROOT_DIR:$CI_ROOT_DIR"
+    - export PLATFORM_ENV="$CI_ROOT_DIR/platform.env"
+    - 'echo "{\"useRepository\": true,\"repositoryName\": \"schema-migrator\", \"repositoryArn\": \"arn:aws:ecr:${AWS_REGION}:${ACCOUNT_ID}:repository/schema-migrator\", \"imageTag\": \"latest\", \"maxClusterCapacity\" : 40, \"minClusterCapacity\": 10, \"deleteBucket\": true, \"rdsConcurrencyLimit\": 10, \"includeCaml\": true, \"camlContainerTag\": \"1.13.1-transformers4.26.0-gpu-py39-cu117-ubuntu20.04\" }" > $PLATFORM_ENV'
+    - cat $PLATFORM_ENV
+    - sed -i "s|.*SILENT_COMMAND_EXECUTION=.*|SILENT_COMMAND_EXECUTION=true|" "$SIF_CLI_ENV"
+    - sif environment install -e $ENVIRONMENT -h -c $PLATFORM_ENV -l $AWS_CREDS_TARGET_ROLE
+
 
 deploy-tenant:
   image:
-    name: public.ecr.aws/lambda/nodejs:18
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
+    - *download-sif-cli-artifacts
   rules:
     - *main-run-condition
   stage: deployStage
@@ -327,13 +370,15 @@ deploy-tenant:
     <<: *staging-variables
   needs: [ 'deploy-platform' ]
   script:
-    - *common-build-steps
-    - pushd infrastructure/tenant
-    - cdk synth -c deleteBucket=true -c includeCaml=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE --all
-    - cdk deploy --app cdk.out -c includeCaml=true -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
-    - cdk synth -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --r $AWS_CREDS_TARGET_ROLE  --concurrency=5  --all
-    - cdk deploy --app cdk.out -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
-    - popd
+    - *sif-cli-build-steps
+    - export TENANT_ENV="$CI_ROOT_DIR/tenant.env"
+    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": true, \"outGoingAllowed\": true, \"outGoingTenants\" : \"$TENANT_ID-shared\" , \"outGoingPath\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_ENV'
+    - cat $TENANT_ENV
+    - sif instance install -e $ENVIRONMENT -t $TENANT_ID -h -c $TENANT_ENV -l $AWS_CREDS_TARGET_ROLE
+    - export TENANT_SHARED_ENV="$CI_ROOT_DIR/tenant-shared.env"
+    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": false, \"externalSharingAllowed\": true, \"externallySharedGroupIds\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_SHARED_ENV'
+    - cat $TENANT_SHARED_ENV
+    - sif instance install -e $ENVIRONMENT -t $TENANT_ID-shared -h -c $TENANT_SHARED_ENV -l $AWS_CREDS_TARGET_ROLE
 
 integrationTest-main-accessManagement:
   rules:
@@ -366,7 +411,7 @@ integrationTest-main-worker-1:
     - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
     - popd
     - pushd typescript/packages/integrationTests
-    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @calculations" "npx cucumber-js dist/features/* --tags @impacts" "npx cucumber-js dist/features/* --tags @referenceDataSets" "npx cucumber-js dist/features/* --tags @pipelines"
+    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @calculations" "npx cucumber-js dist/features/* --tags @impacts" "npx cucumber-js dist/features/* --tags @referenceDataSets" "npx cucumber-js dist/features/* --tags @pipelines" "npx cucumber-js dist/features/* --tags @connectors"
     - popd
 
 integrationTest-main-worker-2:
@@ -398,6 +443,8 @@ release_typescript:
     - bash -c cicd/tag_repository.bash
 
 release_java:
+  image:
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
   before_script:
     - *common-install-java-dependencies
   rules:
@@ -409,6 +456,8 @@ release_java:
     - pwd
     - echo "$CI_COMMIT_BRANCH"
     - git checkout -B "$CI_COMMIT_BRANCH"
+    - git branch --set-upstream-to=origin/$CI_COMMIT_BRANCH
+    - git pull
     - 'export CONNECTION_URL="scm:git:https://gitlab-ci-token:$PROJECT_ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"'
     - echo "CONNECTION_URL:$CONNECTION_URL"
     - pushd java/apps/calculator
@@ -421,7 +470,6 @@ release_java:
     - 'mvn -e se.bjurr.gitchangelog:git-changelog-maven-plugin:1.97.1:semantic-version org.apache.maven.plugins:maven-release-plugin:3.0.1:prepare --batch-mode -DdeveloperConnectionUrl="$CONNECTION_URL" -DskipTests=true -DscmCommitPrefix="$INDEXER_MESSAGE"  -DscmDevelopmentCommitComment="$INDEXER_MESSAGE" -DscmReleaseCommitComment="$INDEXER_MESSAGE" org.apache.maven.plugins:maven-release-plugin:3.0.1:perform'
     - mvn generate-resources
     - popd
-    - git branch --set-upstream-to=origin/$CI_COMMIT_BRANCH
     - git pull
     - git add java/apps/*
     - 'git commit -m "release: [skip ci]"'
@@ -449,10 +497,11 @@ integrationTest-loadTest:
 
 deployCoreProd:
   image:
-    name: public.ecr.aws/lambda/nodejs:18
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
+    - *download-sif-cli-artifacts
   rules:
     - *main-run-condition
   stage: deployProd
@@ -460,14 +509,15 @@ deployCoreProd:
     <<: *prod-variables
   needs: [ 'release_typescript','release_java' ]
   script:
-    - *common-build-steps
-    - pushd infrastructure/platform
-    - cdk deploy -c repositoryName=schema-migrator -c repositoryArn=arn:aws:ecr:${AWS_REGION}:${ACCOUNT_ID}:repository/schema-migrator -c imageTag=latest -c rdsConcurrencyLimit=10 -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
-    - popd
-    - pushd infrastructure/tenant
-    - cdk synth -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --require-approval never  --r $AWS_CREDS_TARGET_ROLE  --concurrency=5  --all
-    - cdk deploy --app cdk.out -c deleteBucket=true -c auditFileProcessingTime=1 -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --all --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE
-    - popd
+    - *sif-cli-build-steps
+    - export PLATFORM_ENV="$CI_ROOT_DIR/platform.env"
+    - 'echo "{\"useRepository\": true,\"repositoryName\": \"schema-migrator\", \"repositoryArn\": \"arn:aws:ecr:${AWS_REGION}:${ACCOUNT_ID}:repository/schema-migrator\", \"imageTag\": \"latest\", \"maxClusterCapacity\" : 40, \"minClusterCapacity\": 10, \"deleteBucket\": true, \"rdsConcurrencyLimit\": 10, \"includeCaml\": true, \"camlContainerTag\": \"1.13.1-transformers4.26.0-gpu-py39-cu117-ubuntu20.04\" }" > $PLATFORM_ENV'
+    - cat $PLATFORM_ENV
+    - sif environment install -e $ENVIRONMENT -h -c $PLATFORM_ENV -l $AWS_CREDS_TARGET_ROLE
+    - export TENANT_ENV="$CI_ROOT_DIR/tenant.env"
+    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": true, \"outGoingAllowed\": true, \"outGoingTenants\" : \"$TENANT_ID-shared\" , \"outGoingPath\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_ENV'
+    - cat $TENANT_ENV
+    - sif instance install -e $ENVIRONMENT -t $TENANT_ID -h -c $TENANT_ENV -l $AWS_CREDS_TARGET_ROLE
     - *common-git-steps
     - bash -c cicd/tag_repository.bash
 
@@ -486,7 +536,7 @@ branchTest:
 
 branchTestCalculator:
   image:
-    name: public.ecr.aws/lambda/nodejs:18
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
@@ -495,11 +545,11 @@ branchTestCalculator:
   stage: test
   script:
     - cd java/apps/calculator
-    - mvn clean install -X
+    - mvn clean install -X  -DskipReleasePrepare=true
 
 branchTestIndexer:
   image:
-    name: public.ecr.aws/lambda/nodejs:18
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
     entrypoint: [ '' ]
   before_script:
     - *common-install-java-dependencies
@@ -508,51 +558,123 @@ branchTestIndexer:
   stage: test
   script:
     - cd java/apps/referencedatasets-indexer
-    - mvn clean install -X
+    - mvn clean install -X  -DskipReleasePrepare=true
 
-deployBranch:
-  stage: deployBranch
+deploy-platform-branch:
   rules:
     - *branch-run-integration-condition
+  image:
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
+    entrypoint: [ '' ]
+  stage: deployBranch
+  before_script:
+    - *common-install-java-dependencies
+    - *download-sif-cli-artifacts
   script:
-    - echo "run deploy branch"
-    - *common-build-steps
-    - pushd packages/infrastructure/platform
-    - cdk deploy -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
-    - popd
-    - pushd packages/infrastructure/tenant
-    - cdk deploy -c auditFileProcessingTime=1 -c enableDeleteResource=true  -c deleteBucket=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c outgoingTenantPaths=$TENANT_ID-shared:/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
-    - cdk deploy -c auditFileProcessingTime=1 -c enableDeleteResource=true  -c deleteBucket=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL -c externallySharedGroupIds=/shared --require-approval never --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
-    - popd
+    - *sif-cli-build-steps
+    - echo "CI_ROOT_DIR:$CI_ROOT_DIR"
+    - export PLATFORM_ENV="$CI_ROOT_DIR/platform.env"
+    - 'echo "{\"useRepository\": true,\"repositoryName\": \"schema-migrator\", \"repositoryArn\": \"arn:aws:ecr:${AWS_REGION}:${ACCOUNT_ID}:repository/schema-migrator\", \"imageTag\": \"latest\", \"maxClusterCapacity\" : 40, \"minClusterCapacity\": 10, \"deleteBucket\": true, \"rdsConcurrencyLimit\": 10, \"includeCaml\": true, \"camlContainerTag\": \"1.13.1-transformers4.26.0-gpu-py39-cu117-ubuntu20.04\" }" > $PLATFORM_ENV'
+    - cat $PLATFORM_ENV
+    - sed -i "s|.*SILENT_COMMAND_EXECUTION=.*|SILENT_COMMAND_EXECUTION=true|" "$SIF_CLI_ENV"
+    - sif environment install -e $ENVIRONMENT -h -c $PLATFORM_ENV -l $AWS_CREDS_TARGET_ROLE
 
-integrationTestBranch:
+deploy-branch-tenant-1:
+  rules:
+    - *branch-run-integration-condition
+  image:
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
+    entrypoint: [ '' ]
+  before_script:
+    - *common-install-java-dependencies
+    - *download-sif-cli-artifacts
+  stage: deployBranch
+  needs: [ 'deploy-platform-branch' ]
+  script:
+    - *sif-cli-build-steps
+    - export TENANT_ENV="$CI_ROOT_DIR/tenant.env"
+    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": true, \"outGoingAllowed\": true, \"outGoingTenants\" : \"$TENANT_ID-shared\" , \"outGoingPath\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_ENV'
+    - cat $TENANT_ENV
+    - sif instance install -e $ENVIRONMENT -t $TENANT_ID -h -c $TENANT_ENV -l $AWS_CREDS_TARGET_ROLE
+
+
+deploy-branch-tenant-2:
+  rules:
+    - *branch-run-integration-condition
+  image:
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
+    entrypoint: [ '' ]
+  before_script:
+    - *common-install-java-dependencies
+    - *download-sif-cli-artifacts
+  stage: deployBranch
+  needs: [ 'deploy-platform-branch' ]
+  script:
+    - *sif-cli-build-steps
+    - export TENANT_ENV="$CI_ROOT_DIR/tenant.env"
+    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": true, \"outGoingAllowed\": true, \"outGoingTenants\" : \"$TENANT_ID-shared\" , \"outGoingPath\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_ENV'
+    - cat $TENANT_ENV
+    - sif instance install -e $ENVIRONMENT -t $TENANT_ID -h -c $TENANT_ENV -l $AWS_CREDS_TARGET_ROLE
+
+integrationTest-branch-accessManagement:
   rules:
     - *branch-run-integration-condition
   stage: integrationTestBranch
+  needs: [ 'deploy-branch-tenant-1', 'deploy-branch-tenant-2' ]
   script:
     - *common-build-steps
-    - pushd packages/infrastructure/tenant
-    - export AWS_DEFAULT_REGION=$AWS_REGION
+    - pushd infrastructure/tenant
     - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
     - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
     - popd
-    - pushd packages/integrationTests
-    - rushx test:integration
+    - pushd typescript/packages/integrationTests
+    - npm run build && npx cucumber-js dist/features/* --tags @accessManagement
+    - popd
+
+integrationTest-branch-worker-1:
+  rules:
+    - *branch-run-integration-condition
+  stage: integrationTestBranch
+  needs: [ 'integrationTest-branch-accessManagement' ]
+  script:
+    - *common-build-steps
+    - pushd infrastructure/tenant
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - popd
+    - pushd typescript/packages/integrationTests
+    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @calculations" "npx cucumber-js dist/features/* --tags @impacts" "npx cucumber-js dist/features/* --tags @referenceDataSets" "npx cucumber-js dist/features/* --tags @pipelines" "npx cucumber-js dist/features/* --tags @connectors"
+    - popd
+
+
+integrationTest-branch-worker-2:
+  rules:
+    - *branch-run-integration-condition
+  stage: integrationTestBranch
+  needs: [ 'integrationTest-branch-accessManagement' ]
+  script:
+    - *common-build-steps
+    # set up the correct cleanrooms membership id
+    - export CLEANROOMS_MEMBERSHIP_ID=$CLEANROOMS_MEMBERSHIP_ID_MILESTONE
+    - pushd infrastructure/tenant
+    - source ./src/utils/build.sh $TENANT_ID $ENVIRONMENT $TENANT_ID-shared
+    - aws cognito-idp admin-set-user-password --user-pool-id $COGNITO_USER_POOL_ID --username $ADMINISTRATOR_EMAIL --password $ADMIN_USER_PASSWORD --permanent
+    - popd
+    - pushd typescript/packages/integrationTests
+    - npm run build && npx concurrently "npx cucumber-js dist/features/* --tags @pipelineProcessor" "npx cucumber-js dist/features/* --tags @endToEnd"
     - popd
 
 destroyBranch:
+  image:
+    name: public.ecr.aws/amazonlinux/amazonlinux:2023
   stage: destroyBranch
+  before_script:
+    - *common-install-deployment-dependencies
+    - *download-sif-cli-artifacts
   rules:
     - *branch-run-cleanup-condition
   script:
-    - *common-build-steps
-    - pushd packages/infrastructure/platform
-    - cdk destroy -c deleteBucket=true -c clusterDeletionProtection=false  -c environment=$ENVIRONMENT  --force --require-approval never --concurrency=5 --r $AWS_CREDS_TARGET_ROLE
-    - popd
-    - pushd packages/infrastructure/tenant
-    - cdk destroy -c deleteBucket=true -c enableDeleteResource=true -c tenantId=$TENANT_ID -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --require-approval never --force --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
-    - cdk destroy -c deleteBucket=true -c enableDeleteResource=true -c tenantId=$TENANT_ID-shared -c environment=$ENVIRONMENT -c administratorEmail=$ADMINISTRATOR_EMAIL --require-approval never --force --concurrency=5  --r $AWS_CREDS_TARGET_ROLE --all
-    - popd
-
-
-
+    - *sif-cli-build-steps
+    - sed -i "s|.*SILENT_COMMAND_EXECUTION=.*|SILENT_COMMAND_EXECUTION=false|" "$SIF_CLI_ENV"
+    - echo "Environment:$ENVIRONMENT & TENANT_ID:$TENANT_ID"
+    - sif environment delete -e $ENVIRONMENT -f -l $AWS_CREDS_TARGET_ROLE

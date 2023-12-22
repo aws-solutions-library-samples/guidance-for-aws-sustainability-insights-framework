@@ -21,7 +21,7 @@ const environmentEventBus = process.env['ENVIRONMENT_EVENT_BUS'];
 logger.info(`region: ${region}, lockTable: ${lockTable}, lockName: ${lockTable}, releaseLockQueueUrl: ${releaseLockQueueUrl}, concurrencyLimit: ${concurrencyLimit}`);
 
 const eventBridgeClient = new EventBridgeClient({ region });
-const dynamoDBClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region }));
+const dynamoDBClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region }), { marshallOptions: { removeUndefinedValues: true } });
 const sqsClient = new SQSClient({ region });
 const lockService = new LockService(logger, dynamoDBClient, lockTable, concurrencyLimit, lockName);
 

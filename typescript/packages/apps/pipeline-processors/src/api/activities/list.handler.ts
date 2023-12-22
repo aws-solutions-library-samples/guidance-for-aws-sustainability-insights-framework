@@ -15,12 +15,11 @@ import { Type } from '@sinclair/typebox';
 import { atLeastReader } from '@sif/authz';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
-
 import { commonHeaders, countPaginationQS, apiVersion100, FastifyTypebox, fromTokenPaginationQS } from '@sif/resource-api-base';
-
 import { activitiesListExample } from './examples.js';
-import type { QueryRequest } from './models.js';
+import type { QueryRequest, QueryResponse } from './models.js';
 import { ActivitiesList, activitiesList, attributesQS, dateFromQS, dateToQS, executionIdQS, metricQS, pipelineIdQS, dateQS, showHistoryQS, uniqueKeyAttributesQS, showAggregateQS } from './schemas.js';
+import { expandAttributes, validateDates } from '../../utils/helper.utils.js';
 
 dayjs.extend(utc);
 
@@ -92,7 +91,8 @@ Permissions:
 				uniqueKeyAttributes: expandAttributes(uniqueKeyAttributes),
 				showAggregate
 			};
-			const { data, nextToken } = await svc.getActivities(request.authz, req);
+
+			const { data, nextToken } = await svc.getActivities(request.authz, req) as QueryResponse;
 
 			const response: ActivitiesList = { activities: data };
 			if (nextToken) {
@@ -108,27 +108,4 @@ Permissions:
 	done();
 }
 
-const validateDates = (date: string, dateTo: string, dateFrom: string) => {
-	let isValid = true;
 
-	if (date) isValid = dayjs(date).isValid();
-	if (dateFrom) isValid = dayjs(dateFrom).isValid();
-	if (dateTo) isValid = dayjs(dateTo).isValid();
-
-	if (!isValid) {
-		throw new Error('Invalid Date specified double check if the date/time is in ISO8601 local time');
-	}
-};
-
-const expandAttributes = (attrString: string) => {
-	const expandedAttributes: Record<string, string> = {};
-	if ((attrString?.length ?? 0) > 0) {
-		attrString.split(',').forEach((a) => {
-			const kv = a.split(':');
-			const k = decodeURIComponent(kv[0] as string);
-			const v = decodeURIComponent(kv[1] as string);
-			expandedAttributes[k] = v;
-		});
-	}
-	return expandedAttributes;
-};

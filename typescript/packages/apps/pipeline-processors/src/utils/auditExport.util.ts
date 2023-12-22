@@ -191,6 +191,7 @@ export class AuditExportUtil {
 
 		// create the query itself, below is a sample of the query which needs to be dynamically created based on the pipeline input/outputs etc
 		const query = this.createAthenaQuery(pipeline,params.executionId, auditVersion);
+		this.log.trace(`ExportUtility> processAuditExportRequest> athenaQuery:${query}`);
 
 		try {
 			const startQueryExecutionCommand = new StartQueryExecutionCommand({
@@ -236,7 +237,7 @@ export class AuditExportUtil {
 		return  `
 WITH inputs AS (
 	SELECT auditId, ${pipeline.transformer.parameters.map((param) => {
-			return `ikv['${param.key}'] AS in_${param.key}`
+			return `ikv['${param.key}'] AS "in_${param.key}"`
 		}).join(', ')}
 	FROM (
 		SELECT  auditId, map_agg(input.name, input.value) ikv
@@ -249,7 +250,7 @@ WITH inputs AS (
 ), outputs AS (
 	SELECT auditId,
 		${pipelineOutputKeys.map((key) => {
-			return `okv_formulas['${key}'] AS out_${key}_formula, okv_results['${key}'] AS out_${key}_results, okv_impacts['${key}'] AS out_${key}_impacts, okv_calculations['${key}'] AS out_${key}_calculations, okv_referenceDatasets['${key}'] AS out_${key}_referenceDatasets`
+			return `okv_formulas['${key}'] AS "out_${key}_formula", okv_results['${key}'] AS "out_${key}_results", okv_impacts['${key}'] AS "out_${key}_impacts", okv_calculations['${key}'] AS "out_${key}_calculations", okv_referenceDatasets['${key}'] AS "out_${key}_referenceDatasets"`
 		}).join(',\n')}
 	FROM (
 		SELECT  auditId,
@@ -266,10 +267,10 @@ WITH inputs AS (
 )
 SELECT inputs.auditId,
 ${pipeline.transformer.parameters.map((param) => {
-	return `in_${param.key}`
+	return `"in_${param.key}"`
 }).join(', ')},
 ${pipelineOutputKeys.map((key) => {
-	return `out_${key}_formula, out_${key}_results,out_${key}_impacts,out_${key}_calculations,out_${key}_referenceDatasets`
+	return `"out_${key}_formula", "out_${key}_results","out_${key}_impacts","out_${key}_calculations","out_${key}_referenceDatasets"`
 }).join(',\n')}
 FROM inputs LEFT JOIN outputs ON inputs.auditId = outputs.auditId`
 

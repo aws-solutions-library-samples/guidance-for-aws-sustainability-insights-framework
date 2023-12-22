@@ -34,8 +34,8 @@ export class ConnectorEvents {
 			.setDetailType(PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT)
 			.setDetail(params);
 
-		const publishResponse = await this.eventPublisher.publish(event);
+		await this.eventPublisher.publish(event);
 
-		this.log.info(`PluginEvents>response>in: publishResponse:${JSON.stringify(publishResponse)}`);
+		this.log.info(`PluginEvents>response>exit`);
 	}
 }

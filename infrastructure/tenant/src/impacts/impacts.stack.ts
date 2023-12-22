@@ -24,13 +24,13 @@ import { accessManagementApiFunctionNameParameter, impactsApiFunctionNameParamet
 export type ImpactsStackProperties = StackProps & {
 	tenantId: string;
 	environment: string;
-	enableDeleteResource?: boolean;
+	enableDeleteResource: boolean;
 	permittedOutgoingTenantPaths?: string;
 	externallySharedGroupIds?: string;
 };
 
 export class ImpactsApiStack extends Stack {
-	constructor(scope: Construct, id: string, props?: ImpactsStackProperties) {
+	constructor(scope: Construct, id: string, props: ImpactsStackProperties) {
 		super(scope, id, props);
 
 		// validation
@@ -78,8 +78,8 @@ export class ImpactsApiStack extends Stack {
 			tableName: base.tableName,
 			workerQueueArn: base.workerQueueArn,
 			enableDeleteResource: props.enableDeleteResource,
-			permittedOutgoingTenantPaths: props?.permittedOutgoingTenantPaths,
-			externallySharedGroupIds: props?.externallySharedGroupIds,
+			permittedOutgoingTenantPaths: props?.permittedOutgoingTenantPaths!,
+			externallySharedGroupIds: props?.externallySharedGroupIds!,
 			impactsApiFunctionName: impactsApiFunctionName
 		});
 		module.node.addDependency(base);

@@ -90,4 +90,7 @@ public interface ExecutionVisitor extends CalculationsVisitor<DynamicTypeValue> 
 
 	@Override
 	DynamicTypeValue visitSetVariableExpr(CalculationsParser.SetVariableExprContext ctx);
+
+	@Override
+	NumberTypeValue visitSearchFunctionExpr(CalculationsParser.SearchFunctionExprContext ctx);
 }

@@ -44,11 +44,13 @@ export class ConnectorSeederCustomResource implements CustomResource {
 		for (const connector of connectors) {
 			const existingConnector = await this.connectorClient.getByName(connector.name, this.requestContext);
 			if (existingConnector) {
-				this.logger.info(`connectorSeeder.customResource > createConnectors > delete existing connector: ${existingConnector.id}`);
-				await this.connectorClient.delete(existingConnector.id, this.requestContext);
+				this.logger.info(`connectorSeeder.customResource > createConnectors > update existing connector: ${existingConnector.id}`);
+				const updatedConnector = await this.connectorClient.update(existingConnector.id,connector,this.requestContext);
+				this.logger.info(`connectorSeeder.customResource > createConnectors > updatedConnector: ${updatedConnector}`);
+			} else {
+				const createdConnector = await this.connectorClient.create(connector, this.requestContext);
+				this.logger.info(`connectorSeeder.customResource > createConnectors > createdConnector: ${createdConnector}`);
 			}
-			const createdConnector = await this.connectorClient.create(connector, this.requestContext);
-			this.logger.info(`connectorSeeder.customResource > createConnectors > createdConnector: ${createdConnector}`);
 		}
 		this.logger.info(`connectorSeeder.customResource > createConnectors > out:`);
 	}

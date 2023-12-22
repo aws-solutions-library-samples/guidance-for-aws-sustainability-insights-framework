@@ -109,7 +109,6 @@ await getTenantValues(TENANT_ID, 'pipeline-processor', {
 	BUCKET_PREFIX: 'bucketPrefix',
 	ACTIVITIES_PIPELINE_JOB_STATE_MACHINE_ARN: 'activityPipelineStateMachineArn',
 	DATA_PIPELINE_JOB_STATE_MACHINE_ARN: 'dataPipelineStateMachineArn',
-	INLINE_PIPELINE_STATE_MACHINE_ARN: 'inlinePipelineStateMachineArn',
 	METRICS_TABLE_NAME: 'metricsTableName',
 	TASK_QUEUE_URL: 'taskQueueUrl',
 });

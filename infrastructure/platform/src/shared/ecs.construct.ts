@@ -40,7 +40,7 @@ const __dirname = path.dirname(__filename);
 
 
 export class Ecs extends Construct {
-	constructor(scope: Construct, id: string, props?: EcsConstructProperties) {
+	constructor(scope: Construct, id: string, props: EcsConstructProperties) {
 		super(scope, id);
 
 		const namePrefix = `sif-${props.environment}`;
@@ -97,10 +97,10 @@ export class Ecs extends Construct {
 
 		new ssm.StringParameter(this, 'taskExecutionRoleArnParameter', {
 			parameterName: ecsTaskExecutionRoleArnParameter(props.environment),
-			stringValue: taskDefinition.executionRole.roleArn
+			stringValue: taskDefinition?.executionRole?.roleArn!
 		});
 
-		NagSuppressions.addResourceSuppressions([taskDefinition.executionRole],
+		NagSuppressions.addResourceSuppressions([taskDefinition?.executionRole!],
 			[
 				{
 					id: 'AwsSolutions-IAM5',

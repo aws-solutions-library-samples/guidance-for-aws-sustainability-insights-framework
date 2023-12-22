@@ -3,6 +3,7 @@ package com.aws.sif;
 import com.aws.sif.audits.AuditMessage;
 import com.aws.sif.audits.Auditor;
 import com.aws.sif.execution.*;
+import com.aws.sif.execution.output.ActivityTypeOutputWriter;
 import com.aws.sif.execution.output.OutputType;
 import com.aws.sif.execution.output.OutputWriter;
 import com.aws.sif.resources.users.UserNotFoundException;
@@ -50,7 +51,7 @@ public abstract class AbstractCalculatorService<T> {
     public TransformResponse process(TransformRequest req) throws InterruptedException, IOException {
         log.debug("process> in> req:{}", req);
 
-        TransformResponse response;
+        TransformResponse response = null;
 
         try {
             var errors = validateRequest(req);
@@ -62,10 +63,15 @@ public abstract class AbstractCalculatorService<T> {
                 try {
                     // initial authorizer to retrieve claims
                     authorizer = new Authorizer(req.getUsername(), req.getGroupContextId(), Set.of(req.getGroupContextId()));
-                    var user = this.usersClient.getUser(req.getUsername(), req.getGroupContextId(), authorizer);
-
-                    // updated authorizer capable of crossing group/tenant boundaries if the pipeline is configured to do so and the pipeline creator has authorization.
-                    authorizer = new Authorizer(req.getUsername(), req.getGroupContextId(), user.getGroups().keySet());
+                    Map<String,String> groups;
+                    if (req.getJwt()!= null) {
+                        groups = DecodedUser.getDecoded(req.getJwt()).groups;
+                    } else {
+                        var user = this.usersClient.getUser(req.getUsername(), req.getGroupContextId(), authorizer);
+                        // updated authorizer capable of crossing group/tenant boundaries if the pipeline is configured to do so and the pipeline creator has authorization.
+                        groups = user.getGroups();
+                    }
+                    authorizer = new Authorizer(req.getUsername(), req.getGroupContextId(), groups.keySet());
 
                 } catch (UserNotFoundException e) {
                     errors.add(String.format("User `%s` not found.", req.getUsername()));
@@ -74,14 +80,18 @@ public abstract class AbstractCalculatorService<T> {
 
             var outputHeaders = identifyOutputColumns(req.getTransforms());
 
-            response = transformInput(req, authorizer, errors, outputHeaders, outputWriter);
+            response = transformInput(req, authorizer, errors, outputHeaders);
         } catch (Exception e) {
             log.error("process> " + e.getMessage(), e);
             throw e;
         } finally {
-            Thread.sleep(1000);
-            auditor.flushSync();
-            outputWriter.submit();
+            if (!req.isDryRun()) {
+                Thread.sleep(1000);
+                auditor.flushSync();
+                if (response != null && !response.noActivitiesProcessed) {
+                    outputWriter.submit();
+                }
+            }
         }
 
         log.debug("process> exit:");
@@ -156,7 +166,7 @@ public abstract class AbstractCalculatorService<T> {
         return jsonLine.toString();
     }
 
-    private TransformResponse transformInput(TransformRequest req, Authorizer authorizer, List<String> errors, List<String> headers, OutputWriter outputWriter) throws IOException {
+    private TransformResponse transformInput(TransformRequest req, Authorizer authorizer, List<String> errors, List<String> headers) throws IOException {
         log.debug("transformInput> in> request:{}, errors:{}, headers:{}", req, errors, headers);
 
         TransformResponse response;
@@ -170,6 +180,7 @@ public abstract class AbstractCalculatorService<T> {
         var groupsVisited = new HashSet<String>();
 
         // no point proceeding if we detected an error during initialization or validation
+		var noActivitiesProcessed = false;
         if (errors.size() == 0) {
 
             // gather the source data
@@ -223,7 +234,9 @@ public abstract class AbstractCalculatorService<T> {
                     recordError(errors, "transformInput", String.format("Failed processing row %s, err: %s", jsonLine, e.getMessage()));
                 }
             });
-        }
+        } else {
+			noActivitiesProcessed = true;
+		}
 
         // post transformation step...
         var bucket = config.getString("calculator.upload.s3.bucket");
@@ -234,15 +247,24 @@ public abstract class AbstractCalculatorService<T> {
             s3.upload(groupsLocation, String.join(System.lineSeparator(), groupsVisited));
         }
 
+        String activityValueKey = null;
+        if (this.outputWriter instanceof ActivityTypeOutputWriter && ((ActivityTypeOutputWriter) this.outputWriter).activityValuePath != null) {
+            activityValueKey = config.getString("calculator.upload.s3.activities.key")
+                    .replace("<pipelineId>", req.getPipelineId())
+                    .replace("<executionId>", req.getExecutionId())
+                    + ((ActivityTypeOutputWriter) this.outputWriter).activityValuePath.getFileName().toString();
+        }
+
         if (DataSourceLocation.s3.equals(sourceLocation)) {
             S3Location errorLocation = null;
-            if (errors.size() > 0) {
+            if (!errors.isEmpty()) {
                 errorLocation = new S3Location(bucket, replaceKeyTokens(config.getString("calculator.upload.s3.errors.key"), req));
                 s3.upload(errorLocation, String.join(System.lineSeparator(), errors));
             }
-            response = new S3TransformResponse(errorLocation);
+            response = new S3TransformResponse(errorLocation, noActivitiesProcessed, activityValueKey);
+
         } else {
-            response = new InlineTransformResponse(headers, inlineResultJsonLines, errors);
+            response = new InlineTransformResponse(headers, inlineResultJsonLines, errors, noActivitiesProcessed, activityValueKey);
         }
 
         log.trace("transformInput> exit:{}", response);

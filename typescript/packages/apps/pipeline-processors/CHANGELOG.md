@@ -1,6 +1,20 @@
 # Change Log - @sif/pipeline-processors
 
-This log was last generated on Thu, 17 Aug 2023 02:44:14 GMT and should not be manually modified.
+This log was last generated on Wed, 13 Dec 2023 02:37:37 GMT and should not be manually modified.
+
+## 4.14.0
+Wed, 13 Dec 2023 02:37:37 GMT
+
+### Minor changes
+
+- Added support for connector setup events
+
+## 4.13.3
+Tue, 10 Oct 2023 14:45:33 GMT
+
+### Patches
+
+- Prevent audit log export before audit log processing completes
 
 ## 4.13.2
 Thu, 17 Aug 2023 02:44:14 GMT

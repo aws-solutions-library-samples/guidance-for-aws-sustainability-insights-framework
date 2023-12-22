@@ -13,7 +13,6 @@
 
 import { asFunction, createContainer, Lifetime } from 'awilix';
 import pino, { Logger } from 'pino';
-import axios from 'axios';
 import pgPkg from 'pg';
 import os from 'os';
 import path from 'path';
@@ -117,16 +116,14 @@ const awsRegion = process.env['AWS_REGION'];
 const platformUsername = process.env['PLATFORM_USERNAME'];
 const host = process.env['RDS_PROXY_ENDPOINT'];
 const assetFolder = `/tmp/sqlAssets`;
-const tenantId = process.env['TENANT_ID'];
 const rdsProxyName = process.env['RDS_PROXY_NAME'];
-const environment = process.env['NODE_ENV'];
 const pipelineFunctionName = process.env['PIPELINES_FUNCTION_NAME'];
 const ecsTaskDefinitionArn = process.env['ECS_TASK_DEFINITION_ARN'];
 const ecsClusterArn = process.env['ECS_CLUSTER_ARN'];
 const ecsTaskRoleArn = process.env['ECS_TASK_ROLE_ARN'];
 const containerSecurityGroup = process.env['CONTAINER_SECURITY_GROUP'];
 const containerSubnets = process.env['CONTAINER_SUBNETS'].split(',');
-
+const caCertificate = process.env['CA_CERTIFICATE'];
 
 export type ExtractCustomResourceArtifacts = (assetBucket: string, assetKey: string) => Promise<string>
 
@@ -155,8 +152,6 @@ const extractCustomResourceArtifacts: ExtractCustomResourceArtifacts = async (as
 const getPostgresqlClient: GetSqlClient = async (databaseName = 'postgres'): Promise<pgPkg.Client> => {
 	logger.debug(`awilix > getPostgresqlClient > in:`);
 
-	const { data: caCert } = await axios.get('https://www.amazontrust.com/repository/AmazonRootCA1.pem');
-
 	const signer = new Signer({
 		hostname: host,
 		port: defaultPort,
@@ -172,7 +167,7 @@ const getPostgresqlClient: GetSqlClient = async (databaseName = 'postgres'): Pro
 		database: databaseName,
 		ssl: {
 			rejectUnauthorized: true,
-			ca: caCert,
+			ca: caCertificate,
 		},
 	});
 	await postgresqlClient.connect();
@@ -211,15 +206,15 @@ container.register({
 	databaseSeederRepository: asFunction(() => new DatabaseSeederRepository(logger, getPostgresqlClient, migrate), {
 		...commonInjectionOptions,
 	}),
-	databaseSeederContainer: asFunction((container) => new DatabaseSeederContainer(logger, container.ecsClient, ecsClusterArn, ecsTaskRoleArn, ecsTaskDefinitionArn, containerSubnets, containerSecurityGroup, host, platformUsername), {
+	databaseSeederContainer: asFunction((container) => new DatabaseSeederContainer(logger, container.ecsClient, ecsClusterArn, ecsTaskRoleArn, ecsTaskDefinitionArn, containerSubnets, containerSecurityGroup, host, platformUsername, caCertificate), {
 		...commonInjectionOptions,
 	}),
 	connectorClient: asFunction((container) => new ConnectorClient(logger, container.invoker, pipelineFunctionName), {
 		...commonInjectionOptions,
 	}),
 	databaseSeederCustomResource: asFunction((container) => new DatabaseSeederCustomResource(
-		logger, container.databaseSeederRepository, container.rdsClient, container.iamClient,
-		container.secretsManagerClient, rdsProxyName, tenantId, environment, extractCustomResourceArtifacts, container.databaseSeederContainer), {
+		logger, container.databaseSeederRepository, container.rdsClient,
+		container.secretsManagerClient, rdsProxyName, extractCustomResourceArtifacts, container.databaseSeederContainer), {
 		...commonInjectionOptions,
 	}),
 	connectorSeederCustomResource: asFunction((container) => new ConnectorSeederCustomResource(

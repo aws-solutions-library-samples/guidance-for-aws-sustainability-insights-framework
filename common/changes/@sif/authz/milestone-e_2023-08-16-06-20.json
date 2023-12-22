@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@sif/authz",
+      "comment": "Library update",
+      "type": "none"
+    }
+  ],
+  "packageName": "@sif/authz"
+}

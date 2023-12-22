@@ -2,44 +2,20 @@
 
 ## Introduction
 
-This module handles the orchestration of processing the steps through a data pipeline. This includes verification of the format of the input data file and headers, mapping out calculation tasks to the Calculation Engine, and processing the
-results. The module provides an API for the user to request a pre-signed S3 URL for upload of an input data file. The API also allows the user to query the status of the execution of the pipeline.
+The Pipeline Processors module orchestrates the steps involved in processing activity data through a pipeline. It manages tasks such as verifying the input data format, delegating calculations to the Calculation Engine, aggregating, and handling the results. Once the data has been processed, users can query the results and associated metrics using this module.
 
-Once activities have been processed by a pipeline, the results as well as any related metrics can be queries using this module too.
 
-## High-Level Architecture
-
-Below is the high-level AWS architecture of the pipeline processor:
-
-![hla](docs/images/PipelineProcessor.drawio.svg)
-
-The above architecture shows the components of the pipeline processor. An API allowing the user to request pre-signed URLs for input file upload and errors file download are provided by API Gateway, Lambda, and DynamoDB. Execution of the
-pipeline is carried out as multiple tasks within a StepFunction. An EventBridge event starts pipeline processing when an input file is uploaded. Pipeline calculations are executed through calls to the Calculation Engine module. The
-activities processed by the Calculation Module have metrics (KPI's) pre-calculated per each organizational group.
-
-The processor stepfunction definition is shown below:
-
-![stepfunction](docs/images/StepFunctionDefinition.drawio.svg)
-
-The step function includes 8 tasks:
-
-* `VerificationTask` - retrieval and validation of the input file versus the pipeline definition
-* `CalculationTask` - delegating calculation tasks to multiple instances of the Calculator module running in parallel and publish the sql commands to be executed to sqs queue, this will a trigger a lambda that will perform an insert into **Activity*Values** tables
-* `Wait for SQL Insert Result` & `Process SQL Insert Result` tasks - poll until all sql inserts generated from the `CalculationTask` have been executed
-* `JobInsertLatestValuesTask` - insert the latest activity value into the **Activity*LatestValues** tables
-* `JobMetricAggregationTask` - calculates configured metrics (KPI's) configured as part of the pipeline definition, then rolls them up to the organizational group boundaries
-* `JobPipelineAggregationTask` - aggregates the pipeline execution results using calculation method and columns grouping defined as part of the pipeline definition
-* `ResultProcessingTask` - uploads error file to S3
-
-The tasks before and after these main tasks (AcquireLock* and ReleaseLock*) will send sqs to acquire a semaphore lock and wait for a callback before it can proceed.
-
-## Processing Flow
+## Standard Processing Flow
 
 Processing of a pipeline requires a pipeline to be defined using the [pipelines API](../pipelines/README.md). When a pipeline is created it is given a unique ID. Given this ID, the user can request an upload URL to upload a data file for
 processing. When a file is uploaded an S3 event is published via an EventBridge Event Rule. This event is processed by a bucket events Lambda which filters for appropriate S3 events and starts the pipeline processor StepFunction.
 
 Each execution of a pipeline is given a unique ID. This ID can be used by the pipeline processor API to track the status of the pipeline to completion. Once complete, the resulting output file can be retrieved from S3 by requesting a
 download link from the pipeline processor API by supplying the pipeline ID and execution ID.
+
+## Kinesis Connector Processing Flow
+
+Detailed instruction on using the kinesis connector and its data processing flow can be found [here](../../connectors/kinesis/README.md).
 
 ## Example API Calls
 
@@ -369,10 +345,9 @@ Each metric will have additional dimension data that can be used to query it fro
 You can use these custom metrics to gauge the performance of your pipeline executions via the CloudWatch dashboard or APIs.
 Further details on how to construct queries via metrics insights can be found [here](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-metrics-insights-querylanguage.html) .
 
-## Things to Note
+## Deeper Dive
 
-- The pipeline csv input processing is tuned to handle ~1Mil rows of data comfortably. It could be further tuned based on the size of the input csv data files.
+If you'd like to delve deeper into the Pipeline Processor module:
 
-## Local Testing
-
-Follow this [instruction](https://docs.aws.amazon.com/step-functions/latest/dg/sfn-local.html) to test the state machine locally.
+- Refer to the [High Level Architecture](../../../../docs/design.md#pipeline_processors) to grasp how we utilize various AWS services.
+- For aid in testing state machines locally, see these [instructions](https://docs.aws.amazon.com/step-functions/latest/dg/sfn-local.html).

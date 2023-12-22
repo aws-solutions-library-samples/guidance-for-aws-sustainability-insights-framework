@@ -12,19 +12,22 @@
  */
 
 import type { Handler } from 'aws-lambda/handler';
-import type { Transformer, ActionType, PipelineType } from '@sif/clients';
-import type { Output } from '../../api/activities/models';
-import type { AffectedTimeRange } from '../../api/metrics/models';
+import type { Transformer, ActionType, PipelineType, CalculatorS3TransformResponse, SecurityContext } from '@sif/clients';
+import type { ActivityRequest, Output } from '../../api/activities/models';
+import type { AffectedTimeRange, MetricsDownloadPayload } from '../../api/metrics/models';
 import type { HistoryEvent } from '@aws-sdk/client-sfn';
 
+export interface S3Location {
+	key: string;
+	bucket: string;
+};
+
 export interface VerificationTaskEvent {
-	source: {
-		bucket: string;
-		key: string;
-	};
+	source: S3Location;
 	pipelineId: string;
 	executionId: string;
 	pipelineType: PipelineType;
+	securityContext: SecurityContext;
 };
 
 export interface VerificationTaskOutput {
@@ -33,20 +36,47 @@ export interface VerificationTaskOutput {
 	context?: CalculationContext;
 };
 
+export type DownloadType = 'activity' | 'metric';
+
+export interface ActivityDownloadEvent {
+	id: string,
+	type: DownloadType,
+	metricRequest?: MetricsDownloadPayload,
+	activityRequest?: ActivityRequest
+};
+
+export interface ActivityDownloadInitiateTaskEvent {
+	executionArn: string,
+	payload: {
+		id: string,
+		type: DownloadType,
+		metricRequest?: MetricsDownloadPayload,
+		activityRequest?: ActivityRequest
+	}
+};
+
+export type DownloadState = 'in_progress' | 'failed' | 'success';
+
+export interface ActivityDownloadTaskResponse {
+	id: string,
+	type: DownloadType,
+	state: DownloadState,
+	executionArn?: string,
+	metricRequest?: MetricsDownloadPayload,
+	activityRequest?: ActivityRequest
+};
+
 export interface CalculationContext {
 	pipelineId: string;
 	executionId: string;
-	actionType: ActionType;
 	pipelineType: PipelineType;
-	groupContextId: string;
+	actionType: ActionType;
+	triggerMetricAggregations: boolean;
 	transformer: Transformer;
 	pipelineCreatedBy: string;
+	security: SecurityContext;
 };
 
-export interface S3Location {
-	key: string;
-	bucket: string;
-};
 
 export interface S3SourceLocation {
 	key: string;
@@ -70,46 +100,92 @@ export interface CalculationChunk {
 export interface CalculationTaskEvent {
 	chunk: CalculationChunk;
 	source: S3Location;
-	context?: CalculationContext;
+	context: CalculationContext;
+	taskToken?: string;
 };
 
-export interface CalculationTaskResult {
-	pipelineId?: string;
-	executionId?: string;
-	errorLocation?: S3Location;
-	requiresAggregation?: boolean;
-	metricQueue?: MetricQueue;
-	pipelineType?: string;
-	sequence: number;
-};
+export type CalculatorS3TransformResponseWithSequence = CalculatorS3TransformResponse & { sequence: number };
+
+export type InsertActivityBulkEvent = {
+	context: CalculationContext,
+	// this is the payload response from calculator
+	calculatorTransformResponse?: CalculatorS3TransformResponseWithSequence,
+	// use this token to signal back to StepFunction to resume operation
+	stateMachine?: {
+		taskToken: string
+	}
+}
+
+export type SqlExecutionResultStatus = 'success' | 'failed';
+
+export type InsertActivityBulkResult = {
+	context?: CalculationContext,
+	calculatorTransformResponse: CalculatorS3TransformResponseWithSequence,
+	sqlExecutionResult: {
+		status: SqlExecutionResultStatus
+	}
+}
+
+export type InsertActivityBulkResultWithExecutionDetails = {
+	inputs: InsertActivityBulkResult[],
+	executionArn: string,
+	executionStartTime: string;
+}
 
 
-export type MetricQueue = { order: number, metric: string }[]
-export type GroupsQueue = { order: number, group: string }[]
+export type MetricQueue = {
+	order: number,
+	metric: string
+}[]
+export type GroupsQueue = {
+	order: number,
+	group: string
+}[]
+
+export type ImpactCreationTaskEvent = {
+	pipelineId: string,
+	executionId: string,
+	sequenceList: number[],
+	security: SecurityContext;
+	errorLocationList: S3Location[];
+	pipelineType: string
+}
 
 export type Status = 'FAILED' | 'SUCCEEDED' | 'IN_PROGRESS';
 
-export interface ProcessedTaskEventWithExecutionDetails {
-	executionStartTime: string;
-	executionArn: string;
-	inputs: ProcessedTaskEvent[];
-}
-
 export interface ProcessedTaskEvent {
-	groupContextId?: string;
-	pipelineId?: string;
+	// from calculation context
+	pipelineId: string;
 	pipelineType: PipelineType;
-	executionId?: string;
+	executionId: string;
+	security: SecurityContext;
+	// filled when checking the status from SQL insert
+	status?: Status;
+	// extracted from transform
+	triggerMetricAggregations?: boolean;
 	outputs?: Output[];
 	requiresAggregation?: boolean;
-	status?: Status;
 	metricQueue: MetricQueue;
-	sequence: number;
-	errorLocation?: S3Location;
+	// filled from calculator response
+	sequenceList: number[],
+	errorLocationList: S3Location[];
+	// will be filled when aggregating metric
 	timeRange?: AffectedTimeRange;
 	groupsQueue?: GroupsQueue;
 	nextMetric?: number;
 	nextGroup?: number;
+}
+
+export type ProcessedTaskEventWithExecutionDetails =
+	{
+		input: ProcessedTaskEvent,
+		executionArn?: string,
+		executionStartTime?: string;
+	}
+
+export type MetricAggregationTaskEvent = Pick<ProcessedTaskEvent, 'security' | 'status' | 'timeRange' | 'pipelineId' | 'metricQueue' | 'groupsQueue' | 'nextMetric' | 'nextGroup'> & {
+	metricAggregationJobId?: string,
+	executionId?: string
 }
 
 export interface AggregationResult {
@@ -117,65 +193,57 @@ export interface AggregationResult {
 	groupValue: number;
 }
 
-export interface InsertActivityResult {
-	pipelineId: string;
-	executionId: string;
-	sqlExecutionResult: 'success' | 'failed',
-	errorMessage?: string;
-	activityKey?: string;
-	activityValuesKey?: string;
-}
-
-export interface InsertActivityBulkEvent {
-	pipelineId: string;
-	executionId: string;
-	sequence: number;
-	activityValuesKey: string;
-};
-
-export interface StepFunctionEvent extends HistoryEvent{
+export interface StepFunctionEvent extends HistoryEvent {
 	name?: string;
 }
 
 export interface Dimension {
-    Name: string | undefined;
-    Value: string | undefined;
+	Name: string | undefined;
+	Value: string | undefined;
 }
 
 export interface StatisticSet {
-    SampleCount: number | undefined;
-    Sum: number | undefined;
-    Minimum: number | undefined;
-    Maximum: number | undefined;
+	SampleCount: number | undefined;
+	Sum: number | undefined;
+	Minimum: number | undefined;
+	Maximum: number | undefined;
 }
+
 export interface Metric {
-    MetricName: string | undefined;
-    Dimensions?: Dimension[];
-    Timestamp?: Date;
-    Value?: number;
-    StatisticValues?: StatisticSet;
-    Values?: number[];
-    Counts?: number[];
-    Unit?: string;
-    StorageResolution?: number;
+	MetricName: string | undefined;
+	Dimensions?: Dimension[];
+	Timestamp?: Date;
+	Value?: number;
+	StatisticValues?: StatisticSet;
+	Values?: number[];
+	Counts?: number[];
+	Unit?: string;
+	StorageResolution?: number;
 }
 
 export type VerificationTaskHandler = Handler<VerificationTaskEvent, VerificationTaskOutput>;
 
-export type CalculationTaskHandler = Handler<CalculationTaskEvent, CalculationTaskResult>;
+export type CalculationTaskHandler = Handler<CalculationTaskEvent, InsertActivityBulkEvent>;
 
-export type SqlResultProcessorTaskHandler = Handler<ProcessedTaskEventWithExecutionDetails, ProcessedTaskEvent[]>;
+export type SqlResultProcessorTaskHandler = Handler<InsertActivityBulkResult[], ProcessedTaskEvent>;
 
-export type RawResultProcessorTaskHandler = Handler<ProcessedTaskEventWithExecutionDetails, ProcessedTaskEventWithExecutionDetails>;
+export type InsertLatestValuesTaskHandler = Handler<ProcessedTaskEvent, ProcessedTaskEvent>;
+
+export type RawResultProcessorTaskHandler = Handler<InsertActivityBulkResultWithExecutionDetails, ImpactCreationTaskEvent>;
 
 export type ResultProcessorTaskHandler = Handler<ProcessedTaskEventWithExecutionDetails, void>;
 
-export type MetricAggregationTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent[]>;
+export type SaveAggregationJobTaskHandler = Handler<ProcessedTaskEvent, ProcessedTaskEvent>;
 
-export type PipelineAggregationTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent>;
+export type MetricAggregationTaskHandler = Handler<MetricAggregationTaskEvent, MetricAggregationTaskEvent>;
 
-export type ImpactCreationTaskHandler = Handler<ProcessedTaskEvent[], void>;
+export type PipelineAggregationTaskHandler = Handler<ProcessedTaskEvent, ProcessedTaskEvent>;
 
-export type InsertActivityBulkTaskHandler = Handler<InsertActivityBulkEvent[], InsertActivityBulkEvent>;
+export type ImpactCreationTaskHandler = Handler<ImpactCreationTaskEvent, void>;
 
-export type InsertActivityBulkCompletionTaskHandler = Handler<ProcessedTaskEvent[], ProcessedTaskEvent>;
+export type ActivityDownloadInitiateTaskHandler = Handler<ActivityDownloadInitiateTaskEvent, ActivityDownloadTaskResponse>;
+
+export type ActivityDownloadStartTaskHandler = Handler<ActivityDownloadTaskResponse, ActivityDownloadTaskResponse>;
+
+export type ActivityDownloadVerifyTaskHandler = Handler<ActivityDownloadTaskResponse, ActivityDownloadTaskResponse>;
+

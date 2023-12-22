@@ -37,6 +37,12 @@ public class TransformRequest {
      */
     private String username;
 
+    /**
+     * JWT token that contains user's cognito:groups claims, if this is provided
+     * calculator will not retrieve this information from AccessManagement API
+     */
+    private String jwt;
+
     private List<TransformParameter> parameters;
     private List<Transform> transforms;
 

@@ -11,26 +11,48 @@
  *  and limitations under the License.
  */
 
-export type PipelineProcessorActionType = 'create' | 'delete';
+import type { ConnectorConfig } from './pipeline.models';
 
-export interface Execution{
-		actionType: PipelineProcessorActionType;
-		createdAt: Date;
-		createdBy: string;
-		executionArn?: string;
-		id: string;
-		inputUploadUrl: string;
-		pipelineId: string;
-		pipelineVersion: number;
-		auditVersion?: number;
-		connectorOverrides?:Record<string, string>;
-		status:string;
-		statusMessage: string;
-		groupContextId: string;
-		updatedAt?: Date;
-		updatedBy?: string;
-		inlineExecutionOutputs?: any;
-	}
+export type PipelineProcessorActionType = 'create' | 'delete';
+export type PipelineProcessorExecutionMode = 'inline' | 'job';
+
+
+export interface NewExecution {
+	inlineExecutionOptions?: string;
+	mode: PipelineProcessorExecutionMode;
+	actionType: PipelineProcessorActionType;
+	tags?: Record<string, string>;
+	expiration: number;
+	connectorOverrides?: {
+		[key: string]: ConnectorConfig
+	};
+}
+
+export interface Execution {
+	actionType: PipelineProcessorActionType;
+	createdAt: Date;
+	createdBy: string;
+	executionArn?: string;
+	id: string;
+	inputUploadUrl?: string;
+	pipelineId: string;
+	pipelineVersion: number;
+	auditVersion?: number;
+	connectorOverrides?: Record<string, string>;
+	status: string;
+	statusMessage: string;
+	triggerMetricAggregations?: boolean;
+	groupContextId: string;
+	updatedAt?: Date;
+	updatedBy?: string;
+	inlineExecutionOutputs?: any;
+	tags?: Record<string, string>;
+}
+
+export interface ExecutionList {
+	executions: Execution[];
+}
+
 
 
 

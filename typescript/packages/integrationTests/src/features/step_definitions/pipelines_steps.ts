@@ -138,6 +138,23 @@ Then(/^no pipeline exists with tags (.*)$/, async function (tags: string) {
 	}
 });
 
+Then(/^no connector exists with tags (.*)$/, async function (tags: string) {
+	const connectorUrl = `connectors?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;
+	await this['apickli'].sendWithAxios('GET', connectorUrl);
+	if (this['apickli'].httpResponse?.statusCode !== 404) {
+		const { connectors } = JSON.parse(this['apickli'].httpResponse.body);
+		for (const { id } of connectors) {
+			const endpoint = await clonePipelineApi();
+			endpoint.removeRequestHeader('Content-Type');
+			await endpoint.sendWithAxios('DELETE', `connectors/${id}`);
+			const statusCode = endpoint?.httpResponse?.statusCode ?? 0;
+			if (statusCode !== 204 && statusCode !== 404) {
+				fail(`Invalid response code ${statusCode} for ${connectorUrl}`);
+			}
+		}
+	}
+});
+
 
 Then(/^no referenceDatasets exists with tags (.*)$/, async function(tags: string) {
 	const referenceDatasetUrl = `referenceDatasets?tags=${tags}&count=50&includeChildGroups=true&includeParentGroups=true`;

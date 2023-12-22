@@ -24,13 +24,13 @@ import { accessManagementApiFunctionNameParameter, calculationsApiFunctionNamePa
 export type CalculationStackProperties = StackProps & {
 	tenantId: string;
 	environment: string;
-	enableDeleteResource?: boolean;
+	enableDeleteResource: boolean;
 	permittedOutgoingTenantPaths?: string;
 	externallySharedGroupIds?: string;
 };
 
 export class CalculationApiStack extends Stack {
-	constructor(scope: Construct, id: string, props?: CalculationStackProperties) {
+	constructor(scope: Construct, id: string, props: CalculationStackProperties) {
 		super(scope, id, props);
 
 		// validation
@@ -85,9 +85,9 @@ export class CalculationApiStack extends Stack {
 			tableName: base.tableName,
 			workerQueueArn: base.workerQueueArn,
 			enableDeleteResource: props.enableDeleteResource,
-			calculatorFunctionName: calculatorFunctionName,
-			permittedOutgoingTenantPaths: props?.permittedOutgoingTenantPaths,
-			externallySharedGroupIds: props?.externallySharedGroupIds,
+			calculatorFunctionName: `${calculatorFunctionName}:live`,
+			permittedOutgoingTenantPaths: props?.permittedOutgoingTenantPaths!,
+			externallySharedGroupIds: props?.externallySharedGroupIds!,
 			calculationsApiFunctionName,
 		});
 

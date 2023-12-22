@@ -1,23 +1,21 @@
 # Managing Resource Group Authorization
 
-## Introduction
+## Overview
 
-Throughout the platform, any and all resources (e.g. reference data sets, emission factors, data pipelines) are assigned to an initial group at time of creation, and have the ability to be assigned to other groups as needed post creation. This exposes a number of actions that every resource module must implement:
+This document provides guidance on how resources (like reference data sets, emission factors, and data pipelines) are associated with groups within the platform. Resources are initially linked to a group upon creation and can be associated to other groups as needed.
 
-- Verifying that a resource alternate id (e.g. `name` for calculation) is unique to its assigned groups (in contrast to the automatically created `id` which is globally unique)
-- Granting a resource access to a group upon creation
-- Granting a resource access to a group post creation
-- Revoking a resource access to a group post creation
-- Ensuring a user has acccess to the resource
-- Listing resources per group
+## Key Concepts
 
-As groups are hierarchical in nature, and for some actions a resource's hierarchical group membership needs checking against a user's hierarchical group membership (and role), where possible these checks are carried out at the data layer as part of a query to reduce the DynamoDB RCU's consumed, but where not possible that check is carried out at the application level.
+- **Resource Alternate ID**: A unique identifier for a resource within its assigned groups. This is different from the globally unique id.
+- **Group Membership**: Resources can belong to multiple groups. This membership determines access and visibility.
+- **Authorization Checks**: Ensures that a user has the necessary permissions to access a resource.
+
 
 ## Actions
 
 Substitute the reference `resources` (`R` / `RN`) as a resource such as `calculations`, `referenceDatasets`, etc.
 
-### Example DynamoDB item structure
+### DynamoDB Table Structure
 
 All of the actions described below make use of the following data access pattern:
 
@@ -44,9 +42,9 @@ description                          | siKey1        | pk       | sk
 Alternate ID uniqueness within group | `RN:<name>`  | `R:<id>` | `RN:<alternateId>:G:<groupId>`
 Group membership                     | `G:<groupId>` | `R:<id>` | `G:<groupId>`
 
-### Verifying that a resource alternate id is unique to its assigned groups
+### 1. Verifying Resource Alternate ID Uniqueness
 
-This action needs to occur as part of a validation step prior to resource creation (e.g. `POST /resources`), or a validation step prior to granting access to the resource for a group (`e.g. PUT /resources/:id/groups/:groupId`).
+Before creating a resource (e.g. `POST /resources`) or assigning it to a group (`e.g. PUT /resources/:id/groups/:groupId`), ensure its alternate ID is unique within the group.
 
 ```sql
 SELECT * FROM "table"."siKey1-sk-index"
@@ -55,16 +53,16 @@ WHERE siKey1 = 'RN:<alternateId>' AND begins_with(sk, 'RN:<alternateId>:G:<group
 
 Example:
 
-As part of validation step of creating a new calculation (`POST /calculations`) or assigning an existing calculation to an existing group (`PUT /calculations/:id/groups/:groupId`) the following query is performed to ensure its alternate id (`name`) is not already in use in the groups.
+As part of validation step of creating a new calculation (`POST /calculations`) or assigning an existing calculation to an existing group (`PUT /calculations/:id/groups/:groupId`) the following query is performed to ensure its alternate id (`name`) is not already in use within the target group.
 
 ```sql
 SELECT * FROM "table"."siKey1-sk-index"
 WHERE siKey1 = 'CA:abc123def' AND begins_with(sk, 'CA:vehicle_emissions:G:%2fusa%2fnorthwest')
 ```
 
-### Granting a resource access to a group upon creation
+### 2. Granting Resource Access to a Group
 
-As part of saving the resource (`POST /resources`), save its group membership details as well as marking that its alternate id is in use by the group.
+When creating a resource (`POST /resources`), it's essential to assign it to a group and mark its alternate ID as used by that group.
 
 The initial resource group membership:
 
@@ -80,11 +78,9 @@ INSERT INTO "table"
 value {'pk' : 'R:<id>', 'sk' : 'RN:<name>:G:<groupId>', 'siKey1' : 'RN:<name>'}
 ```
 
-Example:
+**Example:** To save a new calculation (`POST /calculations`):
 
-To save a new calculation (`POST /calculations`):
-
-The initial resource group membership:
+The initial calculation group membership:
 
 ```sql
 INSERT INTO "table"
@@ -98,25 +94,25 @@ INSERT INTO "table"
 value {'pk' : 'C:abc123def', 'sk' : 'CA:vehicle_emissions:G:%2fusa%2fnorthwest', 'siKey1' : 'CA:vehicle_emissions'}
 ```
 
-### Granting a resource access to a group post creation
+### 3. Assigning Resource to Additional Groups
 
-Existing resources may be assigned to other groups via `PUT /resources/:id/groups/:groupId`. This would be a multi-step process:
+Existing resources can be linked to other groups. This involves:
 
-1. [Verifying that a resource alternate id is unique to its assigned groups](#Verifying-that-a-resource-alternate-id-is-unique-to-its-assigned-groups).
-2. [Granting a resource access to a group upon creation](#granting-a-resource-access-to-a-group-upon-creation).
+- [Verifying the alternate ID's uniqueness](#1-verifying-resource-alternate-id-uniqueness).
+- [Granting access to the new group](#2-granting-resource-access-to-a-group).
 
-### Revoking a resource access to a group post creation
+### 4. Revoking Resource Access from a Group
 
-To revoke access to a resource by a group (`DELETE /resources/:id/groups/:groupId`):
+To remove a resource from a group (e.g. `DELETE /resources/:id/groups/:groupId`):
 
-First ensure that the resource will still have at least 1 other group remaining. If not the action should be prevented:
+1. Ensure the resource belongs to at least one other group.
 
 ```sql
 SELECT * from "table"
 WHERE pk = 'R:<id>' AND begins_with(sk, 'G:')
 ```
 
-Next, remove both the group membership item and the alternate id uniqueness check as part of a transaction:
+2. Remove the group membership and alternate ID uniqueness check.
 
 ```sql
 DELETE FROM "table"
@@ -128,18 +124,16 @@ DELETE FROM "table"
 WHERE "pk" = 'R:<id>' AND "sk" = 'RN:G:<groupId>'
 ```
 
-Example:
+**Example:** To remove a calculation from a group using `DELETE /calculations/abc123def/groups/%2fusa%2fnorthwest`:
 
-To remove a calculation from a group using `DELETE /calculations/abc123def/groups/%2fusa%2fnorthwest`:
-
-First ensure at least 1 group membership will be remaining:
+1. Ensure the calculation belongs to at least one other group.
 
 ```sql
 SELECT * from "table"
 WHERE pk = 'C:abc123def' AND begins_with(sk, 'G:')
 ```
 
-If ok to proceed perform the deletion as a transaction:
+2. Remove the group membership and alternate ID uniqueness check.
 
 ```sql
 DELETE FROM "table"
@@ -151,13 +145,11 @@ DELETE FROM "table"
 WHERE "pk" = 'C:abc123def' AND "sk" = 'CA:G:%2fusa%2fnorthwest'
 ```
 
-### Ensuring a user has acccess to the resource
+### 5. User Authorization for Resource Access
 
-Refer to the main [README](../README.md) for details of how users are granted access to a group, and how the authorization details (email, allowed groups, and active groip context) are provided to the rest api handlers for use.
+All REST endpoints should perform authorization checks. Their swagger definition will specify the required authorization level. The resource REST API module should use the `@sif/authz` library for these checks.
 
-All REST endpoints should perform authorization checks. The swagger definition should describe the level of authorization check. The resource REST API module should import the authz plugin from the `@sif/authz` library to add the authorization details to the request. As part of the action implementation at the service layer the `@sif/authz` library should be to carry out the authorization check itself.
-
-Example:
+**Example:**
 
 Within the calculations module `app.ts` the authz plugin is registered:
 
@@ -200,36 +192,34 @@ public async create(securityContext: SecurityContext, calculation: NewCalculatio
 }
 ```
 
-### Listing resources per group
+### 6. Listing Resources by Group
 
-The REST list endpoints should infer the active group context from the provided `x-activegroupid` request header. To retrieve the data would be a multi-step process as follows:
+To list resources for a specific group:
 
-Step 1: Find resource ids assigned to group:
+1. Identify resource IDs linked to the group.
 
 ```sql
 SELECT pk FROM "table"."siKey1-sk-index"
 WHERE sk = 'G:<groupId>'
 ```
 
-Step 2: retrieve the resources per page of group results:
+2. Retrieve the resources based on the identified IDs.
 
 ```sql
 SELECT * FROM "table"
 WHERE pk IN ['R:<id>', 'R:<id>', ...]
 ```
 
-Example:
+**Example:** Given the user is attempting to list all calculations for the group `/usa/northwest` which they are in the context of, using `GET /calculations` required the following:
 
-Given the user is attempting to list all calculations for the group `/usa/northwest` which they are in the context of, using `GET /calculations` required the following:
-
-Step 1: Find calculation ids assigned to group:
+1. Identify calculation IDs linked to the group.
 
 ```sql
 SELECT pk FROM "table"."siKey1-sk-index"
 WHERE sk = 'G:%2fusa%2fnorthwest'
 ```
 
-Step 2: retrieve the calculatios per page of group results:
+2. Retrieve the calculations based on the identified IDs.
 
 ```sql
 SELECT * FROM "table"

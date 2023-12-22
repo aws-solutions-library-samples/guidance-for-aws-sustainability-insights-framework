@@ -18,7 +18,7 @@ import type { PipelineClient } from '@sif/clients';
 import { HeadObjectCommand, HeadObjectCommandInput, S3Client } from '@aws-sdk/client-s3';
 import type { Pipeline } from '@sif/clients';
 import type { ActionType } from '@sif/clients';
-import type { GetLambdaRequestContext, GetSecurityContext } from '../../plugins/module.awilix.js';
+import type { GetLambdaRequestContext } from '../../plugins/module.awilix.js';
 
 export class VerifyTask {
 	private readonly log: BaseLogger;
@@ -26,23 +26,22 @@ export class VerifyTask {
 	private readonly s3Client: S3Client;
 	private readonly pipelineClient: PipelineClient;
 	private readonly pipelineProcessorsService: PipelineProcessorsService;
-	private readonly getSecurityContext: GetSecurityContext;
 	private readonly getLambdaRequestContext: GetLambdaRequestContext;
 
-	constructor(log: BaseLogger, pipelineClient: PipelineClient, pipelineProcessorsService: PipelineProcessorsService, s3Client: S3Client, getSecurityContext: GetSecurityContext, chunkSize: number, getLambdaRequestContext: GetLambdaRequestContext) {
+	constructor(log: BaseLogger, pipelineClient: PipelineClient, pipelineProcessorsService: PipelineProcessorsService, s3Client: S3Client,
+				chunkSize: number, getLambdaRequestContext: GetLambdaRequestContext) {
 		this.chunkSize = chunkSize;
 		this.s3Client = s3Client;
 		this.pipelineClient = pipelineClient;
 		this.log = log;
 		this.pipelineProcessorsService = pipelineProcessorsService;
-		this.getSecurityContext = getSecurityContext;
 		this.getLambdaRequestContext = getLambdaRequestContext;
 	}
 
 	private async createCalculationChunks(inputFileLocation: S3Location, chunkSize: number): Promise<CalculationChunk[]> {
 		const params: HeadObjectCommandInput = {
 			Bucket: inputFileLocation.bucket,
-			Key: inputFileLocation.key,
+			Key: inputFileLocation.key
 		};
 
 		const response = await this.s3Client.send(new HeadObjectCommand(params));
@@ -71,11 +70,9 @@ export class VerifyTask {
 	public async process(event: VerificationTaskEvent): Promise<VerificationTaskOutput> {
 		this.log.info(`VerifyTask > process > event : ${JSON.stringify(event)}`);
 
-		const { pipelineId, executionId: executionId, source, pipelineType } = event;
+		const { securityContext, pipelineId, executionId: executionId, source, pipelineType } = event;
 
-		const securityContext = await this.getSecurityContext(executionId);
-
-		const { groupContextId, pipelineVersion, actionType } = await this.pipelineProcessorsService.get(securityContext, executionId);
+		const {  pipelineVersion, actionType, triggerMetricAggregations } = await this.pipelineProcessorsService.get(securityContext, executionId);
 
 		let pipelineConfiguration: Pipeline;
 
@@ -85,7 +82,7 @@ export class VerifyTask {
 			const errorMessage = `Pipeline configuration '${pipelineId}' not found.`;
 			await this.pipelineProcessorsService.update(securityContext, pipelineId, executionId, {
 				status: 'failed',
-				statusMessage: errorMessage,
+				statusMessage: errorMessage
 			});
 			throw error;
 		}
@@ -100,11 +97,12 @@ export class VerifyTask {
 			context: {
 				pipelineId,
 				executionId,
-				groupContextId,
+				triggerMetricAggregations,
+				pipelineType,
 				actionType: actionType as ActionType,
 				transformer: pipelineConfiguration.transformer,
 				pipelineCreatedBy: pipelineConfiguration.createdBy,
-				pipelineType
+				security: securityContext
 			}
 		};
 

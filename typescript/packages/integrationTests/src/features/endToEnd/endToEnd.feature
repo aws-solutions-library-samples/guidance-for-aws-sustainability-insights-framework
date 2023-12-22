@@ -173,10 +173,19 @@ Feature:
 			| 3/1/22       | 55432   | JUL   | 120.2 |
 			| 4/1/22       | 52172   | AUG   | 98.7  |
 			| 5/1/22       | 75001   | AUG   | 153.8 |
-		Then I pause for 50000ms
+		Then I pause for 20000ms
 		When I GET /pipelines/`e2e_pipeline_id`/executions/`household_electricity_carbon_footprint_pipeline_execution_id`
 		Then response code should be 200
 		And response body path $.status should be success
+
+	Scenario: Should return 409 when trying to retrieve outputDownloadUrl
+		Given I'm using the pipelineProcessor api
+		And I authenticate using email e2e_tests_admin@amazon.com and password p@ssword1
+		And I set x-groupcontextid header to /e2e
+		And I set body to { "expiration" : 300}
+		When I POST to /pipelines/`e2e_pipeline_id`/executions/`household_electricity_carbon_footprint_pipeline_execution_id`/outputDownloadUrl
+		Then response code should be 409
+		And response body path $.message should be `e2e_pipeline_id` does not generate raw output file.
 
 	Scenario: Retrieve and Validate Output
 		Given I'm using the pipelineProcessor api

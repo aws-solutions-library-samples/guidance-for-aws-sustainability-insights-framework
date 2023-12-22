@@ -13,7 +13,8 @@
 		"ignoreDeprecations": "5.0",
 		// overrides of extends
 		"strict": false,
-		"exactOptionalPropertyTypes": false
+		"exactOptionalPropertyTypes": false,
+		"strictNullChecks": true,
 	},
 	"include": [
 		"src/**/*.ts"

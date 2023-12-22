@@ -41,6 +41,24 @@ export class Utils {
 		return this.appendDelimiter(groupId).startsWith(this.appendDelimiter(parentGroupId)) && this.appendDelimiter(groupId) !== this.appendDelimiter(parentGroupId);
 	}
 
+	public checkIfGroupsLeavesOverlap(firstGroups: string[], secondGroups: string[]): boolean {
+		for (const firstGroup of firstGroups) {
+			for (const secondGroup of secondGroups) {
+				if (firstGroup === secondGroup) {
+					return true;
+				}
+				if (this.isChildOf(firstGroup, secondGroup)) {
+					return true;
+				}
+				if (this.isChildOf(secondGroup, firstGroup)) {
+					return true;
+				}
+
+			}
+		}
+		return false;
+	}
+
 	public encodeToPaginationToken(from: ListIdsPaginationKey): ListIdsPaginationTokenKey {
 		if (!from?.id) return undefined;
 

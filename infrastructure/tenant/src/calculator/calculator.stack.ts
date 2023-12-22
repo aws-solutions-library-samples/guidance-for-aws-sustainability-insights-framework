@@ -46,7 +46,7 @@ export type CalculatorStackProperties = StackProps & {
 export const camlInferenceEndpointNameParameter = (environment: string) => `/sif/shared/${environment}/caml/inferenceEndpointName`;
 
 export class CalculatorApiStack extends Stack {
-	constructor(scope: Construct, id: string, props?: CalculatorStackProperties) {
+	constructor(scope: Construct, id: string, props: CalculatorStackProperties) {
 		super(scope, id, props);
 
 		// validation

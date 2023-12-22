@@ -14,30 +14,32 @@
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from '../../app.light';
-import type { ProcessedTaskEventWithExecutionDetails, RawResultProcessorTaskHandler } from '../tasks/model.js';
+import type { ImpactCreationTaskEvent, RawResultProcessorTaskHandler } from '../tasks/model.js';
 import type { RawResultProcessorTask } from '../tasks/rawResultProcessorTask.js';
-import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { GetSecurityContext } from '../../plugins/module.awilix.js';
 import { validateNotEmpty } from '@sif/validators';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
 const task = di.resolve<RawResultProcessorTask>('rawResultProcessorTask');
-const service = di.resolve<PipelineProcessorsService>('pipelineProcessorsService');
-const getSecurityContext = di.resolve<GetSecurityContext>('getSecurityContext');
 
-export const handler: RawResultProcessorTaskHandler = async (event, _context, _callback): Promise<ProcessedTaskEventWithExecutionDetails> => {
+export const handler: RawResultProcessorTaskHandler = async (event, _context, _callback): Promise<ImpactCreationTaskEvent> => {
 	app.log.debug(`rawResultProcessorLambda > handler > event:${JSON.stringify(event)}`);
+
 	validateNotEmpty(event, 'event');
-	validateNotEmpty(event.inputs, 'inputs');
-	validateNotEmpty(event.inputs[0].executionId, 'executionId');
-	validateNotEmpty(event.inputs[0].pipelineId, 'pipelineId');
-	const { executionId, pipelineId } = event.inputs[0];
-	// process the result
-	const [status, statusMessage] = await task.process(event);
-	// set the status
-	await service.update(await getSecurityContext(executionId), pipelineId, executionId, { status, statusMessage });
-	app.log.debug(`rawResultProcessorLambda > handler > exit:`);
-	return event;
+	validateNotEmpty(event?.inputs?.[0]?.context?.executionId, 'executionId');
+	validateNotEmpty(event?.inputs?.[0]?.context?.pipelineId, 'pipelineId');
+	validateNotEmpty(event?.inputs?.[0]?.context?.pipelineType, 'pipelineType');
+	validateNotEmpty(event?.inputs?.[0]?.context?.security, 'security');
+
+	const { executionId, pipelineId, pipelineType, security } = event.inputs[0].context;
+
+	const sequenceList = event.inputs.map(o => o.calculatorTransformResponse?.sequence);
+	const errorLocationList = event.inputs.filter(o => o.calculatorTransformResponse?.errorLocation !== undefined).map(o => o.calculatorTransformResponse?.errorLocation);
+
+	await task.process({ security, executionId, pipelineType, pipelineId, sequenceList, errorLocationList });
+
+	const resultEvent = { pipelineId, executionId, errorLocationList, sequenceList, pipelineType, security };
+	app.log.debug(`rawResultProcessorLambda > handler > exit: ${resultEvent}`);
+	return resultEvent;
 };

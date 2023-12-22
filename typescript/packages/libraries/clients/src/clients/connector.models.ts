@@ -64,6 +64,29 @@ export interface ConnectorIntegrationResponseEvent {
 	statusMessage: string,
 	securityContext?: SecurityContext;
 	pipelineType: PipelineType;
+	fileName?: string;
+}
+export type ConnectorSetupType = 'create'| 'delete' | 'update';
+export interface ConnectorSetupRequestEvent {
+	pipelineId: string,
+	group: string,
+	type: ConnectorSetupType,
+	connector: {
+		name: string,
+		parameters: Record<string, any>;
+	}
+}
+
+export interface ConnectorSetupResponseEvent {
+	pipelineId: string,
+	group: string,
+	type: ConnectorSetupType,
+	status: 'success' | 'error',
+	statusMessage: string,
+	connector: {
+		name: string,
+		parameters: Record<string, any>;
+	}
 }
 
 export enum SecurityScope {

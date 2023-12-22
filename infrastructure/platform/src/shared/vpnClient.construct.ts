@@ -15,12 +15,14 @@ import { CfnClientVpnTargetNetworkAssociation, CfnClientVpnEndpoint, CfnClientVp
 import * as certManager from 'aws-cdk-lib/aws-certificatemanager';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
+import type { SifVpcConfig } from './network.construct';
 
 export interface VpnConstructProperties {
 	environment: string;
 	certArn: string;
 	clientArn: string;
 	vpc: IVpc;
+	sifVpcConfig: SifVpcConfig;
 	auroraSecurityGroup: SecurityGroup;
 }
 
@@ -28,14 +30,14 @@ export class VpnClient extends Construct {
 	// creating server and clients certs is best done by following the AWS page on:
 	// https://docs.aws.amazon.com/de_de/vpn/latest/clientvpn-admin/authentication-authorization.html#mutual
 
-	constructor(scope: Construct, id: string, props?: VpnConstructProperties) {
+	constructor(scope: Construct, id: string, props: VpnConstructProperties) {
 		super(scope, id);
 
 		const clientCert = certManager.Certificate.fromCertificateArn(this, 'ClientCertificate', props.clientArn);
 		const serverCert = certManager.Certificate.fromCertificateArn(this, 'ServerCertificate', props.certArn);
 
 		const logGroup = new logs.LogGroup(this, 'ClientVpnLogGroup', {
-			retention: logs.RetentionDays.ONE_MONTH,
+			retention: logs.RetentionDays.ONE_MONTH
 		});
 
 		const logStream = logGroup.addStream('ClientVpnLogStream');
@@ -44,7 +46,7 @@ export class VpnClient extends Construct {
 			vpc: props.vpc,
 			description: `vpn-client-sg-${props.environment}`,
 			securityGroupName: `vpn-client-sg-${props.environment}`,
-			allowAllOutbound: true,
+			allowAllOutbound: true
 		});
 
 		const endpoint = new CfnClientVpnEndpoint(this, 'ClientVpnEndpoint2', {
@@ -56,9 +58,9 @@ export class VpnClient extends Construct {
 				{
 					type: 'certificate-authentication',
 					mutualAuthentication: {
-						clientRootCertificateChainArn: clientCert.certificateArn,
-					},
-				},
+						clientRootCertificateChainArn: clientCert.certificateArn
+					}
+				}
 			],
 			tagSpecifications: [
 				{
@@ -66,28 +68,28 @@ export class VpnClient extends Construct {
 					tags: [
 						{
 							key: 'Name',
-							value: `sif-${props.environment} Client VPN`,
-						},
-					],
-				},
+							value: `sif-${props.environment} Client VPN`
+						}
+					]
+				}
 			],
 			clientCidrBlock: '10.1.132.0/22',
 			connectionLogOptions: {
 				enabled: true,
 				cloudwatchLogGroup: logGroup.logGroupName,
-				cloudwatchLogStream: logStream.logStreamName,
+				cloudwatchLogStream: logStream.logStreamName
 			},
 			serverCertificateArn: serverCert.certificateArn,
 			splitTunnel: true,
-			dnsServers: ['8.8.8.8', '8.8.4.4'],
+			dnsServers: ['8.8.8.8', '8.8.4.4']
 		});
 
 		let i = 0;
 		const dependables: CfnClientVpnTargetNetworkAssociation[] = [];
-		props?.vpc.privateSubnets.map((subnet) => {
+		props?.sifVpcConfig.privateSubnetIds.map((id) => {
 			let networkAsc = new CfnClientVpnTargetNetworkAssociation(this, 'ClientVpnNetworkAssociation-' + i, {
 				clientVpnEndpointId: endpoint.ref,
-				subnetId: subnet.subnetId,
+				subnetId: id
 			});
 			dependables.push(networkAsc);
 			i++;
@@ -97,16 +99,16 @@ export class VpnClient extends Construct {
 			clientVpnEndpointId: endpoint.ref,
 			targetNetworkCidr: '0.0.0.0/0',
 			authorizeAllGroups: true,
-			description: 'Allow all',
+			description: 'Allow all'
 		});
 
 		let x = 0;
-		props?.vpc.privateSubnets.map((_subnet) => {
+		props?.sifVpcConfig.privateSubnetIds.map((_id) => {
 			const route = new CfnClientVpnRoute(this, `CfnClientVpnRoute${x}`, {
 				clientVpnEndpointId: endpoint.ref,
 				destinationCidrBlock: '0.0.0.0/0',
 				description: 'Route to all',
-				targetVpcSubnetId: props?.vpc.privateSubnets[x].subnetId!,
+				targetVpcSubnetId: props.sifVpcConfig.privateSubnetIds[x]!
 			});
 			dependables.map((o) => route.addDependsOn(o));
 			x++;

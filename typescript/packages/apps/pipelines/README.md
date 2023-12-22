@@ -2,8 +2,24 @@
 
 ## Introduction
 
-The _Pipelines_ module provides functionality to configure data transformation pipelines. The pipelines configuration specifies how an incoming data feed needs to be transformed to
-achieve the desired output. The walk-through(s) below dive deep into defining pipelines based on different use-cases.
+The Pipelines module allows you to set up data transformation workflows. By configuring a pipeline, you can dictate how to process incoming data to produce the desired results.
+
+Designing a pipeline involves the following steps:
+
+1. Configure the source of data (which input data connector to use).
+1. Specify the format of the incoming data.
+1. Outline the necessary transformations to achieve your desired output (for instance, computing CO₂e based on the given input).
+1. If needed, aggregate the data for consolidated views.
+1. Optionally, designate certain outputs to be monitored as key performance indicators (metrics).
+
+## Data Input Connectors
+
+A data input connector instructs SIF how to connect to a specific data source in order to retrieve the data for processing. Out of the box SIF includes the following connectors:
+
+- `sif-csv-pipeline-input-connector`: allows ingesting data stored as CSV
+- `sif-clean-rooms-pipeline-input-connector`: allows ingesting data stored as CSV
+
+
 
 ## Walk-through(s)
 - [Simple Area of Shape Transformation](./docs/simple-area-of-shape-transformation.md)

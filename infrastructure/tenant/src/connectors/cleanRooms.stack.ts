@@ -27,7 +27,7 @@ export type CleanRoomsConnectorStackProperties = StackProps & {
 };
 
 export class CleanRoomsConnectorStack extends Stack {
-	constructor(scope: Construct, id: string, props?: CleanRoomsConnectorStackProperties) {
+	constructor(scope: Construct, id: string, props: CleanRoomsConnectorStackProperties) {
 		super(scope, id, props);
 
 		// validation

@@ -41,35 +41,37 @@ export const acquireLockSqsQueueArnParameter = (environment: string) => `/sif/sh
 export const releaseLockSqsQueueArnParameter = (environment: string) => `/sif/shared/${environment}/semaphore/releaseLockSqsQueueArn`;
 
 export class Semaphore extends Construct {
-	public tableName: string;
+	public eventBus: EventBus;
+	public table: Table;
 
-	constructor(scope: Construct, id: string, props?: SemaphoreConstructProperties) {
+	constructor(scope: Construct, id: string, props: SemaphoreConstructProperties) {
 		super(scope, id);
 
 		const namePrefix = `sif-${props.environment}`;
 
-		const semaphoreEventBus = new EventBus(this, 'semaphoreEventBus', {
-			eventBusName: namePrefix,
+		this.eventBus = new EventBus(this, 'semaphoreEventBus', {
+			eventBusName: namePrefix
 		});
+
 
 		new ssm.StringParameter(this, 'eventBusNameParameter', {
 			parameterName: eventBusNameParameter(props.environment),
-			stringValue: semaphoreEventBus.eventBusName,
+			stringValue: this.eventBus.eventBusName
 		});
 
 		const semaphoreTable = new Table(this, 'Table', {
 			tableName: `${namePrefix}-semaphore`,
 			partitionKey: {
 				name: 'pk',
-				type: AttributeType.STRING,
+				type: AttributeType.STRING
 			},
 			billingMode: BillingMode.PAY_PER_REQUEST,
 			encryption: TableEncryption.AWS_MANAGED,
 			pointInTimeRecovery: true,
-			removalPolicy: RemovalPolicy.DESTROY,
+			removalPolicy: RemovalPolicy.DESTROY
 		});
 
-		this.tableName = semaphoreTable.tableName;
+		this.table = semaphoreTable;
 
 		/**
 		 * Queue for releasing lock operation and its DLQ
@@ -90,13 +92,13 @@ export class Semaphore extends Construct {
 				sourceMap: false,
 				sourcesContent: false,
 				banner: 'import { createRequire } from \'module\';const require = createRequire(import.meta.url);import { fileURLToPath } from \'url\';import { dirname } from \'path\';const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);',
-				externalModules: ['aws-sdk'],
+				externalModules: ['aws-sdk']
 			},
 			/*
 			 * Semgrep issue https://sg.run/OPqk
 			 * Ignore reason: there is no risk of path traversal in this context
 			 */
-			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml'), // nosemgrep
+			depsLockFilePath: path.join(__dirname, '../../../../common/config/rush/pnpm-lock.yaml') // nosemgrep
 		};
 
 		releaseLockDlqQueue.addToResourcePolicy(new PolicyStatement({
@@ -117,10 +119,10 @@ export class Semaphore extends Construct {
 			queueName: `${namePrefix}-release-lock.fifo`,
 			deadLetterQueue: {
 				maxReceiveCount: 3,
-				queue: releaseLockDlqQueue,
+				queue: releaseLockDlqQueue
 			},
 			fifo: true,
-			visibilityTimeout: Duration.seconds(20),
+			visibilityTimeout: Duration.seconds(20)
 		});
 
 		releaseLockQueue.addToResourcePolicy(new PolicyStatement({
@@ -138,7 +140,7 @@ export class Semaphore extends Construct {
 
 		new StringParameter(this, `ReleaseLockSqsQueueArnParameter`, {
 			parameterName: releaseLockSqsQueueArnParameter(props.environment),
-			stringValue: releaseLockQueue.queueArn,
+			stringValue: releaseLockQueue.queueArn
 		});
 
 
@@ -168,9 +170,9 @@ export class Semaphore extends Construct {
 			fifo: true,
 			deadLetterQueue: {
 				maxReceiveCount: 5,
-				queue: acquireLockDlqQueue,
+				queue: acquireLockDlqQueue
 			},
-			visibilityTimeout: Duration.seconds(20),
+			visibilityTimeout: Duration.seconds(20)
 		});
 
 		acquireLockQueue.addToResourcePolicy(new PolicyStatement({
@@ -188,7 +190,7 @@ export class Semaphore extends Construct {
 
 		new StringParameter(this, `AcquireLockSqsQueueArnParameter`, {
 			parameterName: acquireLockSqsQueueArnParameter(props.environment),
-			stringValue: acquireLockQueue.queueArn,
+			stringValue: acquireLockQueue.queueArn
 		});
 
 		/**
@@ -211,12 +213,12 @@ export class Semaphore extends Construct {
 				LOCK_NAME: props.lockName,
 				RELEASE_LOCK_QUEUE_URL: releaseLockQueue.queueUrl,
 				RDS_CONCURRENCY_LIMIT: props.rdsConcurrencyLimit.toString(),
-				ENVIRONMENT_EVENT_BUS: semaphoreEventBus.eventBusName
+				ENVIRONMENT_EVENT_BUS: this.eventBus.eventBusName
 			},
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
-		semaphoreEventBus.grantPutEventsTo(lockGarbageCollectorLambda);
+		this.eventBus.grantPutEventsTo(lockGarbageCollectorLambda);
 		semaphoreTable.grantReadWriteData(lockGarbageCollectorLambda);
 		releaseLockQueue.grantSendMessages(lockGarbageCollectorLambda);
 
@@ -226,8 +228,8 @@ export class Semaphore extends Construct {
 				detail: {
 					'status': ['ABORTED', 'TIMED_OUT', 'FAILED'],
 					'stateMachineArn': [{ suffix: 'activityPipeline' }]
-				},
-			},
+				}
+			}
 		});
 
 		const lockGarbageCollectorDlqQueue = new Queue(this, 'LockGarbageCollectorDlqQueue');
@@ -248,7 +250,7 @@ export class Semaphore extends Construct {
 			new LambdaFunction(lockGarbageCollectorLambda, {
 				deadLetterQueue: lockGarbageCollectorDlqQueue,
 				maxEventAge: Duration.minutes(5),
-				retryAttempts: 2,
+				retryAttempts: 2
 			})
 		);
 
@@ -272,9 +274,9 @@ export class Semaphore extends Construct {
 				LOCK_NAME: props.lockName,
 				RDS_CONCURRENCY_LIMIT: props.rdsConcurrencyLimit.toString(),
 				RELEASE_LOCK_QUEUE_URL: releaseLockQueue.queueUrl,
-				ACQUIRE_LOCK_QUEUE_URL: acquireLockQueue.queueUrl,
+				ACQUIRE_LOCK_QUEUE_URL: acquireLockQueue.queueUrl
 			},
-			architecture: getLambdaArchitecture(scope),
+			architecture: getLambdaArchitecture(scope)
 		});
 
 		semaphoreTable.grantReadWriteData(queueManagerLambda);
@@ -289,17 +291,17 @@ export class Semaphore extends Construct {
 				'states:SendTaskSuccess',
 				'states:DescribeExecution'
 			],
-			resources: ['*'],
+			resources: ['*']
 		}));
 
 		const pipelineProcessorsLockRule = new Rule(this, 'PipelineProcessorsLockRule', {
-			eventBus: semaphoreEventBus,
+			eventBus: this.eventBus,
 			eventPattern: {
 				source: ['com.aws.sif.pipelineProcessors', 'com.aws.sif.queueGarbageCollector'],
 				detailType: [
 					'SIF>com.aws.sif.pipelineProcessors>semaphoreLock'
 				]
-			},
+			}
 		});
 
 		const queueManagerDlqQueue = new Queue(this, 'QueueManagerDlqQueue');
@@ -321,7 +323,7 @@ export class Semaphore extends Construct {
 			new LambdaFunction(queueManagerLambda, {
 				deadLetterQueue: queueManagerDlqQueue,
 				maxEventAge: Duration.minutes(5),
-				retryAttempts: 2,
+				retryAttempts: 2
 			})
 		);
 
@@ -331,7 +333,7 @@ export class Semaphore extends Construct {
 					id: 'AwsSolutions-SQS3',
 					reason: 'This is the dead letter queue.'
 
-				},
+				}
 			],
 			true);
 

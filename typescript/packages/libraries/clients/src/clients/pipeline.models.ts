@@ -19,7 +19,9 @@ export interface Transform {
 	outputs: TransformOutput[];
 }
 
-export type PipelineType = 'activities' | 'data' | 'impacts'
+export type PipelineType = 'activities' | 'data' | 'impacts';
+
+export type PipelineState = 'enabled' | 'disabled' | 'frozen';
 
 export interface TransformOutput {
 	index: number;
@@ -53,9 +55,19 @@ export interface Pipeline {
 	createdBy: string;
 	processorOptions?: {
 		chunkSize?: number;
+		triggerMetricAggregations?: boolean;
 	};
 	_aggregatedOutputKeyAndTypeMap: Record<string, string>;
 	type: PipelineType;
+}
+
+export interface EditPipeline{
+		activeAt?: Date,
+		attributes?: Record<string, string>,
+		description?: string,
+		name?: string,
+		connectorConfig?: PipelineConnectorConfig,
+		state?: PipelineState,
 }
 
 export interface PipelineVersionList {

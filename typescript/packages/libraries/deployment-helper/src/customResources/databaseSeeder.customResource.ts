@@ -18,7 +18,6 @@ import * as fs from 'fs';
 import type { DatabaseSeederRepository } from './databaseSeeder.repository.js';
 import type { RDSClient } from '@aws-sdk/client-rds';
 import { DescribeDBProxiesCommand, ModifyDBProxyCommand } from '@aws-sdk/client-rds';
-import { DeleteRolePolicyCommand, IAMClient, PutRolePolicyCommand } from '@aws-sdk/client-iam';
 import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 // @ts-ignore
 import ow from 'ow';
@@ -31,27 +30,18 @@ export class DatabaseSeederCustomResource implements CustomResource {
 	private readonly secretsManagerClient: SecretsManagerClient;
 	private readonly databaseSeederRepository: DatabaseSeederRepository;
 	private readonly rdsClient: RDSClient;
-	private readonly iamClient: IAMClient;
 	private readonly proxyName: string;
-	private readonly tenantId: string;
-	private readonly environment: string;
-	private readonly tenantPolicyName: string;
 	private readonly databaseSeederContainer: DatabaseSeederContainer;
 
 	constructor(logger: Logger, databaseSeederRepository: DatabaseSeederRepository,
-				rdsClient: RDSClient, iamClient: IAMClient,
-				secretsManagerClient: SecretsManagerClient, proxyName: string, tenantId: string,
-				environment: string, extractCustomResourceArtifacts: ExtractCustomResourceArtifacts, databaseSeederContainer: DatabaseSeederContainer) {
+				rdsClient: RDSClient, secretsManagerClient: SecretsManagerClient, proxyName: string,
+				extractCustomResourceArtifacts: ExtractCustomResourceArtifacts, databaseSeederContainer: DatabaseSeederContainer) {
 		this.extractCustomResourceArtifacts = extractCustomResourceArtifacts;
 		this.logger = logger;
 		this.secretsManagerClient = secretsManagerClient;
 		this.rdsClient = rdsClient;
-		this.iamClient = iamClient;
 		this.databaseSeederRepository = databaseSeederRepository;
 		this.proxyName = proxyName;
-		this.tenantId = tenantId;
-		this.environment = environment;
-		this.tenantPolicyName = `get-${this.tenantId}-${this.environment}-secret`;
 		this.databaseSeederContainer = databaseSeederContainer;
 	}
 
@@ -81,7 +71,6 @@ export class DatabaseSeederCustomResource implements CustomResource {
 		// Only add secret to RDS proxy if it does not exist
 		if (!currentProxy.Auth.find((o) => o.SecretArn === secretArn)) {
 			this.logger.debug(`databaseSeeder.customResource > attachSecretToRdsProxy > adding tenant secret ${secretArn} to proxy ${this.proxyName}`);
-
 			const modifyProxyResponse = await this.rdsClient.send(
 				new ModifyDBProxyCommand({
 					DBProxyName: this.proxyName,
@@ -97,32 +86,13 @@ export class DatabaseSeederCustomResource implements CustomResource {
 			);
 			this.logger.debug(`databaseSeeder.customResource > attachSecretToRdsProxy > modifyProxyResponse : ${modifyProxyResponse}`);
 		}
-
-		const roleName = currentProxy.RoleArn.split('/')[1];
-		const policyDocument = {
-			Version: '2012-10-17',
-			Statement: [
-				{
-					Action: ['secretsmanager:DescribeSecret', 'secretsmanager:GetSecretValue'],
-					Resource: `${secretArn}`,
-					Effect: 'Allow',
-				},
-			],
-		};
-
-		this.logger.debug(`databaseSeeder.customResource > attachSecretToRdsProxy > add or modify policy ${this.tenantPolicyName}`);
-		await this.iamClient.send(new PutRolePolicyCommand({ RoleName: roleName, PolicyName: this.tenantPolicyName, PolicyDocument: JSON.stringify(policyDocument) }));
 		this.logger.debug(`databaseSeeder.customResource > attachSecretToRdsProxy > exit :`);
 	};
 
 	public async detachSecretFromRdsProxy(secretArn: string) {
 		this.logger.debug(`databaseSeeder.customResource > detachSecretFromRdsProxy > secretArn : ${secretArn}`);
-
 		const proxy = await this.rdsClient.send(new DescribeDBProxiesCommand({ DBProxyName: this.proxyName }));
 		const currentProxy = proxy?.DBProxies?.[0];
-		// Remove the policy from the IAM role
-		const roleName = currentProxy.RoleArn.split('/')[1];
-		await this.iamClient.send(new DeleteRolePolicyCommand({ RoleName: roleName, PolicyName: this.tenantPolicyName }));
 		// Remove the secret attachment from the RDS proxy
 		const auth = currentProxy.Auth.filter((o) => o.SecretArn !== secretArn);
 		await this.rdsClient.send(

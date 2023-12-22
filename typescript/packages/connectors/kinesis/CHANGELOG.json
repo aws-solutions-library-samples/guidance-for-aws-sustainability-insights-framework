@@ -1,0 +1,28 @@
+{
+  "name": "@sif/kinesis-pipeline-input-connector",
+  "entries": [
+    {
+      "version": "1.1.0",
+      "tag": "@sif/kinesis-pipeline-input-connector_v1.1.0",
+      "date": "Wed, 13 Dec 2023 02:37:37 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Added new functionality for kinesis connector"
+          }
+        ],
+        "dependency": [
+          {
+            "comment": "Updating dependency \"@sif/clients\" to `1.8.0`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/connector-utils\" to `1.2.3`"
+          },
+          {
+            "comment": "Updating dependency \"@sif/events\" to `1.2.0`"
+          }
+        ]
+      }
+    }
+  ]
+}
