@@ -19,31 +19,25 @@ import { userPoolIdParameter } from '../shared/cognito.construct.js';
 import { eventBusNameParameter } from '../shared/eventbus.construct.js';
 import { bucketNameParameter } from '../shared/s3.construct.js';
 import {
-	rdsProxyWriterEndpointParameter,
-	rdsProxySecurityGroupParameter,
-	vpcIdParameter,
-	rdsProxyArnParameter,
 	acquireLockSqsQueueArnParameter,
+	environmentEventBusNameParameter,
+	rdsProxyArnParameter,
+	rdsProxySecurityGroupParameter,
+	rdsProxyWriterEndpointParameter,
 	releaseLockSqsQueueArnParameter,
-	environmentEventBusNameParameter
+	vpcIdParameter
 } from '../shared/sharedTenant.stack.js';
-import {
-	activityBooleanValueTableParameter,
-	activityDateTimeValueTableParameter,
-	activityNumberValueTableParameter,
-	activityStringValueTableParameter,
-	activityTableParameter,
-	tenantDatabaseNameParameter,
-	tenantDatabaseUsernameParameter
-} from '../shared/auroraSeeder.construct.js';
+import { tenantDatabaseNameParameter, tenantDatabaseUsernameParameter } from '../shared/auroraSeeder.construct.js';
 import { NagSuppressions } from 'cdk-nag';
 import {
 	accessManagementApiFunctionNameParameter,
 	auditLogDepositorDatabaseNameParameter,
 	auditLogDepositorTableNameParameter,
-	calculatorFunctionNameParameter, impactsApiFunctionNameParameter,
+	calculatorFunctionNameParameter,
+	impactsApiFunctionNameParameter,
 	pipelineProcessorApiFunctionNameParameter,
-	pipelinesApiFunctionNameParameter
+	pipelinesApiFunctionNameParameter,
+	referenceDatasetsApiFunctionNameParameter
 } from '../shared/ssm.construct.js';
 import { kmsKeyArnParameter } from '../shared/kms.construct.js';
 import { calculatorActivityInsertQueueArnParameter } from '../calculator/calculator.construct.js';
@@ -111,6 +105,11 @@ export class PipelineProcessorsApiStack extends Stack {
 			simpleName: false,
 		}).stringValue;
 
+		const referenceDatasetApiFunctionName = StringParameter.fromStringParameterAttributes(this, 'referenceDatasetApiFunctionName', {
+			parameterName: referenceDatasetsApiFunctionNameParameter(props.tenantId, props.environment),
+			simpleName: false,
+		}).stringValue;
+
 		const vpcId = StringParameter.fromStringParameterAttributes(this, 'vpcId', {
 			parameterName: vpcIdParameter(props.environment),
 			simpleName: false,
@@ -133,31 +132,6 @@ export class PipelineProcessorsApiStack extends Stack {
 
 		const rdsProxyArn = StringParameter.fromStringParameterAttributes(this, 'rdsProxyArn', {
 			parameterName: rdsProxyArnParameter(props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityTableName = StringParameter.fromStringParameterAttributes(this, 'activityTableName', {
-			parameterName: activityTableParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityNumberValueTableName = StringParameter.fromStringParameterAttributes(this, 'activityNumberValueTableName', {
-			parameterName: activityNumberValueTableParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityBooleanValueTableName = StringParameter.fromStringParameterAttributes(this, 'activityBooleanValueTableName', {
-			parameterName: activityBooleanValueTableParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityStringValueTableName = StringParameter.fromStringParameterAttributes(this, 'activityStringValueTableName', {
-			parameterName: activityStringValueTableParameter(props.tenantId, props.environment),
-			simpleName: false,
-		}).stringValue;
-
-		const activityDateTimeValueTableName = StringParameter.fromStringParameterAttributes(this, 'activityDateTimeValueTableName', {
-			parameterName: activityDateTimeValueTableParameter(props.tenantId, props.environment),
 			simpleName: false,
 		}).stringValue;
 
@@ -228,6 +202,7 @@ export class PipelineProcessorsApiStack extends Stack {
 			accessManagementApiFunctionName,
 			pipelineApiFunctionName,
 			impactApiFunctionName,
+			referenceDatasetApiFunctionName,
 			pipelineProcessorApiFunctionName,
 			cognitoUserPoolId,
 			eventBusName,
@@ -239,11 +214,6 @@ export class PipelineProcessorsApiStack extends Stack {
 			vpcId,
 			tenantDatabaseName,
 			rdsProxyArn,
-			activityTableName,
-			activityNumberValueTableName,
-			activityBooleanValueTableName,
-			activityDateTimeValueTableName,
-			activityStringValueTableName,
 			auditLogWaitTimeSeconds: props.auditLogWaitTimeSeconds,
 			caCert: props.caCert,
 			kmsKeyArn,

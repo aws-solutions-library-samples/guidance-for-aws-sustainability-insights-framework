@@ -17,8 +17,9 @@ import type { Tags } from './schemas.js';
 import type { TagRepository } from './repository.js';
 import { atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
 import { UnauthorizedError } from '../common/errors.js';
-import { SendMessageCommand, SendMessageCommandInput, SQSClient } from '@aws-sdk/client-sqs';
+import { SendMessageBatchCommand, SendMessageBatchCommandInput, SendMessageBatchRequestEntry, SendMessageCommand, SendMessageCommandInput, SQSClient } from '@aws-sdk/client-sqs';
 import type { AccessManagementClient } from '../clients/accessManagement.client.js';
+import { ulid } from 'ulid';
 
 export class TagService {
 	private readonly log: BaseLogger;
@@ -126,11 +127,15 @@ export class TagService {
 		return result;
 	}
 
+	public async submitGroupSummariesProcessBulk(groupSummaries: { groupId: string, resourceKeyPrefix: string, added: Tags, removed: Tags }[]): Promise<void> {
+		this.log.debug(`TagService> submitGroupSummariesProcessBulk> in> groupSummaries:${groupSummaries}`);
+		await this.sendMessageBulk(groupSummaries);
+		this.log.debug(`TagService> submitGroupSummariesProcessBulk> exit:`);
+	}
+
 	public async submitGroupSummariesProcess(groupId: string, resourceKeyPrefix: string, added: Tags, removed: Tags): Promise<void> {
 		this.log.debug(`TagService> submitGroupSummariesProcess> in> groupId:${groupId}, resourceKeyPrefix:${resourceKeyPrefix}, added:${JSON.stringify(added)}, removed:${JSON.stringify(removed)}`);
-
 		await this.sendMessage(groupId, resourceKeyPrefix, added, removed);
-
 		this.log.debug(`TagService> submitGroupSummariesProcess> exit:`);
 	}
 
@@ -148,28 +153,6 @@ export class TagService {
 			await this.sendMessage(subGroupId, resourceKeyPrefix, added, removed);
 		}
 		this.log.debug(`TagService> processGroupSummaries> exit:`);
-	}
-
-	private async sendMessage(groupId: string, resourceKeyPrefix: string, added: Tags, removed: Tags) {
-		this.log.debug(`TagService> sendMessage> in> groupId:${groupId}, resourceKeyPrefix:${resourceKeyPrefix}, added:${JSON.stringify(added)}, removed:${JSON.stringify(removed)}`);
-		const params: SendMessageCommandInput = {
-			QueueUrl: this.workerQueueUrl,
-			MessageBody: JSON.stringify({
-				groupId,
-				resourceKeyPrefix,
-				added,
-				removed,
-			}),
-			MessageAttributes: {
-				messageType: {
-					DataType: 'String',
-					StringValue: `tags::group`,
-				},
-			},
-		};
-		this.log.debug(`TagService> sendMessage> SendMessageCommandInput:${JSON.stringify(params)}`);
-		const r = await this.sqsClient.send(new SendMessageCommand(params));
-		this.log.debug(`TagService> sendMessage> SendMessageCommandOutput:${JSON.stringify(r)}`);
 	}
 
 	public removeUnusedTags(tags: Tags) {
@@ -195,6 +178,61 @@ export class TagService {
 			});
 		}
 		return expandedTags;
+	}
+
+	private async sendMessageBulk(messages: { groupId: string, resourceKeyPrefix: string, added: Tags, removed: Tags }[]) {
+		this.log.debug(`TagService> sendMessageBulk> in> messages:${messages}`);
+
+		const batchCommandRequest: SendMessageBatchCommandInput = {
+			QueueUrl: this.workerQueueUrl,
+			Entries: []
+		};
+
+		for (const message of messages) {
+			const { groupId, resourceKeyPrefix, added, removed } = message;
+			const params: SendMessageBatchRequestEntry = {
+				Id: ulid().toLowerCase(),
+				MessageBody: JSON.stringify({
+					groupId,
+					resourceKeyPrefix,
+					added,
+					removed,
+				}),
+				MessageAttributes: {
+					messageType: {
+						DataType: 'String',
+						StringValue: `tags::group`,
+					},
+				},
+			};
+			batchCommandRequest.Entries.push(params);
+		}
+
+		this.log.debug(`TagService> sendMessageBulk> SendMessageBatchCommandInput:${JSON.stringify(batchCommandRequest)}`);
+		const r = await this.sqsClient.send(new SendMessageBatchCommand(batchCommandRequest));
+		this.log.debug(`TagService> sendMessageBulk> SendMessageBatchCommandInput:${JSON.stringify(r)}`);
+	}
+
+	private async sendMessage(groupId: string, resourceKeyPrefix: string, added: Tags, removed: Tags) {
+		this.log.debug(`TagService> sendMessage> in> groupId:${groupId}, resourceKeyPrefix:${resourceKeyPrefix}, added:${JSON.stringify(added)}, removed:${JSON.stringify(removed)}`);
+		const params: SendMessageCommandInput = {
+			QueueUrl: this.workerQueueUrl,
+			MessageBody: JSON.stringify({
+				groupId,
+				resourceKeyPrefix,
+				added,
+				removed,
+			}),
+			MessageAttributes: {
+				messageType: {
+					DataType: 'String',
+					StringValue: `tags::group`,
+				},
+			},
+		};
+		this.log.debug(`TagService> sendMessage> SendMessageCommandInput:${JSON.stringify(params)}`);
+		const r = await this.sqsClient.send(new SendMessageCommand(params));
+		this.log.debug(`TagService> sendMessage> SendMessageCommandOutput:${JSON.stringify(r)}`);
 	}
 }
 

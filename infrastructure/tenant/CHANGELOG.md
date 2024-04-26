@@ -1,6 +1,13 @@
 # Change Log - @sif/infrastructure-tenant
 
-This log was last generated on Wed, 13 Dec 2023 02:37:37 GMT and should not be manually modified.
+This log was last generated on Wed, 24 Apr 2024 20:52:53 GMT and should not be manually modified.
+
+## 7.18.1
+Wed, 24 Apr 2024 20:52:53 GMT
+
+### Patches
+
+- Refactor pipeline state machines
 
 ## 7.18.0
 Wed, 13 Dec 2023 02:37:37 GMT

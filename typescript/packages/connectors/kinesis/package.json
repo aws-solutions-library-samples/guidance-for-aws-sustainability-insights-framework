@@ -8,7 +8,7 @@
 		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build": "npx tsc -b && npm run build:bundled",
 		"test": "npm run build && vitest run --passWithNoTests",
-		"build:bundled": "npx ts-node --esm --prefer-ts-exts esbuild.ts",
+		"build:bundled": "node --no-warnings=ExperimentalWarning --loader ts-node/esm esbuild.ts",
 		"start:bundled": "node dist/app.mjs"
 	},
 	"dependencies": {
@@ -47,7 +47,7 @@
 		"@rushstack/eslint-config": "3.3.2",
 		"@tsconfig/node16-strictest-esm": "1.0.3",
 		"@types/aws-lambda": "8.10.119",
-		"@types/node": "20.4.2",
+		"@types/node": "20.11.20",
 		"@types/prettier": "2.7.3",
 		"@typescript-eslint/eslint-plugin": "6.1.0",
 		"@typescript-eslint/parser": "6.1.0",

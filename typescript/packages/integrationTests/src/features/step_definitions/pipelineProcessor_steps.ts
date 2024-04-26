@@ -55,7 +55,7 @@ Then(/^the latest execution status should be (.*)$/, async function(status: stri
 		return Date.parse(e2.createdAt) - Date.parse(e1.createdAt);
 	});
 
-	assert(sortedExecutions[0].status, status);
+	assert.equal(sortedExecutions[0].status, status);
 });
 
 Then(/^I store the id of the latest execution in variable (.*) in global scope$/, async function(executionIdVariable: string) {

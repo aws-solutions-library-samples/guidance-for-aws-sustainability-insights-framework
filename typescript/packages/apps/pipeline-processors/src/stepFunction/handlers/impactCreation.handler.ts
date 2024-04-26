@@ -14,26 +14,30 @@
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from '../../app.light';
-import type { ImpactCreationTaskHandler } from '../tasks/model.js';
-import type { PipelineProcessorsService } from '../../api/executions/service.js';
-import type { ImpactCreationTask } from '../tasks/impactCreationTask.js';
-import { validateNotEmpty } from '@sif/validators';
+import type { ImpactCreationTaskEvent, ImpactCreationTaskHandler } from '../tasks/model.js';
+import { validateDefined, validateNotEmpty } from '@sif/validators';
+import type { ImpactCreationTask } from '../tasks/impactCreationTask';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
-const task = di.resolve<ImpactCreationTask>('impactCreationTask');
-const service = di.resolve<PipelineProcessorsService>('pipelineProcessorsService');
 
-export const handler: ImpactCreationTaskHandler = async (event, _context, _callback): Promise<void> => {
-	app.log.debug(`impactCreationTask > handler > event:${JSON.stringify(event)}`);
+const task = di.resolve<ImpactCreationTask>('impactCreationTask');
+
+export const handler: ImpactCreationTaskHandler = async (event, _context, _callback): Promise<ImpactCreationTaskEvent> => {
+	app.log.debug(`dataResultProcessorLambda > handler > event:${JSON.stringify(event)}`);
+
 	validateNotEmpty(event, 'event');
-	validateNotEmpty(event.executionId, 'executionId');
-	validateNotEmpty(event.pipelineId, 'pipelineId');
-	validateNotEmpty(event.security, 'security');
-	const { executionId, pipelineId, security } = event;
-	// create the impact factors
-	const [status, statusMessage] = await task.process(event);
-	// set the status
-	await service.update(security, pipelineId, executionId, { status, statusMessage });
-	app.log.debug(`impactCreationTask > handler > exit:`);
+	validateNotEmpty(event?.executionId, 'executionId');
+	validateNotEmpty(event?.pipelineId, 'pipelineId');
+	validateNotEmpty(event?.pipelineType, 'pipelineType');
+	validateNotEmpty(event?.security, 'security');
+	validateDefined(event?.errorLocationList, 'errorLocationList');
+
+	const { executionId, pipelineId, pipelineType, security, errorLocationList } = event;
+
+	const response = await task.process({ security, executionId, pipelineType, pipelineId, errorLocationList });
+
+	app.log.debug(`dataResultProcessorLambda > handler > exit>`);
+
+	return { pipelineId, executionId, pipelineType, security, errorLocationList, moreActivitiesToProcess: response.moreActivitiesToProcess };
 };

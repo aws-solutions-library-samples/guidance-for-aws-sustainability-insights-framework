@@ -12,7 +12,7 @@
  */
 
 import type { Handler } from 'aws-lambda/handler';
-import type { Transformer, ActionType, PipelineType, CalculatorS3TransformResponse, SecurityContext } from '@sif/clients';
+import type { ActionType, CalculatorReferencedResource, CalculatorS3TransformResponse, OutputConnectorEvent, PipelineType, ReferenceDatasetStatus, SecurityContext, Transformer } from '@sif/clients';
 import type { ActivityRequest, Output } from '../../api/activities/models';
 import type { AffectedTimeRange, MetricsDownloadPayload } from '../../api/metrics/models';
 import type { HistoryEvent } from '@aws-sdk/client-sfn';
@@ -20,15 +20,27 @@ import type { HistoryEvent } from '@aws-sdk/client-sfn';
 export interface S3Location {
 	key: string;
 	bucket: string;
-};
+}
 
-export interface VerificationTaskEvent {
+export type StateMachineInput = {
 	source: S3Location;
 	pipelineId: string;
 	executionId: string;
 	pipelineType: PipelineType;
 	securityContext: SecurityContext;
-};
+}
+export type CreateReferenceDatasetEvent = StateMachineInput;
+
+export interface CreateReferenceDatasetOutput {
+	pipelineId: string;
+	executionId: string;
+	referenceDatasetId: string;
+	referenceDatasetVersionId: number;
+	status: ReferenceDatasetStatus;
+	securityContext: SecurityContext;
+}
+
+export type VerificationTaskEvent = StateMachineInput;
 
 export interface VerificationTaskOutput {
 	chunks: CalculationChunk[];
@@ -132,7 +144,6 @@ export type InsertActivityBulkResultWithExecutionDetails = {
 	executionStartTime: string;
 }
 
-
 export type MetricQueue = {
 	order: number,
 	metric: string
@@ -145,10 +156,10 @@ export type GroupsQueue = {
 export type ImpactCreationTaskEvent = {
 	pipelineId: string,
 	executionId: string,
-	sequenceList: number[],
 	security: SecurityContext;
 	errorLocationList: S3Location[];
-	pipelineType: string
+	pipelineType: string;
+	moreActivitiesToProcess?: boolean;
 }
 
 export type Status = 'FAILED' | 'SUCCEEDED' | 'IN_PROGRESS';
@@ -167,6 +178,8 @@ export interface ProcessedTaskEvent {
 	requiresAggregation?: boolean;
 	metricQueue: MetricQueue;
 	// filled from calculator response
+	referenceDatasets: { [key: string]: CalculatorReferencedResource },
+	activities: { [key: string]: CalculatorReferencedResource },
 	sequenceList: number[],
 	errorLocationList: S3Location[];
 	// will be filled when aggregating metric
@@ -187,6 +200,8 @@ export type MetricAggregationTaskEvent = Pick<ProcessedTaskEvent, 'security' | '
 	metricAggregationJobId?: string,
 	executionId?: string
 }
+
+export type MetricExportTaskEvent = Pick<MetricAggregationTaskEvent, 'security' | 'timeRange' | 'pipelineId' | 'metricQueue' | 'groupsQueue' | 'executionId'> & { id?: string }
 
 export interface AggregationResult {
 	date: Date;
@@ -229,9 +244,11 @@ export type SqlResultProcessorTaskHandler = Handler<InsertActivityBulkResult[], 
 
 export type InsertLatestValuesTaskHandler = Handler<ProcessedTaskEvent, ProcessedTaskEvent>;
 
-export type RawResultProcessorTaskHandler = Handler<InsertActivityBulkResultWithExecutionDetails, ImpactCreationTaskEvent>;
+export type DataResultProcessorTaskHandler = Handler<InsertActivityBulkResultWithExecutionDetails, ImpactCreationTaskEvent>;
 
-export type ResultProcessorTaskHandler = Handler<ProcessedTaskEventWithExecutionDetails, void>;
+export type ImpactCreationTaskHandler = Handler<ImpactCreationTaskEvent, ImpactCreationTaskEvent>;
+
+export type ActivityResultProcessorTaskHandler = Handler<ProcessedTaskEventWithExecutionDetails, void>;
 
 export type SaveAggregationJobTaskHandler = Handler<ProcessedTaskEvent, ProcessedTaskEvent>;
 
@@ -239,11 +256,17 @@ export type MetricAggregationTaskHandler = Handler<MetricAggregationTaskEvent, M
 
 export type PipelineAggregationTaskHandler = Handler<ProcessedTaskEvent, ProcessedTaskEvent>;
 
-export type ImpactCreationTaskHandler = Handler<ImpactCreationTaskEvent, void>;
+export type OutputConnectorTaskHandler = Handler<OutputConnectorEvent, void>;
+
+export type MetricExportTaskHandler = Handler<MetricExportTaskEvent, void>;
 
 export type ActivityDownloadInitiateTaskHandler = Handler<ActivityDownloadInitiateTaskEvent, ActivityDownloadTaskResponse>;
 
 export type ActivityDownloadStartTaskHandler = Handler<ActivityDownloadTaskResponse, ActivityDownloadTaskResponse>;
 
 export type ActivityDownloadVerifyTaskHandler = Handler<ActivityDownloadTaskResponse, ActivityDownloadTaskResponse>;
+
+export type ReferenceDatasetCreationTaskHandler = Handler<CreateReferenceDatasetEvent, CreateReferenceDatasetOutput>;
+
+export type ReferenceDatasetVerificationTaskHandler = Handler<CreateReferenceDatasetOutput, CreateReferenceDatasetOutput>;
 

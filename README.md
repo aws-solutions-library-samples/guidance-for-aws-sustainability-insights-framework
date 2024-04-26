@@ -36,9 +36,16 @@ Key benefits include:
 - For architectural details and information on the underlying AWS services used, refer to the [design documentation](docs/design.md).
 - Interested in understanding more about each module? Explore their specific overviews:
 	- [Access Management](./typescript/packages/apps/access-management/README.md)
+    - [Calculations](./typescript/packages/apps/calculations/README.md)
+	- [Pipelines](./typescript/packages/apps/pipelines/README.md)
+    - [Impacts](./typescript/packages/apps/impacts/README.md)
+	- [Reference Datasets](./typescript/packages/apps/reference-datasets/README.md)
+	- [Pipeline Processors](./typescript/packages/apps/pipeline-processors/README.md)
+- Interested in understanding more about different connectors supported by SIF? Explore their specific overviews:
+  - [AWS Clean Rooms Connector](typescript/packages/connectors/clean-rooms/README.md)
+  - [AWS DataZone Connector](typescript/packages/connectors/datazone/README.md)
+  - [Amazon Kinesis Connector](typescript/packages/connectors/kinesis/README.md)
 - Planning to deploy SIF in production? Review the [path to production](docs/deployment/path_to_production.md).
-
-- [AWS Clean Rooms walkthrough](typescript/packages/connectors/clean-rooms/README.md)
 
 ## Changelog
 

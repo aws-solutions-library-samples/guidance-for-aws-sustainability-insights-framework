@@ -15,7 +15,7 @@ import { buildLightApp } from '../../app.light';
 
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
-import type { MetricAggregationTaskServiceV2 } from '../tasks/metricAggregationTaskV2.service.js';
+import type { MetricAggregationTaskV2 } from '../tasks/metricAggregationTaskV2.js';
 import type { MetricAggregationTaskHandler } from '../tasks/model.js';
 
 const app: FastifyInstance = await buildLightApp();
@@ -24,7 +24,7 @@ const di: AwilixContainer = app.diContainer;
 export const handler: MetricAggregationTaskHandler = async (event, _context, _callback) => {
 	app.log.debug(`MetricAggregationTaskHandler> handler> event: ${JSON.stringify(event)}`);
 
-	const taskV2 = di.resolve<MetricAggregationTaskServiceV2>('aggregationTaskServiceV2');
+	const taskV2 = di.resolve<MetricAggregationTaskV2>('aggregationTaskV2');
 	const processedEvent = await taskV2.process(event);
 
 	app.log.debug(`MetricAggregationTaskHandler> handler> exit > processedEvent: ${processedEvent}`);

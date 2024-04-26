@@ -12,13 +12,13 @@
  */
 
 
-export function exportDataToS3Query(queryId:string,queryString:string, bucket:string, bucketPrefix:string):string {
+export function exportDataToS3Query(queryString:string, bucket:string, key:string):string {
 
 	 const exportQuery = `SELECT * from aws_s3.query_export_to_s3(
 		'${queryString}',
 		aws_commons.create_s3_uri(
 		'${bucket}',
-		'${bucketPrefix}/${queryId}/result.csv',
+		'${key}',
 		'${process.env['AWS_REGION']}'
 		),
 		options :='format csv , HEADER true'

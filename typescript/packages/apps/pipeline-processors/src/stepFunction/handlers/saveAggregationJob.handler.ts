@@ -15,7 +15,7 @@ import { buildLightApp } from '../../app.light';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import type { SaveAggregationJobTaskHandler } from '../tasks/model.js';
-import type { SaveAggregationJobTaskService } from '../tasks/saveAggregationJobTask.service.js';
+import type { SaveAggregationJobTask } from '../tasks/saveAggregationJobTask.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
@@ -23,7 +23,7 @@ const di: AwilixContainer = app.diContainer;
 export const handler: SaveAggregationJobTaskHandler = async (event, _context, _callback) => {
 	app.log.debug(`SaveAggregationJobTaskHandler> handler> event: ${JSON.stringify(event)}`);
 
-	const service = di.resolve<SaveAggregationJobTaskService>('saveAggregationJobTaskService');
+	const service = di.resolve<SaveAggregationJobTask>('saveAggregationJobTask');
 	await service.process(event);
 
 	app.log.debug(`SaveAggregationJobTaskHandler> handler> exit:`);

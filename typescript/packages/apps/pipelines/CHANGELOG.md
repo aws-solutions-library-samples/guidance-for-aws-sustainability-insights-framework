@@ -1,6 +1,13 @@
 # Change Log - @sif/pipelines
 
-This log was last generated on Wed, 13 Dec 2023 02:37:37 GMT and should not be manually modified.
+This log was last generated on Wed, 24 Apr 2024 20:52:53 GMT and should not be manually modified.
+
+## 4.9.0
+Wed, 24 Apr 2024 20:52:53 GMT
+
+### Minor changes
+
+- Add data fabric integration and connectors
 
 ## 4.8.0
 Wed, 13 Dec 2023 02:37:37 GMT

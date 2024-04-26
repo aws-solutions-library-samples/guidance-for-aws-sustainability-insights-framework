@@ -56,7 +56,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
-		And I set body to { "tags": { "source":"pipelineProcessorsTest", "sequence":"1" }, "actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"reading_date":"1/4/22","a":"A","b":10,"c":1},{"reading_date":"1/4/22","a":"A","b":10,"c":1},{"reading_date":"1/4/22","a":"C","b":30,"c":3},{"reading_date":"1/4/22","a":"D","b":40,"c":4},{"reading_date":"1/4/22","a":"E","b":50,"c":5},{"reading_date":"1/4/22","a":"F","b":60,"c":6}]}}
+		And I set body to { "tags": { "source":"pipelineProcessorsTest", "sequence":"1" }, "actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"reading_date":"1/4/22","A":"A","Column B":10,"Column C":1},{"reading_date":"1/4/22","A":"A","Column B":10,"Column C":1},{"reading_date":"1/4/22","A":"C","Column B":30,"Column C":3},{"reading_date":"1/4/22","A":"D","Column B":40,"Column C":4},{"reading_date":"1/4/22","A":"E","Column B":50,"Column C":5},{"reading_date":"1/4/22","A":"F","Column B":60,"Column C":6}]}}
 		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 201
 		And response body should contain id
@@ -95,7 +95,7 @@ Feature:
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorTest
-		And I set body to {"tags": { "source":"pipelineProcessorsTest", "sequence":"2" }, "actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"reading_date":"1/4/22","a":"A","b":"WRONG_TYPE","c":1},{"reading_date":"1/4/22","a":"A","b":10,"c":"WRONG_TYPE"}]}}
+		And I set body to {"tags": { "source":"pipelineProcessorsTest", "sequence":"2" }, "actionType":"create","mode":"inline","inlineExecutionOptions":{"inputs":[{"reading_date":"1/4/22","A":"A","Column B":"WRONG_TYPE","Column C":1},{"reading_date":"1/4/22","A":"A","Column B":10,"Column C":"WRONG_TYPE"}]}}
 		When I POST to /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 201
 		And response body should contain id
@@ -173,14 +173,14 @@ Feature:
 		Then response code should be 201
 		And I store the value of body path $.inputUploadUrl as delete_upload_url in global scope
 		When I upload an input CSV file to url stored at global variable delete_upload_url with rows
-			| reading_date | a | b | c |
-			| 1/4/22       | A |   |   |
+			| reading_date | A | Column B | Column C |
+			| 1/4/22       | A |          |          |
 		Then I pause for 50000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 200
 		And response body path $.executions should be of type array with length 3
-		And the latest execution status should be success
 		And I store the id of the latest execution in variable delete_execution_id in global scope
+		And the latest execution status should be success
 
 	Scenario: Retrieve and Validate Deleted Output
 		Given I'm using the pipelineProcessor api
@@ -206,14 +206,14 @@ Feature:
 		Then response code should be 201
 		And I store the value of body path $.inputUploadUrl as all_errors_upload_url in global scope
 		When I upload an input CSV file to url stored at global variable all_errors_upload_url with rows
-			| reading_date | a | b  | c     |
-			| 1/4/22       | A | 10 | One   |
-			| 1/4/22       | B | 20 | Two   |
-			| 1/4/22       | C | 30 | Three |
-			| 1/4/22       | D | 40 | Four  |
-			| 1/4/22       | E | 50 | Five  |
-			| 1/4/22       | F | 60 | Six   |
-			| 1/4/22       |   |    |       |
+			| reading_date | A | Column B | Column C |
+			| 1/4/22       | A | 10       | One      |
+			| 1/4/22       | B | 20       | Two      |
+			| 1/4/22       | C | 30       | Three    |
+			| 1/4/22       | D | 40       | Four     |
+			| 1/4/22       | E | 50       | Five     |
+			| 1/4/22       | F | 60       | Six      |
+			| 1/4/22       |   |          |          |
 		Then I pause for 50000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 200
@@ -249,13 +249,13 @@ Feature:
 		Then response code should be 201
 		And I store the value of body path $.inputUploadUrl as some_success_some_errors_upload_url in global scope
 		When I upload an input CSV file to url stored at global variable some_success_some_errors_upload_url with rows
-			| reading_date | a | b  | c     |
-			| 1/4/22       | A | 10 | 1     |
-			| 1/4/22       | B | 20 | Two   |
-			| 1/4/22       | C | 30 | Three |
-			| 1/4/22       | D | 40 | 4     |
-			| 1/4/22       | E | 50 | 5     |
-			| 1/4/22       | F | 60 | Six   |
+			| reading_date | A | Column B | Column C |
+			| 1/4/22       | A | 10       | 1        |
+			| 1/4/22       | B | 20       | Two      |
+			| 1/4/22       | C | 30       | Three    |
+			| 1/4/22       | D | 40       | 4        |
+			| 1/4/22       | E | 50       | 5        |
+			| 1/4/22       | F | 60       | Six      |
 		Then I pause for 50000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 200
@@ -313,13 +313,13 @@ Feature:
 		Then response code should be 201
 		And I store the value of body path $.inputUploadUrl as updated_success_upload_url in global scope
 		When I upload an input CSV file to url stored at global variable updated_success_upload_url with rows
-			| reading_date | a | b  | c |
-			| 1/8/22       | A | 10 | 1 |
-			| 1/8/22       | B | 20 | 2 |
-			| 1/8/22       | C | 30 | 3 |
-			| 1/8/22       | D | 40 | 4 |
-			| 1/8/22       | E | 50 | 5 |
-			| 1/8/22       | F | 60 | 6 |
+			| reading_date | A | Column B | Column C |
+			| 1/8/22       | A | 10       | 1        |
+			| 1/8/22       | B | 20       | 2        |
+			| 1/8/22       | C | 30       | 3        |
+			| 1/8/22       | D | 40       | 4        |
+			| 1/8/22       | E | 50       | 5        |
+			| 1/8/22       | F | 60       | 6        |
 		Then I pause for 50000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions
 		Then response code should be 200
@@ -508,7 +508,6 @@ Feature:
 		And response body path $[0].audits[1].outputs[3]['evaluated'][':c'] should be 1
 
 
-
 	Scenario: Retrieve and validate Audit Export
 		Given I'm using the pipelineProcessor api
 		And I authenticate using email pipeline_processor_admin@amazon.com and password p@ssword1
@@ -519,13 +518,13 @@ Feature:
 		And I store the value of body path $.inputUploadUrl as audit_export_upload_url in global scope
 		And I store the value of body path $.id as audit_export_execution_id in global scope
 		When I upload an input CSV file to url stored at global variable audit_export_upload_url with rows
-			| reading_date  | a | b  | c |
-			| 1/10/22       | A | 10 | 1 |
-			| 1/10/22       | B | 20 | 2 |
-			| 1/10/22       | C | 30 | 3 |
-			| 1/10/22       | D | 40 | 4 |
-			| 1/10/22       | E | 50 | 5 |
-			| 1/10/22       | F | 60 | 6 |
+			| reading_date | A | Column B | Column C |
+			| 1/10/22      | A | 10       | 1        |
+			| 1/10/22      | B | 20       | 2        |
+			| 1/10/22      | C | 30       | 3        |
+			| 1/10/22      | D | 40       | 4        |
+			| 1/10/22      | E | 50       | 5        |
+			| 1/10/22      | F | 60       | 6        |
 		Then I pause for 5000ms
 		When I GET /pipelines/`pipeline_processor_pipeline_id`/executions/`audit_export_execution_id`
 		Then response code should be 200
@@ -552,13 +551,13 @@ Feature:
 		Then response code should be 201
 		And I store the value of body path $.url as audit_export_download_url in global scope
 		When I download the output audit file from the url stored at global variable audit_export_download_url it will match rows in no specific order
-			| "auditId" | "in_reading_date" | "in_a" | "in_b" | "in_c" | "out_time_formula" | "out_time_results" | "out_time_impacts" | "out_time_calculations" | "out_time_referenceDatasets" | "out_month_formula" | "out_month_results" | "out_month_impacts" | "out_month_calculations" | "out_month_referenceDatasets" | "out_a_formula" | "out_a_results" | "out_a_impacts" | "out_a_calculations" | "out_a_referenceDatasets" | "out_b_plus_c_formula" | "out_b_plus_c_results" | "out_b_plus_c_impacts" | "out_b_plus_c_calculations" | "out_b_plus_c_referenceDatasets" |
-			| "static_audit_id" | "1/10/22" | "A" | "10" | "1" | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000" |  |  |  | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000" |  |  |  | ":a" | "A" |  |  |  | ":b+:c" | "11" |  |  |  |
-			| "static_audit_id" | "1/10/22" | "B" | "20" | "2" | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000" |  |  |  | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000" |  |  |  | ":a" | "B" |  |  |  | ":b+:c" | "22" |  |  |  |
-			| "static_audit_id" | "1/10/22" | "C" | "30" | "3" | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000" |  |  |  | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000" |  |  |  | ":a" | "C" |  |  |  | ":b+:c" | "33" |  |  |  |
-			| "static_audit_id" | "1/10/22" | "D" | "40" | "4" | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000" |  |  |  | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000" |  |  |  | ":a" | "D" |  |  |  | ":b+:c" | "44" |  |  |  |
-			| "static_audit_id" | "1/10/22" | "E" | "50" | "5" | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000" |  |  |  | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000" |  |  |  | ":a" | "E" |  |  |  | ":b+:c" | "55" |  |  |  |
-			| "static_audit_id" | "1/10/22" | "F" | "60" | "6" | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000" |  |  |  | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000" |  |  |  | ":a" | "F" |  |  |  | ":b+:c" | "66" |  |  |  |
+			| "auditId"         | "in_reading_date" | "in_a" | "in_b" | "in_c" | "out_time_formula"                     | "out_time_results" | "out_time_impacts" | "out_time_calculations" | "out_time_referenceDatasets" | "out_month_formula"                                         | "out_month_results" | "out_month_impacts" | "out_month_calculations" | "out_month_referenceDatasets" | "out_a_formula" | "out_a_results" | "out_a_impacts" | "out_a_calculations" | "out_a_referenceDatasets" | "out_b_plus_c_formula" | "out_b_plus_c_results" | "out_b_plus_c_impacts" | "out_b_plus_c_calculations" | "out_b_plus_c_referenceDatasets" |
+			| "static_audit_id" | "1/10/22"         | "A"    | "10"   | "1"    | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000"    |                    |                         |                              | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000"     |                     |                          |                               | ":a"            | "A"             |                 |                      |                           | ":b+:c"                | "11"                   |                        |                             |                                  |
+			| "static_audit_id" | "1/10/22"         | "B"    | "20"   | "2"    | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000"    |                    |                         |                              | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000"     |                     |                          |                               | ":a"            | "B"             |                 |                      |                           | ":b+:c"                | "22"                   |                        |                             |                                  |
+			| "static_audit_id" | "1/10/22"         | "C"    | "30"   | "3"    | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000"    |                    |                         |                              | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000"     |                     |                          |                               | ":a"            | "C"             |                 |                      |                           | ":b+:c"                | "33"                   |                        |                             |                                  |
+			| "static_audit_id" | "1/10/22"         | "D"    | "40"   | "4"    | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000"    |                    |                         |                              | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000"     |                     |                          |                               | ":a"            | "D"             |                 |                      |                           | ":b+:c"                | "44"                   |                        |                             |                                  |
+			| "static_audit_id" | "1/10/22"         | "E"    | "50"   | "5"    | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000"    |                    |                         |                              | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000"     |                     |                          |                               | ":a"            | "E"             |                 |                      |                           | ":b+:c"                | "55"                   |                        |                             |                                  |
+			| "static_audit_id" | "1/10/22"         | "F"    | "60"   | "6"    | "AS_TIMESTAMP(:reading_date,'M/d/yy')" | "1641772800000"    |                    |                         |                              | "AS_TIMESTAMP(:reading_date,'M/d/yy', roundDownTo='month')" | "1640995200000"     |                     |                          |                               | ":a"            | "F"             |                 |                      |                           | ":b+:c"                | "66"                   |                        |                             |                                  |
 
 
 	Scenario: Teardown - Pipeline

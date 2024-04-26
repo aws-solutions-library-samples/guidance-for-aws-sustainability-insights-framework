@@ -179,6 +179,12 @@ public abstract class AbstractCalculatorService<T> {
         // keep track of group paths visited for pipeline and metrics aggregations
         var groupsVisited = new HashSet<String>();
 
+        // keep track of reference datasets that were referenced by the formula
+        Map<String, Map<String, String>>  referenceDatasets = new HashMap<>();
+
+        // keep track of activities that were referenced by the formula
+        Map<String, Map<String, String>>  activities = new HashMap<>();
+
         // no point proceeding if we detected an error during initialization or validation
 		var noActivitiesProcessed = false;
         if (errors.size() == 0) {
@@ -202,6 +208,8 @@ public abstract class AbstractCalculatorService<T> {
             Type MapStringStringType = new TypeToken<Map<String, String>>() {
             }.getType();
 
+
+
             Stream<String> linesFromString = sourceData.lines();
             linesFromString.forEach(l -> {
                 log.trace("l: {}", l);
@@ -210,7 +218,7 @@ public abstract class AbstractCalculatorService<T> {
 
                 try {
                     var inputRow = marshallInputRow(req.getParameters(), req.getUniqueKey(), jsonLine);
-                    var outputRow = transformRow(req, authorizer, inputRow, errors);
+                    var outputRow = transformRow(req, authorizer, inputRow, errors, referenceDatasets, activities);
 
                     // if in inline mode we need to collect the generated output rows as we progress to return
                     if (DataSourceLocation.inline.equals(sourceLocation)) {
@@ -261,10 +269,10 @@ public abstract class AbstractCalculatorService<T> {
                 errorLocation = new S3Location(bucket, replaceKeyTokens(config.getString("calculator.upload.s3.errors.key"), req));
                 s3.upload(errorLocation, String.join(System.lineSeparator(), errors));
             }
-            response = new S3TransformResponse(errorLocation, noActivitiesProcessed, activityValueKey);
+            response = new S3TransformResponse(errorLocation, noActivitiesProcessed, activityValueKey, referenceDatasets, activities);
 
         } else {
-            response = new InlineTransformResponse(headers, inlineResultJsonLines, errors, noActivitiesProcessed, activityValueKey);
+            response = new InlineTransformResponse(headers, inlineResultJsonLines, errors, noActivitiesProcessed, activityValueKey, referenceDatasets, activities);
         }
 
         log.trace("transformInput> exit:{}", response);
@@ -273,7 +281,7 @@ public abstract class AbstractCalculatorService<T> {
     }
 
 
-    private Map<String, DynamicTypeValue> transformRow(TransformRequest req, Authorizer authorizer, Map<String, DynamicTypeValue> source, List<String> errorMessages) throws Exception {
+    private Map<String, DynamicTypeValue> transformRow(TransformRequest req, Authorizer authorizer, Map<String, DynamicTypeValue> source, List<String> errorMessages, Map<String, Map<String, String>> referenceDatasets, Map<String, Map<String, String>> activities) throws Exception {
         log.debug("transformRow> in> request:{}, source:{}", req, source);
 
         Map<String, DynamicTypeValue> transformed = new HashMap<>();
@@ -292,7 +300,6 @@ public abstract class AbstractCalculatorService<T> {
 
         // loop each output of each transform to generate the output column
         var outputs = new ArrayList<AuditMessage.Output>();
-        var outputsWithError = new ArrayList<Integer>();
         var index = new AtomicInteger(0);
 
         req.getTransforms().forEach(t -> t.getOutputs().forEach(o -> {
@@ -323,16 +330,38 @@ public abstract class AbstractCalculatorService<T> {
                             .activities(calculation.getActivities())
                             .calculations(calculation.getCalculations())
                             .referenceDatasets(calculation.getReferenceDatasets()).build();
+
+                    if (calculation.getReferenceDatasets() != null) {
+                        // Added all unique reference datasets to be included in the response using the reference dataset name as the key
+                        calculation.getReferenceDatasets().forEach((r) -> referenceDatasets.put(r.get("name"), new HashMap<>(Map.of(
+                                "name", r.get("name"),
+                                "version", r.get("version"),
+                                "group", r.get("group")
+                        ))));
+                    }
+
+                    if (calculation.getActivities() != null) {
+                        // Added all unique activities to be included in the response using the activity name as the key
+                        calculation.getActivities().forEach((r) -> activities.put(r.get("activity"), new HashMap<>(Map.of(
+                                "name", r.get("activity"),
+                                "version", r.get("version"),
+                                "group", r.get("group")
+                        ))));
+                    }
                 }
                 auditOutputBuilder.evaluated(calculation.getEvaluated())
                         .result(calculation.getResult().asString())
                         .resources(outputResources);
 
             } catch (Exception ex) {
-                var errorMessage = recordError(errorMessages, "transformRow",
-                        String.format("Row '%s' column '%s' encountered error evaluating formula `%s` - %s", source.get(ROW_IDENTIFIER).asString(), o.getKey(), t.getFormula(), ex.getMessage()));
-                auditOutputBuilder.errorMessage(errorMessage);
-                outputsWithError.add(index.get());
+                var errorMessage = String.format("Row '%s' column '%s' encountered error evaluating formula `%s` - %s", source.get(ROW_IDENTIFIER).asString(), o.getKey(), t.getFormula(), ex.getMessage());
+                /*
+                  If it's a deletion request we would not care about the error
+                 */
+                if (!isDeletion(req)) {
+                    recordError(errorMessages, "transformRow", errorMessage);
+                    auditOutputBuilder.errorMessage(errorMessage);
+                }
                 result = new ErrorValue(errorMessage);
             }
 
@@ -358,13 +387,6 @@ public abstract class AbstractCalculatorService<T> {
             outputs.add(auditOutputBuilder.build());
             index.getAndIncrement();
         }));
-
-        // If action Type is set to delete then deletion can occur we set all error messages to null.
-        if (isDeletion(req)) {
-            for (Integer outputIndex : outputsWithError) {
-                outputs.get(outputIndex).setErrorMessage(null);
-            }
-        }
 
         // publish the audit log (does not apply to dry runs)
         if (!req.isDryRun()) {
@@ -413,7 +435,11 @@ public abstract class AbstractCalculatorService<T> {
             recordError(errorMessages, "validateRequest", "No executionId provided.");
         }
 
-        if (req.getParameters() == null || req.getParameters().size() == 0) {
+        /*
+         * Reference Dataset pipeline does not require parameters since we will not be using the uploaded file as the transform input
+         * The string specified in the formula are the output.
+         */
+        if ( req.getPipelineType() != PipelineType.referenceDatasets && (req.getParameters() == null || req.getParameters().isEmpty())) {
             recordError(errorMessages, "validateRequest", "No parameters provided.");
         } else {
             for (var x = 0; x < req.getParameters().size(); x++) {

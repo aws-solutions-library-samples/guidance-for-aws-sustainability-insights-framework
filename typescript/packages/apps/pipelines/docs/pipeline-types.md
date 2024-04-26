@@ -4,7 +4,7 @@ This document explains what are different types of pipelines and how they need t
 
 ## Introduction
 
-There are 3 different types of data transformation pipelines supported in SIF `('data', 'activities', 'impacts')`.
+There are 4 different types of data transformation pipelines supported in SIF `('data', 'activities', 'impacts' and 'referenceDatasets')`.
 
 - Activities type pipeline
 > An `activities` pipeline ingests incoming time-series business activities, and calculates emission factors as configured for the pipeline. It also supports pipeline aggregations, and metrics.
@@ -14,6 +14,9 @@ There are 3 different types of data transformation pipelines supported in SIF `(
 
 - Impacts type pipeline
 > An `impacts` pipeline allows for the bulk creation and/or updating of impacts (and its emission factors) based on the provided input. It does not support pipeline aggregations or metrics.
+
+- ReferenceDatasets type pipeline
+> An `referenceDataset` pipeline allows the creation and update of reference dataset based on the provided input. It does not support inline processing, pipeline aggregations or metrics.
 
 ## FAQ's
 
@@ -474,6 +477,97 @@ Content-Type: application/json
 	"createdBy": "someone@somewhere.com",
 	"id": "01gwaj87awnqahcdpqdb3ps6zp",
 	"type": "impacts"
+	...
+}
+```
+
+#### Creating a `referenceDataset` type pipeline
+
+> Note: when creating impacts type pipeline, the mandatory transform output keys are: [`name`, `description`]. User can also include tag(s) by specifying transform output key with the prefix `tag_` (e.g. `tag_source` transform output key will create a reference dataset with the tag key `source`).
+
+This is a sample request to create `referenceDataset` pipeline, the pipeline input (in this case a csv file) will be used as the `data` in the reference dataset. Because there will no be transformation applied to the input data, you don't need to specify transform parameters.
+
+REQUEST
+
+```http
+POST <PIPELINES_API>/pipelines
+
+Headers:
+    Content-Type: application/json
+    Accept: application/json
+    Accept-Version: 1.0.0
+    Authorization: <REPLACE_WITH_AUTH_TOKEN>
+
+Body:
+{
+    "name": "eGRID subregion to postcode mapping reference dataset creation",
+    "description": "Creates reference dataset containing mapping information from postcode to eGRID subregion.",
+    "type": "referenceDatasets",
+    "connectorConfig": {
+        "input": [
+            {
+                "name": "sif-csv-pipeline-input-connector"
+            }
+        ]
+    },
+    "transformer": {
+       "transforms": [
+            {
+                "index": 0,
+                "formula": "'egrid_subregion_postcode_mapping'",
+                "outputs": [
+                    {
+                        "description": "Name of the reference dataset.",
+                        "index": 0,
+                        "key": "name",
+                        "label": "Name",
+                        "type": "string"
+                    }
+                ]
+            },
+            {
+                "index": 1,
+                "formula": "'This dataset provides mapping between postcode and eGRID subregions.'",
+                "outputs": [
+                    {
+                        "index": 0,
+                        "key": "description",
+                        "label": "Description",
+                        "description": "Description of the reference dataset",
+                        "type": "string"
+                    }
+                ]
+            },
+            {
+                "index": 2,
+                "formula": "'usepa'",
+                "outputs": [
+                    {
+                        "index": 0,
+                        "key": "tag_source",
+                        "label": "Source Tag",
+                        "description": "Tag with key source included in the reference dataset.",
+                        "type": "string"
+                    }
+                ]
+            }
+        ],
+        "parameters": []
+    }
+}
+```
+
+RESPONSE
+
+```sh
+HTTP: 201 Created
+Content-Type: application/json
+
+{
+	"createdAt": "2023-03-24T19:41:41.084Z",
+	"createdBy": "someone@somewhere.com",
+	"id": "01gwaj87awnqahcdpqdb3ps6zp",
+	"type": "referenceDatasets"
 	...
 }
 ```

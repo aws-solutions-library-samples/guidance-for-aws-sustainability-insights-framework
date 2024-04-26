@@ -50,7 +50,7 @@ const name: TString = Type.String({ description: 'Pipeline name.' });
 
 const attributeType = stringEnum(['string', 'number', 'boolean', 'timestamp'], 'Attribute type.');
 
-const pipelineType = stringEnum(['impacts', 'activities', 'data'], 'The type property on the pipelines specific which type of pipeline is required. There are 3 types of pipelines data, activities & impacts. They each have a unique implementation and dont overlap with one another. Data pipeline is a simple pipeline which only transforms the data with no aggregations. The impacts pipeline can load emission factors and activities pipeline processes activities data', 'activities');
+const pipelineType = stringEnum(['impacts', 'activities', 'data', 'referenceDatasets'], 'The type property on the pipelines specific which type of pipeline is required. There are 4 types of pipelines data, activities, referenceDatasets & impacts. They each have a unique implementation and dont overlap with one another. Data pipeline is a simple pipeline which only transforms the data with no aggregations. The impacts pipeline can load emission factors and activities pipeline processes activities data. Reference datasets will creates reference datasets using the uploaded file.', 'activities');
 
 export const pipelineConnector = Type.Object({
 	name: Type.String({ description: 'name of the connector' }),

@@ -14,7 +14,7 @@
 import type { CalculatorClient, SecurityContext } from '@sif/clients';
 import pino from 'pino';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { MockProxy, mock } from 'vitest-mock-extended';
+import { mock, MockProxy } from 'vitest-mock-extended';
 import type { PipelineProcessorsService } from '../../api/executions/service.js';
 import { CalculationTask } from './calculationTask';
 import type { CalculationChunk, CalculationContext } from './model.js';
@@ -87,7 +87,9 @@ describe('Calculation Task', () => {
 			data: [],
 			auditLogLocation: { bucket: 'unit-test-bucket', key: 'audit-test-key' },
 			errorLocation: { bucket: 'unit-test-bucket', key: 'error-test-key' },
-			noActivitiesProcessed: false
+			noActivitiesProcessed: false,
+			referenceDatasets: {},
+			activities: {}
 		});
 
 		const activityQueueUrl = 'sampleQueueName';

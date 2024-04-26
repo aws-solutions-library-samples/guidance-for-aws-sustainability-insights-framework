@@ -11,131 +11,242 @@
  *  and limitations under the License.
  */
 
-
-import type { BaseLogger } from 'pino';
-import { convertCSVToArray } from 'convert-csv-to-array';
+import type { SecurityContext } from '@sif/authz';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getPipelineImpactCreationOutputKey, getPipelineOutputKey } from '../../utils/helper.utils';
 import { sdkStreamMixin } from '@aws-sdk/util-stream-node';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import type { ImpactCreationTaskEvent } from './model.js';
-import { getPipelineOutputKey } from '../../utils/helper.utils.js';
-import type { ImpactClient, NewActivity, LambdaRequestContext } from '@sif/clients';
-import type { GetLambdaRequestContext } from '../../plugins/module.awilix.js';
-import { validateNotEmpty } from '@sif/validators';
+import type { BaseLogger } from 'pino';
+import type { ImpactClient, NewActivity, NewBulkActivities, PipelineClient } from '@sif/clients';
+import type { S3Location } from './model.js';
+import type { PipelineExecution } from '../../api/executions/schemas';
+import type { PipelineProcessorsRepository } from '../../api/executions/repository';
+import type { EventPublisher } from '@sif/events';
+import type { GetLambdaRequestContext } from '../../plugins/module.awilix';
+import type { ConnectorUtility } from '../../utils/connectorUtility';
+import { parse } from 'csv-parse/sync';
 
 export class ImpactCreationTask {
-	constructor(private log: BaseLogger,
-				private s3: S3Client,
-				private bucket: string,
-				private impactClient: ImpactClient,
-				private getLambdaRequestContext: GetLambdaRequestContext
+	constructor(private readonly log: BaseLogger,
+				private readonly s3: S3Client,
+				private readonly bucket: string,
+				private readonly impactClient: ImpactClient,
+				private readonly pipelineProcessorsRepository: PipelineProcessorsRepository,
+				private readonly eventPublisher: EventPublisher,
+				private readonly pipelineClient: PipelineClient,
+				private readonly getLambdaRequestContext: GetLambdaRequestContext,
+				private readonly connectorUtility: ConnectorUtility,
 	) {
 	}
 
-	private assembleActivityResource(csvObject: { [key: string]: any }, pipelineId: string, executionId: string): NewActivity {
-		this.log.debug(`ImpactCreationTask > assembleActivity > csvObject: ${JSON.stringify(csvObject)}, pipelineId: ${pipelineId}, executionId: ${executionId}`);
+	public async process(event: { security: SecurityContext, pipelineId: string, executionId: string, pipelineType: string, errorLocationList: S3Location[] }): Promise<{
+		moreActivitiesToProcess: boolean,
+		taskStatus: string,
+		taskStatusMessage: string
+	}> {
+		this.log.debug(`ImpactCreationTask > process > event: ${JSON.stringify(event)}`);
+		const { pipelineId, executionId, pipelineType, security } = event;
+		let taskStatus = event.errorLocationList.length < 1 ? 'success' : 'failed';
+		let taskStatusMessage = taskStatus == 'failed' ? 'error when performing calculation, review the pipeline execution error log for further info' : undefined;
+		let moreActivitiesToProcess = false;
 
-		const { impactName, activityName, activityDescription, componentKey, componentType, componentValue, componentDescription, componentLabel } = csvObject;
+		if (taskStatus === 'success') {
+			if (pipelineType === 'impacts') {
+				try {
+					moreActivitiesToProcess = await this.createBulkActivities(pipelineId, executionId, security);
+				} catch (error) {
+					this.log.debug(`ImpactCreationTask > process > error: ${error}`);
+					moreActivitiesToProcess = false;
+					taskStatus = 'failed';
+					taskStatusMessage = JSON.stringify(error);
+				}
+			}
+		}
 
-		const activityAttribute = {};
-		const activityTag = {};
-		const impactAttribute = {};
+		if (!moreActivitiesToProcess) {
+			await this.update(pipelineId, executionId, taskStatus, taskStatusMessage, security);
+		}
+
+		this.log.debug(`ImpactCreationTask > process > exit >`);
+		return { moreActivitiesToProcess, taskStatusMessage, taskStatus };
+	}
+
+	public __assembleActivityResource_exposedForTesting(csvObject: { [key: string]: any }): NewActivity {
+		return this.assembleActivityResource(csvObject);
+	}
+
+	private async update(pipelineId: string, executionId: string, taskStatus: string, taskStatusMessage: string, security: SecurityContext) {
+
+		this.log.debug(`ImpactCreationTask > update > pipelineId: ${pipelineId}, executionId: ${executionId}, taskStatus: ${taskStatus}, taskStatusMessage: ${taskStatusMessage}`);
+
+		const execution = await this.pipelineProcessorsRepository.get(executionId);
+		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(security));
+
+		const outputConnectorEnabled = pipeline.connectorConfig?.output !== undefined;
+		if (outputConnectorEnabled && taskStatus === 'success') {
+			taskStatus = 'in_progress';
+			await this.connectorUtility.publishConnectorOutputIntegrationEvent(security, pipeline, execution, [getPipelineOutputKey('pipelines', pipelineId, executionId)], pipeline.type);
+		}
+
+		const updatedExecution: PipelineExecution = {
+			...execution,
+			status: taskStatus,
+			statusMessage: taskStatusMessage,
+		};
+
+		await Promise.all([
+			this.pipelineProcessorsRepository.create(updatedExecution),
+			this.eventPublisher.publishTenantEvent<PipelineExecution>({
+				resourceType: 'pipelineExecution',
+				eventType: 'updated',
+				id: execution.id,
+				new: updatedExecution,
+				old: execution
+			})
+		]);
+
+		this.log.debug(`ImpactCreationTask > update > exit >`);
+	}
+
+	private async fromCsvFileToObject(pipelineId: string, executionId: string): Promise<Record<string, any>[]> {
+		this.log.debug(`ImpactCreationTask > fromCsvFileToObject > pipelineId: ${pipelineId}, executionId: ${executionId}`);
+		const readResponse = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: getPipelineImpactCreationOutputKey('pipelines', pipelineId, executionId) }));
+		let csvObjects: Record<string, any>[];
+		try {
+			csvObjects = parse(await sdkStreamMixin(readResponse.Body).transformToString(), {
+				columns: true,
+				skip_empty_lines: true
+			});
+		} catch (error) {
+			this.log.error(`ImpactCreationTask > fromCsvFileToObject > error: ${error}`);
+			throw error;
+		}
+
+		this.log.debug(`ImpactCreationTask > fromCsvFileToObject > csvObjects: ${JSON.stringify(csvObjects)}`);
+		return csvObjects;
+	}
+
+	private async fromObjectToCsvFile(pipelineId: string, executionId: string, activities: Record<string, any>[]) {
+		this.log.debug(`ImpactCreationTask > fromObjectToCsvFile > pipelineId: ${pipelineId}, executionId: ${executionId}, activities: ${JSON.stringify(activities)}`);
+
+		// Convert the object to csv file string
+		const activitiesFileContent = [
+			Object.keys(activities[0]).map(a => `"${a}"`).join(','),
+			...activities.map(a => Object.values(a).map(a => `"${a}"`).join(','))].join('\n');
+
+		// Update the task output files for the next iteration
+		await this.s3.send(new PutObjectCommand(
+			{
+				Bucket: this.bucket,
+				Key: getPipelineImpactCreationOutputKey('pipelines', pipelineId, executionId), Body: activitiesFileContent
+			}));
+
+		this.log.debug(`ImpactCreationTask > fromObjectToCsvFile > exit>`);
+	}
+
+	private async createBulkActivities(pipelineId: string, executionId: string, security: SecurityContext): Promise<boolean> {
+		this.log.debug(`ImpactCreationTask > createBulkActivities > pipelineId: ${pipelineId}, executionId: ${executionId}`);
+
+		const csvObjects = await this.fromCsvFileToObject(pipelineId, executionId);
+		// assemble the 10 activities that we will create
+		const activitiesToProcess = csvObjects.slice(0, 10);
+		const newBulkActivities: NewBulkActivities = { activities: [], type: 'create' };
+		for (const activityToProcess of activitiesToProcess) {
+			newBulkActivities.activities.push(this.assembleActivityResource(activityToProcess));
+		}
+
+		// create the activities using impact API
+		await this.impactClient.createBulk(newBulkActivities, this.getLambdaRequestContext(security));
+
+		// Removed the created activity and update the task file
+		const activitiesLeft = csvObjects.slice(10);
+		let keepGoing = false;
+		if (activitiesLeft.length > 0) {
+			await this.fromObjectToCsvFile(pipelineId, executionId, activitiesLeft);
+			keepGoing = true;
+		}
+		this.log.debug(`ImpactCreationTask > createBulkActivities > keepGoing: ${keepGoing}`);
+		return keepGoing;
+	}
+
+	private assembleActivityResource(csvObject: Record<string, any>): NewActivity {
+		this.log.debug(`ImpactCreationTask > assembleActivity > csvObject: ${JSON.stringify(csvObject)}`);
+
+		const activity: NewActivity = {
+			name: undefined,
+			description: undefined,
+			attributes: {},
+			tags: {},
+			impacts: {}
+		};
+
+		const initializeImpact = (impactKey: string) => {
+			if (!activity.impacts[impactKey]) {
+				activity.impacts[impactKey] = {
+					name: undefined,
+					attributes: {},
+					components: {},
+				};
+			}
+		};
+
+		const initializeComponent = (impactKey: string, componentKey: string) => {
+			if (!activity.impacts[impactKey].components[componentKey]) {
+				activity.impacts[impactKey].components[componentKey] = {
+					key: undefined,
+					value: undefined,
+					type: undefined,
+				};
+			}
+		};
 
 		for (const prop in csvObject) {
-			if (prop.startsWith('activity_attribute_')) {
-				const key = prop.replace('activity_attribute_', '');
-				activityAttribute[key] = csvObject[prop];
-			}
-			if (prop.startsWith('activity_tag_')) {
-				const key = prop.replace('activity_tag_', '');
-				activityTag[key] = csvObject[prop];
-			}
-			if (prop.startsWith('impact_attribute_')) {
-				const key = prop.replace('impact_attribute_', '');
-				impactAttribute[key] = csvObject[prop];
+			if (prop === 'activity:name') {
+				activity.name = csvObject[prop];
+			} else if (prop === 'activity:description') {
+				activity.description = csvObject[prop];
+			} else if (prop.startsWith('activity:attribute:')) {
+				const key = prop.replace('activity:attribute:', '');
+				activity.attributes[key] = csvObject[prop];
+			} else if (prop.startsWith('activity:tag:')) {
+				const key = prop.replace('activity:tag:', '');
+				activity.tags[key] = csvObject[prop];
+			} else if (prop.startsWith('impact:')) {
+				const keys = prop.split(':');
+				const impactKey = keys[1];
+				const impactProperty = keys[2];
+
+				if (impactProperty === 'name') {
+					initializeImpact(impactKey);
+					activity.impacts[impactKey].name = csvObject[prop];
+				} else if (impactProperty === 'attribute') {
+					initializeImpact(impactKey);
+					const impactAttributeKey = keys[3];
+					activity.impacts[impactKey].attributes[impactAttributeKey] = csvObject[prop];
+				} else if (impactProperty === 'component') {
+					initializeImpact(impactKey);
+					const componentKey = keys[3];
+					const componentProperty = keys[4];
+					initializeComponent(impactKey, componentKey);
+					const value = (componentProperty === 'value') ? Number.parseFloat(csvObject[prop]) : csvObject[prop];
+					activity.impacts[impactKey].components[componentKey][componentProperty] = value;
+				}
 			}
 		}
 
-		const newActivity = JSON.parse(JSON.stringify({
-			name: activityName,
-			description: activityDescription,
-			attributes: activityAttribute,
-			tags: {
-				pipelineId,
-				executionId,
-				...activityTag
-			},
-			impacts: {
-				[impactName]: {
-					name: impactName,
-					attributes: impactAttribute,
-					components: {
-						[componentKey]: {
-							key: componentKey,
-							value: componentValue,
-							type: componentType,
-							description: componentDescription,
-							label: componentLabel
-						}
-					}
+		for (const impact in activity.impacts) {
+			const componentKeys = Object.keys(activity.impacts[impact].components);
+			for (const component of componentKeys) {
+				/**
+				 * Delete the component if the value is null
+				 */
+				if (!activity.impacts[impact].components[component].value || activity.impacts[impact].components[component].value === null) {
+					delete activity.impacts[impact].components[component];
 				}
-			}
-		}));
-		this.log.debug(`ImpactCreationTask > process > exit> newActivity: ${JSON.stringify(newActivity)}`);
-		return newActivity;
-	}
-
-	private async createActivities(pipelineId: string, executionId: string, lambdaRequestContext: LambdaRequestContext): Promise<string[]> {
-		this.log.debug(`ImpactCreationTask > createActivities > pipelineId: ${pipelineId}, executionId: ${executionId}`);
-
-		const readResponse = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: getPipelineOutputKey('pipelines', pipelineId, executionId) }));
-		const csvObjects: Record<string, any>[] = convertCSVToArray(await sdkStreamMixin(readResponse.Body).transformToString(), { header: false, separator: ',' }) as unknown as Record<string, any>[];
-
-		const errorList = [];
-		for (const csvObject of csvObjects) {
-			for (let key in csvObject) {
-				// remove start and end double quote if any for property with string value
-				// this is appended by calculator to ensure that value that contains comma is
-				// treated as singled unit
-				if (typeof csvObject[key] === 'string') {
-					csvObject[key] = csvObject[key].toString().replace(/(^"|"$)/g, '');
-				}
-			}
-			const newActivity = this.assembleActivityResource(csvObject, pipelineId, executionId);
-			try {
-				this.log.info(`ImpactCreationTask > createActivities >  newActivityResource: ${JSON.stringify(newActivity)}`);
-				const existingActivity = await this.impactClient.getByAlias(newActivity.name, lambdaRequestContext);
-				if (!existingActivity) {
-					await this.impactClient.create(newActivity, lambdaRequestContext);
-				} else {
-					await this.impactClient.update(existingActivity.id, newActivity, lambdaRequestContext);
-				}
-			} catch (Exception) {
-				this.log.error(`ImpactCreationTask > createActivities > error : ${Exception}`);
-				errorList.push(`activity ${csvObject['activityName']}, error: ${Exception.message}`);
 			}
 		}
-		this.log.debug(`ImpactCreationTask > createActivities > errorList: ${errorList}`);
-		return errorList;
+
+		this.log.debug(`ImpactCreationTask > process > exit> activity: ${JSON.stringify(activity)}`);
+		return activity;
 	}
 
-	public async process(event: ImpactCreationTaskEvent): Promise<[string, string]> {
-		this.log.debug(`ImpactCreationTask > process > event: ${JSON.stringify(event)}`);
-		validateNotEmpty(event, 'event');
-		validateNotEmpty(event.executionId, 'executionId');
-		validateNotEmpty(event.pipelineId, 'pipelineId');
-
-		const { pipelineId, executionId, errorLocationList } = event;
-
-		// create activities based on the calculation result
-		const lambdaRequestContext = this.getLambdaRequestContext(event.security);
-		const createActivitiesErrors = await this.createActivities(pipelineId, executionId, lambdaRequestContext);
-		const hasError = createActivitiesErrors.length > 0 || errorLocationList.length > 0;
-
-		const taskStatus = hasError ? 'failed' : 'success';
-		const taskStatusMessage = !hasError ? undefined : errorLocationList.length > 0 ? 'error when performing calculation, review the pipeline execution error log for further info' : createActivitiesErrors.join(',');
-
-		// update pipeline status
-		this.log.debug(`ImpactCreationTask > process > exit> ${JSON.stringify([taskStatus, taskStatusMessage])}`);
-		return [taskStatus, taskStatusMessage];
-	}
 }

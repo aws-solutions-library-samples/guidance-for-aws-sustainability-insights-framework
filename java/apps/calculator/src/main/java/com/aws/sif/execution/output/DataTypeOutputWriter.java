@@ -76,7 +76,7 @@ public class DataTypeOutputWriter implements OutputWriter<DataTypeRecord> {
         var sortedValues = new ArrayList<String>();
         for (Map.Entry<String, String> entry : this.outputMap.entrySet()) {
             var value = record.getValues().get(entry.getKey()).getValue();
-            var outputValue = value.toString();
+            var outputValue = value == null ? "" : value.toString();
             // append start and end double quote to handle string value that contains comma
             if (record.getValues().get(entry.getKey()) instanceof StringTypeValue) {
                 outputValue = String.format("\"%s\"", value);

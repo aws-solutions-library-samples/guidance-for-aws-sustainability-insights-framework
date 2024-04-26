@@ -7,9 +7,9 @@
 	"scripts": {
 		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build": "npx tsc -b && npm run build:validator",
-		"build:validator": "node_modules/.bin/ts-node --esm --prefer-ts-exts esbuild.ts",
+		"build:validator": "node --no-warnings=ExperimentalWarning --loader ts-node/esm esbuild.ts",
 		"test": "npm run build && vitest run --passWithNoTests",
-		"predeploy": "node_modules/.bin/ts-node --esm --prefer-ts-exts src/predeploy.ts",
+		"predeploy": "node --no-warnings=ExperimentalWarning --loader ts-node/esm src/predeploy.ts",
 		"cdk": "npm run predeploy && cdk"
 	},
 	"dependencies": {
@@ -37,7 +37,7 @@
 		"@esbuild-plugins/node-globals-polyfill": "0.2.3",
 		"@esbuild-plugins/node-modules-polyfill": "0.2.2",
 		"@tsconfig/node16-strictest-esm": "1.0.3",
-		"@types/node": "20.4.2",
+		"@types/node": "20.11.20",
 		"@types/prettier": "2.7.3",
 		"@typescript-eslint/eslint-plugin": "6.1.0",
 		"@typescript-eslint/parser": "6.1.0",

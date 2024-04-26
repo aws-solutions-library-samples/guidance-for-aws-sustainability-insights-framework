@@ -15,15 +15,63 @@
 import type { BaseLogger } from 'pino';
 import type { GetLambdaRequestContext } from '../../plugins/module.awilix.js';
 import type { CalculationContext, CalculatorS3TransformResponseWithSequence, InsertActivityBulkResult, ProcessedTaskEvent, Status } from './model.js';
-import type { MetricClient } from '@sif/clients';
+import type { CalculatorReferencedResource, MetricClient } from '@sif/clients';
 import type { ActivitiesRepository } from '../../api/activities/repository';
 import type { Client } from 'pg';
 import type { PipelineProcessorsRepository } from '../../api/executions/repository';
 import type { EventPublisher } from '@sif/events';
+import type { CalculatorResultUtil } from '../../utils/calculatorResult.util';
 
 export class SqlResultProcessorTask {
 	constructor(private readonly log: BaseLogger, private readonly pipelineProcessorsRepository: PipelineProcessorsRepository,
-				private readonly metricClient: MetricClient, private readonly getLambdaRequestContext: GetLambdaRequestContext, private readonly activitiesRepository: ActivitiesRepository, private readonly eventPublisher: EventPublisher) {
+				private readonly metricClient: MetricClient, private readonly getLambdaRequestContext: GetLambdaRequestContext, private readonly activitiesRepository: ActivitiesRepository, private readonly eventPublisher: EventPublisher, private readonly calculatorUtil: CalculatorResultUtil) {
+	}
+
+	public async process(event: InsertActivityBulkResult[]): Promise<ProcessedTaskEvent> {
+		this.log.debug(`SqlResultProcessorTask > process > event: ${JSON.stringify(event)}`);
+
+		const sortedResults = event.sort((a, b) => {
+			return a.calculatorTransformResponse.sequence - b.calculatorTransformResponse.sequence;
+		});
+
+		const firstResult = sortedResults[0];
+
+		const { pipelineId, executionId, security } = firstResult.context;
+
+		const status: Status = event.some((o: InsertActivityBulkResult) => o.calculatorTransformResponse.noActivitiesProcessed === true) ? 'FAILED' : event.some((o: InsertActivityBulkResult) => o.sqlExecutionResult?.status === 'failed') ? 'FAILED' : 'SUCCEEDED';
+
+		// if finished and success, transition the status
+		if (status === 'SUCCEEDED') {
+			this.log.debug(`sqlResultProcessor > handler > transitioning status to SUCCEEDED`);
+			const execution = await this.pipelineProcessorsRepository.get(executionId);
+			await Promise.all([
+				// update the execution status
+				this.pipelineProcessorsRepository.create({
+					...execution,
+					status: 'calculating_metrics',
+					updatedBy: security.email,
+					updatedAt: new Date(Date.now()).toISOString()
+				}),
+
+				// publish event
+				this.eventPublisher.publishTenantEvent({
+					resourceType: 'pipelineExecution',
+					eventType: 'updated',
+					id: executionId
+				}),
+
+				this.calculatorUtil.storeCalculatorOutputLocations(pipelineId, executionId, event.map(o => o.calculatorTransformResponse.activityValueKey))
+			]);
+		}
+
+		const processedTaskEvent = await this.assemble(firstResult.context, status, sortedResults.map(o => o.calculatorTransformResponse));
+
+		await this.cleanup(event.map(e => {
+			return { sequence: e.calculatorTransformResponse.sequence, executionId };
+		}));
+
+		this.log.debug(`sqlResultProcessor > handler > exit> ${JSON.stringify(processedTaskEvent)}`);
+		return processedTaskEvent;
 	}
 
 	private async assemble(context: CalculationContext, status: Status, calculatorTransformResponseList: CalculatorS3TransformResponseWithSequence[]): Promise<ProcessedTaskEvent> {
@@ -42,11 +90,20 @@ export class SqlResultProcessorTask {
 		const sequenceList = calculatorTransformResponseList.map(o => o.sequence);
 		const errorLocationList = calculatorTransformResponseList.filter(o => o.errorLocation !== undefined).map(o => o.errorLocation);
 
-		const response = {
+		const combinedReferencedResources = (prev: { [key: string]: CalculatorReferencedResource }, curr: CalculatorReferencedResource) => {
+			if (!prev[curr.name]) {
+				prev[curr.name] = curr;
+			}
+			return prev;
+		};
+
+		const response: ProcessedTaskEvent = {
 			...context,
 			// needed when concatenating the result
 			errorLocationList,
 			sequenceList,
+			referenceDatasets: calculatorTransformResponseList.map(c => Object.values(c.referenceDatasets ?? [])).flat().reduce(combinedReferencedResources, {}),
+			activities: calculatorTransformResponseList.map(c => Object.values(c.activities ?? [])).flat().reduce(combinedReferencedResources, {}),
 			// needed when performing metric aggregation
 			metricQueue,
 			outputs,
@@ -77,48 +134,6 @@ export class SqlResultProcessorTask {
 			}
 		}
 		this.log.debug(`sqlResultProcessor> cleanup> exit>`);
-	}
-
-	public async process(event: InsertActivityBulkResult[]): Promise<ProcessedTaskEvent> {
-		this.log.debug(`SqlResultProcessorTask > process > event: ${JSON.stringify(event)}`);
-
-		const sortedResults = event.sort((a, b) => {
-			return a.calculatorTransformResponse.sequence - b.calculatorTransformResponse.sequence;
-		});
-
-		const firstResult = sortedResults[0];
-
-		const { executionId, security } = firstResult.context;
-
-		const status: Status = event.some((o: InsertActivityBulkResult) => o.calculatorTransformResponse.noActivitiesProcessed === true) ? 'FAILED' : event.some((o: InsertActivityBulkResult) => o.sqlExecutionResult?.status === 'failed') ? 'FAILED' : 'SUCCEEDED';
-
-		// if finished and success, transition the status
-		if (status === 'SUCCEEDED') {
-			this.log.debug(`sqlResultProcessor > handler > transitioning status to SUCCEEDED`);
-			const execution = await this.pipelineProcessorsRepository.get(executionId);
-			await this.pipelineProcessorsRepository.create({
-				...execution,
-				status: 'calculating_metrics',
-				updatedBy: security.email,
-				updatedAt: new Date(Date.now()).toISOString()
-			});
-
-			// publish the updated event
-			await this.eventPublisher.publishTenantEvent({
-				resourceType: 'pipelineExecution',
-				eventType: 'updated',
-				id: executionId
-			});
-		}
-
-		const processedTaskEvent = await this.assemble(firstResult.context, status, sortedResults.map(o => o.calculatorTransformResponse));
-
-		await this.cleanup(event.map(e => {
-			return { sequence: e.calculatorTransformResponse.sequence, executionId };
-		}));
-
-		this.log.debug(`sqlResultProcessor > handler > exit> ${JSON.stringify(processedTaskEvent)}`);
-		return processedTaskEvent;
 	}
 
 }

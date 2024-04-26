@@ -4,7 +4,7 @@ import { FileError } from '../common/errors';
 import { getPipelineInputKey } from '../utils/helper.utils';
 import { SecurityScope } from '@sif/authz';
 import type { ConnectorIntegrationResponseEvent, PipelineClient } from '@sif/clients';
-import type { VerificationTaskEvent } from '../stepFunction/tasks/model.js';
+import type { StateMachineInput } from '../stepFunction/tasks/model.js';
 import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import type { BaseLogger } from 'pino';
 import type { PipelineProcessorsService } from '../api/executions/service';
@@ -23,34 +23,12 @@ export class ConnectorIntegrationEventProcessor {
 		private s3Client: S3Client,
 		private activitiesStateMachineArn: string,
 		private dataStateMachineArn: string,
+		private referenceDatasetMachineArn: string,
 		private bucketName: string,
 		private bucketPrefix: string,
 		private pipelineClient: PipelineClient,
 		private getLambdaRequestContext: GetLambdaRequestContext,
 	) {
-	}
-
-	private async copyFile(source: S3Location, destination: S3Location): Promise<void> {
-		this.log.debug(`EventProcessor > copyFile > in: source:${JSON.stringify(source)},destination:${JSON.stringify(destination)}`);
-
-		validateNotEmpty(source, 'source');
-		validateNotEmpty(destination, 'destination');
-
-		await this.s3Client.send(
-			new CopyObjectCommand({
-				CopySource: `${source.bucket}/${source.key}`,
-				Bucket: destination.bucket,
-				Key: destination.key,
-			})
-		);
-
-		this.log.debug(`EventProcessor > copyFile > out>`);
-	}
-
-	private getPipelineAndExecutionIdFromKey(path: string): [string, string] {
-		const keyMinusPrefix = path.replace(`${this.bucketPrefix}/`, '');
-		const [pipelineId, _executionPath, executionId, _file] = keyMinusPrefix.split('/');
-		return [pipelineId, executionId];
 	}
 
 	public async processConnectorIntegrationRequestEvent(event: S3ObjectCreatedNotificationEventDetail): Promise<void> {
@@ -118,7 +96,7 @@ export class ConnectorIntegrationEventProcessor {
 
 			// we also need to resolve the connector for the pipeline. Why we also do call this function externally rather than internally from the connector ?
 			// same answer, to reduce the number of API calls you can rely on this connector output to execute the logic conditionally or so.
-			const connector = await this.connectorUtility.resolveConnectorFromPipeline(securityContext, pipeline);
+			const connector = await this.connectorUtility.resolveConnectorFromPipeline(securityContext, pipeline, 'input');
 
 			// finally, we have all the stuff we need to publish the connector integration event.
 			await this.connectorUtility.publishConnectorIntegrationEvent(pipeline, execution, connector);
@@ -148,30 +126,46 @@ export class ConnectorIntegrationEventProcessor {
 				throw new Error(event.statusMessage);
 			}
 
-			const verificationTaskInput: VerificationTaskEvent = {
+			const pipeline = await this.pipelineClient.get(event.pipelineId, undefined, this.getLambdaRequestContext(securityContext));
+
+			let stateMachineArn: string;
+			switch (pipeline.type) {
+				case 'activities':
+					stateMachineArn = this.activitiesStateMachineArn;
+					break;
+				case 'referenceDatasets':
+					stateMachineArn = this.referenceDatasetMachineArn;
+					break;
+				case 'data':
+				case 'impacts':
+					stateMachineArn = this.dataStateMachineArn;
+					break;
+				default:
+					throw new Error(`Pipeline with type ${pipeline.type} is not supported.`);
+			}
+
+			const input: StateMachineInput = {
 				source: {
 					bucket: this.bucketName,
 					key: getPipelineInputKey(this.bucketPrefix, event.pipelineId, event.executionId, (event?.fileName) ? event.fileName : 'transformed'),
 				},
 				securityContext,
-				pipelineId: event.pipelineId as string,
-				executionId: event.executionId as string,
+				pipelineId: event.pipelineId,
+				executionId: event.executionId,
 				pipelineType: event.pipelineType
 			};
 
-			// Trigger State Machine
 			const command = await this.sfnClient.send(
 				new StartExecutionCommand({
-					stateMachineArn: event.pipelineType === 'activities' ? this.activitiesStateMachineArn : this.dataStateMachineArn,
-					input: JSON.stringify(verificationTaskInput),
+					stateMachineArn,
+					input: JSON.stringify(input),
 				})
 			);
-			const executionArn = command.executionArn;
 
 			// once we trigger the step function, we also need to update the state of the execution to in_progress
 			await this.pipelineProcessorsService.update(securityContext, event.pipelineId, event.executionId, {
 				status: 'in_progress',
-				executionArn,
+				executionArn: command.executionArn,
 			});
 
 		} catch (e) {
@@ -183,5 +177,28 @@ export class ConnectorIntegrationEventProcessor {
 		}
 
 		this.log.info(`EventProcessor > process > exit:`);
+	}
+
+	private async copyFile(source: S3Location, destination: S3Location): Promise<void> {
+		this.log.debug(`EventProcessor > copyFile > in: source:${JSON.stringify(source)},destination:${JSON.stringify(destination)}`);
+
+		validateNotEmpty(source, 'source');
+		validateNotEmpty(destination, 'destination');
+
+		await this.s3Client.send(
+			new CopyObjectCommand({
+				CopySource: `${source.bucket}/${source.key}`,
+				Bucket: destination.bucket,
+				Key: destination.key,
+			})
+		);
+
+		this.log.debug(`EventProcessor > copyFile > out>`);
+	}
+
+	private getPipelineAndExecutionIdFromKey(path: string): [string, string] {
+		const keyMinusPrefix = path.replace(`${this.bucketPrefix}/`, '');
+		const [pipelineId, _executionPath, executionId, _file] = keyMinusPrefix.split('/');
+		return [pipelineId, executionId];
 	}
 }

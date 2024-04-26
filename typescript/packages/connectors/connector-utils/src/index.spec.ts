@@ -21,7 +21,7 @@ describe('csvService', () => {
 		},
 		// ignore the rest below
 		id: 'pipeId',
-		name: "pipelineName",
+		name: 'pipelineName',
 		version: 1,
 		transformer: {
 			transforms: [],
@@ -63,8 +63,6 @@ describe('csvService', () => {
 			'10,9ABE0c8aee135d6,"Osborn, Ford and Macdonald",http://www.mcdonald-watts.biz/,Syrian Arab Republic,Optional coherent focus group,1990,Investment Banking / Venture,5731\n' +
 			'1000,3ddb89ecD83B533,"Maddox, Owen and Shepherd",https://www.hamilton.com/,Guinea,Reactive bottom-line pricing structure,2019,Animation,4467\n';
 
-		const headers = ['Index', 'Organization Id', 'Name', 'Website', 'Country', 'Description', 'Founded', 'Industry', 'Number of employees'];
-
 		const stream = Readable.from(data);
 		const options: Options = {
 			delimiter: ','
@@ -78,18 +76,11 @@ describe('csvService', () => {
 		// there are 12 lines in the above dataset 11 rows + 1 header total, parsed output should have 11
 		expect(objects.length).toEqual(11);
 		// lets validate if the number of keys match
-		expect(Object.keys(objects[0]).length).toEqual(headers.length);
+		expect(Object.keys(objects[0]).length).toEqual(pipeline.transformer.parameters.length);
 		// lets validate if it has all the keys
 		expect(objects[0]).toHaveProperty('Index');
-		expect(objects[0]).toHaveProperty('Organization Id');
-		expect(objects[0]).toHaveProperty('Name');
 		expect(objects[0]).toHaveProperty('Website');
-		expect(objects[0]).toHaveProperty('Country');
-		expect(objects[0]).toHaveProperty('Description');
-		expect(objects[0]).toHaveProperty('Founded');
 		expect(objects[0]).toHaveProperty('Industry');
-		expect(objects[0]).toHaveProperty('Number of employees');
-
 	});
 
 	it('should throw an error if there is bad csv data', async () => {
@@ -114,9 +105,7 @@ describe('csvService', () => {
 		const data = 'Index,Organization Id,Name,Website,Country,Description,Founded,Industry,Number of employees\n' +
 			'1,E84A904909dF528,Liu-Hoover,http://www.day-hartman.org/,Western Sahara,Ergonomic zero administration knowledge user,1980,Online Publishing,6852\n' +
 			'2,AAC4f9aBF86EAeF,Orr-Armstrong,https://www.chapman.net/,Algeria,Ergonomic radical budgetary management,1970,Import / Export,7994\n' +
-			'3,,,http://lin.com/,Cote d\'Ivoire,Programmable intermediate conglomeration,2005,Apparel / Fashion,5105\n';
-
-		const headers = ['Index', 'Organization Id', 'Name', 'Website', 'Country', 'Description', 'Founded', 'Industry', 'Number of employees'];
+			'3,,,,Cote d\'Ivoire,Programmable intermediate conglomeration,2005,,5105\n';
 
 		const stream = Readable.from(data);
 		const options: Options = {
@@ -131,19 +120,17 @@ describe('csvService', () => {
 		// there are 12 lines in the above dataset 11 rows + 1 header total, parsed output should have 11
 		expect(objects.length).toEqual(3);
 		// lets validate if the number of keys match
-		expect(Object.keys(objects[0]).length).toEqual(headers.length);
+		expect(Object.keys(objects[0]).length).toEqual(pipeline.transformer.parameters.length);
 		// the third row in the csv data above has second and third cells empty we need to validate if by default the value for those cells were set to empty strings
-		expect(objects[2]['Organization Id']).toEqual('');
-		expect(objects[2]['Name']).toEqual('');
+		expect(objects[2]['Website']).toEqual('');
+		expect(objects[2]['Industry']).toEqual('');
 	});
 
 	it('should be able to handle empty cells within a csv if options override is set to "setToNull" for empty cells', async () => {
 		const data = 'Index,Organization Id,Name,Website,Country,Description,Founded,Industry,Number of employees\n' +
 			'1,E84A904909dF528,Liu-Hoover,http://www.day-hartman.org/,Western Sahara,Ergonomic zero administration knowledge user,1980,Online Publishing,6852\n' +
 			'2,AAC4f9aBF86EAeF,Orr-Armstrong,https://www.chapman.net/,Algeria,Ergonomic radical budgetary management,1970,Import / Export,7994\n' +
-			'3,,,http://lin.com/,Cote d\'Ivoire,Programmable intermediate conglomeration,2005,Apparel / Fashion,5105\n';
-
-		const headers = ['Index', 'Organization Id', 'Name', 'Website', 'Country', 'Description', 'Founded', 'Industry', 'Number of employees'];
+			'3,,,,Cote d\'Ivoire,Programmable intermediate conglomeration,2005,,5105\n';
 
 		const stream = Readable.from(data);
 		const options: Options = {
@@ -159,10 +146,10 @@ describe('csvService', () => {
 		// there are 12 lines in the above dataset 11 rows + 1 header total, parsed output should have 11
 		expect(objects.length).toEqual(3);
 		// lets validate if the number of keys match
-		expect(Object.keys(objects[0]).length).toEqual(headers.length);
+		expect(Object.keys(objects[0]).length).toEqual(pipeline.transformer.parameters.length);
 		// the third row in the csv data above has second and third cells empty we need to validate if by default the value for those cells were set to nulls
-		expect(objects[2]['Organization Id']).toEqual(null);
-		expect(objects[2]['Name']).toEqual(null);
+		expect(objects[2]['Website']).toEqual(null);
+		expect(objects[2]['Industry']).toEqual(null);
 	});
 
 
@@ -201,7 +188,53 @@ describe('csvService', () => {
 		} catch (e) {
 			expect(e.message).toEqual('Failed to parse row: csv file headers columns doesnt include all the specified in the pipeline transform parameters. transformParameterKeys: A,B,C, fileHeaders:Index,Organization Id,Name,Website,Country,Description,Founded,Industry,Number of employees');
 		}
+	});
 
+	it('should allow special character in label but not in key', async () => {
+		pipeline.transformer.parameters = [{
+			key: 'A',
+			label: 'Organization Id',
+			type: 'number'
+		}, {
+			key: 'B',
+			type: 'string',
+			label: 'Description'
+		}, {
+			key: 'C',
+			type: 'number',
+			label: 'Number of employees'
+		}];
+
+		const data = 'Index,Organization Id,Name,Website,Country,Description,Founded,Industry,Number of employees\n' +
+			'1,E84A904909dF528,Liu-Hoover,http://www.day-hartman.org/,Western Sahara,Ergonomic zero administration knowledge user,1980,Online Publishing,6852\n' +
+			'2,AAC4f9aBF86EAeF,Orr-Armstrong,https://www.chapman.net/,Algeria,Ergonomic radical budgetary management,1970,Import / Export,7994\n' +
+			'3,,,http://lin.com/,Cote d\'Ivoire,Programmable intermediate conglomeration,2005,Apparel / Fashion,5105\n';
+
+		const stream = Readable.from(data);
+		const options: Options = {
+			delimiter: ','
+		};
+
+		const filePath = await convertCsvReadableStreamToSifFormat(stream, pipeline.transformer.parameters, options);
+
+		const convertedFile = fs.readFileSync(filePath, 'utf8');
+		// let's convert the contents to actual json objects
+		const objects = convertedFile.trim().split(`\r\n`).map((obj) => JSON.parse(obj));
+
+		// there are 12 lines in the above dataset 11 rows + 1 header total, parsed output should have 11
+		expect(objects.length).toEqual(3);
+
+		expect(objects[0]['A']).toEqual('E84A904909dF528');
+		expect(objects[1]['A']).toEqual('AAC4f9aBF86EAeF');
+		expect(objects[2]['A']).toEqual('');
+
+		expect(objects[0]['B']).toEqual('Ergonomic zero administration knowledge user');
+		expect(objects[1]['B']).toEqual('Ergonomic radical budgetary management');
+		expect(objects[2]['B']).toEqual('Programmable intermediate conglomeration');
+
+		expect(objects[0]['C']).toEqual('6852');
+		expect(objects[1]['C']).toEqual('7994');
+		expect(objects[2]['C']).toEqual('5105');
 	});
 
 	it('should throw an error if the pipeline parameters have keys which are not found in the csv', () => {

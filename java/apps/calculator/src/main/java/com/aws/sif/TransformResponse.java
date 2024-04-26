@@ -17,6 +17,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.Map;
+
 @Getter
 @AllArgsConstructor
 @ToString
@@ -27,5 +29,10 @@ public abstract class TransformResponse {
 	@Getter
 	protected String activityValueKey;
 
-	public TransformResponse() {}
+	public TransformResponse() {
+	}
+
+	public Map<String, Map<String, String>> referenceDatasets;
+
+	public Map<String, Map<String, String>> activities;
 }

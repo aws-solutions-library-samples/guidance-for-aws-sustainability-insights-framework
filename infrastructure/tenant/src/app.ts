@@ -28,14 +28,14 @@ import { ReferenceDatasetsApiStack } from './referenceDatasets/referenceDatasets
 import { SharedTenantInfrastructureStack } from './shared/sharedTenant.stack.js';
 import { CleanRoomsConnectorStack } from './connectors/cleanRooms.stack.js';
 import { KinesisConnectorStack } from './connectors/kinesis.stack.js';
+import { DataFabricConnectorStack } from './connectors/dataFabric.stack.js';
 import { getOrThrow } from './shared/stack.utils.js';
 import { registerAllFacts, tryGetBooleanContext } from '@sif/cdk-common';
-
-const tenantApp = new cdk.App();
-
 import { fileURLToPath } from 'url';
 import path from 'path';
 import * as fs from 'fs';
+
+const tenantApp = new cdk.App();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,6 +68,9 @@ const metricStorage = tenantApp.node.tryGetContext('metricStorage') as string;
 //optional requirements for cross tenant resource sharing
 const permittedOutgoingTenantPaths = tenantApp.node.tryGetContext('outgoingTenantPaths') as string;
 const externallySharedGroupIds = tenantApp.node.tryGetContext('externallySharedGroupIds') as string;
+
+//optional requirements to enable the integration with Sustainability Data Foundation
+const includeDataFabric = tryGetBooleanContext(tenantApp, 'includeDataFabric', false);
 
 //optional requirements for audit file features in pipeline processors module
 const downloadAuditFileParallelLimit = (tenantApp.node.tryGetContext('downloadAuditFileParallelLimit') as number) ?? 5;
@@ -114,6 +117,8 @@ const csvConnectorName = 'sif-csv-pipeline-input-connector';
 const sifConnectorName = 'sif-activity-pipeline-input-connector';
 const cleanRoomsConnectorName = 'sif-cleanRooms-pipeline-input-connector';
 const kinesisConnectorName = 'sif-kinesis-pipeline-input-connector';
+const dataFabricInputConnectorName = 'sif-dataFabric-pipeline-input-connector';
+const dataFabricOutputConnectorName = 'sif-dataFabric-pipeline-output-connector';
 
 const tenantStackName = (suffix: string) => `${tenantStackNamePrefix}-${suffix}`;
 const tenantStackDescription = (moduleName: string, includeGuidanceCode: boolean) => `Infrastructure for ${moduleName} module${includeGuidanceCode ? ' -- Guidance for Sustainability Insights Framework on AWS (SO9161).' : '.'}`;
@@ -309,6 +314,31 @@ const kinesisConnectorStack = new KinesisConnectorStack(tenantApp, 'kinesisConne
 	connectorName: kinesisConnectorName
 });
 kinesisConnectorStack.node.addDependency(pipelineApiStack);
+
+if (includeDataFabric) {
+	// if includeDataFabric is set to true, the following are required parameters
+	const dataFabricRegion = getOrThrow(tenantApp, 'dataFabricRegion') as string;
+	const dataFabricEventBusArn = getOrThrow(tenantApp, 'dataFabricEventBusArn') as string;
+	const idcEmail = getOrThrow(tenantApp, 'idcEmail') as string;
+	const idcUserId = getOrThrow(tenantApp, 'idcUserId') as string;
+	const dfSustainabilityRoleArn = getOrThrow(tenantApp, 'dfSustainabilityRoleArn') as string;
+	const dataFabricConnectorStack = new DataFabricConnectorStack(tenantApp, 'dataFabricConnector', {
+		stackName: tenantStackName('dataFabricConnector'),
+		description: tenantStackDescription('dataFabricConnector', false),
+		env,
+		tenantId,
+		environment,
+		inputConnectorName: dataFabricInputConnectorName,
+		outputConnectorName: dataFabricOutputConnectorName,
+		tags,
+		dataFabricRegion,
+		dataFabricEventBusArn,
+		idcEmail,
+		idcUserId,
+		dfSustainabilityRoleArn
+	});
+	dataFabricConnectorStack.node.addDependency(pipelineApiStack);
+}
 
 const pipelineProcessorsStack = new PipelineProcessorsApiStack(tenantApp, 'PipelineProcessors', {
 	stackName: tenantStackName('pipelineProcessors'),

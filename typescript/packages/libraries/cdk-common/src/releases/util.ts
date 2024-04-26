@@ -19,6 +19,7 @@ export interface SifMetadata {
 	tag?: string;
 	branch: string;
 	revision: string;
+	originUrl: string;
 }
 
 const REPO_OWNER = 'aws-solutions-library-samples';
@@ -29,6 +30,7 @@ const getSifMetadata = async (): Promise<SifMetadata> => {
 	const tag = shelljs.exec('git describe --tags', { silent: true }).stdout.trim();
 	const branch = shelljs.exec('git rev-parse --abbrev-ref HEAD', { silent: true }).stdout.trim();
 	const revision = shelljs.exec('git rev-parse HEAD', { silent: true }).stdout.trim();
+	const originUrl = shelljs.exec('git config --get remote.origin.url', { silent: true }).stdout.trim();
 	let release;
 	try {
 		release = (await octokit.rest.repos.getReleaseByTag({ owner: REPO_OWNER, repo: REPO_NAME, tag })).data;
@@ -37,7 +39,7 @@ const getSifMetadata = async (): Promise<SifMetadata> => {
 	}
 
 	return {
-		tag, branch, revision, version: release?.name
+		tag, branch, revision, version: release?.name, originUrl
 	};
 };
 

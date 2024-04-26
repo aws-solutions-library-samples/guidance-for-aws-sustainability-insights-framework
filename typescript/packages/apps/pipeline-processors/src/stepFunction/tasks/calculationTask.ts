@@ -118,7 +118,7 @@ export class CalculationTask {
 				await this.sfnClient.send(new SendTaskSuccessCommand({ output: JSON.stringify(failedInsertActivityBulkResult), taskToken }));
 			}
 
-			this.log.info(`CalculationTask > process > exit:`);
+			this.log.info(`CalculationTask > process > exit > ${JSON.stringify(calculatorTransformResponse)}`);
 			return result;
 
 		} catch (error) {

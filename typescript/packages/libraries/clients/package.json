@@ -19,11 +19,16 @@
 	},
 	"dependencies": {
 		"@aws-sdk/client-lambda": "3.370.0",
-		"@sif/lambda-invoker": "workspace:*"
+		"@aws-sdk/client-ssm": "3.370.0",
+		"@aws-sdk/client-secrets-manager": "3.370.0",
+		"@aws-sdk/client-cognito-identity-provider": "3.370.0",
+		"@sif/lambda-invoker": "workspace:*",
+		"axios": "1.4.0",
+		"@sinclair/typebox": "0.29.4"
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",
-		"@types/node": "20.4.2",
+		"@types/node": "20.11.20",
 		"@types/prettier": "2.7.3",
 		"@typescript-eslint/eslint-plugin": "6.1.0",
 		"@typescript-eslint/parser": "6.1.0",

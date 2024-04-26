@@ -34,10 +34,12 @@ export const auditLogDepositorTableNameParameter = (tenantId: string, environmen
 // Connector parameters
 export const sifConnectorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/connectors/sif/functionName`;
 export const csvConnectorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/connectors/csv/functionName`;
+export const dataFabricInputConnectorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/connectors/dataFabricInput/functionName`;
 
+export const dataFabricOutputConnectorFunctionNameParameter = (tenantId: string, environment: string) => `/sif/${tenantId}/${environment}/connectors/dataFabricOutput/functionName`;
 
 export class SSM extends Construct {
-    public pipelineApiFunctionNameParameter: ssm.StringParameter;
+	public pipelineApiFunctionNameParameter: ssm.StringParameter;
 	public auditLogDepositorDatabaseNameParameter: ssm.StringParameter;
 	public auditLogDepositorTableNameParameter: ssm.StringParameter;
 
@@ -67,7 +69,7 @@ export class SSM extends Construct {
 			stringValue: `${namePrefix}-referenceDatasetsApi`,
 		});
 
-		this.pipelineApiFunctionNameParameter =  new ssm.StringParameter(this, 'pipelineFunctionNameParameter', {
+		this.pipelineApiFunctionNameParameter = new ssm.StringParameter(this, 'pipelineFunctionNameParameter', {
 			parameterName: pipelinesApiFunctionNameParameter(props.tenantId, props.environment),
 			stringValue: `${namePrefix}-pipelinesApi`,
 		});
@@ -90,6 +92,16 @@ export class SSM extends Construct {
 		new ssm.StringParameter(this, 'csvConnectorApiFunctionNameParameter', {
 			parameterName: csvConnectorFunctionNameParameter(props.tenantId, props.environment),
 			stringValue: `${connectorPrefix}-csv`,
+		});
+
+		new ssm.StringParameter(this, 'dataZoneInputConnectorFunctionNameParameter', {
+			parameterName: dataFabricInputConnectorFunctionNameParameter(props.tenantId, props.environment),
+			stringValue: `${connectorPrefix}-dataFabric-input`,
+		});
+
+		new ssm.StringParameter(this, 'dataZoneOutputConnectorFunctionNameParameter', {
+			parameterName: dataFabricOutputConnectorFunctionNameParameter(props.tenantId, props.environment),
+			stringValue: `${connectorPrefix}-dataFabric-output`,
 		});
 
 		new ssm.StringParameter(this, 'auditLogDepositorApiFunctionNameParameter', {

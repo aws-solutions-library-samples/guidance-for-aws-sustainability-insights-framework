@@ -235,11 +235,11 @@ deploy-tenant-milestone:
   script:
     - *sif-cli-build-steps
     - export TENANT_ENV="$CI_ROOT_DIR/tenant.env"
-    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": true, \"outGoingAllowed\": true, \"outGoingTenants\" : \"$TENANT_ID-shared\" , \"outGoingPath\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_ENV'
+    - 'echo "{\"includeDataFabric\":true,\"idcEmail\":\"$ADMINISTRATOR_EMAIL\",\"idcUserId\":\"$ADMINISTRATOR_EMAIL\",\"dfSustainabilityRoleArn\":\"arn:aws:iam::111111111111:role\/df-sustainability-read-only\",\"dataFabricRegion\":\"us-east-2\",\"dataFabricEventBusArn\":\"arn:aws:events:us-east-2:111111111111:event-bus\/DF-Shared-Bus\",\"administratorEmail\":\"$ADMINISTRATOR_EMAIL\",\"cognitoVerification\":false,\"enableDeleteResource\":true,\"deleteBucket\":true,\"includeCaml\":true,\"outGoingAllowed\":true,\"outGoingTenants\":\"$TENANT_ID-shared\",\"outGoingPath\":\"\/shared\",\"downloadAuditFileParallelLimit\":5,\"minScaling\":1,\"maxScaling\":10,\"decimalPrecision\":16}" > $TENANT_ENV'
     - cat $TENANT_ENV
     - sif instance install -e $ENVIRONMENT -t $TENANT_ID -h -c $TENANT_ENV -l $AWS_CREDS_TARGET_ROLE
     - export TENANT_SHARED_ENV="$CI_ROOT_DIR/tenant-shared.env"
-    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": false, \"externalSharingAllowed\": true, \"externallySharedGroupIds\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_SHARED_ENV'
+    - 'echo "{\"includeDataFabric\":true,\"idcEmail\":\"$ADMINISTRATOR_EMAIL\",\"idcUserId\":\"$ADMINISTRATOR_EMAIL\",\"dfSustainabilityRoleArn\":\"arn:aws:iam::111111111111:role\/df-sustainability-read-only\",\"dataFabricRegion\":\"us-east-2\",\"dataFabricEventBusArn\":\"arn:aws:events:us-east-2:111111111111:event-bus\/DF-Shared-Bus\",\"administratorEmail\":\"$ADMINISTRATOR_EMAIL\",\"cognitoVerification\":false,\"enableDeleteResource\":true,\"deleteBucket\":true,\"includeCaml\":true,\"outGoingAllowed\":true,\"outGoingTenants\":\"$TENANT_ID-shared\",\"outGoingPath\":\"\/shared\",\"downloadAuditFileParallelLimit\":5,\"minScaling\":1,\"maxScaling\":10,\"decimalPrecision\":16}" > $TENANT_SHARED_ENV'
     - cat $TENANT_SHARED_ENV
     - sif instance install -e $ENVIRONMENT -t $TENANT_ID-shared -h -c $TENANT_SHARED_ENV -l $AWS_CREDS_TARGET_ROLE
 
@@ -372,11 +372,11 @@ deploy-tenant:
   script:
     - *sif-cli-build-steps
     - export TENANT_ENV="$CI_ROOT_DIR/tenant.env"
-    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": true, \"outGoingAllowed\": true, \"outGoingTenants\" : \"$TENANT_ID-shared\" , \"outGoingPath\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_ENV'
+    - 'echo "{\"includeDataFabric\":true,\"idcEmail\":\"$ADMINISTRATOR_EMAIL\",\"idcUserId\":\"$ADMINISTRATOR_EMAIL\",\"dfSustainabilityRoleArn\":\"arn:aws:iam::111111111111:role\/df-sustainability-read-only\",\"dataFabricRegion\":\"us-west-2\",\"dataFabricEventBusArn\":\"arn:aws:events:us-west-2:111111111111:event-bus\/DF-Shared-Bus\",\"administratorEmail\":\"$ADMINISTRATOR_EMAIL\",\"cognitoVerification\":false,\"enableDeleteResource\":true,\"deleteBucket\":true,\"includeCaml\":true,\"outGoingAllowed\":true,\"outGoingTenants\":\"$TENANT_ID-shared\",\"outGoingPath\":\"\/shared\",\"downloadAuditFileParallelLimit\":5,\"minScaling\":1,\"maxScaling\":10,\"decimalPrecision\":16}" > $TENANT_ENV'
     - cat $TENANT_ENV
     - sif instance install -e $ENVIRONMENT -t $TENANT_ID -h -c $TENANT_ENV -l $AWS_CREDS_TARGET_ROLE
     - export TENANT_SHARED_ENV="$CI_ROOT_DIR/tenant-shared.env"
-    - 'echo "{\"administratorEmail\" : \"$ADMINISTRATOR_EMAIL\", \"cognitoVerification\": false, \"enableDeleteResource\": true, \"deleteBucket\": true, \"includeCaml\": false, \"externalSharingAllowed\": true, \"externallySharedGroupIds\" : \"/shared\", \"downloadAuditFileParallelLimit\" : 5, \"minScaling\" : 1, \"maxScaling\" : 10, \"decimalPrecision\" : 16}" > $TENANT_SHARED_ENV'
+    - 'echo "{\"includeDataFabric\":true,\"idcEmail\":\"$ADMINISTRATOR_EMAIL\",\"idcUserId\":\"$ADMINISTRATOR_EMAIL\",\"dfSustainabilityRoleArn\":\"arn:aws:iam::111111111111:role\/df-sustainability-read-only\",\"dataFabricRegion\":\"us-west-2\",\"dataFabricEventBusArn\":\"arn:aws:events:us-west-2:111111111111:event-bus\/DF-Shared-Bus\",\"administratorEmail\":\"$ADMINISTRATOR_EMAIL\",\"cognitoVerification\":false,\"enableDeleteResource\":true,\"deleteBucket\":true,\"includeCaml\":true,\"outGoingAllowed\":true,\"outGoingTenants\":\"$TENANT_ID-shared\",\"outGoingPath\":\"\/shared\",\"downloadAuditFileParallelLimit\":5,\"minScaling\":1,\"maxScaling\":10,\"decimalPrecision\":16}" > $TENANT_SHARED_ENV'
     - cat $TENANT_SHARED_ENV
     - sif instance install -e $ENVIRONMENT -t $TENANT_ID-shared -h -c $TENANT_SHARED_ENV -l $AWS_CREDS_TARGET_ROLE
 

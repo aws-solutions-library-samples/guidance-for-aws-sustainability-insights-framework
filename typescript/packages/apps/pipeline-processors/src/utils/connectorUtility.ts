@@ -13,13 +13,10 @@
 
 import type { FastifyBaseLogger } from 'fastify';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { EventPublisher, EventBridgeEventBuilder } from '@sif/events';
-import type { ConnectorClient, Connector, Pipeline, ConnectorIntegrationRequestEvent } from '@sif/clients';
-import type { LambdaRequestContext } from '@sif/clients';
-import { NotFoundError } from '@sif/resource-api-base';
-import { SecurityContext, convertGroupRolesToCognitoGroups } from '@sif/authz';
-import { PIPELINE_PROCESSOR_EVENT_SOURCE, PIPELINE_PROCESSOR_CONNECTOR_REQUEST_EVENT } from '@sif/events';
-import { InvalidRequestError } from '@sif/resource-api-base';
+import { EventBridgeEventBuilder, EventPublisher, outputConnectorRequest, PIPELINE_PROCESSOR_CONNECTOR_REQUEST_EVENT, PIPELINE_PROCESSOR_EVENT_SOURCE } from '@sif/events';
+import type { Connector, ConnectorClient, ConnectorIntegrationRequestEvent, ConnectorOutputIntegrationRequestEvent, DataAsset, LambdaRequestContext, OutputConnectorAssetType, Pipeline } from '@sif/clients';
+import { InvalidRequestError, NotFoundError } from '@sif/resource-api-base';
+import { convertGroupRolesToCognitoGroups, SecurityContext } from '@sif/authz';
 import { validateNotEmpty } from '@sif/validators';
 import type { PipelineExecution } from '../api/executions/schemas';
 import type { GetSignedUrl } from '../plugins/module.awilix.js';
@@ -60,64 +57,6 @@ export class ConnectorUtility {
 	}
 
 	// This function complies or merges parameters which are defined for configured/overrided for the connector.
-	// These config related parameters can be defined in three places, connector, pipeline, execution. This function will merge them all together into one parameter object
-	private compileConnectorParameters(connector: Connector, pipeline: Pipeline, execution: PipelineExecution) {
-		this.log.debug(`ConnectorUtility>compileConnectorParameters in> pipeline ${JSON.stringify(pipeline)}, execution:${execution}, connector: ${connector}`);
-		// let's pull the first level parameters from the connector itself
-		validateNotEmpty(connector, 'connector');
-		validateNotEmpty(pipeline, 'pipeline');
-		validateNotEmpty(execution, 'execution');
-
-		let parameters = {};
-
-		// we will only compile parameters if there are parameters defined on the connector object
-		if (connector.parameters) {
-
-			let connectorParameterNames = [];
-			// iterate of the connector config parameter definition
-			connector.parameters.forEach((p) => {
-				// let's track all the parameter names as well, this will be useful in the next steps where we need to compile out the parameters passed through the pipeline or execution
-				connectorParameterNames.push(p.name);
-				// check if it has a default value, if it does let's add it to the parameters object
-				if (p.defaultValue) parameters[p.name] = p.defaultValue;
-			});
-
-			// let's get the second level parameters from the pipeline, since we are processing the input connector we check for that
-			if (pipeline.connectorConfig?.input) {
-				//  for the particular connector, since the connectors are configured as list we have to find it
-				const pipelineConnectorConfig = pipeline.connectorConfig?.input.filter((p) => p.name === connector.name)[0];
-				// validate if the pipeline connector config has parameters to be compiled
-				if (pipelineConnectorConfig.parameters) {
-					// iterate over the parameter names and then only get the parameters with the same name, this will ignore any other parameters which are not specified on the connector itself
-					connectorParameterNames.forEach((n) => {
-						if (pipelineConnectorConfig.parameters[n]) parameters[n] = pipelineConnectorConfig.parameters[n];
-					});
-				}
-			}
-
-			// let's get the third level parameters from the execution request
-			if (execution.connectorOverrides?.[connector.name]?.parameters) {
-				// iterate over the parameter names and then only get the parameters with the same name, this will ignore any other parameters which are not specified on the connector itself
-				connectorParameterNames.forEach((n) => {
-					if (execution?.connectorOverrides[connector.name].parameters[n]) parameters[n] = execution.connectorOverrides[connector.name].parameters[n];
-				});
-			}
-		}
-
-		// another validation step which should validate if the parameters which are passed through have any unknown parameters in them, if they do we need to throw an error here
-		const parameterNames = connector?.parameters?.map((p) => p.name) ?? [];
-		// we will get the keys for the parameters overrided on the pipeline's connectorConfiguration object and then do a match,
-		// if we dont find a match, it means we have a parameter override which isnt define on the connectors parameter config
-		const isMatch = Object.keys(parameters).every(k => parameterNames.includes(k));
-
-		// if it doens't match, then we will throw an error here
-		if (!isMatch) {
-			throw new InvalidRequestError(`unknown parameter overrides specified: ${JSON.stringify(parameters)}, valid parameters for this connector are: ${JSON.stringify(parameterNames)}`);
-		}
-
-		this.log.debug(`ConnectorUtility> compileConnectorParameters> out: ${JSON.stringify(parameters)}`);
-		return parameters;
-	}
 
 	public validateConnectorParameters(connector: Connector, pipeline: Pipeline, execution: PipelineExecution) {
 		this.log.debug(`ConnectorUtility>validateConnectorParameters in> pipeline ${JSON.stringify(pipeline)}, execution:${execution}, connector: ${connector}`);
@@ -138,6 +77,69 @@ export class ConnectorUtility {
 				throw new InvalidRequestError(`Connector configured on the pipeline has required parameters requirement which has not been satisfied: requiredParameterKeys: ${JSON.stringify(requiredParameters)}, compiledParameterKeys:${JSON.stringify(parameterKeys)}`);
 			}
 		}
+	}
+
+	public async publishConnectorOutputIntegrationEvent(security: SecurityContext,
+														pipeline: Pipeline,
+														execution: PipelineExecution | undefined,
+														s3ObjectKeys: string[],
+														assetType: OutputConnectorAssetType): Promise<void> {
+
+		this.log.debug(`ConnectorUtility > publishConnectorOutputIntegrationEvent > in> pipeline ${JSON.stringify(pipeline)}, execution:${execution}, s3ObjectKeys: ${s3ObjectKeys}, assetType: ${assetType} `);
+
+		validateNotEmpty(pipeline, 'pipeline');
+		validateNotEmpty(s3ObjectKeys, 's3ObjectKeys');
+		validateNotEmpty(assetType, 'assetType');
+		validateNotEmpty(security, 'security');
+
+		const outputConnector = await this.resolveConnectorFromPipeline(security, pipeline, 'output');
+		const inputConnector = await this.resolveConnectorFromPipeline(security, pipeline, 'input');
+
+		const inputDataAssets: DataAsset[] = [];
+		for (const [tagKey, tagValue] of Object.entries(execution.tags ?? {})) {
+			// We only track if the source of the data comes from Data Fabric
+			if (tagKey.startsWith('df:source')) {
+				const [assetNamespace, assetName] = tagValue.split(':');
+				if (assetNamespace && assetName) {
+					inputDataAssets.push({ assetNamespace, assetName });
+				}
+			}
+		}
+
+		const integrationEventPayload: ConnectorOutputIntegrationRequestEvent = {
+			assetType,
+			inputDataAssets,
+			pipeline: {
+				id: pipeline.id,
+				name: pipeline.name,
+				createdBy: pipeline.createdBy
+			},
+			execution: execution ? {
+				id: execution.id,
+				createdBy: execution.createdBy
+			} : undefined,
+			files: s3ObjectKeys.map(o => ({ key: o, bucket: this.bucketName })),
+			fields: pipeline.transformer.transforms.filter(o => !(o.outputs[0].index === 0 && o.outputs[0].type === 'timestamp')).map(r => ({ key: r.outputs[0].key, type: r.outputs[0].type })),
+			connectors: {
+				input: [{
+					name: inputConnector.name,
+					parameters: this.compileConnectorParameters(inputConnector, pipeline, execution)
+				}],
+				output: [{
+					name: outputConnector.name,
+					parameters: this.compileConnectorParameters(outputConnector, pipeline, execution)
+				}]
+			},
+		};
+
+		const event = new EventBridgeEventBuilder()
+			.setEventBusName(this.eventBusName)
+			.setSource(PIPELINE_PROCESSOR_EVENT_SOURCE)
+			.setDetailType(outputConnectorRequest(outputConnector.name))
+			.setDetail(integrationEventPayload);
+
+		// publish the connector integration event
+		await this.eventPublisher.publish(event);
 	}
 
 	public async publishConnectorIntegrationEvent(pipeline: Pipeline, execution: PipelineExecution, connector: Connector, sc?: SecurityContext): Promise<void> {
@@ -180,17 +182,17 @@ export class ConnectorUtility {
 		await this.eventPublisher.publish(event);
 	}
 
-	public async resolveConnectorFromPipeline(securityContext: SecurityContext, pipeline: Pipeline): Promise<Connector> {
+	public async resolveConnectorFromPipeline(securityContext: SecurityContext, pipeline: Pipeline, type: 'input' | 'output'): Promise<Connector> {
 		this.log.debug(`ConnectorUtility > resolveConnectorFromPipeline:>in? pipeline:${JSON.stringify(pipeline)}`);
 
 		validateNotEmpty(pipeline, 'pipeline');
 
 		let connector: Connector;
 		// check if pipeline has an input connector configured
-		if (pipeline.connectorConfig?.input?.length > 0) {
+		if (pipeline.connectorConfig?.[type]?.length > 0) {
 			// let's get the connector itself
 			// for now, there will always be 1 input connector configured for a pipeline, we will grab that one
-			let pipelineInputConnector = pipeline.connectorConfig.input[0];
+			let pipelineInputConnector = pipeline.connectorConfig[type][0];
 			connector = await this.getConnector(securityContext, pipelineInputConnector.name);
 		}
 		// by default, we will integrate the sif CSV connector if no connector has been defined. This makes existing pipelines work as is and any new pipeline with no connector configured will be defaulted to CSV
@@ -200,6 +202,64 @@ export class ConnectorUtility {
 		}
 		this.log.debug(`ConnectorUtility > resolveConnectorFromPipeline> out: connector:${JSON.stringify(connector)}`);
 		return connector;
+	}
+
+	// These config related parameters can be defined in three places, connector, pipeline, execution. This function will merge them all together into one parameter object
+	private compileConnectorParameters(connector: Connector, pipeline: Pipeline, execution: PipelineExecution | undefined) {
+		this.log.debug(`ConnectorUtility>compileConnectorParameters in> pipeline ${JSON.stringify(pipeline)}, execution:${execution}, connector: ${connector}`);
+		// let's pull the first level parameters from the connector itself
+		validateNotEmpty(connector, 'connector');
+		validateNotEmpty(pipeline, 'pipeline');
+
+		let parameters = {};
+
+		// we will only compile parameters if there are parameters defined on the connector object
+		if (connector.parameters) {
+
+			let connectorParameterNames = [];
+			// iterate of the connector config parameter definition
+			connector.parameters.forEach((p) => {
+				// let's track all the parameter names as well, this will be useful in the next steps where we need to compile out the parameters passed through the pipeline or execution
+				connectorParameterNames.push(p.name);
+				// check if it has a default value, if it does let's add it to the parameters object
+				if (p.defaultValue) parameters[p.name] = p.defaultValue;
+			});
+
+			// let's get the second level parameters from the pipeline, since we are processing the input connector we check for that
+			if (pipeline.connectorConfig?.[connector.type]) {
+				//  for the particular connector, since the connectors are configured as list we have to find it
+				const pipelineConnectorConfig = pipeline.connectorConfig?.[connector.type].filter((p) => p.name === connector.name)[0];
+				// validate if the pipeline connector config has parameters to be compiled
+				if (pipelineConnectorConfig.parameters) {
+					// iterate over the parameter names and then only get the parameters with the same name, this will ignore any other parameters which are not specified on the connector itself
+					connectorParameterNames.forEach((n) => {
+						if (pipelineConnectorConfig.parameters[n]) parameters[n] = pipelineConnectorConfig.parameters[n];
+					});
+				}
+			}
+
+			// let's get the third level parameters from the execution request
+			if (execution?.connectorOverrides?.[connector.name]?.parameters) {
+				// iterate over the parameter names and then only get the parameters with the same name, this will ignore any other parameters which are not specified on the connector itself
+				connectorParameterNames.forEach((n) => {
+					if (execution?.connectorOverrides[connector.name].parameters[n]) parameters[n] = execution.connectorOverrides[connector.name].parameters[n];
+				});
+			}
+		}
+
+		// another validation step which should validate if the parameters which are passed through have any unknown parameters in them, if they do we need to throw an error here
+		const parameterNames = connector?.parameters?.map((p) => p.name) ?? [];
+		// we will get the keys for the parameters overrided on the pipeline's connectorConfiguration object and then do a match,
+		// if we dont find a match, it means we have a parameter override which isnt define on the connectors parameter config
+		const isMatch = Object.keys(parameters).every(k => parameterNames.includes(k));
+
+		// if it doens't match, then we will throw an error here
+		if (!isMatch) {
+			throw new InvalidRequestError(`unknown parameter overrides specified: ${JSON.stringify(parameters)}, valid parameters for this connector are: ${JSON.stringify(parameterNames)}`);
+		}
+
+		this.log.debug(`ConnectorUtility> compileConnectorParameters> out: ${JSON.stringify(parameters)}`);
+		return parameters;
 	}
 
 	private async getConnector(sc: SecurityContext, name: string): Promise<Connector> {

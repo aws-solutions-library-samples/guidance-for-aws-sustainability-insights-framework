@@ -12,12 +12,12 @@
  */
 
 import type { FastifyBaseLogger } from 'fastify';
-import { atLeastAdmin, atLeastReader, GroupPermissions, SecurityContext, atLeastContributor } from '@sif/authz';
+import { atLeastAdmin, atLeastContributor, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
 import { ulid } from 'ulid';
 import type { ActivityListOptions, ActivityListPaginationKey, ActivityListVersionPaginationKey, ActivityListVersionsOptions, ActivityRepository } from './repository.js';
-import type { EditActivity, Activity, NewActivity } from './schemas.js';
+import type { Activity, EditActivity, NewActivity } from './schemas.js';
 import type { ActivityValidator } from './validator.js';
-import { AlternateIdInUseError, InvalidRequestError, NotFoundError, UnauthorizedError, GroupService, TagService, ResourceService, MergeUtils } from '@sif/resource-api-base';
+import { AlternateIdInUseError, GroupService, InvalidRequestError, MergeUtils, NotFoundError, ResourceService, TagService, UnauthorizedError } from '@sif/resource-api-base';
 import { PkType } from '../common/pkTypes.js';
 import type { CommonUtils } from '../common/common.utils.js';
 import dayjs from 'dayjs';

@@ -15,7 +15,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import { ulid } from 'ulid';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { atLeastContributor, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
-import { NotImplementedError, ResourceService, UnauthorizedError, TagService, AccessManagementClient, ConflictError } from '@sif/resource-api-base';
+import { AccessManagementClient, ConflictError, NotImplementedError, ResourceService, TagService, UnauthorizedError } from '@sif/resource-api-base';
 import type { EventPublisher } from '@sif/events';
 import { getPipelineErrorKey, getPipelineInputKey, getPipelineOutputKey } from '../../utils/helper.utils.js';
 import type { PipelineExecution, PipelineExecutionList, PipelineExecutionRequest, PipelineExecutionUpdateParams, SignedUrlResponse } from './schemas.js';
@@ -32,54 +32,26 @@ const FIVE_MINUTES = 5 * 60;
 
 export class PipelineProcessorsService {
 	public constructor(
-		private log: FastifyBaseLogger,
-		private authChecker: GroupPermissions,
-		private s3Client: S3Client,
-		private getSignedUrl: GetSignedUrl,
-		private pipelineProcessorsRepository: PipelineProcessorsRepository,
-		private bucketName: string,
-		private bucketPrefix: string,
-		private eventPublisher: EventPublisher,
-		private pipelineClient: PipelineClient,
-		private connectorUtility: ConnectorUtility,
-		private getLambdaRequestContext: GetLambdaRequestContext,
-		private utils: PipelineExecutionUtils,
-		private inlineExecutionService: InlineExecutionService,
-		private auditVersion: number,
-		private resourceService: ResourceService,
-		private tagService: TagService,
-		private accessManagementClient: AccessManagementClient,
-		private triggerMetricAggregations: boolean,
-		private platformResourceUtility: PlatformResourceUtility
+	  private log: FastifyBaseLogger,
+	  private authChecker: GroupPermissions,
+	  private s3Client: S3Client,
+	  private getSignedUrl: GetSignedUrl,
+	  private pipelineProcessorsRepository: PipelineProcessorsRepository,
+	  private bucketName: string,
+	  private bucketPrefix: string,
+	  private eventPublisher: EventPublisher,
+	  private pipelineClient: PipelineClient,
+	  private connectorUtility: ConnectorUtility,
+	  private getLambdaRequestContext: GetLambdaRequestContext,
+	  private utils: PipelineExecutionUtils,
+	  private inlineExecutionService: InlineExecutionService,
+	  private auditVersion: number,
+	  private resourceService: ResourceService,
+	  private tagService: TagService,
+	  private accessManagementClient: AccessManagementClient,
+	  private triggerMetricAggregations: boolean,
+	  private platformResourceUtility: PlatformResourceUtility
 	) {
-	}
-
-	private async run(sc: SecurityContext, pipeline: Pipeline, newExecution: PipelineExecution, params: { expiration: number }): Promise<PipelineExecution> {
-		this.log.trace(`PipelineProcessorService> runJobMode> pipeline: ${pipeline}, newExecution: ${newExecution}`);
-
-		const { id: pipelineId } = pipeline;
-		const { id: executionId } = newExecution;
-
-		const connector = await this.connectorUtility.resolveConnectorFromPipeline(sc, pipeline);
-		await this.connectorUtility.validateConnectorParameters(connector, pipeline, newExecution);
-
-		await this.pipelineProcessorsRepository.create(newExecution);
-		// publish pipeline execution created event
-		await this.eventPublisher.publishTenantEvent({
-			resourceType: 'pipelineExecution',
-			eventType: 'created',
-			id: executionId
-		});
-
-		// let's add the rawInputUploadUrl to the execution response
-		if (connector.requiresFileUpload) {
-			newExecution.inputUploadUrl = await this.generatePipelineExecutionInputUrl(sc, pipelineId, executionId, params.expiration, 'raw');
-		} else {
-			// since the connector doesn't require a file to be uploaded, we will fire the connector integration event
-			await this.connectorUtility.publishConnectorIntegrationEvent(pipeline, newExecution, connector, sc);
-		}
-		this.log.trace(`PipelineProcessorService> runJobMode> newExecution: ${newExecution}`);
-		return newExecution;
 	}
 
 	public async create(sc: SecurityContext, pipelineId: string, executionParams: PipelineExecutionRequest): Promise<PipelineExecution> {
@@ -195,23 +167,6 @@ export class PipelineProcessorsService {
 		return { url };
 	}
 
-	private async generatePipelineExecutionInputUrl(securityContext: SecurityContext, pipelineId: string, executionId: string, expiresIn = FIVE_MINUTES, type?: 'raw' | 'transformed'): Promise<string> {
-		this.log.info(` PipelineProcessorsService > generatePipelineInputUploadUrl > , pipelineId: ${pipelineId}, executionId: ${executionId}, expiresIn: ${expiresIn}`);
-
-		// This will throw Exception if user does not have access to the pipeline
-		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(securityContext));
-
-		const params: PutObjectCommand = new PutObjectCommand({
-			Bucket: this.bucketName,
-			Key: getPipelineInputKey(this.bucketPrefix, pipeline.id, executionId, type)
-		});
-
-		const url = await this.getSignedUrl(this.s3Client, params, { expiresIn });
-
-		this.log.info(` PipelineProcessorsService > generatePipelineUploadUrl > exit`);
-		return url;
-	}
-
 	public async list(securityContext: SecurityContext, pipelineId: string, options: PipelineExecutionListOptions): Promise<[PipelineExecution[], PipelineExecutionListPaginationKey]> {
 		this.log.info(`PipelineProcessorsService> list> pipelineId: ${JSON.stringify(pipelineId)}, options: ${options}`);
 
@@ -247,7 +202,7 @@ export class PipelineProcessorsService {
 	}
 
 	public async update(sc: SecurityContext, pipelineId: string, id: string, params: PipelineExecutionUpdateParams): Promise<void> {
-		this.log.info(`PipelineProcessorsService>  update> pipelineId:${pipelineId}, id:${id}, toUpdate:${params}`);
+		this.log.info(`PipelineProcessorsService>  update> pipelineId:${pipelineId}, id:${id}, toUpdate:${JSON.stringify(params)}`);
 
 		// authorization role check
 		const isAuthorized = this.authChecker.isAuthorized([sc.groupId], sc.groupRoles, atLeastContributor, 'all');
@@ -272,6 +227,51 @@ export class PipelineProcessorsService {
 		});
 
 		this.log.info(`PipelineProcessorsService> update> exit>`);
+	}
+
+	private async run(sc: SecurityContext, pipeline: Pipeline, newExecution: PipelineExecution, params: { expiration: number }): Promise<PipelineExecution> {
+		this.log.trace(`PipelineProcessorService> runJobMode> pipeline: ${pipeline}, newExecution: ${newExecution}`);
+
+		const { id: pipelineId } = pipeline;
+		const { id: executionId } = newExecution;
+
+		const connector = await this.connectorUtility.resolveConnectorFromPipeline(sc, pipeline, 'input');
+		this.connectorUtility.validateConnectorParameters(connector, pipeline, newExecution);
+
+		await this.pipelineProcessorsRepository.create(newExecution);
+		// publish pipeline execution created event
+		await this.eventPublisher.publishTenantEvent({
+			resourceType: 'pipelineExecution',
+			eventType: 'created',
+			id: executionId
+		});
+
+		// let's add the rawInputUploadUrl to the execution response
+		if (connector.requiresFileUpload) {
+			newExecution.inputUploadUrl = await this.generatePipelineExecutionInputUrl(sc, pipelineId, executionId, params.expiration, 'raw');
+		} else {
+			// since the connector doesn't require a file to be uploaded, we will fire the connector integration event
+			await this.connectorUtility.publishConnectorIntegrationEvent(pipeline, newExecution, connector, sc);
+		}
+		this.log.trace(`PipelineProcessorService> runJobMode> newExecution: ${newExecution}`);
+		return newExecution;
+	}
+
+	private async generatePipelineExecutionInputUrl(securityContext: SecurityContext, pipelineId: string, executionId: string, expiresIn = FIVE_MINUTES, type?: 'raw' | 'transformed'): Promise<string> {
+		this.log.info(` PipelineProcessorsService > generatePipelineInputUploadUrl > , pipelineId: ${pipelineId}, executionId: ${executionId}, expiresIn: ${expiresIn}`);
+
+		// This will throw Exception if user does not have access to the pipeline
+		const pipeline = await this.pipelineClient.get(pipelineId, undefined, this.getLambdaRequestContext(securityContext));
+
+		const params: PutObjectCommand = new PutObjectCommand({
+			Bucket: this.bucketName,
+			Key: getPipelineInputKey(this.bucketPrefix, pipeline.id, executionId, type)
+		});
+
+		const url = await this.getSignedUrl(this.s3Client, params, { expiresIn });
+
+		this.log.info(` PipelineProcessorsService > generatePipelineUploadUrl > exit`);
+		return url;
 	}
 }
 

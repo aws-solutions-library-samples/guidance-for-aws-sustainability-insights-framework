@@ -11,19 +11,29 @@
  *  and limitations under the License.
  */
 
-export * from './clients/activity.models.js';
-export * from './clients/activity.client.js';
-export * from './clients/calculator.models.js';
-export * from './clients/calculator.client.js';
-export * from './clients/metric.client.js';
-export * from './clients/metric.models.js';
-export * from './clients/pipeline.client.js';
-export * from './clients/pipeline.models.js';
-export * from './clients/connector.client.js';
-export * from './clients/connector.models.js';
-export * from './clients/impact.client.js';
-export * from './clients/impact.model.js';
-export * from './clients/execution.client.js';
-export * from './clients/execution.models.js';
+export * from './clients/sif/activity.models.js';
+export * from './clients/sif/activity.client.js';
+export * from './clients/sif/calculator.models.js';
+export * from './clients/sif/calculator.client.js';
+export * from './clients/sif/metric.client.js';
+export * from './clients/sif/metric.models.js';
+export * from './clients/sif/pipeline.client.js';
+export * from './clients/sif/pipeline.models.js';
+export * from './clients/sif/referenceDataset.client.js';
+export * from './clients/sif/referenceDataset.model.js';
+export * from './clients/sif/connector.client.js';
+export * from './clients/sif/connector.models.js';
+export * from './clients/sif/impact.client.js';
+export * from './clients/sif/impact.model.js';
+export * from './clients/sif/execution.client.js';
+export * from './clients/sif/execution.models.js';
+
+export * from './clients/sdf/accessManagement.client.js';
+export * from './clients/sdf/accessManagement.model.js';
+export * from './clients/sdf/authenticator';
+export * from './clients/sdf/discovery.client.js';
+export * from './clients/sdf/discovery.model.js';
+
+
 export * from './common/models.js';
 

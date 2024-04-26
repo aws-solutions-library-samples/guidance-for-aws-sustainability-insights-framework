@@ -15,7 +15,7 @@ import type { BaseLogger } from 'pino';
 import axios from 'axios';
 import * as fs from 'fs';
 import type { ConnectorIntegrationRequestEvent } from '@sif/clients';
-import { convertCsvReadableStreamToSifFormat, ConnectorEvents } from '@sif/connector-utils';
+import { ConnectorEvents, convertCsvReadableStreamToSifFormat, saveCsvReadableStream } from '@sif/connector-utils';
 
 export class CsvService {
 	public constructor(
@@ -32,8 +32,15 @@ export class CsvService {
 			const options = this.initializeDefaultOptions(connector.parameters);
 			// download the raw input data
 			const rawInputDataStream = await this.downloadRawData(rawInputDownloadUrl);
-			// perform the csv to sif data format conversion
-			const transformedDataFilePath = await convertCsvReadableStreamToSifFormat(rawInputDataStream, pipeline.transformer.parameters, options);
+
+			let transformedDataFilePath: string;
+			if (pipeline.transformer.parameters.length === 0) {
+				transformedDataFilePath = await saveCsvReadableStream(rawInputDataStream);
+			} else {
+				// perform the csv to sif data format conversion
+				transformedDataFilePath = await convertCsvReadableStreamToSifFormat(rawInputDataStream, pipeline.transformer.parameters, options);
+			}
+
 			// upload the converted data to s3
 			await this.uploadTransformedData(transformedInputUploadUrl, transformedDataFilePath);
 			// publish a success response back
@@ -46,7 +53,7 @@ export class CsvService {
 			});
 
 		} catch (error) {
-			this.log.error(`Connectors> SIF> events> process> error: ${JSON.stringify(error)}`);
+			this.log.error(`Connectors> SIF> events> process> error: ${error}`);
 
 			// if anything fails, publish an error response back
 			await this.connectorEvents.publishResponse({
@@ -60,6 +67,7 @@ export class CsvService {
 
 		this.log.info(`csvService> processConnectorIntegrationRequest> in> out`);
 	}
+
 
 	private async downloadRawData(url: string): Promise<NodeJS.ReadableStream> {
 		this.log.info(`csvService> downloadRawData> in> url: ${url}`);

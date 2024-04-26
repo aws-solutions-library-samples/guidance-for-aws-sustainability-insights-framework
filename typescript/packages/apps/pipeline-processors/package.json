@@ -1,7 +1,7 @@
 {
 	"name": "@sif/pipeline-processors",
 	"description": "SIF: Common authz related functionality",
-	"version": "4.14.0",
+	"version": "4.15.0",
 	"author": "Dean Hart <deanhart@amazon.com>",
 	"exports": {
 		".": {
@@ -53,6 +53,7 @@
 		"@sinclair/typebox": "0.29.4",
 		"@types/convert-array-to-csv": "2.0.0",
 		"awilix": "8.0.1",
+		"axios": "1.4.0",
 		"convert-array-to-csv": "2.0.0",
 		"convert-csv-to-array": "1.0.3",
 		"dayjs": "1.11.9",
@@ -64,7 +65,8 @@
 		"ulid": "2.3.0",
 		"@aws-sdk/rds-signer": "3.370.0",
 		"aws-xray-sdk": "3.5.0",
-		"deepmerge":"4.3.1"
+		"deepmerge": "4.3.1",
+		"csv-parse": "5.4.0"
 	},
 	"devDependencies": {
 		"@aws-sdk/client-cloudformation": "3.370.0",
@@ -72,7 +74,7 @@
 		"@tsconfig/node16-strictest-esm": "1.0.3",
 		"@types/aws-lambda": "8.10.119",
 		"@types/convert-array-to-csv": "2.0.0",
-		"@types/node": "20.4.2",
+		"@types/node": "20.11.20",
 		"@types/prettier": "2.7.3",
 		"@types/pg": "8.10.2",
 		"@types/validator": "13.7.17",

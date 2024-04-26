@@ -25,6 +25,9 @@ export class PipelineValidator {
 		this.log.debug(`PipelineValidator > validate> in > pipeline: ${JSON.stringify(pipeline)}`);
 
 		switch(pipeline.type) {
+			case 'referenceDatasets':
+				this.transformValidator.validateReferenceDatasetsPipelineTransformer(pipeline.transformer);
+				break;
 			case 'activities':
 				this.transformValidator.validateActivitiesPipelineTransformer(pipeline.transformer);
 				break;

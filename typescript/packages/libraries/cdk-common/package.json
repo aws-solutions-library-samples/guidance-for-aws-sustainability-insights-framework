@@ -15,7 +15,7 @@
 	"scripts": {
 		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build": "tsc -b && npm run bundle:lambda",
-		"bundle:lambda": "rm -rf dist/dynamodb-seeder/lambdas && npx ts-node --esm --prefer-ts-exts esbuild.ts",
+		"bundle:lambda": "rm -rf dist/dynamodb-seeder/lambdas && node --no-warnings=ExperimentalWarning --loader ts-node/esm esbuild.ts",
 		"test": "npm run build && vitest run --passWithNoTests"
 	},
 	"dependencies": {
@@ -33,7 +33,7 @@
 		"cdk-nag": "2.27.73",
 		"@types/aws-lambda": "8.10.119",
 		"@tsconfig/node16-strictest-esm": "1.0.3",
-		"@types/node": "20.4.2",
+		"@types/node": "20.11.20",
 		"@types/prettier": "2.7.3",
 		"@typescript-eslint/eslint-plugin": "6.1.0",
 		"@typescript-eslint/parser": "6.1.0",

@@ -37,7 +37,13 @@ interface ContextAnswer {
 	minScaling: number,
 	maxScaling: number,
 	decimalPrecision: number,
-	triggerMetricAggregations: boolean
+	triggerMetricAggregations: boolean,
+	includeDataFabric: boolean,
+	idcEmail?: string,
+	idcUserId?: string,
+	dfSustainabilityRoleArn?: string,
+	dataFabricRegion?: string,
+	dataFabricEventBusArn?: string
 }
 
 
@@ -63,7 +69,13 @@ const schema: JSONSchemaType<ContextAnswer> = {
 		downloadAuditFileParallelLimit: { type: 'number' },
 		minScaling: { type: 'number' },
 		maxScaling: { type: 'number' },
-		decimalPrecision: { type: 'number' }
+		decimalPrecision: { type: 'number' },
+		includeDataFabric: { type: 'boolean' },
+		idcEmail: { type: 'string', nullable: true },
+		idcUserId: { type: 'string', nullable: true },
+		dfSustainabilityRoleArn: { type: 'string', nullable: true },
+		dataFabricRegion: { type: 'string', nullable: true },
+		dataFabricEventBusArn: { type: 'string', nullable: true }
 	},
 	required: [],
 	additionalProperties: false,
@@ -82,7 +94,8 @@ let answers: ContextAnswer = {
 	minScaling: 1,
 	maxScaling: 10,
 	decimalPrecision: 16,
-	triggerMetricAggregations: true
+	triggerMetricAggregations: true,
+	includeDataFabric: false
 };
 
 const restrictedAnswers = [
@@ -303,6 +316,26 @@ const retrieveDeploymentContext = async (existing?: ContextAnswer): Promise<any>
 	answers.enableDeleteResource = await confirm({ message: 'Enable the delete API endpoints, that can be used for deleting resources for testing purposes ?', default: false });
 	answers.deleteBucket = await confirm({ message: 'Remove the S3 Bucket and its objects upon deletion of the tenant? (Warning: all stored resources on S3 will be lost if set to true)', default: false });
 	answers.includeCaml = await confirm({ message: 'Deploy the CaML module as part of the deployment?', default: false });
+
+	answers.includeDataFabric = await confirm({ message: 'Deploy the DataFabric connector as part of the deployment?', default: false });
+
+	if (answers.includeDataFabric) {
+		answers.idcEmail = await input({
+			message: 'What is the IAM Identity Center user\'s email address?'
+		});
+		answers.idcUserId = await input({
+			message: 'What is the IAM Identity Center user\'s id?'
+		});
+		answers.dfSustainabilityRoleArn = await input({
+			message: 'What is the the IAM role that DataFabric will use to access SIF buckets?'
+		});
+		answers.dataFabricRegion = await input({
+			message: 'What is the region of the Data Fabric?'
+		});
+		answers.dataFabricEventBusArn = await input({
+			message: 'What is the arn of the DataFabric Event Bus?'
+		});
+	}
 
 	answers.outGoingAllowed = await confirm({ message: 'Do you want to access data shared by other tenants?', default: false });
 	if (answers.outGoingAllowed) {

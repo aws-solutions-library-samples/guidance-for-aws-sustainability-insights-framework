@@ -75,7 +75,7 @@ public class HandlerStream implements RequestStreamHandler {
                 case activities -> {
                     result = activityTypeCalculatorService.process(request);
                 }
-                case data, impacts -> {
+                case data, impacts, referenceDatasets -> {
                     result = dataTypeCalculatorService.process(request);
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + request.getPipelineType());

@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import { describe, expect, it, beforeEach, test } from 'vitest';
+import { beforeEach, describe, expect, it, test } from 'vitest';
 import pino from 'pino';
 import { TransformerValidator } from './tranformer-validator.js';
 import type { Transformer } from '../common/models.js';
@@ -27,6 +27,866 @@ describe('transformer validator', () => {
 		);
 		logger.level = 'debug';
 		validator = new TransformerValidator(logger);
+	});
+
+	it('impact pipeline transformer Happy path', () => {
+		const transformer: Transformer = {
+			'transforms': [
+				{
+					'index': 0,
+					'formula': 'CONCAT(\'useeio:supply_chain_naics_by_ghg:\', :NAICS Code 2017, \':\', :GHG)',
+					'outputs': [
+						{
+							'description': 'Activity name.',
+							'index': 0,
+							'key': 'activity:name',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 1,
+					'formula': 'CONCAT(\'Supply Chain GHG EmissionFactors v1.2 NAICS by GHG USD 2021 for \', :NAICS Code 2017, \' (\', :GHG, \').\')',
+					'outputs': [
+						{
+							'description': 'Activity description.',
+							'index': 0,
+							'key': 'activity:description',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 2,
+					'formula': '\'USEEIO\'',
+					'outputs': [
+						{
+							'description': 'Activity provider tag.',
+							'index': 0,
+							'key': 'activity:tag:provider',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 3,
+					'formula': '\'SupplyChainGHGEmissionFactors_v1.2_NAICS_byGHG_USD2021\'',
+					'outputs': [
+						{
+							'description': 'Activity dataset tag.',
+							'index': 0,
+							'key': 'activity:tag:dataset',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 4,
+					'formula': ':NAICS Code 2017',
+					'outputs': [
+						{
+							'description': 'Activity NAICS Code 2017 tag.',
+							'index': 0,
+							'key': 'activity:tag:naics_code_2017',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 5,
+					'formula': ':NAICS Title 2017',
+					'outputs': [
+						{
+							'description': 'Activity NAICS Title 2017 tag.',
+							'index': 0,
+							'key': 'activity:tag:naics_title_2017',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 6,
+					'formula': ':GHG',
+					'outputs': [
+						{
+							'description': 'Activity GHG tag.',
+							'index': 0,
+							'key': 'activity:tag:ghg',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 7,
+					'formula': '\'GHG emission factors\'',
+					'outputs': [
+						{
+							'description': 'GHG emission factors.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:name',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 8,
+					'formula': ':Unit',
+					'outputs': [
+						{
+							'description': 'Emission factor unit.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:attribute:unit',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 9,
+					'formula': '\'Without Margins\'',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors without Margins.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:without_margins:key',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 10,
+					'formula': ':Without Margins',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors without Margins.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:without_margins:value',
+							'type': 'number'
+						}
+					]
+				},
+				{
+					'index': 11,
+					'formula': '\'pollutant\'',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors without Margins type.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:without_margins:type',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 12,
+					'formula': '\'Margins\'',
+					'outputs': [
+						{
+							'description': 'Margins of Supply Chain Emission Factors.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:margins:key',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 13,
+					'formula': ':Margins',
+					'outputs': [
+						{
+							'description': 'Margins of Supply Chain Emission Factors.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:margins:value',
+							'type': 'number'
+						}
+					]
+				},
+				{
+					'index': 14,
+					'formula': '\'pollutant\'',
+					'outputs': [
+						{
+							'description': 'Margins of Supply Chain Emission Factors type.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:margins:type',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 15,
+					'formula': '\'With Margins\'',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors with Margins.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:with_margins:key',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 16,
+					'formula': ':With Margins',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors with Margins.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:with_margins:value',
+							'type': 'number'
+						}
+					]
+				},
+				{
+					'index': 17,
+					'formula': '\'pollutant\'',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors with Margins type.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:with_margins:type',
+							'type': 'string'
+						}
+					]
+				}
+			],
+			'parameters': [
+				{
+					'index': 0,
+					'key': 'NAICS Code 2017',
+					'label': 'NAICS Code 2017',
+					'type': 'string'
+				},
+				{
+					'index': 1,
+					'key': 'NAICS Title 2017',
+					'label': 'NAICS Title 2017',
+					'type': 'string'
+				},
+				{
+					'index': 2,
+					'key': 'GHG',
+					'label': 'GHG',
+					'type': 'string'
+				},
+				{
+					'index': 3,
+					'key': 'Unit',
+					'label': 'Unit',
+					'type': 'string'
+				},
+				{
+					'index': 4,
+					'key': 'Without Margins',
+					'label': 'Supply Chain Emission Factors without Margins',
+					'type': 'number'
+				},
+				{
+					'index': 5,
+					'key': 'Margins',
+					'label': 'Margins of Supply Chain Emission Factors',
+					'type': 'number'
+				},
+				{
+					'index': 6,
+					'key': 'With Margins',
+					'label': 'Supply Chain Emission Factors with Margins',
+					'type': 'number'
+				},
+				{
+					'index': 7,
+					'key': 'Reference USEEIO Code',
+					'label': 'Reference USEEIO Code',
+					'type': 'string'
+				}
+			]
+		};
+
+		validator.validateImpactPipelineTransformer(transformer);
+	});
+
+	it('impact pipeline transformer Component missing property', () => {
+		const transformer: Transformer = {
+			'transforms': [
+				{
+					'index': 0,
+					'formula': 'CONCAT(\'useeio:supply_chain_naics_by_ghg:\', :NAICS Code 2017, \':\', :GHG)',
+					'outputs': [
+						{
+							'description': 'Activity name.',
+							'index': 0,
+							'key': 'activity:name',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 1,
+					'formula': 'CONCAT(\'Supply Chain GHG EmissionFactors v1.2 NAICS by GHG USD 2021 for \', :NAICS Code 2017, \' (\', :GHG, \').\')',
+					'outputs': [
+						{
+							'description': 'Activity description.',
+							'index': 0,
+							'key': 'activity:description',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 2,
+					'formula': '\'USEEIO\'',
+					'outputs': [
+						{
+							'description': 'Activity provider tag.',
+							'index': 0,
+							'key': 'activity:tag:provider',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 3,
+					'formula': '\'SupplyChainGHGEmissionFactors_v1.2_NAICS_byGHG_USD2021\'',
+					'outputs': [
+						{
+							'description': 'Activity dataset tag.',
+							'index': 0,
+							'key': 'activity:tag:dataset',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 4,
+					'formula': ':NAICS Code 2017',
+					'outputs': [
+						{
+							'description': 'Activity NAICS Code 2017 tag.',
+							'index': 0,
+							'key': 'activity:tag:naics_code_2017',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 5,
+					'formula': ':NAICS Title 2017',
+					'outputs': [
+						{
+							'description': 'Activity NAICS Title 2017 tag.',
+							'index': 0,
+							'key': 'activity:tag:naics_title_2017',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 6,
+					'formula': ':GHG',
+					'outputs': [
+						{
+							'description': 'Activity GHG tag.',
+							'index': 0,
+							'key': 'activity:tag:ghg',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 7,
+					'formula': '\'GHG emission factors\'',
+					'outputs': [
+						{
+							'description': 'GHG emission factors.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:name',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 8,
+					'formula': ':Unit',
+					'outputs': [
+						{
+							'description': 'Emission factor unit.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:attribute:unit',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 9,
+					'formula': '\'Without Margins\'',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors without Margins.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:without_margins:key',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 10,
+					'formula': ':Without Margins',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors without Margins.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:without_margins:value',
+							'type': 'number'
+						}
+					]
+				},
+				{
+					'index': 11,
+					'formula': '\'pollutant\'',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors without Margins type.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:without_margins:type',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 12,
+					'formula': '\'Margins\'',
+					'outputs': [
+						{
+							'description': 'Margins of Supply Chain Emission Factors.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:margins:key',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 13,
+					'formula': ':Margins',
+					'outputs': [
+						{
+							'description': 'Margins of Supply Chain Emission Factors.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:margins:value',
+							'type': 'number'
+						}
+					]
+				},
+				{
+					'index': 14,
+					'formula': '\'pollutant\'',
+					'outputs': [
+						{
+							'description': 'Margins of Supply Chain Emission Factors type.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:margins:type',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 15,
+					'formula': '\'With Margins\'',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors with Margins.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:with_margins:key',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 16,
+					'formula': ':With Margins',
+					'outputs': [
+						{
+							'description': 'Supply Chain Emission Factors with Margins.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:component:with_margins:value',
+							'type': 'number'
+						}
+					]
+				}
+
+			],
+			'parameters': [
+				{
+					'index': 0,
+					'key': 'NAICS Code 2017',
+					'label': 'NAICS Code 2017',
+					'type': 'string'
+				},
+				{
+					'index': 1,
+					'key': 'NAICS Title 2017',
+					'label': 'NAICS Title 2017',
+					'type': 'string'
+				},
+				{
+					'index': 2,
+					'key': 'GHG',
+					'label': 'GHG',
+					'type': 'string'
+				},
+				{
+					'index': 3,
+					'key': 'Unit',
+					'label': 'Unit',
+					'type': 'string'
+				},
+				{
+					'index': 4,
+					'key': 'Without Margins',
+					'label': 'Supply Chain Emission Factors without Margins',
+					'type': 'number'
+				},
+				{
+					'index': 5,
+					'key': 'Margins',
+					'label': 'Margins of Supply Chain Emission Factors',
+					'type': 'number'
+				},
+				{
+					'index': 6,
+					'key': 'With Margins',
+					'label': 'Supply Chain Emission Factors with Margins',
+					'type': 'number'
+				},
+				{
+					'index': 7,
+					'key': 'Reference USEEIO Code',
+					'label': 'Reference USEEIO Code',
+					'type': 'string'
+				}
+			]
+		};
+
+		expect( ()=> validator.validateImpactPipelineTransformer(transformer)).toThrow(new Error(`Missing mandatory output column for component 'with_margins' under impact 'ghg_emissions' . The output keys should be 'impact:<impact name>:component:<component name>:key', 'impact:<impact name>:component:<component name>:type', 'impact:<impact name>:component:<component name>:value'`));
+	});
+
+	it('impact pipeline transformer missing components', () => {
+		const transformer: Transformer = {
+			'transforms': [
+				{
+					'index': 0,
+					'formula': 'CONCAT(\'useeio:supply_chain_naics_by_ghg:\', :NAICS Code 2017, \':\', :GHG)',
+					'outputs': [
+						{
+							'description': 'Activity name.',
+							'index': 0,
+							'key': 'activity:name',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 1,
+					'formula': 'CONCAT(\'Supply Chain GHG EmissionFactors v1.2 NAICS by GHG USD 2021 for \', :NAICS Code 2017, \' (\', :GHG, \').\')',
+					'outputs': [
+						{
+							'description': 'Activity description.',
+							'index': 0,
+							'key': 'activity:description',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 2,
+					'formula': '\'USEEIO\'',
+					'outputs': [
+						{
+							'description': 'Activity provider tag.',
+							'index': 0,
+							'key': 'activity:tag:provider',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 3,
+					'formula': '\'SupplyChainGHGEmissionFactors_v1.2_NAICS_byGHG_USD2021\'',
+					'outputs': [
+						{
+							'description': 'Activity dataset tag.',
+							'index': 0,
+							'key': 'activity:tag:dataset',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 4,
+					'formula': ':NAICS Code 2017',
+					'outputs': [
+						{
+							'description': 'Activity NAICS Code 2017 tag.',
+							'index': 0,
+							'key': 'activity:tag:naics_code_2017',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 5,
+					'formula': ':NAICS Title 2017',
+					'outputs': [
+						{
+							'description': 'Activity NAICS Title 2017 tag.',
+							'index': 0,
+							'key': 'activity:tag:naics_title_2017',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 6,
+					'formula': ':GHG',
+					'outputs': [
+						{
+							'description': 'Activity GHG tag.',
+							'index': 0,
+							'key': 'activity:tag:ghg',
+							'type': 'string'
+						}
+					]
+				},
+
+				{
+					'index': 7,
+					'formula': '\'GHG emission factors\'',
+					'outputs': [
+						{
+							'description': 'GHG emission factors.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:name',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 8,
+					'formula': ':Unit',
+					'outputs': [
+						{
+							'description': 'Emission factor unit.',
+							'index': 0,
+							'key': 'impact:ghg_emissions:attribute:unit',
+							'type': 'string'
+						}
+					]
+				},
+			],
+			'parameters': [
+				{
+					'index': 0,
+					'key': 'NAICS Code 2017',
+					'label': 'NAICS Code 2017',
+					'type': 'string'
+				},
+				{
+					'index': 1,
+					'key': 'NAICS Title 2017',
+					'label': 'NAICS Title 2017',
+					'type': 'string'
+				},
+				{
+					'index': 2,
+					'key': 'GHG',
+					'label': 'GHG',
+					'type': 'string'
+				},
+				{
+					'index': 3,
+					'key': 'Unit',
+					'label': 'Unit',
+					'type': 'string'
+				},
+				{
+					'index': 4,
+					'key': 'Without Margins',
+					'label': 'Supply Chain Emission Factors without Margins',
+					'type': 'number'
+				},
+				{
+					'index': 5,
+					'key': 'Margins',
+					'label': 'Margins of Supply Chain Emission Factors',
+					'type': 'number'
+				},
+				{
+					'index': 6,
+					'key': 'With Margins',
+					'label': 'Supply Chain Emission Factors with Margins',
+					'type': 'number'
+				},
+				{
+					'index': 7,
+					'key': 'Reference USEEIO Code',
+					'label': 'Reference USEEIO Code',
+					'type': 'string'
+				}
+			]
+		};
+
+		expect(() => validator.validateImpactPipelineTransformer(transformer)).toThrow(new Error(`Missing mandatory output column for components. You have to specify at least one component per impacts. The output keys should be 'impact:<impact name>:component:<component name>:key', 'impact:<impact name>:component:<component name>:type', 'impact:<impact name>:component:<component name>:value'`));
+	});
+
+
+	it('impact pipeline transformer Missing impacts', () => {
+		const transformer: Transformer = {
+			'transforms': [
+				{
+					'index': 0,
+					'formula': 'CONCAT(\'useeio:supply_chain_naics_by_ghg:\', :NAICS Code 2017, \':\', :GHG)',
+					'outputs': [
+						{
+							'description': 'Activity name.',
+							'index': 0,
+							'key': 'activity:name',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 1,
+					'formula': 'CONCAT(\'Supply Chain GHG EmissionFactors v1.2 NAICS by GHG USD 2021 for \', :NAICS Code 2017, \' (\', :GHG, \').\')',
+					'outputs': [
+						{
+							'description': 'Activity description.',
+							'index': 0,
+							'key': 'activity:description',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 2,
+					'formula': '\'USEEIO\'',
+					'outputs': [
+						{
+							'description': 'Activity provider tag.',
+							'index': 0,
+							'key': 'activity:tag:provider',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 3,
+					'formula': '\'SupplyChainGHGEmissionFactors_v1.2_NAICS_byGHG_USD2021\'',
+					'outputs': [
+						{
+							'description': 'Activity dataset tag.',
+							'index': 0,
+							'key': 'activity:tag:dataset',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 4,
+					'formula': ':NAICS Code 2017',
+					'outputs': [
+						{
+							'description': 'Activity NAICS Code 2017 tag.',
+							'index': 0,
+							'key': 'activity:tag:naics_code_2017',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 5,
+					'formula': ':NAICS Title 2017',
+					'outputs': [
+						{
+							'description': 'Activity NAICS Title 2017 tag.',
+							'index': 0,
+							'key': 'activity:tag:naics_title_2017',
+							'type': 'string'
+						}
+					]
+				},
+				{
+					'index': 6,
+					'formula': ':GHG',
+					'outputs': [
+						{
+							'description': 'Activity GHG tag.',
+							'index': 0,
+							'key': 'activity:tag:ghg',
+							'type': 'string'
+						}
+					]
+				},
+
+			],
+			'parameters': [
+				{
+					'index': 0,
+					'key': 'NAICS Code 2017',
+					'label': 'NAICS Code 2017',
+					'type': 'string'
+				},
+				{
+					'index': 1,
+					'key': 'NAICS Title 2017',
+					'label': 'NAICS Title 2017',
+					'type': 'string'
+				},
+				{
+					'index': 2,
+					'key': 'GHG',
+					'label': 'GHG',
+					'type': 'string'
+				},
+				{
+					'index': 3,
+					'key': 'Unit',
+					'label': 'Unit',
+					'type': 'string'
+				},
+				{
+					'index': 4,
+					'key': 'Without Margins',
+					'label': 'Supply Chain Emission Factors without Margins',
+					'type': 'number'
+				},
+				{
+					'index': 5,
+					'key': 'Margins',
+					'label': 'Margins of Supply Chain Emission Factors',
+					'type': 'number'
+				},
+				{
+					'index': 6,
+					'key': 'With Margins',
+					'label': 'Supply Chain Emission Factors with Margins',
+					'type': 'number'
+				},
+				{
+					'index': 7,
+					'key': 'Reference USEEIO Code',
+					'label': 'Reference USEEIO Code',
+					'type': 'string'
+				}
+			]
+		};
+
+		expect(() => validator.validateImpactPipelineTransformer(transformer)).toThrow(new Error(`Missing mandatory output columns. There are no impact columns specified. You have to specify at least the column 'impacts:<impact name>:name'.`));
 	});
 
 	it('activities pipeline transformer Happy path', () => {
@@ -1022,7 +1882,7 @@ describe('transformer validator', () => {
 				]
 		};
 		validator.validateDataPipelineTransformer(transformer);
-	})
+	});
 
 	// data pipeline if there is an aggregation or metric configuration we get an error
 	it('should throw an error if the pipeline type is data and metric or aggregation has been configured on it', () => {
@@ -1053,7 +1913,7 @@ describe('transformer validator', () => {
 							label: 'Vehicle',
 							type: 'number',
 							metrics: [
-								"int:ghg:scope1:mobile"
+								'int:ghg:scope1:mobile'
 							]
 						},
 					],
@@ -1071,136 +1931,27 @@ describe('transformer validator', () => {
 					type: 'number'
 				}
 			]
-		}
+		};
 
 		expect(() => {
 			validator.validateDataPipelineTransformer(transformer);
 		}).toThrow('Metrics and Aggregations are not supported for pipeline types: data and impacts');
 	});
 
-	// impact pipeline first transform doesnt need to be timestamp
-	it('should validate impacts type pipeline which doesnt require the first column to be timestamp', () => {
-		const transformer: Transformer =     {
-			"transforms":
-				[
-					{
-						"index": 0,
-						"formula": "CONCAT('eiolca',:product)",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "activityName",
-									"type": "string"
-								}
-							]
-					},
-					{
-						"index": 1,
-						"formula": "'ghg_emissions'",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "impactName",
-									"type": "string"
-								}
-							]
-					},
-					{
-						"index": 2,
-						"formula": "'co2e'",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "componentKey",
-									"type": "string"
-								}
-							]
-					},
-					{
-						"index": 3,
-						"formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "componentValue",
-									"type": "number"
-								}
-							]
-					},
-					{
-						"index": 4,
-						"formula": "'pollutant'",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "componentType",
-									"type": "string"
-								}
-							]
-					},
-				],
-			"parameters":
-				[
-					{
-						"index": 0,
-						"key": "product",
-						"type": "string"
-					},
-					{
-						"index": 0,
-						"key": "chosen_value",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_1",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_2",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_3",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_4",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_5",
-						"type": "number"
-					}
-				]
-		};
-
-		validator.validateImpactPipelineTransformer(transformer);
-	});
-
 	// impact pipeline throws an error if all mandatory transforms arent defined
 	it('should throw an error if the pipeline type is impact and metric or aggregation has been configured on it', () => {
-		const transformer: Transformer =     {
-			"transforms":
+		const transformer: Transformer = {
+			'transforms':
 				[
 					{
-						"index": 0,
-						"formula": "CONCAT('eiolca',:product)",
-						"outputs":
+						'index': 0,
+						'formula': 'CONCAT(\'eiolca\',:product)',
+						'outputs':
 							[
 								{
-									"index": 0,
-									"key": "activityName",
-									"type": "string",
+									'index': 0,
+									'key': 'activityName',
+									'type': 'string',
 									metrics: [
 										'somemetric'
 									]
@@ -1208,90 +1959,90 @@ describe('transformer validator', () => {
 							]
 					},
 					{
-						"index": 1,
-						"formula": "'ghg_emissions'",
-						"outputs":
+						'index': 1,
+						'formula': '\'ghg_emissions\'',
+						'outputs':
 							[
 								{
-									"index": 0,
-									"key": "impactName",
-									"type": "string"
+									'index': 0,
+									'key': 'impactName',
+									'type': 'string'
 								}
 							]
 					},
 					{
-						"index": 2,
-						"formula": "'co2e'",
-						"outputs":
+						'index': 2,
+						'formula': '\'co2e\'',
+						'outputs':
 							[
 								{
-									"index": 0,
-									"key": "componentKey",
-									"type": "string"
+									'index': 0,
+									'key': 'componentKey',
+									'type': 'string'
 								}
 							]
 					},
 					{
-						"index": 3,
-						"formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)",
-						"outputs":
+						'index': 3,
+						'formula': 'SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)',
+						'outputs':
 							[
 								{
-									"index": 0,
-									"key": "componentValue",
-									"type": "number"
+									'index': 0,
+									'key': 'componentValue',
+									'type': 'number'
 								}
 							]
 					},
 					{
-						"index": 4,
-						"formula": "'pollutant'",
-						"outputs":
+						'index': 4,
+						'formula': '\'pollutant\'',
+						'outputs':
 							[
 								{
-									"index": 0,
-									"key": "componentType",
-									"type": "string"
+									'index': 0,
+									'key': 'componentType',
+									'type': 'string'
 								}
 							]
 					},
 				],
-			"parameters":
+			'parameters':
 				[
 					{
-						"index": 0,
-						"key": "product",
-						"type": "string"
+						'index': 0,
+						'key': 'product',
+						'type': 'string'
 					},
 					{
-						"index": 0,
-						"key": "chosen_value",
-						"type": "number"
+						'index': 0,
+						'key': 'chosen_value',
+						'type': 'number'
 					},
 					{
-						"index": 0,
-						"key": "co2ePerDollar_1",
-						"type": "number"
+						'index': 0,
+						'key': 'co2ePerDollar_1',
+						'type': 'number'
 					},
 					{
-						"index": 0,
-						"key": "co2ePerDollar_2",
-						"type": "number"
+						'index': 0,
+						'key': 'co2ePerDollar_2',
+						'type': 'number'
 					},
 					{
-						"index": 0,
-						"key": "co2ePerDollar_3",
-						"type": "number"
+						'index': 0,
+						'key': 'co2ePerDollar_3',
+						'type': 'number'
 					},
 					{
-						"index": 0,
-						"key": "co2ePerDollar_4",
-						"type": "number"
+						'index': 0,
+						'key': 'co2ePerDollar_4',
+						'type': 'number'
 					},
 					{
-						"index": 0,
-						"key": "co2ePerDollar_5",
-						"type": "number"
+						'index': 0,
+						'key': 'co2ePerDollar_5',
+						'type': 'number'
 					}
 				]
 		};
@@ -1300,105 +2051,6 @@ describe('transformer validator', () => {
 			validator.validateImpactPipelineTransformer(transformer);
 		}).toThrow('Metrics and Aggregations are not supported for pipeline types: data and impacts');
 	});
-
-	it('should throw an error if the pipeline type is impact and mandatory transform output isnt specified', () => {
-		const transformer: Transformer =     {
-			"transforms":
-				[
-					{
-						"index": 0,
-						"formula": "CONCAT('eiolca',:product)",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "activityName",
-									"type": "string"
-								}
-							]
-					},
-					{
-						"index": 1,
-						"formula": "'ghg_emissions'",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "impactName",
-									"type": "string"
-								}
-							]
-					},
-					{
-						"index": 2,
-						"formula": "'co2e'",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "componentKey",
-									"type": "string"
-								}
-							]
-					},
-					{
-						"index": 3,
-						"formula": "SWITCH(:chosen_value,1,:co2ePerDollar_1,2,co2ePerDollar_2,3,co2ePerDollar_3,4,co2ePerDollar_4,5,co2ePerDollar_5)",
-						"outputs":
-							[
-								{
-									"index": 0,
-									"key": "componentValue",
-									"type": "number"
-								}
-							]
-					}
-				],
-			"parameters":
-				[
-					{
-						"index": 0,
-						"key": "product",
-						"type": "string"
-					},
-					{
-						"index": 0,
-						"key": "chosen_value",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_1",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_2",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_3",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_4",
-						"type": "number"
-					},
-					{
-						"index": 0,
-						"key": "co2ePerDollar_5",
-						"type": "number"
-					}
-				]
-		};
-
-		expect(() => {
-			validator.validateImpactPipelineTransformer(transformer);
-		}).toThrow('Missing mandatory output columns. For data pipeline type the following columns are mandatory \'activityName\', \'impactName\', \'componentKey\', \'componentValue\', \'componentType\'');
-	});
-
 
 	it('activities pipeline should throw an error if no number fields are being aggregated', () => {
 		const transformer: Transformer = {

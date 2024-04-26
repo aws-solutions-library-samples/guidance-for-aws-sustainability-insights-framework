@@ -16,13 +16,13 @@ import { parse } from 'csv-parse/sync';
 import { ulid } from 'ulid';
 import { toUtf8 } from '@aws-sdk/util-utf8-node';
 import ShortUniqueId from 'short-unique-id';
+import type { CopyObjectCommandInput, GetObjectCommandInput, PutObjectCommandInput, S3Client, SelectObjectContentCommandInput } from '@aws-sdk/client-s3';
 import { CopyObjectCommand, GetObjectCommand, PutObjectCommand, SelectObjectContentCommand } from '@aws-sdk/client-s3';
 import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
-import type { CopyObjectCommandInput, GetObjectCommandInput, PutObjectCommandInput, S3Client, SelectObjectContentCommandInput } from '@aws-sdk/client-s3';
-import { atLeastContributor, atLeastAdmin, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
-import { InvalidRequestError, AlternateIdInUseError, GroupService, MergeUtils, NotFoundError, ResourceService, TagService, UnauthorizedError } from '@sif/resource-api-base';
+import { atLeastAdmin, atLeastContributor, atLeastReader, GroupPermissions, SecurityContext } from '@sif/authz';
+import { AlternateIdInUseError, GroupService, InvalidRequestError, MergeUtils, NotFoundError, ResourceService, TagService, UnauthorizedError } from '@sif/resource-api-base';
 import type { EventPublisher } from '@sif/events';
-import type { GetSignedUrl, EditReferenceDataset, ReferenceDataset, ReferenceDatasetWithS3, NewReferenceDataset, SignedUrlResponse, S3Location, ReferenceDatasetUpdateMetadata } from './schemas.js';
+import type { EditReferenceDataset, GetSignedUrl, NewReferenceDataset, ReferenceDataset, ReferenceDatasetUpdateMetadata, ReferenceDatasetWithS3, S3Location, SignedUrlResponse } from './schemas.js';
 import type { ReferenceDatasetListOptions, ReferenceDatasetListPaginationKey, ReferenceDatasetListVersionPaginationKey, ReferenceDatasetListVersionsOptions, ReferenceDatasetRepository } from './repository.js';
 import { InvalidFileHeaderError, ReferenceDatasetDefinitionError } from '../common/errors.js';
 import { PkType } from '../utils/pkTypes.utils.js';
@@ -188,10 +188,11 @@ export class ReferenceDatasetService {
 
 		await this.tagService.submitGroupSummariesProcess(securityContext.groupId, PkType.ReferenceDataset, referenceDatasetNew.tags, {});
 
-		await this.eventPublisher.publishTenantEvent({
+		await this.eventPublisher.publishTenantEvent<ReferenceDataset>({
 			id,
 			resourceType: 'referenceDataset',
 			eventType: 'created',
+			new: referenceDataset
 		});
 
 		this.log.debug(`ReferenceDatasetService> create> exit> referenceDataset:${referenceDataset}`);

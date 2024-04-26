@@ -142,7 +142,7 @@ Feature:
 		When I GET /connectors?includeParentGroups=true
 		Then response code should be 200
 		# should include the cleanrooms, kinesis, csv and sif connector created by the deployment
-		And response body path $.connectors.length should be 7
+		And response body path $.connectors.length should be 9
 		And response body path $.connectors[?(@.id=='`pipeline_connector1_a_alias_id`')].id should be `pipeline_connector1_a_alias_id`
 		And response body path $.connectors[?(@.id=='`pipeline_connector1_id`')].id should be `pipeline_connector1_id`
 		And response body path $.connectors[?(@.id=='`pipeline_connector1_a_id`')].id should be `pipeline_connector1_a_id`
@@ -156,7 +156,7 @@ Feature:
 		# should return resource in current group context, child groups, parent groups and kinesis csv sif connectors
 		When I GET /connectors?includeChildGroups=true&includeParentGroups=true
 		Then response code should be 200
-		And response body path $.connectors.length should be 8
+		And response body path $.connectors.length should be 10
 		And response body path $.connectors[?(@.id=='`pipeline_connector1_id`')].id should be `pipeline_connector1_id`
 		And response body path $.connectors[?(@.id=='`pipeline_connector1_a_alias_id`')].id should be `pipeline_connector1_a_alias_id`
 		And response body path $.connectors[?(@.id=='`pipeline_connector1_a_b_c_id`')].id should be `pipeline_connector1_a_b_c_id`

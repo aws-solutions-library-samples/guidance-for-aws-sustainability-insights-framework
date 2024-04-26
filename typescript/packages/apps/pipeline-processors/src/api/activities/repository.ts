@@ -267,7 +267,7 @@ ${limitFilter}`;
 
 		if (req?.download) {
 			const preparedQuery = prepareS3ExportQuery(query);
-			const exportQuery = exportDataToS3Query(req.download.queryId, preparedQuery, req.download.bucket, req.download.bucketPrefix);
+			const exportQuery = exportDataToS3Query(preparedQuery, req.download.bucket, `${req.download.bucketPrefix}/${req.download.queryId}/result.csv`);
 			this.log.trace(`ActivitiesRepository> get> out: exportQuery:${JSON.stringify(exportQuery)}`);
 			await this.executeQuery(exportQuery);
 			return undefined;
@@ -359,6 +359,177 @@ ORDER BY  v."activityId", v.name, v."createdAt" desc`);
 
 		await this.executeQueriesInsideTransaction(queries);
 		this.log.debug(`ActivitiesRepository> createAggregatedActivities> out:`);
+	}
+
+	public async createTempTables(event: { executionId: string, sequence: number }, sharedConnection?: Client) {
+		this.log.debug(`ActivitiesRepository> createTempTables> in: event:${JSON.stringify(event)}`);
+		let createStatement = '';
+
+		//Create temporary de normalized activity value table
+		createStatement += `CREATE UNLOGGED TABLE IF NOT EXISTS "ActivityValue_${event.executionId}_${event.sequence}" (
+			"activityId" varchar(128),
+			"groupId" varchar(128),
+			"pipelineId" varchar(32),
+			"executionId" varchar(32),
+			"dateString" varchar(26) NOT NULL,
+			"isDeletion" boolean DEFAULT false,
+			key1 varchar(128),
+			key2 varchar(128),
+			key3 varchar(128),
+			key4 varchar(128),
+			key5 varchar(128),
+			"name" varchar(128),
+			"createdAtString" varchar(32),
+			val varchar(1024),
+			error boolean,
+			"errorMessage" varchar(512),
+			"auditId" uuid,
+			"dataType" varchar(26));
+			\n`;
+
+		this.log.trace(`ActivitiesRepository> createTempTables> query: ${createStatement}`);
+		await this.executeQuery(createStatement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> createTempTables> exit`);
+	}
+
+	public async cleanupTempTables(events: { executionId: string, sequence: number }[], sharedConnection?: Client, dropFlag?: boolean) {
+		this.log.debug(`ActivitiesRepository> cleanupTempTables> in: ActivityEvents:${JSON.stringify(events)}`);
+		let cleanupStatement = '';
+		const executionId = events[0].executionId;
+
+		for (const event of events) {
+			const tablePostfix = `${executionId}_${event.sequence}`;
+			//TODO: This truncate statement might cause session pinning need further load testing to confirm
+			cleanupStatement += `
+			do $$
+			BEGIN
+			IF (SELECT EXISTS (
+				SELECT FROM
+					information_schema.tables
+				WHERE
+					table_schema LIKE 'public' AND
+					table_type LIKE 'BASE TABLE' AND
+					table_name = 'ActivityValue_${tablePostfix}'
+				)) THEN
+				TRUNCATE "ActivityValue_${tablePostfix}";
+			END IF;
+			END;
+			$$;\n`;
+
+			if (dropFlag) {
+				cleanupStatement += (`DROP TABLE "ActivityValue_${tablePostfix}"; \n `);
+			}
+		}
+
+		this.log.trace(`ActivitiesRepository> cleanupTempTables> query: ${cleanupStatement}`);
+		await this.executeQuery(cleanupStatement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> cleanupTempTables> exit`);
+	}
+
+	public async getCountTempTables(executionId: string, sharedConnection?: Client) {
+		this.log.debug(`ActivitiesRepository> getCountTempTables> in: executionId:${executionId}`);
+
+		const queryStatement = `SELECT COUNT(*) FROM information_schema.tables WHERE table_name like 'ActivityValue_${executionId}%'`;
+		const queryResponse = await this.executeQuery(queryStatement, sharedConnection);
+
+		this.log.trace(`ActivitiesRepository> getCountTempTables> exit : ${JSON.stringify(queryResponse)}`);
+		const count: number = Number(queryResponse?.[0]?.['count']) ?? 0;
+
+		this.log.debug(`ActivitiesRepository> getCountTempTables> exit count: ${count}`);
+		return count;
+	}
+
+	public async moveActivities(event: { executionId: string, sequence: number }, auditVersion: number, sharedConnection?: Client) {
+		this.log.debug(`ActivitiesRepository> moveActivities> in: executionId:${event.executionId}, sequence:${event.sequence}`);
+
+		const queryStatement = `INSERT INTO "Activity"("groupId", "pipelineId", "date", "key1", "key2","key3","key4","key5", "auditVersion")
+			SELECT t."groupId", t."pipelineId", to_timestamp("dateString"::numeric), t."key1", t."key2",t."key3",t."key4",t."key5",'${auditVersion}'
+			FROM "ActivityValue_${event.executionId}_${event.sequence}" t
+			LEFT JOIN "Activity" a
+			ON a."groupId"=t."groupId" AND a."pipelineId"=t."pipelineId" AND a."date"=to_timestamp("dateString"::numeric) AND a."type"='raw'
+			AND a."key1"= t."key1" AND a."key2"=t."key2" AND a."key3"=t."key3" AND a."key4"=t."key4" AND a."key5"=t."key5"
+			where a."activityId" IS NULL
+			GROUP BY t."groupId", t."pipelineId", to_timestamp("dateString"::numeric), t."key1", t."key2",t."key3",t."key4",t."key5"`;
+
+		this.log.trace(`ActivitiesRepository> moveActivities> queryStatement:${queryStatement}`);
+		await this.executeQuery(queryStatement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> moveActivities> exit`);
+
+	}
+
+	public async moveActivityValues(event: { executionId: string, sequence: number }, sharedConnection?: Client) {
+		this.log.debug(`ActivitiesRepository> moveActivityValues> in: executionId:${event.executionId}, sequence:${event.sequence}`);
+		let queries = [];
+		const types = ['Boolean', 'DateTime', 'Number', 'String'];
+
+		const insertStatement = `INSERT INTO "Activity#TypeValue" ("activityId","name", "createdAt", "executionId", "val", "error", "errorMessage", "auditId")
+			SELECT a."activityId","name", to_timestamp("createdAtString"::numeric), '${event.executionId}', #Value, "error","errorMessage","auditId"
+			FROM "ActivityValue_${event.executionId}_${event.sequence}" av
+			JOIN "Activity" a on a."groupId"= av."groupId" AND a."pipelineId"= av."pipelineId" AND a."date"= to_timestamp(av."dateString"::numeric) AND a."key1"= av."key1" AND a."key2"= av."key2" AND a."key3"= av."key3" AND a."key4"= av."key4" AND a."key5"= av."key5" AND a."type"= 'raw'
+			WHERE av."dataType" = '#Type';
+`;
+		for (const type of types) {
+			switch (type) {
+				case 'Boolean':
+					queries.push(insertStatement.replaceAll('#Type', type).replaceAll('#Value', `"val"::BOOLEAN`));
+					break;
+				case 'Number':
+					queries.push(insertStatement.replaceAll('#Type', type).replaceAll('#Value', `"val"::numeric`));
+					break;
+				case 'DateTime':
+					queries.push(insertStatement.replaceAll('#Type', type).replaceAll('#Value', `to_timestamp("val"::numeric)`));
+					break;
+				default:
+					queries.push(insertStatement.replaceAll('#Type', type).replaceAll('#Value', `"val"`));
+					break;
+
+			}
+		}
+
+		const queryStatement = queries.join('\n');
+		this.log.trace(`ActivitiesRepository> moveActivityValues> queryStatement:${queryStatement}`);
+		await this.executeQuery(queryStatement, sharedConnection);
+		this.log.debug(`ActivitiesRepository> moveActivityValues> exit`);
+
+	}
+
+	public async loadDataFromS3(event: { executionId: string, sequence: number, activityValueKey: string }, bucket: string, sharedConnection?: Client) {
+		this.log.debug(`ActivitiesRepository> loadDataFromS3> in: executionId:${event.executionId}, sequence:${event.sequence}`);
+
+		const insertDeNormalizedActivityValueStatement = `SELECT aws_s3.table_import_from_s3(
+			'"ActivityValue_${event.executionId}_${event.sequence}"',
+			'"activityId","groupId","pipelineId","executionId","dateString","key1","key2","key3","key4","key5","isDeletion","name","createdAtString","val","error","errorMessage","auditId","dataType"',
+			'(format csv, header 1)',
+			'${bucket}',
+			'${event.activityValueKey}',
+			'${process.env['AWS_REGION']}',
+			'${process.env['AWS_ACCESS_KEY_ID']}',
+			'${process.env['AWS_SECRET_ACCESS_KEY']}',
+			'${process.env['AWS_SESSION_TOKEN']}'
+		);
+		 `;
+		this.log.trace(`ActivitiesRepository> loadDataFromS3> insertDeNormalizedActivityValueStatement: ${insertDeNormalizedActivityValueStatement}`);
+		await this.executeQuery(insertDeNormalizedActivityValueStatement, sharedConnection);
+
+		this.log.debug(`ActivitiesRepository> loadDataFromS3> completed`);
+	}
+
+	// Fetch a list of active queries that match our input
+	public async getMatchingQueries(str: string, sharedConnection?: Client): Promise<Record<string, string>[]> {
+		this.log.debug(`ActivitiesRepository> getMatchingQueries> in: atr:${str}`);
+
+		const query = `SELECT
+		pid,
+		now() - pg_stat_activity.query_start AS duration,
+		query,
+		state
+	  	FROM pg_stat_activity
+	  	where state = 'active' and query like '${str}';
+		`;
+		const results = await this.executeQuery(query, sharedConnection);
+		this.log.trace(`ActivitiesRepository> getMatchingQueries> results:${results}`);
+		this.log.debug(`ActivitiesRepository> getMatchingQueries> exit`);
+		return results;
 	}
 
 	private async executeQueriesInsideTransaction(queries: string[]): Promise<void> {
@@ -467,7 +638,6 @@ ORDER BY  v."activityId", v.name, v."createdAt" desc`);
 		this.log.debug(`ActivitiesRepository> buildInsertAggregatedActivityQuery> out: ${insertStatements}`);
 		return insertStatements;
 	}
-
 
 	private buildInsertActivityStatement(activity: Record<string, string>, insertActivityReference: string, groupId: string, pipelineId: string, aggregateMetadata: {
 		fields: Aggregate[],
@@ -839,179 +1009,6 @@ ${limitClause}`;
 
 		// join the column select statements with a comma
 		return columnSelects.join(',\n');
-	}
-
-	public async createTempTables(event: { executionId: string, sequence: number }, sharedConnection?: Client) {
-		this.log.debug(`ActivitiesRepository> createTempTables> in: event:${JSON.stringify(event)}`);
-		let createStatement = '';
-
-		//Create temporary de normalized activity value table
-		createStatement += `CREATE UNLOGGED TABLE IF NOT EXISTS "ActivityValue_${event.executionId}_${event.sequence}" (
-			"activityId" varchar(128),
-			"groupId" varchar(128),
-			"pipelineId" varchar(32),
-			"executionId" varchar(32),
-			"dateString" varchar(26) NOT NULL,
-			"isDeletion" boolean DEFAULT false,
-			key1 varchar(128),
-			key2 varchar(128),
-			key3 varchar(128),
-			key4 varchar(128),
-			key5 varchar(128),
-			"name" varchar(128),
-			"createdAtString" varchar(32),
-			val varchar(1024),
-			error boolean,
-			"errorMessage" varchar(512),
-			"auditId" uuid,
-			"dataType" varchar(26));
-			\n`;
-
-		this.log.trace(`ActivitiesRepository> createTempTables> query: ${createStatement}`);
-		await this.executeQuery(createStatement, sharedConnection);
-		this.log.debug(`ActivitiesRepository> createTempTables> exit`);
-	}
-
-	public async cleanupTempTables(events: { executionId: string, sequence: number }[], sharedConnection?: Client, dropFlag?: boolean) {
-		this.log.debug(`ActivitiesRepository> cleanupTempTables> in: ActivityEvents:${JSON.stringify(events)}`);
-		let cleanupStatement = '';
-		const executionId = events[0].executionId;
-
-		for (const event of events) {
-			const tablePostfix = `${executionId}_${event.sequence}`;
-			//TODO: This truncate statement might cause session pinning need further load testing to confirm
-			cleanupStatement += `
-			do $$
-			BEGIN
-			IF (SELECT EXISTS (
-				SELECT FROM
-					information_schema.tables
-				WHERE
-					table_schema LIKE 'public' AND
-					table_type LIKE 'BASE TABLE' AND
-					table_name = 'ActivityValue_${tablePostfix}'
-				)) THEN
-				TRUNCATE "ActivityValue_${tablePostfix}";
-			END IF;
-			END;
-			$$;\n`;
-
-			if (dropFlag) {
-				cleanupStatement += (`DROP TABLE "ActivityValue_${tablePostfix}"; \n `);
-			}
-		}
-
-		this.log.trace(`ActivitiesRepository> cleanupTempTables> query: ${cleanupStatement}`);
-		await this.executeQuery(cleanupStatement, sharedConnection);
-		this.log.debug(`ActivitiesRepository> cleanupTempTables> exit`);
-	}
-
-
-	public async getCountTempTables(executionId: string, sharedConnection?: Client) {
-		this.log.debug(`ActivitiesRepository> getCountTempTables> in: executionId:${executionId}`);
-
-		const queryStatement = `SELECT COUNT(*) FROM information_schema.tables WHERE table_name like 'ActivityValue_${executionId}%'`;
-		const queryResponse = await this.executeQuery(queryStatement, sharedConnection);
-
-		this.log.trace(`ActivitiesRepository> getCountTempTables> exit : ${JSON.stringify(queryResponse)}`);
-		const count: number = Number(queryResponse?.[0]?.['count']) ?? 0;
-
-		this.log.debug(`ActivitiesRepository> getCountTempTables> exit count: ${count}`);
-		return count;
-	}
-
-	public async moveActivities(event: { executionId: string, sequence: number }, auditVersion: number, sharedConnection?: Client) {
-		this.log.debug(`ActivitiesRepository> moveActivities> in: executionId:${event.executionId}, sequence:${event.sequence}`);
-
-		const queryStatement = `INSERT INTO "Activity"("groupId", "pipelineId", "date", "key1", "key2","key3","key4","key5", "auditVersion")
-			SELECT t."groupId", t."pipelineId", to_timestamp("dateString"::numeric), t."key1", t."key2",t."key3",t."key4",t."key5",'${auditVersion}'
-			FROM "ActivityValue_${event.executionId}_${event.sequence}" t
-			LEFT JOIN "Activity" a
-			ON a."groupId"=t."groupId" AND a."pipelineId"=t."pipelineId" AND a."date"=to_timestamp("dateString"::numeric) AND a."type"='raw'
-			AND a."key1"= t."key1" AND a."key2"=t."key2" AND a."key3"=t."key3" AND a."key4"=t."key4" AND a."key5"=t."key5"
-			where a."activityId" IS NULL
-			GROUP BY t."groupId", t."pipelineId", to_timestamp("dateString"::numeric), t."key1", t."key2",t."key3",t."key4",t."key5"`;
-
-		this.log.trace(`ActivitiesRepository> moveActivities> queryStatement:${queryStatement}`);
-		await this.executeQuery(queryStatement, sharedConnection);
-		this.log.debug(`ActivitiesRepository> moveActivities> exit`);
-
-	}
-
-
-	public async moveActivityValues(event: { executionId: string, sequence: number }, sharedConnection?: Client) {
-		this.log.debug(`ActivitiesRepository> moveActivityValues> in: executionId:${event.executionId}, sequence:${event.sequence}`);
-		let queries = [];
-		const types = ['Boolean', 'DateTime', 'Number', 'String'];
-
-		const insertStatement = `INSERT INTO "Activity#TypeValue" ("activityId","name", "createdAt", "executionId", "val", "error", "errorMessage", "auditId")
-			SELECT a."activityId","name", to_timestamp("createdAtString"::numeric), '${event.executionId}', #Value, "error","errorMessage","auditId"
-			FROM "ActivityValue_${event.executionId}_${event.sequence}" av
-			JOIN "Activity" a on a."groupId"= av."groupId" AND a."pipelineId"= av."pipelineId" AND a."date"= to_timestamp(av."dateString"::numeric) AND a."key1"= av."key1" AND a."key2"= av."key2" AND a."key3"= av."key3" AND a."key4"= av."key4" AND a."key5"= av."key5" AND a."type"= 'raw'
-			WHERE av."dataType" = '#Type';
-`;
-		for (const type of types) {
-			switch (type) {
-				case 'Boolean':
-					queries.push(insertStatement.replaceAll('#Type', type).replaceAll('#Value', `"val"::BOOLEAN`));
-					break;
-				case 'Number':
-					queries.push(insertStatement.replaceAll('#Type', type).replaceAll('#Value', `"val"::numeric`));
-					break;
-				case 'DateTime':
-					queries.push(insertStatement.replaceAll('#Type', type).replaceAll('#Value', `to_timestamp("val"::numeric)`));
-					break;
-				default:
-					queries.push(insertStatement.replaceAll('#Type', type).replaceAll('#Value', `"val"`));
-					break;
-
-			}
-		}
-
-		const queryStatement = queries.join('\n');
-		this.log.trace(`ActivitiesRepository> moveActivityValues> queryStatement:${queryStatement}`);
-		await this.executeQuery(queryStatement, sharedConnection);
-		this.log.debug(`ActivitiesRepository> moveActivityValues> exit`);
-
-	}
-
-	public async loadDataFromS3(event: { executionId: string, sequence: number, activityValueKey: string }, bucket: string, sharedConnection?: Client) {
-		this.log.debug(`ActivitiesRepository> loadDataFromS3> in: executionId:${event.executionId}, sequence:${event.sequence}`);
-
-		const insertDeNormalizedActivityValueStatement = `SELECT aws_s3.table_import_from_s3(
-			'"ActivityValue_${event.executionId}_${event.sequence}"',
-			'"activityId","groupId","pipelineId","executionId","dateString","key1","key2","key3","key4","key5","isDeletion","name","createdAtString","val","error","errorMessage","auditId","dataType"',
-			'(format csv, header 1)',
-			'${bucket}',
-			'${event.activityValueKey}',
-			'${process.env['AWS_REGION']}',
-			'${process.env['AWS_ACCESS_KEY_ID']}',
-			'${process.env['AWS_SECRET_ACCESS_KEY']}',
-			'${process.env['AWS_SESSION_TOKEN']}'
-		);
-		 `;
-		this.log.trace(`ActivitiesRepository> loadDataFromS3> insertDeNormalizedActivityValueStatement: ${insertDeNormalizedActivityValueStatement}`);
-		await this.executeQuery(insertDeNormalizedActivityValueStatement, sharedConnection);
-
-		this.log.debug(`ActivitiesRepository> loadDataFromS3> completed`);
-	}
-
-	// Fetch a list of active queries that match our input
-	public async getMatchingQueries(str: string, sharedConnection?: Client): Promise<Record<string, string>[]> {
-		this.log.debug(`ActivitiesRepository> getMatchingQueries> in: atr:${str}`);
-
-		const query = `SELECT
-		pid,
-		now() - pg_stat_activity.query_start AS duration,
-		query,
-		state
-	  	FROM pg_stat_activity
-	  	where state = 'active' and query like '${str}';
-		`;
-		const results = await this.executeQuery(query, sharedConnection);
-		this.log.trace(`ActivitiesRepository> getMatchingQueries> results:${results}`);
-		this.log.debug(`ActivitiesRepository> getMatchingQueries> exit`);
-		return results;
 	}
 
 }

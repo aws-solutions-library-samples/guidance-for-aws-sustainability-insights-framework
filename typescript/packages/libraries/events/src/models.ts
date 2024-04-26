@@ -11,7 +11,7 @@
  *  and limitations under the License.
  */
 
-import { Type, Static } from '@sinclair/typebox';
+import { Static, Type } from '@sinclair/typebox';
 
 export type EventSource = typeof ACCESS_MANAGEMENT_EVENT_SOURCE;
 
@@ -78,8 +78,6 @@ export const inputConnectorResponseEventDetail = Type.Object(
 );
 
 
-
-
 export const connectorSetupEventDetail = Type.Object(
 	{
 		pipelineId: Type.String(),
@@ -112,6 +110,9 @@ export const PIPELINE_EVENT_SOURCE: string = 'com.aws.sif.pipeline';
 export const PIPELINE_PROCESSOR_CONNECTOR_REQUEST_EVENT = `SIF>${PIPELINE_PROCESSOR_EVENT_SOURCE}>connectorIntegration>request`;
 export const PIPELINE_PROCESSOR_CONNECTOR_RESPONSE_EVENT = `SIF>${PIPELINE_PROCESSOR_EVENT_SOURCE}>connectorIntegration>response`;
 export const PIPELINE_CONNECTOR_SETUP_EVENT = `SIF>${PIPELINE_EVENT_SOURCE}>connector>setup`;
+export const outputConnectorRequest = (connectorType: string) => {
+	return `SIF>${PIPELINE_PROCESSOR_EVENT_SOURCE}>outputConnector>${connectorType}>request`;
+};
 
 export type Status = Static<typeof status>;
 export type InputConnectorEvent = Static<typeof inputConnectorEvent>;

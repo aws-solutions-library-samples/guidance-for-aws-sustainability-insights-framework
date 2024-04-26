@@ -2,6 +2,18 @@
   "name": "@sif/infrastructure-tenant",
   "entries": [
     {
+      "version": "7.18.1",
+      "tag": "@sif/infrastructure-tenant_v7.18.1",
+      "date": "Wed, 24 Apr 2024 20:52:53 GMT",
+      "comments": {
+        "patch": [
+          {
+            "comment": "Refactor pipeline state machines"
+          }
+        ]
+      }
+    },
+    {
       "version": "7.18.0",
       "tag": "@sif/infrastructure-tenant_v7.18.0",
       "date": "Wed, 13 Dec 2023 02:37:37 GMT",

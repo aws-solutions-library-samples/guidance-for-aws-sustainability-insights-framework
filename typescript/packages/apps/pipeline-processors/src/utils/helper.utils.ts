@@ -35,12 +35,20 @@ export function getQueriesDownloadFileKey(bucketPrefix: string, queryId: string)
 	return `${bucketPrefix}/${queryId}/result.csv`;
 }
 
+export function getPipelineExecutionCalculatorOutputMetadata(bucketPrefix: string, pipelineId: string, executionId: string): string {
+	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/calculatorOutputMetadata.json`;
+}
+
 export function getPipelineInputKey(bucketPrefix: string, pipelineId: string, executionId: string, type: string): string {
 	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/input/${type}`;
 }
 
 export function getPipelineOutputKey(bucketPrefix: string, pipelineId: string, executionId: string): string {
 	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/output/result.csv`;
+}
+
+export function getPipelineImpactCreationOutputKey(bucketPrefix: string, pipelineId: string, executionId: string): string {
+	return `${bucketPrefix}/${pipelineId}/executions/${executionId}/output/pendingTask.csv`;
 }
 
 export function getTaskExecutionResultKey(bucketPrefix: string, pipelineId: string, executionId: string, sequence: number): string {

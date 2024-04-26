@@ -505,6 +505,12 @@
 			"shouldPublish": true
 		},
 		{
+			"packageName": "@sif/data-fabric-pipeline-connector",
+			"projectFolder": "typescript/packages/connectors/data-fabric",
+			"reviewCategory": "production",
+			"shouldPublish": true
+		},
+		{
 			"packageName": "@sif/clean-rooms-pipeline-input-connector",
 			"projectFolder": "typescript/packages/connectors/clean-rooms",
 			"reviewCategory": "production",
@@ -545,7 +551,7 @@
 			"projectFolder": "typescript/packages/libraries/cdk-common",
 			"reviewCategory": "production",
 			"shouldPublish": true
-		},
+		}
 		// {
 		//   /**
 		//    * The NPM package name of the project (must match package.json)

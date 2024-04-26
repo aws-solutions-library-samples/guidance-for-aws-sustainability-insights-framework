@@ -27,7 +27,7 @@ import pkg from 'aws-xray-sdk';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import type { LambdaRequestContext } from '@sif/clients';
-import { CalculatorClient, ConnectorClient, ExecutionClient, ImpactClient, MetricClient, PipelineClient } from '@sif/clients';
+import { CalculatorClient, ConnectorClient, ExecutionClient, ImpactClient, MetricClient, PipelineClient, ReferenceDatasetClient } from '@sif/clients';
 import { DynamoDbUtils } from '@sif/dynamodb-utils';
 import { EventPublisher, PIPELINE_PROCESSOR_EVENT_SOURCE } from '@sif/events';
 import { BaseCradle, registerBaseAwilix } from '@sif/resource-api-base';
@@ -40,10 +40,10 @@ import { PipelineProcessorsService } from '../api/executions/service.js';
 import { PipelineExecutionUtils } from '../api/executions/utils.js';
 import { MetricsService } from '../api/metrics/service.js';
 import { BaseRepositoryClient } from '../data/base.repository.js';
-import { AggregationTaskAuroraRepository } from '../stepFunction/tasks/aggregationTask.aurora.repository.js';
+import { AggregationTaskAuroraRepository } from '../stepFunction/services/aggregationTask.aurora.repository.js';
 import { CalculationTask } from '../stepFunction/tasks/calculationTask.js';
-import { PipelineAggregationTaskService } from '../stepFunction/tasks/pipelineAggregationTask.service.js';
-import { ResultProcessorTask } from '../stepFunction/tasks/resultProcessorTask.js';
+import { PipelineAggregationTask } from '../stepFunction/tasks/pipelineAggregationTask';
+import { ActivityResultProcessorTask } from '../stepFunction/tasks/activityResultProcessorTask';
 import { VerifyTask } from '../stepFunction/tasks/verifyTask.js';
 import { ActivityDownloadStartTask } from '../stepFunction/tasks/activityDownloadStartTask.js';
 import { ConnectorUtility } from '../utils/connectorUtility.js';
@@ -51,16 +51,15 @@ import { ConnectorUtility } from '../utils/connectorUtility.js';
 import { convertGroupRolesToCognitoGroups, SecurityContext, SecurityScope } from '@sif/authz';
 import { ExecutionAuditExportService } from '../api/executions/auditExport.service.js';
 import { MetricsRepositoryV2 } from '../api/metrics/repositoryV2.js';
-import { InsertLatestValuesTaskService } from '../stepFunction/tasks/insertLatestValues.service.js';
-import { MetricAggregationRepository } from '../stepFunction/tasks/metricAggregationRepository.js';
-import { MetricAggregationTaskServiceV2 } from '../stepFunction/tasks/metricAggregationTaskV2.service.js';
+import { InsertLatestValuesTask } from '../stepFunction/tasks/insertLatestValuesTask.js';
+import { MetricAggregationRepository } from '../stepFunction/services/metricAggregationRepository.js';
+import { MetricAggregationTaskV2 } from '../stepFunction/tasks/metricAggregationTaskV2.js';
 import { SqlResultProcessorTask } from '../stepFunction/tasks/sqlResultProcessorTask.js';
 import { AuditExportUtil } from '../utils/auditExport.util.js';
-import { InsertActivityBulkService } from '../stepFunction/tasks/insertActivityBulk.service.js';
+import { InsertActivityBulkTask } from '../stepFunction/tasks/insertActivityBulkTask';
 import { MetricsMigrationUtil } from '../utils/metricsMigration.util.js';
 import { AggregationUtil } from '../utils/aggregation.util.js';
-import { RawResultProcessorTask } from '../stepFunction/tasks/rawResultProcessorTask.js';
-import { ImpactCreationTask } from '../stepFunction/tasks/impactCreationTask.js';
+import { DataResultProcessorTask } from '../stepFunction/tasks/dataResultProcessorTask';
 import { InlineExecutionService } from '../api/executions/inlineExecution.service.js';
 import { ActivityDownloadUtil } from '../utils/activityDownload.util.js';
 import { ActivityDownloadInitiateTask } from '../stepFunction/tasks/activityDownloadInitiateTask.js';
@@ -68,11 +67,17 @@ import { ActivityDownloadVerifyTask } from '../stepFunction/tasks/activityDownlo
 import { SSMClient } from '@aws-sdk/client-ssm';
 import { MetricAggregationJobService } from '../api/aggregations/service.js';
 import { MetricAggregationJobRepository } from '../api/aggregations/repository.js';
-import { SaveAggregationJobTaskService } from '../stepFunction/tasks/saveAggregationJobTask.service.js';
+import { SaveAggregationJobTask } from '../stepFunction/tasks/saveAggregationJobTask';
 import { PlatformResourceUtility } from '../utils/platformResource.utility.js';
 import { CalculatorResultUtil } from '../utils/calculatorResult.util.js';
 import { ConnectorIntegrationEventProcessor } from '../events/connectorIntegration.eventProcessor.js';
 import { ConnectorSetupEventProcessor } from '../events/connectorSetup.eventProcessor.js';
+import { ReferenceDatasetCreationTask } from '../stepFunction/tasks/referenceDatasetCreationTask.js';
+import { ReferenceDatasetVerificationTask } from '../stepFunction/tasks/referenceDatasetVerificationTask.js';
+import { CloudWatchMetricService } from '../stepFunction/services/cloudWatchMetric.service.js';
+import { ResourceTagsService } from '../stepFunction/services/resourceTags.service.js';
+import { MetricExportTask } from '../stepFunction/tasks/metricExportTask.js';
+import { ImpactCreationTask } from '../stepFunction/tasks/impactCreationTask.js';
 
 const { captureAWSv3Client } = pkg;
 
@@ -89,8 +94,8 @@ export type GetSignedUrl = <InputTypesUnion extends object, InputType extends In
 declare module '@fastify/awilix' {
 	interface Cradle extends BaseCradle {
 		aggregationTaskAuroraRepository: AggregationTaskAuroraRepository;
-		aggregationTaskServiceV2: MetricAggregationTaskServiceV2;
-		pipelineAggregationTaskService: PipelineAggregationTaskService;
+		aggregationTaskV2: MetricAggregationTaskV2;
+		pipelineAggregationTask: PipelineAggregationTask;
 		calculationTask: CalculationTask;
 		calculatorClient: CalculatorClient;
 		dynamoDbUtils: DynamoDbUtils;
@@ -99,11 +104,12 @@ declare module '@fastify/awilix' {
 		eventPublisher: EventPublisher;
 		metricClient: MetricClient;
 		impactClient: ImpactClient;
-		resultProcessorTask: ResultProcessorTask;
+		activityResultProcessorTask: ActivityResultProcessorTask;
 		sqlResultProcessorTask: SqlResultProcessorTask;
 		pipelineClient: PipelineClient;
 		executionClient: ExecutionClient;
 		connectorClient: ConnectorClient;
+		referenceDatasetClient: ReferenceDatasetClient;
 		connectorUtility: ConnectorUtility;
 		pipelineProcessorsRepository: PipelineProcessorsRepository;
 		pipelineProcessorsService: PipelineProcessorsService;
@@ -115,6 +121,8 @@ declare module '@fastify/awilix' {
 		connectorIntegrationEventProcessor: ConnectorIntegrationEventProcessor;
 		connectorSetupEventProcessor: ConnectorSetupEventProcessor;
 		verifyTask: VerifyTask;
+		referenceDatasetCreationTask: ReferenceDatasetCreationTask;
+		referenceDatasetVerificationTask: ReferenceDatasetVerificationTask;
 		activityDownloadInitiateTask: ActivityDownloadInitiateTask;
 		activityDownloadStartTask: ActivityDownloadStartTask;
 		activityDownloadVerifyTask: ActivityDownloadVerifyTask;
@@ -129,23 +137,26 @@ declare module '@fastify/awilix' {
 		getLambdaRequestContext: GetLambdaRequestContext;
 		getSignedUrl: GetSignedUrl;
 		metricAggregationRepository: MetricAggregationRepository;
-		insertLatestValuesTaskService: InsertLatestValuesTaskService;
+		insertLatestValuesTask: InsertLatestValuesTask;
 		pipelineExecutionUtils: PipelineExecutionUtils;
 		athenaClient: AthenaClient;
 		auditExportUtil: AuditExportUtil;
 		activityDownloadUtil: ActivityDownloadUtil;
 		executionAuditExportService: ExecutionAuditExportService;
-		insertActivityBulkService: InsertActivityBulkService;
+		insertActivityBulkTask: InsertActivityBulkTask;
 		metricsMigrationUtil: MetricsMigrationUtil;
 		aggregationUtil: AggregationUtil;
-		rawResultProcessorTask: RawResultProcessorTask;
-		impactCreationTask: ImpactCreationTask;
+		dataResultProcessorTask: DataResultProcessorTask;
 		inlineExecutionService: InlineExecutionService;
 		metricAggregationJobService: MetricAggregationJobService;
 		metricAggregationJobRepository: MetricAggregationJobRepository;
-		saveAggregationJobTaskService: SaveAggregationJobTaskService;
+		saveAggregationJobTask: SaveAggregationJobTask;
 		platformResourceUtility: PlatformResourceUtility;
 		calculatorUtil: CalculatorResultUtil;
+		cloudWatchMetricService: CloudWatchMetricService;
+		resourceTagsService: ResourceTagsService;
+		metricExportTask: MetricExportTask;
+		impactCreationTask: ImpactCreationTask;
 	}
 }
 
@@ -227,12 +238,13 @@ const registerContainer = (app?: FastifyInstance) => {
 		lifetime: Lifetime.SINGLETON
 	};
 
-	const taskParallelLimit = parseInt(process.env['TASK_PARALLEL_LIMIT']);
+	const taskParallelLimit = parseInt(process.env['TASK_PARALLEL_LIMIT'] ?? '10');
 	const awsRegion = process.env['AWS_REGION'];
 	const eventBusName = process.env['EVENT_BUS_NAME'];
 	const tableName = process.env['TABLE_NAME'];
 	const calculatorFunctionName = process.env['CALCULATOR_FUNCTION_NAME'];
 	const pipelineFunctionName = process.env['PIPELINES_FUNCTION_NAME'];
+	const referenceDatasetFunctionName = process.env['REFERENCE_DATASETS_FUNCTION_NAME'];
 	const pipelineProcessorFunctionName = process.env['PIPELINE_PROCESSOR_FUNCTION_NAME'];
 	const impactFunctionName = process.env['IMPACTS_FUNCTION_NAME'];
 	const chunkSize = parseInt(process.env['CHUNK_SIZE']);
@@ -241,6 +253,7 @@ const registerContainer = (app?: FastifyInstance) => {
 	const dataJobStateMachineArn = process.env['DATA_PIPELINE_JOB_STATE_MACHINE_ARN'];
 	const activitiesJobStateMachineArn = process.env['ACTIVITIES_PIPELINE_JOB_STATE_MACHINE_ARN'];
 	const activitiesDownloadStateMachineArn = process.env['ACTIVITIES_DOWNLOAD_STATE_MACHINE_ARN'];
+	const referenceDatasetStateMachineArn = process.env['REFERENCE_DATASET_STATE_MACHINE_ARN'];
 	const metricAggregationStateMachineArn = process.env['METRIC_AGGREGATION_STATE_MACHINE_ARN'];
 	const rdsDBHost = process.env['RDS_PROXY_ENDPOINT'];
 	const rdsTenantUsername = process.env['TENANT_USERNAME'];
@@ -303,6 +316,9 @@ const registerContainer = (app?: FastifyInstance) => {
 		pipelineClient: asFunction((container: Cradle) => new PipelineClient(app.log, container.invoker, pipelineFunctionName), {
 			...commonInjectionOptions
 		}),
+		referenceDatasetClient: asFunction((container: Cradle) => new ReferenceDatasetClient(app.log, container.invoker, referenceDatasetFunctionName), {
+			...commonInjectionOptions
+		}),
 		executionClient: asFunction((container: Cradle) => new ExecutionClient(app.log, container.invoker, pipelineProcessorFunctionName), {
 			...commonInjectionOptions
 		}),
@@ -319,26 +335,26 @@ const registerContainer = (app?: FastifyInstance) => {
 				...commonInjectionOptions
 			}
 		),
+		resourceTagsService: asFunction((container: Cradle) => new ResourceTagsService(app.log, container.referenceDatasetClient, container.impactClient, getLambdaRequestContext, taskParallelLimit)),
 		pipelineExecutionUtils: asFunction((container: Cradle) => new PipelineExecutionUtils(app.log, container.authChecker, auditLogWaitTimeSeconds)),
 		inlineExecutionService: asFunction((container: Cradle) =>
 			new InlineExecutionService(
 				app.log,
 				container.pipelineProcessorsRepository,
 				container.calculatorClient,
-				container.s3Client,
-				BUCKET_NAME as string,
-				BUCKET_PREFIX as string,
 				container.metricClient,
 				container.stepFunctionClient,
 				metricAggregationStateMachineArn,
-				container.impactCreationTask,
-				container.insertActivityBulkService,
+				container.insertActivityBulkTask,
 				container.sqlResultProcessorTask,
-				container.insertLatestValuesTaskService,
-				container.pipelineAggregationTaskService,
-				container.resultProcessorTask,
-				container.saveAggregationJobTaskService,
-				container.eventPublisher)),
+				container.dataResultProcessorTask,
+				container.insertLatestValuesTask,
+				container.pipelineAggregationTask,
+				container.activityResultProcessorTask,
+				container.saveAggregationJobTask,
+				container.eventPublisher,
+				container.calculatorUtil,
+				container.impactCreationTask)),
 		pipelineProcessorsService: asFunction(
 			(container: Cradle) =>
 				new PipelineProcessorsService(
@@ -380,6 +396,7 @@ const registerContainer = (app?: FastifyInstance) => {
 					container.s3Client,
 					activitiesJobStateMachineArn,
 					dataJobStateMachineArn,
+					referenceDatasetStateMachineArn,
 					sourceDataBucket,
 					sourceDataBucketPrefix,
 					container.pipelineClient,
@@ -417,7 +434,17 @@ const registerContainer = (app?: FastifyInstance) => {
 		), {
 			...commonInjectionOptions
 		}),
-
+		cloudWatchMetricService: asFunction(
+			(container: Cradle) =>
+				new CloudWatchMetricService(
+					app.log,
+					container.cloudWatchClient,
+					container.stepFunctionClient
+				),
+			{
+				...commonInjectionOptions
+			}
+		),
 		verifyTask: asFunction((container: Cradle) => new VerifyTask(app.log, container.pipelineClient, container.pipelineProcessorsService, container.s3Client, chunkSize, container.getLambdaRequestContext), {
 			...commonInjectionOptions
 		}),
@@ -430,29 +457,36 @@ const registerContainer = (app?: FastifyInstance) => {
 		activityDownloadVerifyTask: asFunction((container: Cradle) => new ActivityDownloadVerifyTask(app.log, container.activityDownloadUtil), {
 			...commonInjectionOptions
 		}),
-		resultProcessorTask: asFunction((container: Cradle) => new ResultProcessorTask(app.log, container.s3Client, container.stepFunctionClient, container.cloudWatchClient, container.pipelineClient, container.getLambdaRequestContext, container.calculatorUtil, container.pipelineProcessorsRepository, container.eventPublisher), {
+		activityResultProcessorTask: asFunction((container: Cradle) => new ActivityResultProcessorTask(app.log, container.s3Client, container.stepFunctionClient, container.cloudWatchMetricService, container.pipelineClient, container.getLambdaRequestContext, container.calculatorUtil, container.pipelineProcessorsRepository, container.eventPublisher, container.resourceTagsService, container.connectorUtility), {
 			...commonInjectionOptions
 		}),
-		sqlResultProcessorTask: asFunction((container: Cradle) => new SqlResultProcessorTask(app.log, container.pipelineProcessorsRepository, container.metricClient, container.getLambdaRequestContext, container.activitiesRepository, container.eventPublisher), {
-			...commonInjectionOptions
-		}),
-		rawResultProcessorTask: asFunction((container: Cradle) => new RawResultProcessorTask(app.log, container.calculatorUtil, container.pipelineProcessorsService), {
-			...commonInjectionOptions
-		}),
-		impactCreationTask: asFunction((container: Cradle) => new ImpactCreationTask(app.log, container.s3Client, sourceDataBucket, container.impactClient, container.getLambdaRequestContext), {
+		referenceDatasetCreationTask: asFunction((container: Cradle) => new ReferenceDatasetCreationTask(app.log, container.getLambdaRequestContext, container.referenceDatasetClient, container.pipelineClient, container.pipelineProcessorsService, container.s3Client, container.calculatorClient, container.calculatorUtil), {
 			...commonInjectionOptions
 		}),
 
+		referenceDatasetVerificationTask: asFunction((container: Cradle) => new ReferenceDatasetVerificationTask(app.log, container.getLambdaRequestContext, container.referenceDatasetClient, container.pipelineProcessorsService, container.pipelineClient, container.connectorUtility, BUCKET_PREFIX), {
+			...commonInjectionOptions
+		}),
+
+		sqlResultProcessorTask: asFunction((container: Cradle) => new SqlResultProcessorTask(app.log, container.pipelineProcessorsRepository, container.metricClient, container.getLambdaRequestContext, container.activitiesRepository, container.eventPublisher, container.calculatorUtil), {
+			...commonInjectionOptions
+		}),
+		impactCreationTask: asFunction((container: Cradle) => new ImpactCreationTask(app.log, container.s3Client, BUCKET_NAME, container.impactClient, container.pipelineProcessorsRepository, container.eventPublisher, container.pipelineClient, container.getLambdaRequestContext, container.connectorUtility), {
+			...commonInjectionOptions
+		}),
+		dataResultProcessorTask: asFunction((container: Cradle) => new DataResultProcessorTask(app.log, container.calculatorUtil), {
+			...commonInjectionOptions
+		}),
 		metricClient: asFunction((container: Cradle) => new MetricClient(app.log, container.invoker, pipelineFunctionName), {
 			...commonInjectionOptions
 		}),
 		aggregationTaskAuroraRepository: asFunction((container: Cradle) => new AggregationTaskAuroraRepository(app.log, container.baseRepositoryClient), {
 			...commonInjectionOptions
 		}),
-		aggregationTaskServiceV2: asFunction((container: Cradle) => new MetricAggregationTaskServiceV2(app.log, container.metricClient, container.aggregationTaskAuroraRepository, container.utils, container.metricAggregationRepository, container.aggregationUtil, container.metricAggregationJobService), {
+		aggregationTaskV2: asFunction((container: Cradle) => new MetricAggregationTaskV2(app.log, container.metricClient, container.aggregationTaskAuroraRepository, container.utils, container.metricAggregationRepository, container.aggregationUtil, container.metricAggregationJobService), {
 			...commonInjectionOptions
 		}),
-		pipelineAggregationTaskService: asFunction((container: Cradle) => new PipelineAggregationTaskService(app.log, container.activitiesRepository, container.pipelineProcessorsRepository, container.pipelineClient, container.aggregationUtil), {
+		pipelineAggregationTask: asFunction((container: Cradle) => new PipelineAggregationTask(app.log, container.activitiesRepository, container.pipelineProcessorsRepository, container.pipelineClient, container.aggregationUtil), {
 			...commonInjectionOptions
 		}),
 		activitiesRepository: asFunction((container: Cradle) => new ActivitiesRepository(app.log, container.baseRepositoryClient), {
@@ -476,10 +510,10 @@ const registerContainer = (app?: FastifyInstance) => {
 		metricsService: asFunction((container: Cradle) => new MetricsService(app.log, container.metricRepoV2, container.authChecker, container.metricClient, sourceDataBucket, 'queries', container.s3Client, container.getSignedUrl, container.sqsClient, taskQueueUrl, container.platformResourceUtility), {
 			...commonInjectionOptions
 		}),
-		insertActivityBulkService: asFunction((container: Cradle) => new InsertActivityBulkService(app.log, container.activitiesRepository, container.s3Client, sourceDataBucket, sourceDataBucketPrefix, Number(AUDIT_VERSION), container.stepFunctionClient), {
+		insertActivityBulkTask: asFunction((container: Cradle) => new InsertActivityBulkTask(app.log, container.activitiesRepository, container.s3Client, sourceDataBucket, sourceDataBucketPrefix, Number(AUDIT_VERSION), container.stepFunctionClient), {
 			...commonInjectionOptions
 		}),
-		insertLatestValuesTaskService: asFunction((container: Cradle) => new InsertLatestValuesTaskService(app.log, container.activitiesRepository), {
+		insertLatestValuesTask: asFunction((container: Cradle) => new InsertLatestValuesTask(app.log, container.activitiesRepository), {
 			...commonInjectionOptions
 		}),
 		metricsMigrationUtil: asFunction((container: Cradle) => new MetricsMigrationUtil(app.log, container.baseRepositoryClient), {
@@ -497,10 +531,12 @@ const registerContainer = (app?: FastifyInstance) => {
 			...commonInjectionOptions
 		}),
 
-		saveAggregationJobTaskService: asFunction((container: Cradle) => new SaveAggregationJobTaskService(app.log, container.metricAggregationJobService, container.activitiesRepository, container.aggregationUtil), {
+		saveAggregationJobTask: asFunction((container: Cradle) => new SaveAggregationJobTask(app.log, container.metricAggregationJobService, container.activitiesRepository, container.aggregationUtil), {
 			...commonInjectionOptions
 		}),
-
+		metricExportTask: asFunction((container: Cradle) => new MetricExportTask(app.log, container.metricRepoV2, container.utils, sourceDataBucket, container.connectorUtility, container.pipelineClient, container.pipelineProcessorsService, container.getLambdaRequestContext), {
+			...commonInjectionOptions
+		}),
 		activityDownloadUtil: asFunction((container: Cradle) => new ActivityDownloadUtil(app.log, container.s3Client, container.stepFunctionClient, sourceDataBucket, 'queries', container.activitiesRepository, container.metricRepoV2, activitiesDownloadStateMachineArn), {
 			...commonInjectionOptions
 		}),
@@ -528,12 +564,14 @@ const registerContainer = (app?: FastifyInstance) => {
 		getSecurityContext: asFunction(
 			(container: Cradle) => {
 				return async (executionId: string, role?: SecurityScope, groupContextId?: string) => {
+					let email = 'sif-pipeline-execution';
 					if (!groupContextId) {
 						const pipelineExecution = await container.pipelineProcessorsRepository.get(executionId);
 						groupContextId = pipelineExecution.groupContextId;
+						email = pipelineExecution.createdBy;
 					}
 					return {
-						email: 'sif-pipeline-execution',
+						email,
 						groupId: `${groupContextId}`,
 						groupRoles: { [`${groupContextId}`]: role ?? SecurityScope.contributor }
 					};

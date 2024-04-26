@@ -12,7 +12,7 @@
  */
 
 import type { BaseLogger } from 'pino';
-import type { Transformer, Transform } from '../common/models.js';
+import type { Transform, Transformer } from '../common/models.js';
 import { TransformerDefinitionError } from '../common/errors.js';
 
 export class TransformerValidator {
@@ -56,6 +56,16 @@ export class TransformerValidator {
 
 	}
 
+	public validateReferenceDatasetsPipelineTransformer(transformer: Transformer) {
+		this.log.debug(`TransformerValidator> validateReferenceDatasetsPipelineTransformer> in: transformer :${transformer}`);
+
+		// rule: validate unsupported features such as metric an aggregations
+		this.validateUnsupportedMetricsAndAggregations(transformer);
+		// rule: validate mandatory output column names [activityName, impactName, componentKey, componentValue, componentType].
+		this.validateReferenceDatasetsRequiredColumns(transformer);
+		// rule: validate that no parameters are specified in the transforms definition
+		this.validateReferenceDatasetsHasNoParameters(transformer);
+	}
 
 	private validateCommonRules(transformer: Transformer) {
 		this.log.debug(`TransformerValidator> validateCommonRules> in: transformer :${transformer}`);
@@ -141,7 +151,7 @@ export class TransformerValidator {
 			if (invalidAggregateType > 0) {
 				throw new TransformerDefinitionError(`Only fields with number type can be aggregated using aggregation functions other than groupBy.`);
 			}
-			if(numberAggregatedField === 0){
+			if (numberAggregatedField === 0) {
 				throw new TransformerDefinitionError(`There should be at least 1 number field that is being aggregated using aggregation functions.`);
 			}
 		}
@@ -238,15 +248,123 @@ export class TransformerValidator {
 		});
 	}
 
-	private validateImpactsRequiredColumns(transformer: Transformer) {
-		this.log.debug(`Validator> validateImpactsRequiredColumns> in: outputs:${JSON.stringify(transformer)}`);
-		const mandatoryOutputColNames = ['activityName', 'impactName', 'componentKey', 'componentValue', 'componentType'];
+	private validateReferenceDatasetsHasNoParameters(transformer: Transformer) {
+		this.log.debug(`Validator> validateReferenceDatasetsHasNoParameters> in: outputs:${JSON.stringify(transformer)}`);
+
+		if (transformer.parameters.length > 0) {
+			throw new TransformerDefinitionError('Reference Dataset pipeline transformer formula does not require parameters from uploaded file, but specified as string in the formula');
+		}
+	}
+
+	private validateReferenceDatasetsRequiredColumns(transformer: Transformer) {
+		this.log.debug(`Validator> validateReferenceDatasetsRequiredColumns> in: outputs:${JSON.stringify(transformer)}`);
+		const mandatoryOutputColNames = ['name', 'description'];
 		// so, we need to extract all the output keys from the individual transforms. We map the transforms then we map the outputs then we flatten the array, but this doesn't eliminate any dupes, we handle that by sticking the gnarly one-liner into a set
 		const transformOutputNames = new Set(transformer.transforms.map(t => t.outputs.map(o => o.key)).flat());
 
 		// check if the mandatory output names are present in the transform output names
 		if (!mandatoryOutputColNames.every(x => transformOutputNames.has(x))) {
-			throw new TransformerDefinitionError('Missing mandatory output columns. For data pipeline type the following columns are mandatory \'activityName\', \'impactName\', \'componentKey\', \'componentValue\', \'componentType\'');
+			throw new TransformerDefinitionError('Missing mandatory output columns. For data pipeline type the following columns are mandatory \'name\', \'description\'');
+		}
+	}
+
+	private assembleActivityResource(outputKeys: Set<string>): Record<string, any> {
+		this.log.debug(`DataResultProcessorTask > assembleActivity > outputKeys: ${JSON.stringify(outputKeys)}`);
+
+		const activity: Record<string, any> = {
+			name: undefined,
+			description: undefined,
+			attributes: {},
+			tags: {},
+			impacts: {}
+		};
+
+		const initializeImpact = (impactKey: string) => {
+			if (!activity['impacts'][impactKey]) {
+				activity['impacts'][impactKey] = {
+					name: undefined,
+					attributes: {},
+					components: {},
+				};
+			}
+		};
+
+		const initializeComponent = (impactKey: string, componentKey: string) => {
+			if (!activity['impacts'][impactKey].components[componentKey]) {
+				activity['impacts'][impactKey].components[componentKey] = {
+					key: undefined,
+					value: undefined,
+					type: undefined,
+				};
+			}
+		};
+
+		for (const prop of outputKeys.values()) {
+			if (prop === 'activity:name') {
+				activity['name'] = true;
+			} else if (prop === 'activity:description') {
+				activity['description'] = true;
+			} else if (prop.startsWith('activity:attribute:')) {
+				const key = prop.replace('activity:attribute:', '');
+				activity['attributes'][key] = true;
+			} else if (prop.startsWith('activity:tag:')) {
+				const key = prop.replace('activity:tag:', '');
+				activity['tags'][key] = true;
+			} else if (prop.startsWith('impact:')) {
+				const keys = prop.split(':');
+				const impactKey = keys[1];
+				const impactProperty = keys[2];
+				if (impactProperty === 'name') {
+					initializeImpact(impactKey);
+					activity['impacts'][impactKey].name = true;
+				} else if (impactProperty === 'attribute') {
+					initializeImpact(impactKey);
+					const impactAttributeKey = keys[3];
+					activity['impacts'][impactKey].attributes[impactAttributeKey] = true;
+				} else if (impactProperty === 'component') {
+					initializeImpact(impactKey);
+					const componentKey = keys[3];
+					const componentProperty = keys[4];
+					initializeComponent(impactKey, componentKey);
+					activity['impacts'][impactKey].components[componentKey][componentProperty] = true;
+				}
+			}
+		}
+
+		this.log.debug(`DataResultProcessorTask > process > exit> activity: ${JSON.stringify(activity)}`);
+		return activity;
+	}
+
+
+	private validateImpactsRequiredColumns(transformer: Transformer) {
+		this.log.debug(`Validator> validateImpactsRequiredColumns> in: outputs:${JSON.stringify(transformer)}`);
+		// so, we need to extract all the output keys from the individual transforms. We map the transforms then we map the outputs then we flatten the array, but this doesn't eliminate any dupes, we handle that by sticking the gnarly one-liner into a set
+		const transformOutputNames = new Set(transformer.transforms.map(t => t.outputs.map(o => o.key)).flat());
+
+		const assembledPayload = this.assembleActivityResource(transformOutputNames);
+
+
+		if (assembledPayload['name'] === undefined) {
+			throw new TransformerDefinitionError('Missing mandatory output columns. Missing column \'activity:name\' used to specify the activity name.');
+		}
+
+		if (assembledPayload['impacts'] == undefined || Object.keys(assembledPayload['impacts']).length < 1) {
+			throw new TransformerDefinitionError(`Missing mandatory output columns. There are no impact columns specified. You have to specify at least the column 'impacts:<impact name>:name'.`);
+		}
+
+		for (let impact in assembledPayload['impacts']) {
+			if (!assembledPayload['impacts'][impact]['name']) {
+				throw new TransformerDefinitionError(`Missing output columns. The impact ${impact} missing the required column 'impacts:<impact name>:name'.`);
+			}
+			if (!assembledPayload['impacts'][impact]['components'] || Object.keys(assembledPayload['impacts'][impact]['components']).length < 1) {
+				throw new TransformerDefinitionError(`Missing mandatory output column for components. You have to specify at least one component per impacts. The output keys should be 'impact:<impact name>:component:<component name>:key', 'impact:<impact name>:component:<component name>:type', 'impact:<impact name>:component:<component name>:value'`);
+			}
+
+			for (let component in assembledPayload['impacts'][impact]['components']) {
+				if (!assembledPayload['impacts'][impact]['components'][component]['key'] || !assembledPayload['impacts'][impact]['components'][component]['type'] || !assembledPayload['impacts'][impact]['components'][component]['value']) {
+					throw new TransformerDefinitionError(`Missing mandatory output column for component '${component}' under impact '${impact}' . The output keys should be 'impact:<impact name>:component:<component name>:key', 'impact:<impact name>:component:<component name>:type', 'impact:<impact name>:component:<component name>:value'`);
+				}
+			}
 		}
 
 	}

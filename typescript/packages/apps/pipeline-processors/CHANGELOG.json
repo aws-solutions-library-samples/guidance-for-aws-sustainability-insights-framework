@@ -2,6 +2,18 @@
   "name": "@sif/pipeline-processors",
   "entries": [
     {
+      "version": "4.15.0",
+      "tag": "@sif/pipeline-processors_v4.15.0",
+      "date": "Wed, 24 Apr 2024 20:52:53 GMT",
+      "comments": {
+        "minor": [
+          {
+            "comment": "Add data fabric integration and connectors"
+          }
+        ]
+      }
+    },
+    {
       "version": "4.14.0",
       "tag": "@sif/pipeline-processors_v4.14.0",
       "date": "Wed, 13 Dec 2023 02:37:37 GMT",

@@ -15,14 +15,14 @@ import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from '../../app.light';
 import type { PipelineAggregationTaskHandler, ProcessedTaskEvent } from '../tasks/model.js';
-import type { PipelineAggregationTaskService } from '../tasks/pipelineAggregationTask.service.js';
+import type { PipelineAggregationTask } from '../tasks/pipelineAggregationTask.js';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
 export const handler: PipelineAggregationTaskHandler = async (event, _context, _callback): Promise<ProcessedTaskEvent> => {
 	app.log.debug(`PipelineAggregationHandler> handler> event: ${JSON.stringify(event)}`);
-	const task = di.resolve<PipelineAggregationTaskService>('pipelineAggregationTaskService');
+	const task = di.resolve<PipelineAggregationTask>('pipelineAggregationTask');
 	await task.process(event);
 	app.log.debug(`PipelineAggregationHandler> handler> exit:`);
 	return event;

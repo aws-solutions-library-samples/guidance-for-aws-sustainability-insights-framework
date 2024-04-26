@@ -18,6 +18,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @ToString(callSuper = true)
@@ -28,11 +29,13 @@ public class InlineTransformResponse extends TransformResponse {
     private List<String> errors;
 
     @Builder
-    public InlineTransformResponse(List<String> headers, List<String> data, List<String> errors, boolean noActivitiesProcessed, String activityValueKey) {
+    public InlineTransformResponse(List<String> headers, List<String> data, List<String> errors, boolean noActivitiesProcessed, String activityValueKey, Map<String, Map<String, String>> referenceDatasets, Map<String, Map<String, String>> activities) {
         this.headers = headers;
         this.data = data;
         this.errors = errors;
 		this.noActivitiesProcessed = noActivitiesProcessed;
         this.activityValueKey = activityValueKey;
+        this.activities = activities;
+        this.referenceDatasets = referenceDatasets;
     }
 }

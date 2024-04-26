@@ -15,14 +15,12 @@ import type { FastifyBaseLogger } from 'fastify';
 import { ulid } from 'ulid';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
-dayjs.extend(utc);
-
 import type { SecurityContext } from '@sif/authz';
-import { GroupPermissions, SecurityScope, atLeastAdmin, atLeastReader, atLeastContributor } from '@sif/authz';
-import { AlternateIdInUseError, NotFoundError, UnauthorizedError, GroupService, TagService, ResourceService, MergeUtils, InvalidRequestError, State } from '@sif/resource-api-base';
+import { atLeastAdmin, atLeastContributor, atLeastReader, GroupPermissions, SecurityScope } from '@sif/authz';
+import { AlternateIdInUseError, GroupService, InvalidRequestError, MergeUtils, NotFoundError, ResourceService, State, TagService, UnauthorizedError } from '@sif/resource-api-base';
 import type { CalculatorClient, CalculatorRequest, ConnectorConfig, Transform } from '@sif/clients';
 
-import type { Pipeline, PipelineUpdateParams, PipelineCreateParams, PipelineVersionListType, DryRunResponse, Transformer, PipelineConnectors } from './schemas.js';
+import type { DryRunResponse, Pipeline, PipelineConnectors, PipelineCreateParams, PipelineUpdateParams, PipelineVersionListType, Transformer } from './schemas.js';
 import type { PipelineListOptions, PipelineListPaginationKey, PipelineRepository, PipelineVersionPaginationKey } from './repository.js';
 import { PkType } from '../utils/pkUtils.utils.js';
 import { InvalidOutputMetricError, PipelineDefinitionError } from '../common/errors.js';
@@ -30,7 +28,9 @@ import type { MetricService } from '../metrics/service.js';
 import type { ConnectorService } from '../connectors/service.js';
 import type { Connector } from '../connectors/schemas.js';
 import type { PipelineValidator } from './validator.js';
-import { EventBridgeEventBuilder, EventPublisher, ConnectorSetupEventDetail, PIPELINE_CONNECTOR_SETUP_EVENT, PIPELINE_EVENT_SOURCE } from '@sif/events';
+import { ConnectorSetupEventDetail, EventBridgeEventBuilder, EventPublisher, PIPELINE_CONNECTOR_SETUP_EVENT, PIPELINE_EVENT_SOURCE } from '@sif/events';
+
+dayjs.extend(utc);
 
 export class PipelineService {
 	private readonly log: FastifyBaseLogger;
@@ -91,17 +91,17 @@ export class PipelineService {
 		await this.validateAlias(sc, params.name);
 
 		// validate the transformer object
-		await this.validator.validatePipeline(params);
+		this.validator.validatePipeline(params);
 
 		// if connectors config is defined on the pipeline, lets validate it
-		if(params.connectorConfig) {
-			await this.validateConnectorConfig(sc, params.connectorConfig)
+		if (params.connectorConfig) {
+			await this.validateConnectorConfig(sc, params.connectorConfig);
 		} else {
 			throw new PipelineDefinitionError(`Input connector config is required. Specify connectorConfig and an input connector for the pipeline. To check the available default connectors, The list can be retrieved from the connectors API`);
 		}
 
 		let metrics;
-		if(params.type === 'activities') {
+		if (params.type === 'activities') {
 			// validate any referenced metrics
 			metrics = await this.extractMetrics(sc, params.transformer, true);
 
@@ -117,8 +117,8 @@ export class PipelineService {
 		const now = new Date(Date.now()).toISOString();
 
 		// if connectors config is defined on the pipeline, validate if it needs infrastructure deployment and set the pipeline status accordingly
-		let state:State = 'enabled';
-		if(params.connectorConfig) {
+		let state: State = 'enabled';
+		if (params.connectorConfig) {
 			const isDeployable = await this.isConnectorDeployable(sc, params.connectorConfig, 'create');
 			state = (isDeployable) ? 'disabled' : 'enabled';
 		}
@@ -142,7 +142,7 @@ export class PipelineService {
 		await this.repository.create(pipeline);
 		await this.tagService.submitGroupSummariesProcess(sc.groupId, PkType.Pipeline, pipeline.tags, {});
 
-		if(params.type === 'activities') {
+		if (params.type === 'activities') {
 			// link any referenced metric's to the pipeline
 			for (const metric of metrics) {
 				await this.metricService.linkPipeline(sc, metric.metricId, { id: pipeline.id, output: metric.output });
@@ -150,7 +150,7 @@ export class PipelineService {
 		}
 
 		// if connectors config is defined on the pipeline, generate applicable deployment event
-		if(params.connectorConfig) {
+		if (params.connectorConfig) {
 			await this.generateConnectorDeploymentEvent(sc, params.connectorConfig, pipeline, 'create');
 		}
 
@@ -373,8 +373,8 @@ export class PipelineService {
 		const existing = await this.get(sc, pipelineId, undefined, true);
 
 		// if connectors config is defined on the pipeline, lets validate it
-		if(params.connectorConfig) {
-			await this.validateConnectorConfig(sc, params.connectorConfig)
+		if (params.connectorConfig) {
+			await this.validateConnectorConfig(sc, params.connectorConfig);
 		}
 
 		// merge the existing and to be updated
@@ -649,7 +649,7 @@ export class PipelineService {
 		pipeline.transformer.transforms.forEach((transform) => {
 			transform.outputs.forEach((output) => {
 				delete output._keyMapping;
-			})
+			});
 		});
 		delete pipeline._aggregatedOutputKeyAndTypeMap;
 
@@ -694,48 +694,41 @@ export class PipelineService {
 
 	private validateConnectorConfigParameters(connectorConfig: ConnectorConfig, connector: Connector): void {
 		// validate the specified parameters if they are provided on the connectorConfig for the pipeline
-		if(connectorConfig.parameters) {
+		if (connectorConfig.parameters) {
 			// lets get all the parameter names from the connector obeject itself, we will use these for our comparison
 			const parameterNames = connector.parameters.map((p) => p.name);
 			// we will get the keys for the parameters overrided on the pipeline's connectorConfiguration object and then do a match,
 			// if we dont find a match, it means we have a parameter override which isnt define on the connectors parameter config
-			const isMatch = Object.keys(connectorConfig.parameters).every(k => parameterNames.includes(k))
+			const isMatch = Object.keys(connectorConfig.parameters).every(k => parameterNames.includes(k));
 
 			// if it doenst match, then we will throw an error here
-			if(!isMatch) {
+			if (!isMatch) {
 				throw new InvalidRequestError(`unknown parameter overrides specified: ${JSON.stringify(connectorConfig.parameters)}, valid parameters for this connector are: ${JSON.stringify(parameterNames)}`);
 			}
 		}
 	}
 
-	private async validateConnectorConfig(sc:SecurityContext,  connectors: PipelineConnectors): Promise<void> {
+	private async validateConnectorConfig(sc: SecurityContext, connectors: PipelineConnectors): Promise<void> {
 		this.log.debug(`PipelineService> validateConnectorConfig: in> connectorsConfig:${connectors}`);
 
-		// check if config for input connectors is specified
-		if(connectors.input) {
-			// if so, then check if there is more than 1
-			if(connectors.input.length > 1) {
-				// throw an error if there is more than 1, we can only have 1 input connector for now
-				throw new PipelineDefinitionError('Can only have one input connector specified for a pipeline');
+		const checkConnectorFutures = ['input', 'output'].map(async (type: 'input' | 'output') => {
+			// check if config for input connectors is specified
+			if (connectors[type]) {
+				// if so, then check if there is more than 1
+				if (connectors[type].length > 1) {
+					// throw an error if there is more than 1, we can only have 1 input connector for now
+					throw new PipelineDefinitionError('Can only have one input/output connector specified for a pipeline');
+				}
+				// let's get the connectorConfig specified
+				const connectorConfig = connectors[type][0];
+				// this will throw an error if a connector by the name isn't found
+				const connector = await this.connectorService.getByName(sc, connectorConfig.name);
+				// lets validate the overridden parameters for the pipeline
+				this.validateConnectorConfigParameters(connectorConfig, connector);
 			}
-			// let's get the connectorConfig specified for the input
-			const connectorConfig = connectors.input[0];
-			// this will throw an error if a connector by the name isn't found
-			const connector = await this.connectorService.getByName(sc, connectorConfig.name);
-			// if its found, lets validate if the connector is the correct type, only of type 'input' can be defined in the input section of the connector config
-			if(connector.type !== 'input'){
-				throw new PipelineDefinitionError('Only connectors of type input can be specified in the input configuration section of the pipeline');
-			}
+		});
 
-			// lets validate the overridden parameters for the pipeline
-			this.validateConnectorConfigParameters(connectorConfig, connector);
-		}
-
-		// we will validate the output connector config separately
-		if (connectors.output) {
-			// for now, you cannot define output connectors. Only input connectors are supported for now.
-			throw new PipelineDefinitionError('No output connectors are supported for pipelines ');
-		}
+		await Promise.all(checkConnectorFutures);
 	}
 
 	private async validateOutputMetrics(metrics: Metrics): Promise<void> {
@@ -747,30 +740,30 @@ export class PipelineService {
 		}
 	}
 
-	private async generateConnectorDeploymentEvent(sc:SecurityContext,  connectors: PipelineConnectors, pipeline: Pipeline, action:string):Promise<void> {
+	private async generateConnectorDeploymentEvent(sc: SecurityContext, connectors: PipelineConnectors, pipeline: Pipeline, action: string): Promise<void> {
 		this.log.debug(`PipelineService> generateConnectorDeploymentEvent: in> connectorsConfig:${connectors}`);
 
 		const isDeployable = await this.isConnectorDeployable(sc, connectors, action);
-			// generate deployment event only when connector deploymentMethod is managed-pipeline
-			if(isDeployable){
-				// this will throw an error if a connector by the name isn't found
-				const detail:ConnectorSetupEventDetail = {
-					pipelineId:pipeline.id,
-					group:pipeline.groups[0],
-					type: action,
-					connector: connectors.input[0]
-				}
-				const event = new EventBridgeEventBuilder()
+		// generate deployment event only when connector deploymentMethod is managed-pipeline
+		if (isDeployable) {
+			// this will throw an error if a connector by the name isn't found
+			const detail: ConnectorSetupEventDetail = {
+				pipelineId: pipeline.id,
+				group: pipeline.groups[0],
+				type: action,
+				connector: connectors.input[0]
+			};
+			const event = new EventBridgeEventBuilder()
 				.setEventBusName(this.eventBusName)
 				.setSource(PIPELINE_EVENT_SOURCE)
 				.setDetailType(PIPELINE_CONNECTOR_SETUP_EVENT)
 				.setDetail(detail);
 
-				this.log.debug(`PipelineService> generateConnectorDeploymentEvent: exit> event:${JSON.stringify(event)}`);
+			this.log.debug(`PipelineService> generateConnectorDeploymentEvent: exit> event:${JSON.stringify(event)}`);
 
-				// publish the connector setup event
-				await this.eventPublisher.publish(event);
-			}
+			// publish the connector setup event
+			await this.eventPublisher.publish(event);
+		}
 	}
 
 	private async isConnectorDeployable(sc: SecurityContext, connectors: PipelineConnectors, action: string): Promise<boolean> {
@@ -811,7 +804,6 @@ export class PipelineService {
 		return isDeployable;
 	}
 }
-
 
 
 type Metrics = {

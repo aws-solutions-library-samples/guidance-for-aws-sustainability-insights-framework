@@ -16,15 +16,19 @@ package com.aws.sif;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.Map;
+
 @ToString(callSuper = true)
 public class S3TransformResponse extends TransformResponse {
 
-    @Getter
-    private S3Location errorLocation;
+	@Getter
+	private S3Location errorLocation;
 
-    public S3TransformResponse(S3Location errorLocation, boolean noActivitiesProcessed, String activityValueKey) {
-        this.errorLocation = errorLocation;
+	public S3TransformResponse(S3Location errorLocation, boolean noActivitiesProcessed, String activityValueKey, Map<String, Map<String, String>> referenceDatasets, Map<String, Map<String, String>> activities) {
+		this.errorLocation = errorLocation;
 		this.noActivitiesProcessed = noActivitiesProcessed;
-        this.activityValueKey = activityValueKey;
-    }
+		this.activityValueKey = activityValueKey;
+		this.activities = activities;
+		this.referenceDatasets = referenceDatasets;
+	}
 }

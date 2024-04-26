@@ -17,8 +17,8 @@ Designing a pipeline involves the following steps:
 A data input connector instructs SIF how to connect to a specific data source in order to retrieve the data for processing. Out of the box SIF includes the following connectors:
 
 - `sif-csv-pipeline-input-connector`: allows ingesting data stored as CSV
-- `sif-clean-rooms-pipeline-input-connector`: allows ingesting data stored as CSV
-
+- `sif-cleanRooms-pipeline-input-connector`: allows running query using AWS CleanRooms and uses the result as pipeline input
+- `sif-dataZone-pipeline-input-connector`: allows ingesting data asset published in DataZone.
 
 
 ## Walk-through(s)

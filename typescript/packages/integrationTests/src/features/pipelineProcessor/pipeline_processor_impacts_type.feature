@@ -36,7 +36,7 @@ Feature:
 		Given I'm using the pipelines api
 		And I authenticate using email pipeline_processor_impacts_admin@amazon.com and password p@ssword1
 		And I set x-groupcontextid header to /pipelineProcessorImpactsTest
-		And I set body to {"tags":{"testSource":"pipelineProcessorsImpactsType"},"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"integration"},"type":"impacts","name":"Simple Impact Pipeline Type","description":"Simple pipeline that creates impact","transformer":{"transforms":[{"index":0,"formula":":activityName","outputs":[{"description":"Activity Name","index":0,"key":"activityName","label":"Column A","type":"string"}]},{"index":1,"formula":":impactName","outputs":[{"description":"Impact Name","index":0,"key":"impactName","label":"Column A","type":"string"}]},{"index":2,"formula":":componentKey","outputs":[{"description":"Component Key","index":0,"key":"componentKey","label":"Column A","type":"string"}]},{"index":3,"formula":":componentValue","outputs":[{"description":"Component Value","index":0,"key":"componentValue","label":"Column A","type":"number"}]},{"index":4,"formula":":componentType","outputs":[{"description":"Component Type","index":0,"key":"componentType","label":"Column A","type":"string"}]},{"index":5,"formula":":tagValue","outputs":[{"description":"Tag Value","index":0,"key":"activity_tag_testSource","label":"Column A","type":"string"}]}],"parameters":[{"index":0,"key":"activityName","label":"activityName","description":"Activity Name","type":"string"},{"index":1,"key":"impactName","label":"impactName","description":"Impact Name","type":"string"},{"index":2,"key":"componentKey","label":"componentKey","description":"Component Key","type":"string"},{"index":3,"key":"componentValue","label":"componentValue","description":"Component Value","type":"number"},{"index":4,"key":"componentType","label":"componentType","description":"Component Type","type":"string"},{"index":5,"key":"tagValue","label":"tagValue","description":"Tag Value","type":"string"}]}}
+		And I set body to {"tags":{"testSource":"pipelineProcessorsImpactsType"},"connectorConfig":{"input":[{"name":"sif-csv-pipeline-input-connector"}]},"attributes":{"type":"integration"},"type":"impacts","name":"Simple Impact Pipeline Type","description":"Simple pipeline that creates impact","transformer":{"transforms":[{"index":0,"formula":":activityName","outputs":[{"description":"Activity Name","index":0,"key":"activity:name","label":"Column A","type":"string"}]},{"index":1,"formula":":impactName","outputs":[{"description":"Impact Name","index":0,"key":"impact:impactKey:name","label":"Column A","type":"string"}]},{"index":2,"formula":":componentKey","outputs":[{"description":"Component Key","index":0,"key":"impact:impactKey:component:co2e:key","label":"Column A","type":"string"}]},{"index":3,"formula":":componentValue","outputs":[{"description":"Component Value","index":0,"key":"impact:impactKey:component:co2e:value","label":"Column A","type":"number"}]},{"index":4,"formula":":componentType","outputs":[{"description":"Component Type","index":0,"key":"impact:impactKey:component:co2e:type","label":"Column A","type":"string"}]},{"index":5,"formula":":tagValue","outputs":[{"description":"Tag Value","index":0,"key":"activity:tag:testSource","label":"Column A","type":"string"}]}],"parameters":[{"index":0,"key":"activityName","label":"activityName","description":"Activity Name","type":"string"},{"index":1,"key":"impactName","label":"impactName","description":"Impact Name","type":"string"},{"index":2,"key":"componentKey","label":"componentKey","description":"Component Key","type":"string"},{"index":3,"key":"componentValue","label":"componentValue","description":"Component Value","type":"number"},{"index":4,"key":"componentType","label":"componentType","description":"Component Type","type":"string"},{"index":5,"key":"tagValue","label":"tagValue","description":"Tag Value","type":"string"}]}}
 		When I POST to /pipelines
 		Then response code should be 201
 		And response body should contain id
@@ -54,12 +54,12 @@ Feature:
 		And response body path $.status should be success
 		And response body should not contain $.inlineExecutionOutputs.errors
 		# Activities are returned as part of inline execution response
-		And response body path $.inlineExecutionOutputs.outputs[0]["activityName"] should be inlineActivity
-		And response body path $.inlineExecutionOutputs.outputs[0]["impactName"] should be inlineImpact
-		And response body path $.inlineExecutionOutputs.outputs[0]["componentKey"] should be co2e
-		And response body path $.inlineExecutionOutputs.outputs[0]["componentValue"] should be 10
-		And response body path $.inlineExecutionOutputs.outputs[0]["componentType"] should be carbon
-		And response body path $.inlineExecutionOutputs.outputs[0]["activity_tag_testSource"] should be pipelineProcessorsImpactsType
+		And response body path $.inlineExecutionOutputs.outputs[0]["activity:name"] should be inlineActivity
+		And response body path $.inlineExecutionOutputs.outputs[0]["impact:impactKey:name"] should be inlineImpact
+		And response body path $.inlineExecutionOutputs.outputs[0]["impact:impactKey:component:co2e:key"] should be co2e
+		And response body path $.inlineExecutionOutputs.outputs[0]["impact:impactKey:component:co2e:value"] should be 10
+		And response body path $.inlineExecutionOutputs.outputs[0]["impact:impactKey:component:co2e:type"] should be carbon
+		And response body path $.inlineExecutionOutputs.outputs[0]["activity:tag:testSource"] should be pipelineProcessorsImpactsType
 
 	Scenario: Upload Input File for the created pipeline
 		Given I'm using the pipelineProcessor api
@@ -76,8 +76,8 @@ Feature:
 		When I GET /pipelines/`pipeline_processor_data_pipeline_id`/executions
 		Then response code should be 200
 		And response body path $.executions should be of type array with length 2
-		And the latest execution status should be success
 		And I store the id of the latest execution in variable success_upload_execution_id in global scope
+		And the latest execution status should be success
 
 	Scenario: Retrieve and Validate Output
 		Given I'm using the pipelineProcessor api
@@ -103,14 +103,16 @@ Feature:
 		And response body path $.activities.length should be 2
 		And response body path $.activities[0].name should be inlineActivity
 		And response body path $.activities[0].version should be 1
-		And response body path $.activities[0].impacts.inlineImpact.components.co2e.value should be 10
-		And response body path $.activities[0].impacts.inlineImpact.components.co2e.type should be carbon
-		And response body path $.activities[0].impacts.inlineImpact.components.co2e.key should be co2e
+		And response body path $.activities[0].impacts.impactKey.name should be inlineImpact
+		And response body path $.activities[0].impacts.impactKey.components.co2e.value should be 10
+		And response body path $.activities[0].impacts.impactKey.components.co2e.type should be carbon
+		And response body path $.activities[0].impacts.impactKey.components.co2e.key should be co2e
 		And response body path $.activities[1].name should be testActivity
 		And response body path $.activities[1].version should be 1
-		And response body path $.activities[1].impacts.testImpact.components.co2e.value should be 2
-		And response body path $.activities[1].impacts.testImpact.components.co2e.type should be carbon
-		And response body path $.activities[1].impacts.testImpact.components.co2e.key should be co2e
+		And response body path $.activities[1].impacts.impactKey.name should be testImpact
+		And response body path $.activities[1].impacts.impactKey.components.co2e.value should be 2
+		And response body path $.activities[1].impacts.impactKey.components.co2e.type should be carbon
+		And response body path $.activities[1].impacts.impactKey.components.co2e.key should be co2e
 
 	Scenario: Revoke access to connector from group /pipelineProcessorImpactsTest
 		When I'm using the pipelines api

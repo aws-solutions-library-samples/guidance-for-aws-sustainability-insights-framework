@@ -15,7 +15,7 @@
 	"scripts": {
 		"clean:package": "npx shx rm -rf dist *.log .rush tsconfig.tsbuildinfo",
 		"build:tsc": "npx tsc --project tsconfig.json",
-		"build": "node_modules/.bin/ts-node --esm --prefer-ts-exts esbuild.ts",
+		"build": "node --no-warnings=ExperimentalWarning --loader ts-node/esm esbuild.ts",
 		"test": "npm run build && vitest run"
 	},
 	"dependencies": {
@@ -30,7 +30,7 @@
 		"@types/antlr4-autosuggest": "0.0.1",
 		"@types/antlr4": "4.11.2",
 		"@types/http-errors": "2.0.1",
-		"@types/node": "20.4.2",
+		"@types/node": "20.11.20",
 		"@types/prettier": "2.7.3",
 		"@typescript-eslint/eslint-plugin": "6.1.0",
 		"@typescript-eslint/parser": "6.1.0",

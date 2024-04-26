@@ -42,7 +42,7 @@
 	},
 	"devDependencies": {
 		"@tsconfig/node16-strictest-esm": "1.0.3",
-		"@types/node": "20.4.2",
+		"@types/node": "20.11.20",
 		"@types/prettier": "2.7.3",
 		"@types/pg": "8.10.2",
 		"@typescript-eslint/eslint-plugin": "6.1.0",

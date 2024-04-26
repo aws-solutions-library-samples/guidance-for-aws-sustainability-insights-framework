@@ -11,19 +11,18 @@
  *  and limitations under the License.
  */
 
-import type { Context, SQSEvent, SQSBatchResponse } from 'aws-lambda';
+import type { Context, SQSBatchResponse, SQSEvent } from 'aws-lambda';
 import type { AwilixContainer } from 'awilix';
 import type { FastifyInstance } from 'fastify';
 import { buildLightApp } from './app.light';
-import type { InsertActivityBulkService } from './stepFunction/tasks/insertActivityBulk.service';
+import type { InsertActivityBulkTask } from './stepFunction/tasks/insertActivityBulkTask';
 
 const app: FastifyInstance = await buildLightApp();
 const di: AwilixContainer = app.diContainer;
 
-const insertActivityBulkService: InsertActivityBulkService = di.resolve('insertActivityBulkService');
+const insertActivityBulkTask: InsertActivityBulkTask = di.resolve('insertActivityBulkTask');
 
-
-export const handler= async (event:SQSEvent, _context: Context): Promise<SQSBatchResponse> => {
+export const handler = async (event: SQSEvent, _context: Context): Promise<SQSBatchResponse> => {
 	app.log.info(`SQS > handler > event: ${JSON.stringify(event)}`);
 
 	const response: SQSBatchResponse = { batchItemFailures: [] };
@@ -37,7 +36,7 @@ export const handler= async (event:SQSEvent, _context: Context): Promise<SQSBatc
 			}
 
 			const payload = JSON.parse(r.body);
-			await insertActivityBulkService.process(payload);
+			await insertActivityBulkTask.process(payload);
 		}
 	}
 

@@ -20,11 +20,11 @@ import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { NagSuppressions } from 'cdk-nag';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { fileURLToPath } from 'url';
 import { EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
-import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { getLambdaArchitecture } from '@sif/cdk-common';
 
 export interface SemaphoreConstructProperties {
@@ -227,7 +227,7 @@ export class Semaphore extends Construct {
 				source: ['aws.states'],
 				detail: {
 					'status': ['ABORTED', 'TIMED_OUT', 'FAILED'],
-					'stateMachineArn': [{ suffix: 'activityPipeline' }]
+					'stateMachineArn': [{ suffix: 'activityPipelineSM' }, { suffix: 'metricAggregationSM' }]
 				}
 			}
 		});
