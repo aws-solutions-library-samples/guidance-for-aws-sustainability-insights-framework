@@ -1,3 +1,6 @@
+# ⚠️ Deprecation Warning
+This repository is no longer maintained as of July 2026.
+
 # AWS Sustainability Insights Framework (SIF)
 
 ## Introduction
